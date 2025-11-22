@@ -15,7 +15,7 @@
     "sourceMap": false,
     "moduleResolution": "node",
     "types": ["node"],
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "typeRoots": ["./node_modules/@types", "./src/types", "./src"]
   },
   "include": ["src/**/*", "src/**/*.d.ts"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
