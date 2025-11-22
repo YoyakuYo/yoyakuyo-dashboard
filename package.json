@@ -1,0 +1,40 @@
+{
+  "name": "yoyaku-yo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev:dashboard": "npm run dev --prefix apps/dashboard",
+    "dev:api": "npm run dev --prefix apps/api",
+    "build:dashboard": "npm run build --prefix apps/dashboard",
+    "build:api": "npm run build --prefix apps/api",
+    "build": "npm run build:dashboard && npm run build:api",
+    "supabase:login": "npx supabase login",
+    "supabase:link": "npx supabase link",
+    "supabase:pull": "npx supabase db pull",
+    "supabase:push": "npx supabase db push",
+    "supabase:diff": "npx supabase db diff -f auto_migration --local",
+    "supabase:status": "npx supabase db remote commit",
+    "migrate:check": "node scripts/check-schema.js",
+    "migrate:pre-check": "node scripts/pre-migration-check.js",
+    "migrate:safe": "node scripts/safe-migrate.js",
+    "migrate:auto": "node scripts/safe-migrate.js",
+    "import:japan": "npm run import:japan --prefix apps/api"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "vercel": "^48.10.9"
+  },
+  "dependencies": {
+    "@line/bot-sdk": "^10.5.0",
+    "@supabase/supabase-js": "^2.81.1"
+  }
+}
