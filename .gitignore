@@ -36,4 +36,13 @@ logs/
 
 # Checkpoint files
 import_checkpoint.json
+*.checkpoint.json
+
+# Backup files
+apps/api/backups/
+apps/api/data/*.json
+apps/api/*_log_*.txt
+apps/api/japanese_cities_cache.json
+
+# Vercel
 .vercel
