@@ -9,11 +9,12 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "skipLibCheck": false,
+    "skipLibCheck": true,
     "resolveJsonModule": true,
     "declaration": false,
     "sourceMap": false,
-    "typeRoots": ["./node_modules/@types"]
+    "moduleResolution": "node",
+    "types": ["node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
