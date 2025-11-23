@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -27,11 +27,11 @@ export default function LoginPage() {
         setMessage(`Error: ${error.message}`);
         setLoading(false);
       } else {
-        // Login successful - redirect to home page
+        // Login successful - redirect to dashboard
         setMessage("Login successful! Redirecting...");
         // Small delay to show success message, then redirect
         setTimeout(() => {
-          router.push("/");
+          router.push("/dashboard");
           router.refresh();
         }, 500);
       }
