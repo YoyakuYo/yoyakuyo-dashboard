@@ -174,38 +174,49 @@ function BrowsePageContent() {
 
   // Get shops to display based on current selection
   const displayShops = useMemo(() => {
+    let shops: Shop[] = [];
+    
     if (browseMode === 'area') {
       if (selectedCity && selectedPrefecture) {
-        return areaTree[selectedPrefecture]?.cities[selectedCity]?.shops || [];
-      }
-      if (selectedPrefecture) {
+        shops = areaTree[selectedPrefecture]?.cities[selectedCity]?.shops || [];
+      } else if (selectedPrefecture) {
         // Return all shops in prefecture
         const prefecture = areaTree[selectedPrefecture];
-        if (!prefecture) return [];
-        return Object.values(prefecture.cities).flatMap(city => city.shops);
+        if (prefecture) {
+          shops = Object.values(prefecture.cities).flatMap(city => city.shops);
+        }
       }
-      return [];
     } else {
       // Category mode
       if (selectedCity && selectedPrefecture && selectedCategoryId) {
-        return categoryTree[selectedCategoryId]?.prefectures[selectedPrefecture]?.cities[selectedCity]?.shops || [];
-      }
-      if (selectedPrefecture && selectedCategoryId) {
+        shops = categoryTree[selectedCategoryId]?.prefectures[selectedPrefecture]?.cities[selectedCity]?.shops || [];
+      } else if (selectedPrefecture && selectedCategoryId) {
         const category = categoryTree[selectedCategoryId];
-        if (!category) return [];
-        const prefecture = category.prefectures[selectedPrefecture];
-        if (!prefecture) return [];
-        return Object.values(prefecture.cities).flatMap(city => city.shops);
-      }
-      if (selectedCategoryId) {
+        if (category) {
+          const prefecture = category.prefectures[selectedPrefecture];
+          if (prefecture) {
+            shops = Object.values(prefecture.cities).flatMap(city => city.shops);
+          }
+        }
+      } else if (selectedCategoryId) {
         const category = categoryTree[selectedCategoryId];
-        if (!category) return [];
-        return Object.values(category.prefectures).flatMap(pref => 
-          Object.values(pref.cities).flatMap(city => city.shops)
-        );
+        if (category) {
+          shops = Object.values(category.prefectures).flatMap(pref => 
+            Object.values(pref.cities).flatMap(city => city.shops)
+          );
+        }
       }
-      return [];
     }
+    
+    // Deduplicate shops by ID to prevent duplicate key errors
+    const seen = new Set<string>();
+    return shops.filter(shop => {
+      if (seen.has(shop.id)) {
+        return false;
+      }
+      seen.add(shop.id);
+      return true;
+    });
   }, [browseMode, selectedPrefecture, selectedCity, selectedCategoryId, areaTree, categoryTree]);
 
   // Reset navigation when mode changes
