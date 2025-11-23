@@ -5,5 +5,9 @@
   "installCommand": "npm install",
   "outputDirectory": "apps/dashboard/.next",
   "framework": "nextjs",
-  "rootDirectory": "apps/dashboard"
+  "rootDirectory": "apps/dashboard",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD apps/dashboard",
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
