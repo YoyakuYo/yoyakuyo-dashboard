@@ -8,11 +8,19 @@ const supabaseKey = process.env.SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl) {
-  throw new Error("SUPABASE_URL is missing from .env");
+  console.error("⚠️ SUPABASE_URL is missing from environment variables");
+  if (process.env.NODE_ENV === 'production') {
+    console.error("Please set SUPABASE_URL in Vercel environment variables");
+  }
+  // Don't throw in production - let it fail gracefully when used
 }
 
 if (!supabaseKey) {
-  throw new Error("SUPABASE_ANON_KEY is missing from .env");
+  console.error("⚠️ SUPABASE_ANON_KEY is missing from environment variables");
+  if (process.env.NODE_ENV === 'production') {
+    console.error("Please set SUPABASE_ANON_KEY in Vercel environment variables");
+  }
+  // Don't throw in production - let it fail gracefully when used
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey);

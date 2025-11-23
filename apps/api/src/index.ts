@@ -22,8 +22,17 @@ import line from "./routes/line";
 import qr from "./routes/qr";
 import path from "path";
 
-dotenv.config({ 
-    path: path.resolve(__dirname, "../.env") });
+// Only load .env file if it exists (for local development)
+// In Vercel, environment variables are set in the dashboard
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    dotenv.config({ 
+      path: path.resolve(__dirname, "../.env") 
+    });
+  } catch (error) {
+    // Ignore if .env file doesn't exist
+  }
+}
 
 const app = express();
 
