@@ -23,10 +23,23 @@ if (!supabaseKey) {
   // Don't throw in production - let it fail gracefully when used
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Create Supabase clients only if we have the required environment variables
+// Use placeholder values if missing to prevent immediate crash
+export const supabase = (supabaseUrl && supabaseKey)
+  ? createClient(supabaseUrl, supabaseKey)
+  : createClient(
+      supabaseUrl || 'https://placeholder.supabase.co',
+      supabaseKey || 'placeholder-key',
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    );
 
 // Service role client for admin operations (e.g., generating signed URLs)
-export const supabaseAdmin = supabaseServiceKey
+export const supabaseAdmin = (supabaseUrl && supabaseServiceKey)
   ? createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
