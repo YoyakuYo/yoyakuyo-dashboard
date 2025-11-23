@@ -43,7 +43,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     if (result.success) {
       // Redirect to success page
-      const frontendUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_API_URL?.replace(':3000', ':3001') || 'http://localhost:3001';
+      const frontendUrl = process.env.FRONTEND_URL || process.env.API_URL?.replace(':3000', ':3001') || 'http://localhost:3001';
       return res.redirect(`${frontendUrl}/my-shop?calendar=connected`);
     } else {
       return res.status(400).json({ error: result.error || 'Failed to complete authorization' });

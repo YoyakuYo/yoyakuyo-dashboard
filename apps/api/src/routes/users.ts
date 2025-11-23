@@ -5,13 +5,25 @@ import { Router, Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
 
 const router = Router();
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const dbClient = createClient(supabaseUrl, supabaseServiceKey);
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error("⚠️ SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for /users routes");
+}
+
+const dbClient = (supabaseUrl && supabaseServiceKey)
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;
 
 // GET /users/me - Get current user's preferences
 router.get("/me", async (req: Request, res: Response) => {
   try {
+    if (!dbClient) {
+      return res.status(500).json({ error: "Database not configured. SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required." });
+    }
+
     const userId = req.headers['x-user-id'] as string;
     
     if (!userId) {
@@ -48,6 +60,10 @@ router.get("/me", async (req: Request, res: Response) => {
 // PATCH /users/me/preferences - Update user preferences
 router.patch("/me/preferences", async (req: Request, res: Response) => {
   try {
+    if (!dbClient) {
+      return res.status(500).json({ error: "Database not configured. SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required." });
+    }
+
     const userId = req.headers['x-user-id'] as string;
     const { preferredLanguage } = req.body;
     

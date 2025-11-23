@@ -1,7 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import path from "path";
 
-dotenv.config();
+// Only load .env file if it exists (for local development)
+// In Vercel, environment variables are set in the dashboard
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    dotenv.config({ 
+      path: path.resolve(__dirname, "../../.env") 
+    });
+  } catch (error) {
+    // Ignore if .env file doesn't exist
+  }
+}
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY;

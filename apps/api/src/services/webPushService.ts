@@ -224,7 +224,7 @@ export async function notifyCustomerBookingChange(
         .single();
       
       if (customer?.magic_code) {
-        const frontendUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_API_URL?.replace(':3000', ':3001') || 'http://localhost:3001';
+        const frontendUrl = process.env.FRONTEND_URL || process.env.API_URL?.replace(':3000', ':3001') || 'http://localhost:3001';
         chatUrl = `${frontendUrl}/c/${customer.magic_code}`;
       }
     } catch (customerError) {
