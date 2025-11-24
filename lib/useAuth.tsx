@@ -5,7 +5,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from "react";
 import { User, Session, AuthError } from "@supabase/supabase-js";
-import { supabase } from "./supabaseClient";
+import { getSupabaseClient } from "./supabaseClient";
 import { useRouter } from "next/navigation";
 
 interface AuthContextType {
@@ -38,6 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Get initial session - wrap in try-catch to handle any errors gracefully
     try {
+      const supabase = getSupabaseClient();
+      
       supabase.auth.getSession().then(({ data: { session }, error }) => {
         if (error) {
           console.error("Error getting session:", error);
@@ -86,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
+      const supabase = getSupabaseClient();
       await supabase.auth.signOut();
       router.push("/");
     } catch (error) {

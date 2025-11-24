@@ -1,93 +1,93 @@
-// apps/dashboard/lib/supabaseClient.ts
+// yoyakuyo-dashboard/lib/supabase.ts
 // Browser/client Supabase instance for authentication
+// FIXED: Improved initialization and removed Proxy pattern
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 let supabaseInstance: SupabaseClient | null = null;
+let isInitialized = false;
+
+/**
+ * Validate Supabase environment variables
+ * Throws error if missing (prevents silent failures)
+ */
+function validateSupabaseEnv(): { url: string; key: string } {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    const errorMsg = 
+      "❌ CRITICAL: Supabase environment variables are missing!\n" +
+      "Please set the following in Vercel Environment Variables:\n" +
+      `  - NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl || 'MISSING'}\n` +
+      `  - NEXT_PUBLIC_SUPABASE_ANON_KEY: ${supabaseAnonKey ? 'SET (but may be invalid)' : 'MISSING'}\n` +
+      "\n" +
+      "After setting env vars, redeploy the application.\n" +
+      "Authentication features will not work until these are set.";
+    
+    console.error(errorMsg);
+    throw new Error("Supabase environment variables are missing. Check console for details.");
+  }
+
+  // Validate URL format
+  if (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co')) {
+    console.warn('⚠️ NEXT_PUBLIC_SUPABASE_URL does not look like a valid Supabase URL');
+  }
+
+  // Validate key format (should start with 'eyJ')
+  if (!supabaseAnonKey.startsWith('eyJ')) {
+    console.warn('⚠️ NEXT_PUBLIC_SUPABASE_ANON_KEY does not look like a valid JWT token');
+  }
+
+  return { url: supabaseUrl, key: supabaseAnonKey };
+}
 
 /**
  * Get or create the Supabase client instance.
  * Uses lazy initialization to avoid errors during module load.
- * Forces re-initialization if env vars become available.
+ * ALWAYS validates env vars before creating client.
  */
 export function getSupabaseClient(): SupabaseClient {
-  // Only check env vars in the browser (runtime)
+  // Only initialize in browser (runtime)
   if (typeof window !== "undefined") {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    // If already initialized with valid credentials, return cached instance
+    if (isInitialized && supabaseInstance) {
+      return supabaseInstance;
+    }
 
-    // Debug logging (only in development)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Supabase Client Debug:', {
-        hasUrl: !!supabaseUrl,
-        hasKey: !!supabaseAnonKey,
-        urlLength: supabaseUrl?.length || 0,
-        keyLength: supabaseAnonKey?.length || 0,
-        urlPreview: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'missing',
-        keyPreview: supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'missing',
+    try {
+      // Validate env vars (throws if missing)
+      const { url, key } = validateSupabaseEnv();
+
+      // Create client with validated credentials
+      supabaseInstance = createClient(url, key, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+        },
       });
-    }
 
-    // Check if we have valid env vars
-    if (!supabaseUrl || !supabaseAnonKey) {
-      // If we already have a placeholder client, return it
-      if (supabaseInstance) {
-        console.error(
-          "❌ Supabase environment variables are missing!\n" +
-          "Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel Environment Variables.\n" +
-          "Current values:\n" +
-          `  NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl || 'MISSING'}\n` +
-          `  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${supabaseAnonKey ? 'SET (but may be invalid)' : 'MISSING'}`
-        );
-        return supabaseInstance;
+      isInitialized = true;
+
+      // Debug logging (only in development)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Supabase client initialized successfully', {
+          url: url.substring(0, 30) + '...',
+          keyLength: key.length,
+        });
       }
 
-      // Create a dummy client that will fail gracefully when used
-      console.warn(
-        "⚠️ Supabase environment variables are missing!\n" +
-        "Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel Environment Variables.\n" +
-        "The app will continue to load, but authentication features will not work."
-      );
-      
-      supabaseInstance = createClient(
-        "https://placeholder.supabase.co",
-        "placeholder-key",
-        {
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-          },
-        }
-      );
       return supabaseInstance;
+    } catch (error) {
+      // If validation fails, throw error (don't create placeholder)
+      // This ensures we fail fast and don't silently use invalid credentials
+      console.error('Failed to initialize Supabase client:', error);
+      throw error;
     }
-
-    // If we have valid env vars but client was initialized with placeholders, re-initialize
-    if (supabaseInstance) {
-      const currentUrl = (supabaseInstance as any).supabaseUrl;
-      if (currentUrl === "https://placeholder.supabase.co" || currentUrl !== supabaseUrl) {
-        console.log('🔄 Re-initializing Supabase client with valid credentials');
-        supabaseInstance = null; // Clear cached instance
-      }
-    }
-
-    // Return existing instance if it's already valid
-    if (supabaseInstance) {
-      return supabaseInstance;
-    }
-
-    // Create real client with actual credentials
-    console.log('✅ Initializing Supabase client with valid credentials');
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-      },
-    });
-    return supabaseInstance;
   }
 
-  // During SSR/build, return a placeholder client
+  // During SSR/build, we can't use the client anyway
+  // Return a placeholder that will throw if used
   if (!supabaseInstance) {
     supabaseInstance = createClient(
       "https://placeholder.supabase.co",
@@ -99,23 +99,32 @@ export function getSupabaseClient(): SupabaseClient {
         },
       }
     );
+    console.warn('⚠️ Supabase client created with placeholder (SSR mode). Use getSupabaseClient() only in browser.');
   }
   return supabaseInstance;
 }
 
-// Export a getter that lazily initializes the client
-export const supabase = new Proxy({} as SupabaseClient, {
-  get(_target, prop) {
-    const client = getSupabaseClient();
-    const value = (client as any)[prop];
-    
-    // If it's a function, bind it to the client
-    if (typeof value === "function") {
-      return value.bind(client);
-    }
-    
-    return value;
-  },
-});
+/**
+ * Export supabase instance for backward compatibility
+ * DEPRECATED: Use getSupabaseClient() instead
+ * This is a direct reference, not a Proxy, to avoid binding issues
+ */
+export const supabase = (() => {
+  // Return a getter that always calls getSupabaseClient()
+  // This ensures we always get a fresh, properly initialized client
+  return new Proxy({} as SupabaseClient, {
+    get(_target, prop) {
+      const client = getSupabaseClient();
+      const value = (client as any)[prop];
+      
+      // If it's a function, bind it to the client to preserve 'this' context
+      if (typeof value === "function") {
+        return value.bind(client);
+      }
+      
+      return value;
+    },
+  });
+})();
 
 

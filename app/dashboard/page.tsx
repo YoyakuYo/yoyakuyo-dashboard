@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 import { shopsApi, bookingsApi, servicesApi } from "@/lib/api";
 import Link from "next/link";
 
@@ -45,6 +45,8 @@ export default function DashboardPage() {
   const [loadingServices, setLoadingServices] = useState(false);
 
   useEffect(() => {
+    const supabase = getSupabaseClient();
+    
     // Check authentication
     supabase.auth.getUser().then(({ data: { user }, error }) => {
       if (error || !user) {
@@ -145,6 +147,7 @@ export default function DashboardPage() {
   };
 
   const handleLogout = async () => {
+    const supabase = getSupabaseClient();
     await supabase.auth.signOut();
     router.push("/login");
   };
