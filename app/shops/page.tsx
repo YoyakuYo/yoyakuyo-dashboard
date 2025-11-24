@@ -388,6 +388,7 @@ const MyShopPage = () => {
           console.log('No shop found for user');
           setShop(null);
           setShopForm({});
+          setPageLoading(false);
           return;
         }
         
