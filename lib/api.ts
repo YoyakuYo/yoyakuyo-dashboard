@@ -53,3 +53,13 @@ export const servicesApi = {
     return response;
   },
 };
+
+export const authApi = {
+  async syncUser(userId: string, email: string, name?: string): Promise<any> {
+    return apiClient.post<any>('/auth/sync-user', {
+      user_id: userId,
+      email: email,
+      name: name,
+    });
+  },
+};

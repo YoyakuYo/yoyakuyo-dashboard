@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { authApi } from "@/lib/api";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -27,7 +28,22 @@ export default function LoginPage() {
         setMessage(`Error: ${error.message}`);
         setLoading(false);
       } else {
-        // Login successful - redirect to dashboard
+        // Login successful - sync user to users table
+        if (data.user) {
+          try {
+            await authApi.syncUser(
+              data.user.id,
+              data.user.email || email,
+              data.user.user_metadata?.name
+            );
+            console.log('User synced to users table');
+          } catch (syncError) {
+            // Log error but don't block login
+            console.warn('Failed to sync user to users (non-blocking):', syncError);
+          }
+        }
+
+        // Redirect to dashboard
         setMessage("Login successful! Redirecting...");
         // Small delay to show success message, then redirect
         setTimeout(() => {

@@ -11,6 +11,7 @@ import { AuthError } from '@supabase/supabase-js';
 import { useAuth } from '@/lib/useAuth';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
+import { authApi } from '@/lib/api';
 import { LandingHeader } from './components/LandingHeader';
 import CategoryCarousel from './components/CategoryCarousel';
 
@@ -146,17 +147,18 @@ function HomeContent() {
         console.warn('Session not found after login, using signIn session');
       }
 
-      // Step 3: Fetch user profile from public.users (optional, for display purposes)
-      const { data: userProfile, error: profileError } = await supabase
-        .from('users')
-        .select('id, name, email')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (profileError && profileError.code !== 'PGRST116') {
-        // PGRST116 = no rows returned, which is okay (user might not have profile yet)
-        console.warn('Could not fetch user profile:', profileError);
-        // Continue anyway - user can still access the dashboard
+      // Step 3: Sync user to users table if missing
+      // This ensures authenticated users are synced to users table
+      try {
+        await authApi.syncUser(
+          authData.user.id,
+          authData.user.email || loginEmail,
+          authData.user.user_metadata?.name
+        );
+        console.log('User synced to users table');
+      } catch (syncError) {
+        // Log error but don't block login - user can still access dashboard
+        console.warn('Failed to sync user to users (non-blocking):', syncError);
       }
 
       // Step 4: Close modal and redirect to owner dashboard

@@ -95,7 +95,12 @@ function BrowsePageContent() {
         const contentType = res.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
           const data = await res.json();
-          const shopsArray = Array.isArray(data) ? data : (data.shops || []);
+          // Backend returns: { data: [...], pagination: {...} }
+          const shopsArray = Array.isArray(data) 
+            ? data 
+            : (data.data && Array.isArray(data.data) 
+              ? data.data 
+              : (data.shops || []));
           const visibleShops = shopsArray.filter((shop: Shop) => 
             !shop.claim_status || shop.claim_status !== 'hidden'
           );

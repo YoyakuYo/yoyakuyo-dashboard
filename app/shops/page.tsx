@@ -358,8 +358,8 @@ const MyShopPage = () => {
           return;
         }
 
-        // Fetch shops owned by user - backend now filters by owner_user_id
-        const url = `${apiUrl}/shops?owner_user_id=${encodeURIComponent(user.id)}`;
+        // Fetch shops owned by user - backend filters by owner_user_id when my_shops=true
+        const url = `${apiUrl}/shops?my_shops=true`;
         console.log('Fetching shop from:', url);
         console.log('User ID:', user.id);
         
@@ -394,10 +394,16 @@ const MyShopPage = () => {
         if (res.ok) {
           const contentType = res.headers.get('content-type');
           if (contentType && contentType.includes('application/json')) {
-            const data = await res.json();
-            if (Array.isArray(data) && data.length > 0) {
+            const response = await res.json();
+            // Backend returns: { data: [...], pagination: {...} }
+            const shopsArray = Array.isArray(response) 
+              ? response 
+              : (response.data && Array.isArray(response.data) 
+                ? response.data 
+                : []);
+            if (shopsArray.length > 0) {
               // Use the first shop if multiple exist
-              const userShop = data[0];
+              const userShop = shopsArray[0];
               setShop(userShop);
               setShopForm({
                 name: userShop.name || '',
