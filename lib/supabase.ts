@@ -60,19 +60,10 @@ export function getSupabaseClient(): SupabaseClient {
       const { url, key } = validateSupabaseEnv();
 
       // Create client with validated credentials
-      // Note: CORS is handled by Supabase server-side configuration
-      // Make sure your Vercel domain is added to Supabase Authentication > URL Configuration
       supabaseInstance = createClient(url, key, {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
-          detectSessionInUrl: true,
-          flowType: 'pkce', // Use PKCE flow for better security
-        },
-        global: {
-          headers: {
-            'x-client-info': 'yoyakuyo-dashboard',
-          },
         },
       });
 

@@ -1,40 +1,35 @@
 {
-  "name": "yoyaku-yo",
-  "version": "1.0.0",
+  "name": "yoyakuyo-dashboard",
+  "version": "0.1.0",
   "private": true,
-  "description": "",
-  "main": "index.js",
   "scripts": {
-    "dev:dashboard": "npm run dev --prefix apps/dashboard",
-    "dev:api": "npm run dev --prefix apps/api",
-    "build:dashboard": "npm run build --prefix apps/dashboard",
-    "build:api": "npm run build --prefix apps/api",
-    "build": "npm run build:dashboard && npm run build:api",
-    "supabase:login": "npx supabase login",
-    "supabase:link": "npx supabase link",
-    "supabase:pull": "npx supabase db pull",
-    "supabase:push": "npx supabase db push",
-    "supabase:diff": "npx supabase db diff -f auto_migration --local",
-    "supabase:status": "npx supabase db remote commit",
-    "migrate:check": "node scripts/check-schema.js",
-    "migrate:pre-check": "node scripts/pre-migration-check.js",
-    "migrate:safe": "node scripts/safe-migrate.js",
-    "migrate:auto": "node scripts/safe-migrate.js",
-    "import:japan": "npm run import:japan --prefix apps/api"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "vercel": "^48.10.9"
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "lint": "next lint",
+    "tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@line/bot-sdk": "^10.5.0",
-    "@supabase/supabase-js": "^2.81.1"
+    "@supabase/supabase-js": "^2.84.0",
+    "@types/leaflet": "^1.9.21",
+    "@types/react-calendar": "^3.9.0",
+    "autoprefixer": "^10",
+    "leaflet": "^1.9.4",
+    "next": "^14.0.0",
+    "next-intl": "^4.5.3",
+    "postcss": "^8",
+    "react": "^18.2.0",
+    "react-calendar": "^6.0.0",
+    "react-dom": "^18.2.0",
+    "react-leaflet": "^4.2.1",
+    "tailwindcss": "^3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "13.5.6",
+    "typescript": "^5"
   }
 }
