@@ -358,6 +358,15 @@ export default function PublicShopDetailPage() {
     setChatMessages(prev => [...prev, newUserMessage]);
 
     try {
+      // Get anonymous session ID for customer tracking
+      const anonymousSessionId = typeof window !== 'undefined' 
+        ? localStorage.getItem('yoyaku_yo_anonymous_session') || `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        : null;
+      
+      if (anonymousSessionId && typeof window !== 'undefined') {
+        localStorage.setItem('yoyaku_yo_anonymous_session', anonymousSessionId);
+      }
+
       const res = await fetch(`${apiUrl}/ai/chat`, {
         method: 'POST',
         headers: {
@@ -367,6 +376,7 @@ export default function PublicShopDetailPage() {
           shopId,
           message: userMessage,
           source: 'customer',
+          customerId: anonymousSessionId, // Include for persistent history
         }),
       });
 
