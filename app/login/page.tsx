@@ -19,6 +19,20 @@ export default function LoginPage() {
     setMessage("");
 
     try {
+      // Debug: Check if env vars are available
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        setMessage(`Error: Supabase environment variables are missing. Please check Vercel configuration.`);
+        setLoading(false);
+        console.error('❌ Missing env vars:', {
+          hasUrl: !!supabaseUrl,
+          hasKey: !!supabaseAnonKey,
+        });
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,

@@ -113,6 +113,20 @@ function HomeContent() {
     setLoginLoading(true);
 
     try {
+      // Debug: Check if env vars are available
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        setLoginError('Supabase environment variables are missing. Please check Vercel configuration.');
+        setLoginLoading(false);
+        console.error('❌ Missing env vars:', {
+          hasUrl: !!supabaseUrl,
+          hasKey: !!supabaseAnonKey,
+        });
+        return;
+      }
+
       const supabase = getSupabaseClient();
       
       // Step 1: Sign in with Supabase Auth
