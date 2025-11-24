@@ -1,3 +1,0 @@
-module.exports=[47043,a=>{"use strict";var b=a.i(87924),c=a.i(72131),d=a.i(50944),e=a.i(67254);function f(){let a=(0,d.useRouter)(),{user:f,loading:g}=(0,e.useAuth)();return(0,c.useEffect)(()=>{g||(f?a.replace("/shops"):a.replace("/"))},[f,g,a]),(0,b.jsx)("div",{className:"p-8 flex items-center justify-center min-h-screen",children:(0,b.jsxs)("div",{className:"text-center",children:[(0,b.jsx)("div",{className:"inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"}),(0,b.jsx)("p",{className:"mt-4 text-gray-600",children:"Loading..."})]})})}a.s(["default",()=>f])}];
-
-//# sourceMappingURL=apps_dashboard_app_owner_dashboard_page_tsx_6fa81778._.js.map

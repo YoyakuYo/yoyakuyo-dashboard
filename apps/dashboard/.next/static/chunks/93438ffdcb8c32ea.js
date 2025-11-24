@@ -1,1 +1,0 @@
-(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,25793,e=>{"use strict";var s=e.i(43476),t=e.i(18566);function i(){let e=(0,t.useParams)(),i=e?.shopId;return(0,s.jsxs)("div",{children:[(0,s.jsx)("h1",{children:"Choose Date"}),(0,s.jsxs)("p",{children:["Shop ID: ",i]})]})}e.s(["default",()=>i])}]);
