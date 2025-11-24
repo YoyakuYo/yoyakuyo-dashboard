@@ -35,6 +35,7 @@ export default function DashboardLayout({
       '/assistant',
       '/bookings',
       '/settings',
+      '/analytics',
     ];
     
     // Check exact matches

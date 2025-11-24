@@ -108,7 +108,7 @@ router.post("/chat", async (req: Request, res: Response) => {
             }
         }
 
-        // Save customer message
+        // Save customer message to shop_messages (for thread-based system)
         const { data: customerMessage, error: saveError } = await dbClient
             .from("shop_messages")
             .insert([
@@ -125,6 +125,24 @@ router.post("/chat", async (req: Request, res: Response) => {
             console.error("Error saving customer message:", saveError);
         }
 
+        // Also save to customer_ai_messages for persistent history
+        const customerId = req.body.customerId || req.body.customer_id || null; // Can be anonymous session ID
+        try {
+            await dbClient
+                .from("customer_ai_messages")
+                .insert([
+                    {
+                        customer_id: customerId,
+                        shop_id: shopId,
+                        role: 'user',
+                        message: message,
+                    }
+                ]);
+        } catch (customerMsgError) {
+            console.error("Error saving to customer_ai_messages:", customerMsgError);
+            // Continue even if this fails
+        }
+
         // Check if OpenAI API key is available
         const openaiApiKey = process.env.OPENAI_API_KEY;
 
@@ -132,7 +150,7 @@ router.post("/chat", async (req: Request, res: Response) => {
             // Return a friendly stub response (multilingual)
             const stubResponse = await generateMultilingualResponse('ai_unavailable', languageCode);
             
-            // Save AI response
+            // Save AI response to shop_messages
             if (threadId) {
                 await dbClient
                     .from("shop_messages")
@@ -143,6 +161,23 @@ router.post("/chat", async (req: Request, res: Response) => {
                             content: stubResponse,
                         }
                     ]);
+            }
+
+            // Also save to customer_ai_messages
+            const customerId = req.body.customerId || req.body.customer_id || null;
+            try {
+                await dbClient
+                    .from("customer_ai_messages")
+                    .insert([
+                        {
+                            customer_id: customerId,
+                            shop_id: shopId,
+                            role: 'assistant',
+                            message: stubResponse,
+                        }
+                    ]);
+            } catch (customerMsgError) {
+                console.error("Error saving AI response to customer_ai_messages:", customerMsgError);
             }
 
             return res.json({
@@ -263,7 +298,7 @@ You MUST NOT suggest prices, change prices, or show revenue. You MUST NOT discus
             };
             const aiResponse = openaiData.choices?.[0]?.message?.content || '';
 
-            // Save AI response
+            // Save AI response to shop_messages
             const { data: aiMessage, error: aiSaveError } = await dbClient
                 .from("shop_messages")
                 .insert([
@@ -278,6 +313,23 @@ You MUST NOT suggest prices, change prices, or show revenue. You MUST NOT discus
 
             if (aiSaveError) {
                 console.error("Error saving AI message:", aiSaveError);
+            }
+
+            // Also save to customer_ai_messages
+            const customerId = req.body.customerId || req.body.customer_id || null;
+            try {
+                await dbClient
+                    .from("customer_ai_messages")
+                    .insert([
+                        {
+                            customer_id: customerId,
+                            shop_id: shopId,
+                            role: 'assistant',
+                            message: aiResponse,
+                        }
+                    ]);
+            } catch (customerMsgError) {
+                console.error("Error saving AI response to customer_ai_messages:", customerMsgError);
             }
 
             // Check if AI wants to cancel or reschedule a booking
