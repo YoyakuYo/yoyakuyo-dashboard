@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/81704/bookyo/apps/dashboard/app/%28owner%29/layout.tsx"],"sourcesContent":["// apps/dashboard/app/(owner)/layout.tsx\r\n// Owner layout with sidebar (for authenticated owners only)\r\n\r\n\r\n\r\n\"use client\";\r\nimport { usePathname } from 'next/navigation';\r\nimport AuthGuard from '../components/AuthGuard';\r\nimport Header from '../components/Header';\r\nimport Sidebar from '../components/Sidebar';\r\n\r\nexport default function OwnerLayout({\r\n  children,\r\n}: {\r\n  children: React.ReactNode;\r\n}) {\r\n  return (\r\n    <AuthGuard>\r\n      <Header />\r\n      <Sidebar />\r\n      <main className=\"lg:ml-64 pt-16 min-h-screen bg-gray-50\">\r\n        {children}\r\n      </main>\r\n    </AuthGuard>\r\n  );\r\n}\r\n\r\n"],"names":[],"mappings":"AAAA,wCAAwC;AACxC,4DAA4D;;;;;;AAM5D;AACA;AACA;AAJA;;;;;AAMe,SAAS,YAAY,EAClC,QAAQ,EAGT;IACC,qBACE,8OAAC,+JAAS;;0BACR,8OAAC,4JAAM;;;;;0BACP,8OAAC,6JAAO;;;;;0BACR,8OAAC;gBAAK,WAAU;0BACb;;;;;;;;;;;;AAIT"}}]
-}
