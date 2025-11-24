@@ -1,0 +1,137 @@
+[2025-11-22T10:53:14.836Z] 🚀 Starting Japan Business Importer
+[2025-11-22T10:53:14.841Z] ============================================================
+[2025-11-22T10:53:14.843Z] 📦 Creating backup of existing shops...
+[2025-11-22T10:53:16.145Z] ✅ Backup created: C:\Users\81704\bookyo\apps\api\backups\shops_backup_2025-11-22T10-53-14-845Z.json (1000 shops)
+[2025-11-22T10:53:16.147Z] ✅ Backup saved: C:\Users\81704\bookyo\apps\api\backups\shops_backup_2025-11-22T10-53-14-845Z.json
+
+[2025-11-22T10:53:16.150Z] 📡 Fetching businesses from all sources...
+
+[2025-11-22T10:53:16.153Z] 
+📊 Source 1: Japan Government Open Data
+[2025-11-22T10:53:16.165Z] ────────────────────────────────────────────────────────────
+[2025-11-22T10:53:16.181Z]   ℹ️  Government data sources need to be configured
+[2025-11-22T10:53:16.197Z]   ℹ️  Visit: https://www.data.go.jp/
+[2025-11-22T10:53:16.200Z]   ℹ️  Search for: 事業所, 企業, 店舗, 宿泊施設
+[2025-11-22T10:53:16.204Z]   ✓ Found 0 shops from Government Data
+[2025-11-22T10:53:16.208Z] 
+🗺️  Source 2: OpenStreetMap (Overpass API)
+[2025-11-22T10:53:16.210Z] ────────────────────────────────────────────────────────────
+[2025-11-22T10:53:16.242Z]   📍 Processing Tokyo...
+[2025-11-22T10:53:17.279Z]   ⚠️  Failed to fetch Tokyo - beauty_salon: 400
+[2025-11-22T10:53:20.344Z]   ⚠️  Failed to fetch Tokyo - barbershop: 400
+[2025-11-22T10:53:23.384Z]   ⚠️  Failed to fetch Tokyo - nail_salon: 400
+[2025-11-22T10:53:26.235Z]   ⚠️  Failed to fetch Tokyo - spa: 400
+[2025-11-22T10:53:29.083Z]   ⚠️  Failed to fetch Tokyo - beauty: 400
+[2025-11-22T10:53:32.143Z]   ⚠️  Failed to fetch Tokyo - hotel: 400
+[2025-11-22T10:53:35.184Z]   ⚠️  Failed to fetch Tokyo - guest_house: 400
+[2025-11-22T10:53:38.028Z]   ⚠️  Failed to fetch Tokyo - restaurant: 400
+[2025-11-22T10:53:41.051Z]   ⚠️  Failed to fetch Tokyo - cafe: 400
+[2025-11-22T10:53:43.867Z]   ⚠️  Failed to fetch Tokyo - golf_course: 400
+[2025-11-22T10:53:46.724Z]   ⚠️  Failed to fetch Tokyo - karaoke_box: 400
+[2025-11-22T10:53:48.730Z]   📍 Processing Osaka...
+[2025-11-22T10:53:49.765Z]   ⚠️  Failed to fetch Osaka - beauty_salon: 400
+[2025-11-22T10:53:52.574Z]   ⚠️  Failed to fetch Osaka - barbershop: 400
+[2025-11-22T10:53:55.615Z]   ⚠️  Failed to fetch Osaka - nail_salon: 400
+[2025-11-22T10:53:58.668Z]   ⚠️  Failed to fetch Osaka - spa: 400
+[2025-11-22T10:54:01.701Z]   ⚠️  Failed to fetch Osaka - beauty: 400
+[2025-11-22T10:54:04.752Z]   ⚠️  Failed to fetch Osaka - hotel: 400
+[2025-11-22T10:54:07.600Z]   ⚠️  Failed to fetch Osaka - guest_house: 400
+[2025-11-22T10:54:10.646Z]   ⚠️  Failed to fetch Osaka - restaurant: 400
+[2025-11-22T10:54:13.678Z]   ⚠️  Failed to fetch Osaka - cafe: 400
+[2025-11-22T10:54:16.509Z]   ⚠️  Failed to fetch Osaka - golf_course: 400
+[2025-11-22T10:54:19.314Z]   ⚠️  Failed to fetch Osaka - karaoke_box: 400
+[2025-11-22T10:54:21.318Z]   📍 Processing Kyoto...
+[2025-11-22T10:54:22.125Z]   ⚠️  Failed to fetch Kyoto - beauty_salon: 400
+[2025-11-22T10:54:25.157Z]   ⚠️  Failed to fetch Kyoto - barbershop: 400
+[2025-11-22T10:54:28.191Z]   ⚠️  Failed to fetch Kyoto - nail_salon: 400
+[2025-11-22T10:54:31.231Z]   ⚠️  Failed to fetch Kyoto - spa: 400
+[2025-11-22T10:54:34.046Z]   ⚠️  Failed to fetch Kyoto - beauty: 400
+[2025-11-22T10:54:37.073Z]   ⚠️  Failed to fetch Kyoto - hotel: 400
+[2025-11-22T10:54:39.900Z]   ⚠️  Failed to fetch Kyoto - guest_house: 400
+[2025-11-22T10:54:42.934Z]   ⚠️  Failed to fetch Kyoto - restaurant: 400
+[2025-11-22T10:54:45.750Z]   ⚠️  Failed to fetch Kyoto - cafe: 400
+[2025-11-22T10:54:48.771Z]   ⚠️  Failed to fetch Kyoto - golf_course: 400
+[2025-11-22T10:54:51.612Z]   ⚠️  Failed to fetch Kyoto - karaoke_box: 400
+[2025-11-22T10:54:53.631Z]   📍 Processing Kanagawa...
+[2025-11-22T10:54:54.665Z]   ⚠️  Failed to fetch Kanagawa - beauty_salon: 400
+[2025-11-22T10:54:57.694Z]   ⚠️  Failed to fetch Kanagawa - barbershop: 400
+[2025-11-22T10:55:00.737Z]   ⚠️  Failed to fetch Kanagawa - nail_salon: 400
+[2025-11-22T10:55:03.782Z]   ⚠️  Failed to fetch Kanagawa - spa: 400
+[2025-11-22T10:55:06.650Z]   ⚠️  Failed to fetch Kanagawa - beauty: 400
+[2025-11-22T10:55:09.669Z]   ⚠️  Failed to fetch Kanagawa - hotel: 400
+[2025-11-22T10:55:12.708Z]   ⚠️  Failed to fetch Kanagawa - guest_house: 400
+[2025-11-22T10:55:15.791Z]   ⚠️  Failed to fetch Kanagawa - restaurant: 400
+[2025-11-22T10:55:18.819Z]   ⚠️  Failed to fetch Kanagawa - cafe: 400
+[2025-11-22T10:55:21.652Z]   ⚠️  Failed to fetch Kanagawa - golf_course: 400
+[2025-11-22T10:55:24.686Z]   ⚠️  Failed to fetch Kanagawa - karaoke_box: 400
+[2025-11-22T10:55:26.702Z]   📍 Processing Aichi...
+[2025-11-22T10:55:27.728Z]   ⚠️  Failed to fetch Aichi - beauty_salon: 400
+[2025-11-22T10:55:30.759Z]   ⚠️  Failed to fetch Aichi - barbershop: 400
+[2025-11-22T10:55:33.788Z]   ⚠️  Failed to fetch Aichi - nail_salon: 400
+[2025-11-22T10:55:36.888Z]   ⚠️  Failed to fetch Aichi - spa: 400
+[2025-11-22T10:55:39.929Z]   ⚠️  Failed to fetch Aichi - beauty: 400
+[2025-11-22T10:55:42.974Z]   ⚠️  Failed to fetch Aichi - hotel: 400
+[2025-11-22T10:55:46.042Z]   ⚠️  Failed to fetch Aichi - guest_house: 400
+[2025-11-22T10:55:48.858Z]   ⚠️  Failed to fetch Aichi - restaurant: 400
+[2025-11-22T10:55:51.701Z]   ⚠️  Failed to fetch Aichi - cafe: 400
+[2025-11-22T10:55:54.506Z]   ⚠️  Failed to fetch Aichi - golf_course: 400
+[2025-11-22T10:55:57.338Z]   ⚠️  Failed to fetch Aichi - karaoke_box: 400
+[2025-11-22T10:55:59.350Z]   📍 Processing Fukuoka...
+[2025-11-22T10:56:00.384Z]   ⚠️  Failed to fetch Fukuoka - beauty_salon: 400
+[2025-11-22T10:56:03.196Z]   ⚠️  Failed to fetch Fukuoka - barbershop: 400
+[2025-11-22T10:56:06.029Z]   ⚠️  Failed to fetch Fukuoka - nail_salon: 400
+[2025-11-22T10:56:09.081Z]   ⚠️  Failed to fetch Fukuoka - spa: 400
+[2025-11-22T10:56:12.129Z]   ⚠️  Failed to fetch Fukuoka - beauty: 400
+[2025-11-22T10:56:15.190Z]   ⚠️  Failed to fetch Fukuoka - hotel: 400
+[2025-11-22T10:56:18.223Z]   ⚠️  Failed to fetch Fukuoka - guest_house: 400
+[2025-11-22T10:56:21.057Z]   ⚠️  Failed to fetch Fukuoka - restaurant: 400
+[2025-11-22T10:56:24.196Z]   ⚠️  Failed to fetch Fukuoka - cafe: 400
+[2025-11-22T10:56:27.238Z]   ⚠️  Failed to fetch Fukuoka - golf_course: 400
+[2025-11-22T10:56:30.276Z]   ⚠️  Failed to fetch Fukuoka - karaoke_box: 400
+[2025-11-22T10:56:32.281Z]   📍 Processing Hokkaido...
+[2025-11-22T10:56:33.303Z]   ⚠️  Failed to fetch Hokkaido - beauty_salon: 400
+[2025-11-22T10:56:36.349Z]   ⚠️  Failed to fetch Hokkaido - barbershop: 400
+[2025-11-22T10:56:39.394Z]   ⚠️  Failed to fetch Hokkaido - nail_salon: 400
+[2025-11-22T10:56:42.421Z]   ⚠️  Failed to fetch Hokkaido - spa: 400
+[2025-11-22T10:56:45.456Z]   ⚠️  Failed to fetch Hokkaido - beauty: 400
+[2025-11-22T10:56:48.506Z]   ⚠️  Failed to fetch Hokkaido - hotel: 400
+[2025-11-22T10:56:51.375Z]   ⚠️  Failed to fetch Hokkaido - guest_house: 400
+[2025-11-22T10:56:54.409Z]   ⚠️  Failed to fetch Hokkaido - restaurant: 400
+[2025-11-22T10:56:57.234Z]   ⚠️  Failed to fetch Hokkaido - cafe: 400
+[2025-11-22T10:57:00.056Z]   ⚠️  Failed to fetch Hokkaido - golf_course: 400
+[2025-11-22T10:57:03.099Z]   ⚠️  Failed to fetch Hokkaido - karaoke_box: 400
+[2025-11-22T10:57:05.117Z]   ✓ Found 0 shops from OpenStreetMap
+[2025-11-22T10:57:05.123Z] 
+============================================================
+[2025-11-22T10:57:05.129Z] 📊 Phase 1 Complete: Found 0 businesses
+[2025-11-22T10:57:05.143Z] ============================================================
+[2025-11-22T10:57:05.146Z] 
+💾 Phase 2: Checking duplicates and preparing businesses...
+
+[2025-11-22T10:57:05.158Z] 
+  ✓ 0 businesses ready to insert (0 duplicates skipped)
+[2025-11-22T10:57:05.161Z] 
+📦 Phase 3: Inserting businesses in batches...
+
+[2025-11-22T10:57:05.163Z] 
+============================================================
+[2025-11-22T10:57:05.167Z] 📊 IMPORT SUMMARY
+[2025-11-22T10:57:05.170Z] ============================================================
+[2025-11-22T10:57:05.172Z] Total businesses found: 0
+[2025-11-22T10:57:05.174Z] Duplicates skipped: 0
+[2025-11-22T10:57:05.176Z] Successfully inserted: 0
+[2025-11-22T10:57:05.179Z] Errors: 0
+[2025-11-22T10:57:05.181Z] Retries: 0
+[2025-11-22T10:57:05.184Z] 
+By Source:
+[2025-11-22T10:57:05.186Z]   government: 0
+[2025-11-22T10:57:05.190Z]   osm: 0
+[2025-11-22T10:57:05.206Z] 
+By Category:
+[2025-11-22T10:57:05.220Z] 
+✅ Import complete!
+[2025-11-22T10:57:05.725Z] 
+📊 Total shops in database: 5475
+[2025-11-22T10:57:05.729Z] 📝 Log file: C:\Users\81704\bookyo\apps\api\import_log_1763808794793.txt
+[2025-11-22T10:57:05.733Z] 
+🎉 Script finished successfully

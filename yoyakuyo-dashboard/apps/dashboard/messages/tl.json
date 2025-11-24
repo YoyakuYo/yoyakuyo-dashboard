@@ -1,0 +1,37 @@
+{
+  "browse": {
+    "byArea": "Ayon sa Lugar",
+    "byCategory": "Ayon sa Kategorya",
+    "prefecture": "Prepektura",
+    "category": "Kategorya",
+    "city": "Lungsod"
+  },
+  "shops": {
+    "search": "Maghanap ayon sa pangalan ng tindahan, lugar o serbisyo",
+    "searchPlaceholder": "Maghanap ayon sa pangalan ng tindahan, lugar o serbisyo",
+    "shops": "Mga Tindahan",
+    "shopsFound": "Natagpuan ang {count} na tindahan",
+    "viewDetails": "Tingnan ang detalye",
+    "loading": "Naglo-load ng mga tindahan...",
+    "noShops": "Walang nahanap na tindahan",
+    "tryAdjusting": "Subukan na ayusin ang iyong paghahanap o filter ng kategorya"
+  },
+  "categories": {
+    "all": "Lahat ng Kategorya",
+    "barbershop": "Barbershop",
+    "beauty_salon": "Beauty Salon",
+    "nail_salon": "Nail Salon",
+    "spa_massage": "Spa at Massage",
+    "hotels_ryokan": "Mga Hotel at Ryokan",
+    "restaurants_izakaya": "Mga Restaurant at Izakaya"
+  },
+  "prefectures": {
+    "tokyo": "Tokyo",
+    "osaka": "Osaka",
+    "kyoto": "Kyoto",
+    "kanagawa": "Kanagawa",
+    "aichi": "Aichi",
+    "fukuoka": "Fukuoka"
+  }
+}
+
