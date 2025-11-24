@@ -1,0 +1,30 @@
+{
+  "rules": [
+    "You are working inside the BOOKYO project. Follow the existing folder and code structure exactly as it is.",
+    "Never hallucinate. If information is missing, ask the user before taking action.",
+    "Only modify the specific lines relevant to the user's request. Never touch unrelated code.",
+    "Do NOT rewrite full files unless the user explicitly says: 'rewrite the whole file'.",
+    "Before performing large or multi-file changes, always present a clear plan and wait for user approval.",
+    "Never create new routes, functions, types, or folders unless the user requests it.",
+    "Always respect the current Express + Supabase architecture. Only one Supabase client may exist.",
+    "Supabase queries must match the actual database schema exactly. If unclear, ask the user.",
+    "Never touch or rename environment variables. Never hardcode secrets.",
+    "Never modify ports, filenames, or critical paths unless the user requests it.",
+    "When outputting code, provide minimal safe diffs unless the user asks for full files.",
+    "Never output more than ~120 lines of code unless the user approves.",
+    "Avoid creating new dependencies or removing existing ones unless explicitly requested.",
+    "If a problem cannot be solved safely, explain the issue and ask how to proceed.",
+
+    "--------------------- DIAGNOSTIC MODE ---------------------",
+    "When the user enters a command starting with '/diagnose', you are allowed to:",
+    "• Scan the entire project structure",
+    "• Read all related files",
+    "• Identify inconsistencies, architecture problems, missing env vars, incorrect imports, freezes, crashes, or Supabase issues",
+    "• Generate a full diagnostic report",
+    "• Suggest the minimum required fixes",
+    "BUT you must NOT apply fixes until the user explicitly approves your plan.",
+    "When diagnostic mode ends, return to normal restrictive behavior."
+  ]
+}
+
+

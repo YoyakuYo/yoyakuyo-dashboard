@@ -1,0 +1,53 @@
+# Supabase Configuration
+# This file is used by Supabase CLI to manage your project
+
+[project]
+# Your Supabase project reference ID
+# Run `npx supabase link` to link to your existing project
+# This will be auto-populated after linking
+
+[auth]
+# Auth configuration
+enabled = true
+site_url = "http://localhost:3001"
+additional_redirect_urls = ["https://localhost:3001"]
+jwt_expiry = 3600
+enable_signup = true
+
+[api]
+# API configuration
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+# Database configuration
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+# Studio configuration
+enabled = true
+port = 54323
+
+[inbucket]
+# Inbucket (email testing) configuration
+enabled = true
+port = 54324
+smtp_port = 54325
+pop3_port = 54326
+
+[storage]
+# Storage configuration
+enabled = true
+file_size_limit = "50MiB"
+
+[auth.email]
+# Email auth configuration
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
