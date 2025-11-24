@@ -63,22 +63,52 @@ function BrowsePageContent() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Debug: Log API URL
+  useEffect(() => {
+    console.log('🔧 API URL configured:', apiUrl || '❌ NOT SET - Check NEXT_PUBLIC_API_URL env var');
+  }, []);
+
   // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
+      // Add check for apiUrl
+      if (!apiUrl) {
+        console.error('❌ NEXT_PUBLIC_API_URL is not set! Cannot fetch categories.');
+        setCategories([]);
+        return;
+      }
+
       try {
-        const res = await fetch(`${apiUrl}/categories`);
+        const url = `${apiUrl}/categories`;
+        console.log('🔍 Fetching categories from:', url);
+        const res = await fetch(url);
+        
+        console.log('📡 Categories response status:', res.status, res.statusText);
+        
         if (res.ok) {
           const contentType = res.headers.get('content-type');
+          console.log('📦 Categories content-type:', contentType);
+          
           if (contentType && contentType.includes('application/json')) {
-            const data = await res.json();
-            setCategories(Array.isArray(data) ? data : []);
+            try {
+              const data = await res.json();
+              console.log('✅ Categories fetched:', data?.length || 0, 'items');
+              setCategories(Array.isArray(data) ? data : []);
+            } catch (jsonError: any) {
+              console.error('❌ Error parsing categories JSON:', jsonError);
+              setCategories([]);
+            }
+          } else {
+            console.error('❌ Expected JSON but received:', contentType);
+            setCategories([]);
           }
+        } else {
+          const errorText = await res.text().catch(() => 'Unknown error');
+          console.error('❌ Error fetching categories:', res.status, res.statusText, errorText);
+          setCategories([]);
         }
       } catch (error: any) {
-        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-          console.error('Error fetching categories:', error);
-        }
+        console.error('❌ Exception fetching categories:', error);
         setCategories([]);
       }
     };
@@ -87,6 +117,14 @@ function BrowsePageContent() {
 
   // Fetch shops
   const fetchShops = useCallback(async () => {
+    // Add check for apiUrl
+    if (!apiUrl) {
+      console.error('❌ NEXT_PUBLIC_API_URL is not set! Cannot fetch shops.');
+      setShops([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -94,35 +132,54 @@ function BrowsePageContent() {
         params.set('search', debouncedSearch.trim());
       }
 
-      const res = await fetch(`${apiUrl}/shops${params.toString() ? `?${params.toString()}` : ''}`);
+      const url = `${apiUrl}/shops${params.toString() ? `?${params.toString()}` : ''}`;
+      console.log('🔍 Fetching shops from:', url);
+      
+      const res = await fetch(url);
+      
+      console.log('📡 Shops response status:', res.status, res.statusText);
+      
       if (res.ok) {
         const contentType = res.headers.get('content-type');
+        console.log('📦 Shops content-type:', contentType);
+        
         if (contentType && contentType.includes('application/json')) {
-          const data = await res.json();
-          // Backend returns: { data: [...], pagination: {...} }
-          const shopsArray = Array.isArray(data) 
-            ? data 
-            : (data.data && Array.isArray(data.data) 
-              ? data.data 
-              : (data.shops || []));
-          const visibleShops = shopsArray.filter((shop: Shop) => 
-            !shop.claim_status || shop.claim_status !== 'hidden'
-          );
-          setShops(visibleShops);
+          try {
+            const data = await res.json();
+            console.log('📊 Raw shops response:', data);
+            
+            // Backend returns: { data: [...], pagination: {...} }
+            const shopsArray = Array.isArray(data) 
+              ? data 
+              : (data.data && Array.isArray(data.data) 
+                ? data.data 
+                : (data.shops || []));
+            
+            console.log('✅ Shops array length:', shopsArray.length);
+            
+            const visibleShops = shopsArray.filter((shop: Shop) => 
+              !shop.claim_status || shop.claim_status !== 'hidden'
+            );
+            
+            console.log('✅ Visible shops after filtering:', visibleShops.length);
+            setShops(visibleShops);
+            console.log('✅ Shops state updated, total shops:', visibleShops.length);
+          } catch (jsonError: any) {
+            console.error('❌ Error parsing shops JSON:', jsonError);
+            setShops([]);
+          }
         } else {
-          console.error('Expected JSON response but got:', contentType);
+          console.error('❌ Expected JSON response but got:', contentType);
           setShops([]);
         }
       } else {
         // Handle non-200 responses
         const errorText = await res.text().catch(() => 'Unknown error');
-        console.error('Error fetching shops:', res.status, res.statusText, errorText);
+        console.error('❌ Error fetching shops:', res.status, res.statusText, errorText);
         setShops([]);
       }
     } catch (error: any) {
-      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-        console.error('Error fetching shops:', error);
-      }
+      console.error('❌ Exception fetching shops:', error);
       setShops([]);
     } finally {
       setLoading(false);
@@ -174,11 +231,17 @@ function BrowsePageContent() {
   }, [shops, debouncedSearch]);
 
   const areaTree = useMemo(() => {
-    return buildAreaTree(filteredShops);
+    const tree = buildAreaTree(filteredShops);
+    console.log('🌳 Area tree built:', Object.keys(tree).length, 'prefectures');
+    console.log('🌳 Area tree keys:', Object.keys(tree));
+    return tree;
   }, [filteredShops]);
 
   const categoryTree = useMemo(() => {
-    return buildCategoryTree(filteredShops, categories);
+    const tree = buildCategoryTree(filteredShops, categories);
+    console.log('🌳 Category tree built:', Object.keys(tree).length, 'categories');
+    console.log('🌳 Category tree keys:', Object.keys(tree));
+    return tree;
   }, [filteredShops, categories]);
 
   // Get translated prefecture name
@@ -225,6 +288,11 @@ function BrowsePageContent() {
         if (prefecture) {
           shops = Object.values(prefecture.cities).flatMap(city => city.shops);
         }
+      } else {
+        // No prefecture selected - show ALL shops from all prefectures
+        shops = Object.values(areaTree).flatMap(prefecture => 
+          Object.values(prefecture.cities).flatMap(city => city.shops)
+        );
       }
     } else {
       // Category mode
@@ -245,6 +313,13 @@ function BrowsePageContent() {
             Object.values(pref.cities).flatMap(city => city.shops)
           );
         }
+      } else {
+        // No category selected - show ALL shops from all categories
+        shops = Object.values(categoryTree).flatMap(category =>
+          Object.values(category.prefectures).flatMap(pref => 
+            Object.values(pref.cities).flatMap(city => city.shops)
+          )
+        );
       }
     }
     
