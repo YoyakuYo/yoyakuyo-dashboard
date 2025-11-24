@@ -73,7 +73,8 @@ export default function DashboardPage() {
   const loadShops = async () => {
     setLoadingShops(true);
     try {
-      const response = await shopsApi.getAll(1, 100) as { data?: Shop[]; count?: number; page?: number; limit?: number } | Shop[];
+      // Don't specify limit to fetch all shops (backend will batch fetch)
+      const response = await shopsApi.getAll() as { data?: Shop[]; count?: number; page?: number; limit?: number; pagination?: { total: number; totalPages: number } } | Shop[];
       if (Array.isArray(response)) {
         setShops(response);
       } else if (response?.data) {
@@ -82,6 +83,7 @@ export default function DashboardPage() {
           ? response.data 
           : [];
         setShops(shopsData);
+        console.log(`Loaded ${shopsData.length} shops (total: ${response.pagination?.total || shopsData.length})`);
       } else {
         setShops([]);
       }
