@@ -3,9 +3,9 @@
 
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { AuthError } from '@supabase/supabase-js';
 import { useAuth } from '@/lib/useAuth';
@@ -13,6 +13,10 @@ import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { LandingHeader } from './components/LandingHeader';
 import CategoryCarousel from './components/CategoryCarousel';
+
+// Force dynamic rendering to avoid prerendering errors
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Modal component
 const Modal = React.memo(({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) => {
@@ -52,9 +56,8 @@ const Modal = React.memo(({ isOpen, onClose, children }: { isOpen: boolean; onCl
 
 Modal.displayName = 'Modal';
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   
   let t: ReturnType<typeof useTranslations>;
@@ -608,5 +611,20 @@ export default function Home() {
         </p>
       </Modal>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
