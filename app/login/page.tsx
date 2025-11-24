@@ -19,53 +19,91 @@ export default function LoginPage() {
     setMessage("");
 
     try {
-      // Debug: Check if env vars are available
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      
-      if (!supabaseUrl || !supabaseAnonKey) {
-        setMessage(`Error: Supabase environment variables are missing. Please check Vercel configuration.`);
-        setLoading(false);
-        console.error('❌ Missing env vars:', {
-          hasUrl: !!supabaseUrl,
-          hasKey: !!supabaseAnonKey,
+      const supabase = getSupabaseClient();
+      let authData: any = null;
+      let authError: any = null;
+
+      // Try direct Supabase auth first (fastest, works if CORS is configured)
+      try {
+        const result = await supabase.auth.signInWithPassword({
+          email,
+          password,
         });
+        authData = result.data;
+        authError = result.error;
+      } catch (directError: any) {
+        // If CORS error or network error, fallback to backend
+        const isCorsError = directError?.message?.includes('CORS') || 
+                           directError?.message?.includes('Failed to fetch') ||
+                           directError?.name === 'TypeError';
+        
+        if (isCorsError) {
+          console.log('CORS error detected, using backend login route...');
+          
+          // Use backend login route (bypasses CORS)
+          try {
+            const backendResponse = await authApi.login(email, password);
+            
+            if (backendResponse.success && backendResponse.session) {
+              // Set session in Supabase client
+              const { error: setSessionError } = await supabase.auth.setSession({
+                access_token: backendResponse.session.access_token,
+                refresh_token: backendResponse.session.refresh_token,
+              });
+
+              if (setSessionError) {
+                setMessage(`Error: ${setSessionError.message}`);
+                setLoading(false);
+                return;
+              }
+
+              // Get user from session
+              const { data: { user } } = await supabase.auth.getUser();
+              authData = { user, session: backendResponse.session };
+              authError = null;
+            } else {
+              authError = { message: backendResponse.error || 'Login failed' };
+            }
+          } catch (backendError: any) {
+            authError = { message: backendError.message || 'Login failed' };
+          }
+        } else {
+          // Other error, use it directly
+          authError = directError;
+        }
+      }
+
+      if (authError) {
+        setMessage(`Error: ${authError.message}`);
+        setLoading(false);
         return;
       }
 
-      const supabase = getSupabaseClient();
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        setMessage(`Error: ${error.message}`);
+      if (!authData?.user) {
+        setMessage('Error: Login failed - no user data');
         setLoading(false);
-      } else {
-        // Login successful - sync user to users table
-        if (data.user) {
-          try {
-            await authApi.syncUser(
-              data.user.id,
-              data.user.email || email,
-              data.user.user_metadata?.name
-            );
-            console.log('User synced to users table');
-          } catch (syncError) {
-            // Log error but don't block login
-            console.warn('Failed to sync user to users (non-blocking):', syncError);
-          }
-        }
-
-        // Redirect to dashboard
-        setMessage("Login successful! Redirecting...");
-        // Small delay to show success message, then redirect
-        setTimeout(() => {
-          router.push("/dashboard");
-          router.refresh();
-        }, 500);
+        return;
       }
+
+      // Login successful - sync user to users table
+      try {
+        await authApi.syncUser(
+          authData.user.id,
+          authData.user.email || email,
+          authData.user.user_metadata?.name
+        );
+        console.log('User synced to users table');
+      } catch (syncError) {
+        // Log error but don't block login
+        console.warn('Failed to sync user to users (non-blocking):', syncError);
+      }
+
+      // Redirect to dashboard
+      setMessage("Login successful! Redirecting...");
+      setTimeout(() => {
+        router.push("/dashboard");
+        router.refresh();
+      }, 500);
     } catch (error: any) {
       setMessage(`Unexpected error: ${error.message}`);
       setLoading(false);

@@ -55,6 +55,12 @@ export const servicesApi = {
 };
 
 export const authApi = {
+  async login(email: string, password: string): Promise<any> {
+    return apiClient.post<any>('/auth/login', {
+      email,
+      password,
+    });
+  },
   async syncUser(userId: string, email: string, name?: string): Promise<any> {
     return apiClient.post<any>('/auth/sync-user', {
       user_id: userId,

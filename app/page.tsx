@@ -113,56 +113,80 @@ function HomeContent() {
     setLoginLoading(true);
 
     try {
-      // Debug: Check if env vars are available
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      
-      if (!supabaseUrl || !supabaseAnonKey) {
-        setLoginError('Supabase environment variables are missing. Please check Vercel configuration.');
-        setLoginLoading(false);
-        console.error('❌ Missing env vars:', {
-          hasUrl: !!supabaseUrl,
-          hasKey: !!supabaseAnonKey,
+      const supabase = getSupabaseClient();
+      let authData: any = null;
+      let signInError: any = null;
+
+      // Try direct Supabase auth first (fastest, works if CORS is configured)
+      try {
+        const result = await supabase.auth.signInWithPassword({
+          email: loginEmail,
+          password: loginPassword,
         });
-        return;
+        authData = result.data;
+        signInError = result.error;
+      } catch (directError: any) {
+        // If CORS error or network error, fallback to backend
+        const isCorsError = directError?.message?.includes('CORS') || 
+                           directError?.message?.includes('Failed to fetch') ||
+                           directError?.name === 'TypeError';
+        
+        if (isCorsError) {
+          console.log('CORS error detected, using backend login route...');
+          
+          // Use backend login route (bypasses CORS)
+          try {
+            const backendResponse = await authApi.login(loginEmail, loginPassword);
+            
+            if (backendResponse.success && backendResponse.session) {
+              // Set session in Supabase client
+              const { error: setSessionError } = await supabase.auth.setSession({
+                access_token: backendResponse.session.access_token,
+                refresh_token: backendResponse.session.refresh_token,
+              });
+
+              if (setSessionError) {
+                setLoginError(setSessionError.message || 'Failed to set session');
+                setLoginLoading(false);
+                return;
+              }
+
+              // Get user from session
+              const { data: { user } } = await supabase.auth.getUser();
+              authData = { user, session: backendResponse.session };
+              signInError = null;
+            } else {
+              signInError = { message: backendResponse.error || 'Login failed' };
+            }
+          } catch (backendError: any) {
+            signInError = { message: backendError.message || 'Login failed' };
+          }
+        } else {
+          // Other error, use it directly
+          signInError = directError;
+        }
       }
 
-      const supabase = getSupabaseClient();
-      
-      // Step 1: Sign in with Supabase Auth
-      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: loginPassword,
-      });
-
       if (signInError) {
-        // Return proper error message from Supabase
         setLoginError(signInError.message || 'Invalid login credentials');
         setLoginLoading(false);
         return;
       }
 
-      if (!authData.user) {
+      if (!authData?.user) {
         setLoginError('Login failed: No user data returned');
         setLoginLoading(false);
         return;
       }
 
-      // Step 2: Verify session is stored (Supabase automatically stores it)
-      // Get the session to ensure it's properly set
+      // Verify session is stored
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
         console.warn('Session error after login:', sessionError);
       }
 
-      if (!currentSession && authData.session) {
-        // Session should be automatically stored, but if not, use the one from signIn
-        console.warn('Session not found after login, using signIn session');
-      }
-
-      // Step 3: Sync user to users table if missing
-      // This ensures authenticated users are synced to users table
+      // Sync user to users table if missing
       try {
         await authApi.syncUser(
           authData.user.id,
@@ -171,12 +195,11 @@ function HomeContent() {
         );
         console.log('User synced to users table');
       } catch (syncError) {
-        // Log error but don't block login - user can still access dashboard
+        // Log error but don't block login
         console.warn('Failed to sync user to users (non-blocking):', syncError);
       }
 
-      // Step 4: Close modal and redirect to owner dashboard
-      // Session is automatically stored by Supabase, no need to wait
+      // Close modal and redirect to owner dashboard
       setShowLoginModal(false);
       router.push('/owner/dashboard');
       router.refresh();
