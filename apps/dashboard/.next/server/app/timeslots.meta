@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/timeslots/layout,_N_T_/timeslots/page,_N_T_/timeslots"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/timeslots/__PAGE__",
+    "/timeslots",
+    "/_index",
+    "/_head"
+  ]
+}

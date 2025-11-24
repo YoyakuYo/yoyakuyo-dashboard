@@ -1,0 +1,63 @@
+{
+  "home": {
+    "title": "Yoyaku Yo",
+    "subtitle": "Asistente de reservas con IA para salones en Tokio",
+    "browseShops": "Explorar Tiendas",
+    "ownerLogin": "Iniciar Sesión",
+    "joinAsOwner": "Únete como Propietario",
+    "heroTitle": "Yoyaku Yo",
+    "heroSubtitle": "Donde la Belleza Encuentra la Tecnología",
+    "searchPlaceholder": "Buscar por tienda, categoría o área",
+    "browseByCategory": "Explorar por Categoría",
+    "browseByArea": "Explorar por Área",
+    "nearbyServices": "Servicios Cercanos",
+    "howItWorks": "Cómo Funciona",
+    "forCustomersTitle": "Para Clientes",
+    "forCustomersBullet1": "Buscar salones por categoría",
+    "forCustomersBullet2": "Reservar en línea 24/7",
+    "forCustomersBullet3": "Seleccionar fácilmente servicios y personal",
+    "forOwnersTitle": "Para Propietarios",
+    "forOwnersBullet1": "Gestionar reservas y disponibilidad fácilmente",
+    "forOwnersBullet2": "Centralizar información de clientes",
+    "forOwnersBullet3": "Operar eficientemente con un panel simple",
+    "aiAssistanceTitle": "Asistencia IA",
+    "aiAssistanceBullet1": "Responder automáticamente a mensajes en japonés/español",
+    "aiAssistanceBullet2": "Gestionar cambios y cancelaciones automáticamente",
+    "aiAssistanceBullet3": "Soporte 24/7"
+  },
+  "browse": {
+    "byArea": "Por Área",
+    "byCategory": "Por Categoría",
+    "prefecture": "Prefectura",
+    "category": "Categoría",
+    "city": "Ciudad"
+  },
+  "shops": {
+    "search": "Buscar por nombre de tienda, área o servicio",
+    "searchPlaceholder": "Buscar por nombre de tienda, área o servicio",
+    "shops": "Tiendas",
+    "shopsFound": "Se encontraron {count} tiendas",
+    "viewDetails": "Ver detalles",
+    "loading": "Cargando tiendas...",
+    "noShops": "No se encontraron tiendas",
+    "tryAdjusting": "Intente ajustar su búsqueda o filtro de categoría"
+  },
+  "categories": {
+    "all": "Todas las Categorías",
+    "barbershop": "Barbería",
+    "beauty_salon": "Salón de Belleza",
+    "nail_salon": "Salón de Uñas",
+    "spa_massage": "Spa y Masaje",
+    "hotels_ryokan": "Hoteles y Ryokan",
+    "restaurants_izakaya": "Restaurantes e Izakaya"
+  },
+  "prefectures": {
+    "tokyo": "Tokio",
+    "osaka": "Osaka",
+    "kyoto": "Kioto",
+    "kanagawa": "Kanagawa",
+    "aichi": "Aichi",
+    "fukuoka": "Fukuoka"
+  }
+}
+

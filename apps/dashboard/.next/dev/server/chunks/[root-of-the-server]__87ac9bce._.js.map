@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 46, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/81704/bookyo/apps/dashboard/app/favicon.ico/route.ts"],"sourcesContent":["// apps/dashboard/app/favicon.ico/route.ts\r\n// Route handler to suppress favicon.ico 404 errors\r\n// Returns 204 No Content to prevent console errors\r\n\r\nimport { NextResponse } from 'next/server';\r\n\r\nexport async function GET() {\r\n  // Return 204 No Content - browser will stop requesting favicon\r\n  return new NextResponse(null, { status: 204 });\r\n}\r\n\r\n"],"names":[],"mappings":"AAAA,0CAA0C;AAC1C,mDAAmD;AACnD,mDAAmD;;;;;AAEnD;;AAEO,eAAe;IACpB,+DAA+D;IAC/D,OAAO,IAAI,gJAAY,CAAC,MAAM;QAAE,QAAQ;IAAI;AAC9C"}}]
+}
