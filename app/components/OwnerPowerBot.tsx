@@ -185,12 +185,37 @@ export default function OwnerPowerBot() {
     }
   }, [threadId, isOpen]);
 
-  // Load messages when chat opens
+  // Load persistent history from owner_ai_messages when chat opens
   useEffect(() => {
-    if (isOpen && threadId && messages.length === 0) {
-      loadThreadMessages(threadId);
+    if (isOpen && user?.id && shopId && messages.length === 0) {
+      loadOwnerAIMessages();
     }
-  }, [isOpen, threadId]);
+  }, [isOpen, user, shopId]);
+
+  // Load owner AI messages from persistent storage
+  const loadOwnerAIMessages = async () => {
+    try {
+      const res = await fetch(`${apiUrl}/owner/messages?shopId=${shopId}`, {
+        headers: { 'x-user-id': user?.id || '' },
+      });
+      if (res.ok) {
+        const history = await res.json();
+        // Convert to local Message format
+        const convertedMessages: Message[] = (Array.isArray(history) ? history : []).map((msg: any) => ({
+          id: msg.id,
+          content: msg.message,
+          sender: msg.role === 'user' ? 'owner' : 'bot',
+          timestamp: new Date(msg.created_at),
+        }));
+        setMessages(convertedMessages);
+      }
+    } catch (error: any) {
+      // Silently handle connection errors
+      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
+        console.error('Error loading owner AI messages:', error);
+      }
+    }
+  };
 
   // Scroll to bottom
   useEffect(() => {
@@ -207,6 +232,11 @@ export default function OwnerPowerBot() {
     const command = input.trim();
     setInput('');
     setLoading(true);
+    
+    // Auto-scroll to bottom
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
 
     // Add owner message optimistically (will be replaced by real message from DB via real-time)
     const tempOwnerMsgId = `temp_${Date.now()}`;
@@ -388,6 +418,12 @@ export default function OwnerPowerBot() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend(e);
+                  }
+                }}
                 placeholder="Type a command or chat..."
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 disabled={loading}
