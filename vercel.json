@@ -4,9 +4,5 @@
   "devCommand": "cd apps/dashboard && npm run dev",
   "installCommand": "npm install",
   "outputDirectory": "apps/dashboard/.next",
-  "framework": "nextjs",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD apps/dashboard",
-  "env": {
-    "NODE_ENV": "production"
-  }
+  "framework": "nextjs"
 }

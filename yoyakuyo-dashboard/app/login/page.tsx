@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabaseClient";
+import { authApi } from "@/lib/api";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -18,6 +19,21 @@ export default function LoginPage() {
     setMessage("");
 
     try {
+      // Debug: Check if env vars are available
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        setMessage(`Error: Supabase environment variables are missing. Please check Vercel configuration.`);
+        setLoading(false);
+        console.error('❌ Missing env vars:', {
+          hasUrl: !!supabaseUrl,
+          hasKey: !!supabaseAnonKey,
+        });
+        return;
+      }
+
+      const supabase = getSupabaseClient();
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -27,11 +43,26 @@ export default function LoginPage() {
         setMessage(`Error: ${error.message}`);
         setLoading(false);
       } else {
-        // Login successful - redirect to home page
+        // Login successful - sync user to users table
+        if (data.user) {
+          try {
+            await authApi.syncUser(
+              data.user.id,
+              data.user.email || email,
+              data.user.user_metadata?.name
+            );
+            console.log('User synced to users table');
+          } catch (syncError) {
+            // Log error but don't block login
+            console.warn('Failed to sync user to users (non-blocking):', syncError);
+          }
+        }
+
+        // Redirect to dashboard
         setMessage("Login successful! Redirecting...");
         // Small delay to show success message, then redirect
         setTimeout(() => {
-          router.push("/");
+          router.push("/dashboard");
           router.refresh();
         }, 500);
       }
@@ -75,6 +106,11 @@ export default function LoginPage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
             />
+            <div className="mt-2 text-right">
+              <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                Forgot your password?
+              </Link>
+            </div>
           </div>
 
           <button
