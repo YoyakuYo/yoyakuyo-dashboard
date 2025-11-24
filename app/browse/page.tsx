@@ -21,7 +21,6 @@ import {
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 interface Category {
   id: string;
@@ -110,7 +109,15 @@ function BrowsePageContent() {
             !shop.claim_status || shop.claim_status !== 'hidden'
           );
           setShops(visibleShops);
+        } else {
+          console.error('Expected JSON response but got:', contentType);
+          setShops([]);
         }
+      } else {
+        // Handle non-200 responses
+        const errorText = await res.text().catch(() => 'Unknown error');
+        console.error('Error fetching shops:', res.status, res.statusText, errorText);
+        setShops([]);
       }
     } catch (error: any) {
       if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
