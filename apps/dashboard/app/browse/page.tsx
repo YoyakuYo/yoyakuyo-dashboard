@@ -21,7 +21,6 @@ import {
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 interface Category {
   id: string;
