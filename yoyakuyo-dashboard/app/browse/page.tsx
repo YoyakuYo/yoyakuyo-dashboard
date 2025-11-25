@@ -12,8 +12,6 @@ import {
   buildAreaTree,
   buildCategoryTree,
   filterShopsBySearch,
-  extractPrefecture,
-  extractCity,
   type Shop,
   type AreaTree,
   type CategoryTree,
@@ -355,72 +353,49 @@ function BrowsePageContent() {
   };
 
   // Get shops to display based on current selection
+  // Always shows shops from filteredShops, applying tree-based filters only if selections are made
   const displayShops = useMemo(() => {
-    let shops: Shop[] = [];
-    
-    // Fallback: If trees are empty but we have filtered shops, show them directly
-    const areaTreeEmpty = Object.keys(areaTree).length === 0;
-    const categoryTreeEmpty = Object.keys(categoryTree).length === 0;
-    
-    if (areaTreeEmpty && categoryTreeEmpty && filteredShops.length > 0) {
-      console.log('⚠️ Trees are empty, falling back to showing all filtered shops directly');
-      return filteredShops;
-    }
+    // Start with all filtered shops
+    let shops: Shop[] = [...filteredShops];
     
     if (browseMode === 'area') {
+      // Apply area filters if selections are made
       if (selectedCity && selectedPrefecture) {
-        shops = areaTree[selectedPrefecture]?.cities[selectedCity]?.shops || [];
+        // Filter by both prefecture and city
+        shops = shops.filter(shop => {
+          const shopPrefecture = shop.prefecture?.trim() || 'other';
+          const shopCity = shop.city?.trim() || 'other';
+          return shopPrefecture === selectedPrefecture && shopCity === selectedCity;
+        });
       } else if (selectedPrefecture) {
-        // Return all shops in prefecture
-        const prefecture = areaTree[selectedPrefecture];
-        if (prefecture) {
-          shops = Object.values(prefecture.cities).flatMap(city => city.shops);
-        }
-      } else {
-        // No prefecture selected - show ALL shops from all prefectures
-        shops = Object.values(areaTree).flatMap(prefecture => 
-          Object.values(prefecture.cities).flatMap(city => city.shops)
-        );
-        
-        // Fallback: If tree is empty, show all filtered shops
-        if (shops.length === 0 && filteredShops.length > 0) {
-          console.log('⚠️ Area tree is empty, falling back to showing all filtered shops');
-          shops = filteredShops;
-        }
+        // Filter by prefecture only
+        shops = shops.filter(shop => {
+          const shopPrefecture = shop.prefecture?.trim() || 'other';
+          return shopPrefecture === selectedPrefecture;
+        });
       }
+      // If no prefecture selected, show all filtered shops
     } else {
       // Category mode
-      if (selectedCity && selectedPrefecture && selectedCategoryId) {
-        shops = categoryTree[selectedCategoryId]?.prefectures[selectedPrefecture]?.cities[selectedCity]?.shops || [];
-      } else if (selectedPrefecture && selectedCategoryId) {
-        const category = categoryTree[selectedCategoryId];
-        if (category) {
-          const prefecture = category.prefectures[selectedPrefecture];
-          if (prefecture) {
-            shops = Object.values(prefecture.cities).flatMap(city => city.shops);
-          }
-        }
-      } else if (selectedCategoryId) {
-        const category = categoryTree[selectedCategoryId];
-        if (category) {
-          shops = Object.values(category.prefectures).flatMap(pref => 
-            Object.values(pref.cities).flatMap(city => city.shops)
-          );
-        }
-      } else {
-        // No category selected - show ALL shops from all categories
-        shops = Object.values(categoryTree).flatMap(category =>
-          Object.values(category.prefectures).flatMap(pref => 
-            Object.values(pref.cities).flatMap(city => city.shops)
-          )
-        );
+      if (selectedCategoryId) {
+        // Filter by category
+        shops = shops.filter(shop => shop.category_id === selectedCategoryId);
         
-        // Fallback: If tree is empty, show all filtered shops
-        if (shops.length === 0 && filteredShops.length > 0) {
-          console.log('⚠️ Category tree is empty, falling back to showing all filtered shops');
-          shops = filteredShops;
+        // Apply additional area filters if selections are made
+        if (selectedCity && selectedPrefecture) {
+          shops = shops.filter(shop => {
+            const shopPrefecture = shop.prefecture?.trim() || 'other';
+            const shopCity = shop.city?.trim() || 'other';
+            return shopPrefecture === selectedPrefecture && shopCity === selectedCity;
+          });
+        } else if (selectedPrefecture) {
+          shops = shops.filter(shop => {
+            const shopPrefecture = shop.prefecture?.trim() || 'other';
+            return shopPrefecture === selectedPrefecture;
+          });
         }
       }
+      // If no category selected, show all filtered shops
     }
     
     // Deduplicate shops by ID to prevent duplicate key errors
@@ -432,7 +407,7 @@ function BrowsePageContent() {
       seen.add(shop.id);
       return true;
     });
-  }, [browseMode, selectedPrefecture, selectedCity, selectedCategoryId, areaTree, categoryTree, filteredShops]);
+  }, [browseMode, selectedPrefecture, selectedCity, selectedCategoryId, filteredShops]);
 
   // Debug logging to understand what's happening
   useEffect(() => {
@@ -707,8 +682,8 @@ function CategoryNavigation({
   getCityName: (key: string) => string;
   t: any;
 }) {
+  // Always show all categories, not just those with shops in the tree
   const sortedCategories = categories
-    .filter(cat => categoryTree[cat.id])
     .sort((a, b) => {
       const nameA = getCategoryName(a.name);
       const nameB = getCategoryName(b.name);
@@ -743,7 +718,7 @@ function CategoryNavigation({
               >
                 <div className="flex items-center justify-between">
                   <span>{getCategoryName(category.name)}</span>
-                  <span className="text-xs text-gray-500">({categoryData.shopCount})</span>
+                  <span className="text-xs text-gray-500">({categoryData?.shopCount || 0})</span>
                 </div>
               </button>
               {isSelected && selectedCategory && (
