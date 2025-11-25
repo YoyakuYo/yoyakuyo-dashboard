@@ -2,7 +2,7 @@
 // Redesigned browse page with "By Area" and "By Category" navigation modes
 
 "use client";
-import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -41,15 +41,8 @@ function BrowsePageContent() {
   const [loading, setLoading] = useState(true);
   
   // Read search params from URL directly (non-suspending approach)
-  // Initialize from URL if available, otherwise empty
-  const getInitialSearchParams = (): URLSearchParams => {
-    if (typeof window !== 'undefined') {
-      return new URLSearchParams(window.location.search);
-    }
-    return new URLSearchParams();
-  };
-  
-  const [searchParams, setSearchParams] = useState<URLSearchParams>(getInitialSearchParams());
+  // Initialize as empty, then load from URL in useEffect
+  const [searchParams, setSearchParams] = useState<URLSearchParams>(new URLSearchParams());
   
   // Load search params from URL on mount (doesn't suspend)
   useEffect(() => {
@@ -871,17 +864,6 @@ function ShopCard({ shop, getCategoryName, t }: { shop: Shop; getCategoryName: (
 export default function BrowsePage() {
   console.log('🌐 BrowsePage wrapper component rendering');
   
-  return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-          <p className="mt-2 text-sm text-gray-400">Waiting for search params...</p>
-        </div>
-      </div>
-    }>
-      <BrowsePageContent />
-    </Suspense>
-  );
+  // No Suspense needed since we're not using useSearchParams()
+  return <BrowsePageContent />;
 }
