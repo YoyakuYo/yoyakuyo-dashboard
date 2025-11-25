@@ -1,294 +1,136 @@
-// apps/dashboard/app/browse/page.tsx
-// Redesigned browse page with "By Area" and "By Category" navigation modes
+// app/browse/page.tsx
+// Simplified browse page - uses direct API fields, no complex trees
 
 "use client";
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
 import {
-  buildAreaTree,
-  buildCategoryTree,
-  filterShopsBySearch,
+  getUniquePrefectures,
+  getPrefectureShopCount,
+  getCategoryShopCount,
+  filterShops,
   type Shop,
-  type AreaTree,
-  type CategoryTree,
+  type Category,
 } from '@/lib/shopBrowseData';
 
-// Force dynamic rendering to avoid prerendering errors
+// Force dynamic rendering
 export const dynamic = 'force-dynamic';
-
-interface Category {
-  id: string;
-  name: string;
-  description?: string | null;
-}
 
 type BrowseMode = 'area' | 'category';
 
-function BrowsePageContent() {
-  // Log immediately when component renders
-  console.log('🎬 BrowsePageContent component is rendering!');
-  
+export default function BrowsePage() {
   const router = useRouter();
   const t = useTranslations();
-  const [shops, setShops] = useState<Shop[]>([]);
+  
+  // Data state
+  const [allShops, setAllShops] = useState<Shop[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Read search params from URL directly (non-suspending approach)
-  // Initialize as empty, then load from URL in useEffect
-  const [searchParams, setSearchParams] = useState<URLSearchParams>(new URLSearchParams());
-  
-  // Load search params from URL on mount (doesn't suspend)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      setSearchParams(params);
-      console.log('✅ Search params loaded from URL:', {
-        search: params.get('search'),
-        mode: params.get('mode'),
-        prefecture: params.get('prefecture'),
-        city: params.get('city'),
-        category: params.get('category')
-      });
-    }
-  }, []);
-  
-  // Update search params when URL changes
-  useEffect(() => {
-    const handleRouteChange = () => {
-      if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        setSearchParams(params);
-      }
-    };
-    
-    // Listen for route changes
-    window.addEventListener('popstate', handleRouteChange);
-    return () => window.removeEventListener('popstate', handleRouteChange);
-  }, []);
-  
-  // Safely get search params with fallbacks
-  const searchQueryParam = searchParams.get('search') || '';
-  const modeParam = (searchParams.get('mode') as BrowseMode) || 'area';
-  
-  const [searchQuery, setSearchQuery] = useState(searchQueryParam);
-  const [browseMode, setBrowseMode] = useState<BrowseMode>(modeParam);
-  
-  // Update state when search params change
-  useEffect(() => {
-    const newSearch = searchParams.get('search') || '';
-    const newMode = (searchParams.get('mode') as BrowseMode) || 'area';
-    setSearchQuery(newSearch);
-    setBrowseMode(newMode);
-  }, [searchParams]);
-  
-  // Navigation state - safely get from search params
-  const [selectedPrefecture, setSelectedPrefecture] = useState<string | null>(
-    searchParams.get('prefecture') || null
-  );
-  const [selectedCity, setSelectedCity] = useState<string | null>(
-    searchParams.get('city') || null
-  );
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
-    searchParams.get('category') || null
-  );
-  
-  // Update navigation state when search params change
-  useEffect(() => {
-    setSelectedPrefecture(searchParams.get('prefecture') || null);
-    setSelectedCity(searchParams.get('city') || null);
-    setSelectedCategoryId(searchParams.get('category') || null);
-  }, [searchParams]);
-  const [hasAutoSelected, setHasAutoSelected] = useState(false);
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [browseMode, setBrowseMode] = useState<BrowseMode>('area');
+  const [selectedPrefecture, setSelectedPrefecture] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
-  // Debounced search
-  const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-    }, 500);
+    }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Load URL params on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const mode = (params.get('mode') as BrowseMode) || 'area';
+      const pref = params.get('prefecture');
+      const cat = params.get('category');
+      const search = params.get('search') || '';
+      
+      setBrowseMode(mode);
+      setSelectedPrefecture(pref);
+      setSelectedCategoryId(cat);
+      setSearchQuery(search);
+    }
+  }, []);
 
   // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       if (!apiUrl) {
-        console.error('❌ NEXT_PUBLIC_API_URL is not set! Cannot fetch categories.');
+        console.error('❌ NEXT_PUBLIC_API_URL is not set!');
         setCategories([]);
         return;
       }
 
       try {
         const res = await fetch(`${apiUrl}/categories`);
-        
         if (res.ok) {
-          const contentType = res.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            try {
-              const data = await res.json();
-              setCategories(Array.isArray(data) ? data : []);
-            } catch (jsonError: any) {
-              console.error('❌ Error parsing categories JSON:', jsonError);
-              setCategories([]);
-            }
-          } else {
-            console.error('❌ Expected JSON but received:', contentType);
-            setCategories([]);
-          }
+          const data = await res.json();
+          setCategories(Array.isArray(data) ? data : []);
         } else {
-          const errorText = await res.text().catch(() => 'Unknown error');
-          console.error('❌ Error fetching categories:', res.status, res.statusText, errorText);
+          console.error('❌ Error fetching categories:', res.status);
           setCategories([]);
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('❌ Exception fetching categories:', error);
         setCategories([]);
       }
     };
     fetchCategories();
-  }, [apiUrl]);
-
-  // Fetch shops
-  const fetchShops = useCallback(async () => {
-    if (!apiUrl) {
-      console.error('❌ NEXT_PUBLIC_API_URL is not set! Cannot fetch shops.');
-      setShops([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (debouncedSearch.trim()) {
-        params.set('search', debouncedSearch.trim());
-      }
-
-      const url = `${apiUrl}/shops${params.toString() ? `?${params.toString()}` : ''}`;
-      const res = await fetch(url);
-      
-      if (res.ok) {
-        const contentType = res.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          try {
-            const data = await res.json();
-            console.log('📦 Received data type:', typeof data, 'Keys:', data ? Object.keys(data) : 'null');
-            console.log('📦 Data has "data" property:', 'data' in (data || {}), 'Type of data.data:', typeof data?.data);
-            console.log('📦 data.data is array?', Array.isArray(data?.data), 'Length:', Array.isArray(data?.data) ? data.data.length : 'N/A');
-            
-            // Backend returns: { data: [...], pagination: {...} } when no limit is specified
-            // Handle multiple response formats for compatibility
-            let shopsArray: Shop[] = [];
-            
-            if (Array.isArray(data)) {
-              // Direct array response (legacy format)
-              shopsArray = data;
-            } else if (data && typeof data === 'object') {
-              // Object response - check data.data first (current format: { data: [...], pagination: {...} })
-              if (data.data !== undefined && data.data !== null) {
-                if (Array.isArray(data.data)) {
-                  shopsArray = data.data;
-                } else {
-                  console.warn('⚠️ data.data exists but is not an array:', typeof data.data, data.data);
-                }
-              }
-              // Fallback to data.shops (alternative format)
-              else if (data.shops !== undefined && data.shops !== null) {
-                if (Array.isArray(data.shops)) {
-                  shopsArray = data.shops;
-                } else {
-                  console.warn('⚠️ data.shops exists but is not an array:', typeof data.shops);
-                }
-              } else {
-                // Debug log only if we can't find the shops array - this helps identify the issue
-                console.warn('⚠️ No shops array found in response. Response structure:', {
-                  keys: Object.keys(data),
-                  hasData: 'data' in data,
-                  hasShops: 'shops' in data,
-                  dataType: typeof data.data,
-                  shopsType: typeof data.shops
-                });
-              }
-            } else {
-              console.warn('⚠️ Unexpected response format. Expected array or object, got:', typeof data);
-            }
-            
-            const visibleShops = shopsArray.filter((shop: Shop) => 
-              !shop.claim_status || shop.claim_status !== 'hidden'
-            );
-            
-            console.log('✅ Parsed shops:', {
-              totalReceived: shopsArray.length,
-              visibleAfterFilter: visibleShops.length,
-              hiddenCount: shopsArray.length - visibleShops.length,
-              firstShop: visibleShops[0] ? { id: visibleShops[0].id, name: visibleShops[0].name } : null
-            });
-            
-            setShops(visibleShops);
-          } catch (jsonError: any) {
-            console.error('❌ Error parsing shops JSON:', jsonError);
-            setShops([]);
-          }
-        } else {
-          console.error('❌ Expected JSON response but got:', contentType);
-          setShops([]);
-        }
-      } else {
-        const errorText = await res.text().catch(() => 'Unknown error');
-        console.error('❌ Error fetching shops:', res.status, res.statusText, errorText);
-        setShops([]);
-      }
-    } catch (error: any) {
-      console.error('❌ Exception fetching shops:', error);
-      setShops([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [apiUrl, debouncedSearch]);
-
-  useEffect(() => {
-    console.log('🚀 useEffect triggered - calling fetchShops');
-    fetchShops();
-  }, [fetchShops]);
-  
-  // Immediate log to verify component mounted
-  useEffect(() => {
-    console.log('✅ BrowsePageContent mounted and ready');
-    console.log('🔧 API URL:', apiUrl || 'NOT SET');
-    console.log('📊 Initial state:', { 
-      shopsCount: shops.length, 
-      categoriesCount: categories.length,
-      loading 
-    });
   }, []);
 
-  // Auto-select prefecture with most shops on first load (if no filters selected)
+  // Fetch shops
   useEffect(() => {
-    const hasFilters = selectedPrefecture || selectedCity || selectedCategoryId || debouncedSearch;
-    
-    if (!hasFilters && !hasAutoSelected && shops.length === 0 && !loading) {
-      // Fetch top prefecture and auto-select it
-      fetch(`${apiUrl}/shops/top-prefecture`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.prefecture && data.shopCount > 0) {
-            setSelectedPrefecture(data.prefecture);
-            setHasAutoSelected(true);
+    const fetchShops = async () => {
+      if (!apiUrl) {
+        console.error('❌ NEXT_PUBLIC_API_URL is not set!');
+        setAllShops([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const res = await fetch(`${apiUrl}/shops`);
+        
+        if (res.ok) {
+          const data = await res.json();
+          
+          // Handle different response formats
+          let shopsArray: Shop[] = [];
+          if (Array.isArray(data)) {
+            shopsArray = data;
+          } else if (data?.data && Array.isArray(data.data)) {
+            shopsArray = data.data;
+          } else if (data?.shops && Array.isArray(data.shops)) {
+            shopsArray = data.shops;
           }
-        })
-        .catch(error => {
-          console.error('Error fetching top prefecture:', error);
-          // Fallback to Tokyo if API fails
-          setSelectedPrefecture('tokyo');
-          setHasAutoSelected(true);
-        });
-    }
-  }, [shops.length, loading, selectedPrefecture, selectedCity, selectedCategoryId, debouncedSearch, hasAutoSelected, apiUrl]);
+          
+          console.log('✅ Loaded shops:', shopsArray.length);
+          setAllShops(shopsArray);
+        } else {
+          console.error('❌ Error fetching shops:', res.status);
+          setAllShops([]);
+        }
+      } catch (error) {
+        console.error('❌ Exception fetching shops:', error);
+        setAllShops([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchShops();
+  }, []);
 
   // Update URL when filters change
   useEffect(() => {
@@ -296,48 +138,33 @@ function BrowsePageContent() {
     if (debouncedSearch) params.set('search', debouncedSearch);
     if (browseMode) params.set('mode', browseMode);
     if (selectedPrefecture) params.set('prefecture', selectedPrefecture);
-    if (selectedCity) params.set('city', selectedCity);
     if (selectedCategoryId) params.set('category', selectedCategoryId);
+    
     const newUrl = `/browse${params.toString() ? `?${params.toString()}` : ''}`;
     router.replace(newUrl, { scroll: false });
-    
-    // Update searchParams state to reflect URL change
-    if (typeof window !== 'undefined') {
-      const newParams = new URLSearchParams(window.location.search);
-      setSearchParams(newParams);
-    }
-  }, [debouncedSearch, browseMode, selectedPrefecture, selectedCity, selectedCategoryId, router]);
+  }, [debouncedSearch, browseMode, selectedPrefecture, selectedCategoryId, router]);
 
-  // Build data trees
+  // Get unique prefectures from all shops
+  const prefectures = useMemo(() => {
+    return getUniquePrefectures(allShops);
+  }, [allShops]);
+
+  // Filter shops based on current selections
   const filteredShops = useMemo(() => {
-    return filterShopsBySearch(shops, debouncedSearch);
-  }, [shops, debouncedSearch]);
-
-  const areaTree = useMemo(() => {
-    return buildAreaTree(filteredShops);
-  }, [filteredShops]);
-
-  const categoryTree = useMemo(() => {
-    return buildCategoryTree(filteredShops, categories);
-  }, [filteredShops, categories]);
+    return filterShops(allShops, {
+      prefecture: browseMode === 'area' ? selectedPrefecture : null,
+      categoryId: browseMode === 'category' ? selectedCategoryId : null,
+      searchQuery: debouncedSearch,
+    });
+  }, [allShops, browseMode, selectedPrefecture, selectedCategoryId, debouncedSearch]);
 
   // Get translated prefecture name
-  const getPrefectureName = (key: string): string => {
+  const getPrefectureName = (pref: string): string => {
     try {
-      const translated = t(`prefectures.${key}`);
-      return translated !== `prefectures.${key}` ? translated : key;
+      const translated = t(`prefectures.${pref}`);
+      return translated !== `prefectures.${pref}` ? translated : pref;
     } catch {
-      return key;
-    }
-  };
-
-  // Get translated city name
-  const getCityName = (key: string): string => {
-    try {
-      const translated = t(`cities.${key}`);
-      return translated !== `cities.${key}` ? translated : key;
-    } catch {
-      return key;
+      return pref;
     }
   };
 
@@ -352,98 +179,12 @@ function BrowsePageContent() {
     }
   };
 
-  // Get shops to display based on current selection
-  // Always shows shops from filteredShops, applying tree-based filters only if selections are made
-  const displayShops = useMemo(() => {
-    // Start with all filtered shops
-    let shops: Shop[] = [...filteredShops];
-    
-    if (browseMode === 'area') {
-      // Apply area filters if selections are made
-      if (selectedCity && selectedPrefecture) {
-        // Filter by both prefecture and city
-        shops = shops.filter(shop => {
-          const shopPrefecture = shop.prefecture?.trim() || 'other';
-          const shopCity = shop.city?.trim() || 'other';
-          return shopPrefecture === selectedPrefecture && shopCity === selectedCity;
-        });
-      } else if (selectedPrefecture) {
-        // Filter by prefecture only
-        shops = shops.filter(shop => {
-          const shopPrefecture = shop.prefecture?.trim() || 'other';
-          return shopPrefecture === selectedPrefecture;
-        });
-      }
-      // If no prefecture selected, show all filtered shops
-    } else {
-      // Category mode
-      if (selectedCategoryId) {
-        // Filter by category
-        shops = shops.filter(shop => shop.category_id === selectedCategoryId);
-        
-        // Apply additional area filters if selections are made
-        if (selectedCity && selectedPrefecture) {
-          shops = shops.filter(shop => {
-            const shopPrefecture = shop.prefecture?.trim() || 'other';
-            const shopCity = shop.city?.trim() || 'other';
-            return shopPrefecture === selectedPrefecture && shopCity === selectedCity;
-          });
-        } else if (selectedPrefecture) {
-          shops = shops.filter(shop => {
-            const shopPrefecture = shop.prefecture?.trim() || 'other';
-            return shopPrefecture === selectedPrefecture;
-          });
-        }
-      }
-      // If no category selected, show all filtered shops
-    }
-    
-    // Deduplicate shops by ID to prevent duplicate key errors
-    const seen = new Set<string>();
-    return shops.filter(shop => {
-      if (seen.has(shop.id)) {
-        return false;
-      }
-      seen.add(shop.id);
-      return true;
-    });
-  }, [browseMode, selectedPrefecture, selectedCity, selectedCategoryId, filteredShops]);
-
-  // Debug logging to understand what's happening
-  useEffect(() => {
-    console.log('🔍 Browse Page Debug Info:', {
-      shopsCount: shops.length,
-      filteredShopsCount: filteredShops.length,
-      areaTreeKeys: Object.keys(areaTree),
-      categoryTreeKeys: Object.keys(categoryTree),
-      areaTreeShopCount: Object.values(areaTree).reduce((sum, pref) => sum + pref.shopCount, 0),
-      categoryTreeShopCount: Object.values(categoryTree).reduce((sum, cat) => sum + cat.shopCount, 0),
-      displayShopsCount: displayShops.length,
-      selectedPrefecture,
-      selectedCity,
-      selectedCategoryId,
-      browseMode
-    });
-  }, [shops.length, filteredShops.length, areaTree, categoryTree, displayShops.length, selectedPrefecture, selectedCity, selectedCategoryId, browseMode]);
-
-  // Reset navigation when mode changes
+  // Handle mode change
   const handleModeChange = (mode: BrowseMode) => {
     setBrowseMode(mode);
     setSelectedPrefecture(null);
-    setSelectedCity(null);
     setSelectedCategoryId(null);
   };
-
-  // Sort prefectures by name
-  const sortedPrefectures = useMemo(() => {
-    const prefs = Object.keys(browseMode === 'area' ? areaTree : 
-      (selectedCategoryId && categoryTree[selectedCategoryId] ? categoryTree[selectedCategoryId].prefectures : {}));
-    return prefs.sort((a, b) => {
-      const nameA = getPrefectureName(a);
-      const nameB = getPrefectureName(b);
-      return nameA.localeCompare(nameB, 'ja');
-    });
-  }, [browseMode, areaTree, categoryTree, selectedCategoryId, getPrefectureName]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -509,28 +250,20 @@ function BrowsePageContent() {
               <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-24">
                 {browseMode === 'area' ? (
                   <AreaNavigation
-                    areaTree={areaTree}
+                    prefectures={prefectures}
+                    allShops={allShops}
                     selectedPrefecture={selectedPrefecture}
-                    selectedCity={selectedCity}
                     onSelectPrefecture={setSelectedPrefecture}
-                    onSelectCity={setSelectedCity}
                     getPrefectureName={getPrefectureName}
-                    getCityName={getCityName}
                     t={t}
                   />
                 ) : (
                   <CategoryNavigation
-                    categoryTree={categoryTree}
                     categories={categories}
+                    allShops={allShops}
                     selectedCategoryId={selectedCategoryId}
-                    selectedPrefecture={selectedPrefecture}
-                    selectedCity={selectedCity}
                     onSelectCategory={setSelectedCategoryId}
-                    onSelectPrefecture={setSelectedPrefecture}
-                    onSelectCity={setSelectedCity}
                     getCategoryName={getCategoryName}
-                    getPrefectureName={getPrefectureName}
-                    getCityName={getCityName}
                     t={t}
                   />
                 )}
@@ -539,7 +272,7 @@ function BrowsePageContent() {
 
             {/* Main Content - Shop List */}
             <div className="lg:col-span-3">
-              {displayShops.length === 0 ? (
+              {filteredShops.length === 0 ? (
                 <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
                   <div className="text-6xl mb-4">🏪</div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('shops.noShops')}</h2>
@@ -548,10 +281,10 @@ function BrowsePageContent() {
               ) : (
                 <>
                   <div className="mb-4 text-sm text-gray-600">
-                    {t('shops.shopsFound', { count: displayShops.length })}
+                    {t('shops.shopsFound', { count: filteredShops.length })}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {displayShops.map((shop) => (
+                    {filteredShops.map((shop) => (
                       <ShopCard key={shop.id} shop={shop} getCategoryName={getCategoryName} t={t} />
                     ))}
                   </div>
@@ -567,44 +300,34 @@ function BrowsePageContent() {
 
 // Area Navigation Component
 function AreaNavigation({
-  areaTree,
+  prefectures,
+  allShops,
   selectedPrefecture,
-  selectedCity,
   onSelectPrefecture,
-  onSelectCity,
   getPrefectureName,
-  getCityName,
   t,
 }: {
-  areaTree: AreaTree;
+  prefectures: string[];
+  allShops: Shop[];
   selectedPrefecture: string | null;
-  selectedCity: string | null;
   onSelectPrefecture: (pref: string | null) => void;
-  onSelectCity: (city: string | null) => void;
-  getPrefectureName: (key: string) => string;
-  getCityName: (key: string) => string;
+  getPrefectureName: (pref: string) => string;
   t: any;
 }) {
-  const sortedPrefectures = Object.keys(areaTree).sort((a, b) => {
-    const nameA = getPrefectureName(a);
-    const nameB = getPrefectureName(b);
-    return nameA.localeCompare(nameB, 'ja');
-  });
-
   return (
     <div className="space-y-4">
       <h3 className="font-semibold text-gray-900">{t('browse.prefecture')}</h3>
       <div className="space-y-2 max-h-96 overflow-y-auto">
-        {sortedPrefectures.map((prefKey) => {
-          const prefecture = areaTree[prefKey];
-          const isSelected = selectedPrefecture === prefKey;
-          return (
-            <div key={prefKey}>
+        {prefectures.length === 0 ? (
+          <p className="text-sm text-gray-500">{t('browse.noPrefectures')}</p>
+        ) : (
+          prefectures.map((pref) => {
+            const isSelected = selectedPrefecture === pref;
+            const count = getPrefectureShopCount(allShops, pref);
+            return (
               <button
-                onClick={() => {
-                  onSelectPrefecture(isSelected ? null : prefKey);
-                  onSelectCity(null);
-                }}
+                key={pref}
+                onClick={() => onSelectPrefecture(isSelected ? null : pref)}
                 className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                   isSelected
                     ? 'bg-blue-100 text-blue-700 font-medium'
@@ -612,43 +335,13 @@ function AreaNavigation({
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span>{getPrefectureName(prefKey)}</span>
-                  <span className="text-xs text-gray-500">({prefecture.shopCount})</span>
+                  <span>{getPrefectureName(pref)}</span>
+                  <span className="text-xs text-gray-500">({count})</span>
                 </div>
               </button>
-              {isSelected && (
-                <div className="mt-2 ml-4 space-y-1">
-                  {Object.keys(prefecture.cities)
-                    .sort((a, b) => {
-                      const nameA = getCityName(a);
-                      const nameB = getCityName(b);
-                      return nameA.localeCompare(nameB, 'ja');
-                    })
-                    .map((cityKey) => {
-                      const city = prefecture.cities[cityKey];
-                      const isCitySelected = selectedCity === cityKey;
-                      return (
-                        <button
-                          key={cityKey}
-                          onClick={() => onSelectCity(isCitySelected ? null : cityKey)}
-                          className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
-                            isCitySelected
-                              ? 'bg-blue-50 text-blue-600 font-medium'
-                              : 'text-gray-600 hover:bg-gray-50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span>{getCityName(cityKey)}</span>
-                            <span className="text-xs text-gray-500">({city.shopCount})</span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                </div>
-              )}
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );
@@ -656,60 +349,40 @@ function AreaNavigation({
 
 // Category Navigation Component
 function CategoryNavigation({
-  categoryTree,
   categories,
+  allShops,
   selectedCategoryId,
-  selectedPrefecture,
-  selectedCity,
   onSelectCategory,
-  onSelectPrefecture,
-  onSelectCity,
   getCategoryName,
-  getPrefectureName,
-  getCityName,
   t,
 }: {
-  categoryTree: CategoryTree;
   categories: Category[];
+  allShops: Shop[];
   selectedCategoryId: string | null;
-  selectedPrefecture: string | null;
-  selectedCity: string | null;
   onSelectCategory: (id: string | null) => void;
-  onSelectPrefecture: (pref: string | null) => void;
-  onSelectCity: (city: string | null) => void;
   getCategoryName: (name: string) => string;
-  getPrefectureName: (key: string) => string;
-  getCityName: (key: string) => string;
   t: any;
 }) {
-  // Always show all categories, not just those with shops in the tree
-  const sortedCategories = categories
-    .sort((a, b) => {
-      const nameA = getCategoryName(a.name);
-      const nameB = getCategoryName(b.name);
-      return nameA.localeCompare(nameB);
-    });
-
-  const selectedCategory = selectedCategoryId ? categoryTree[selectedCategoryId] : null;
-  const selectedPrefectureData = selectedCategory && selectedPrefecture
-    ? selectedCategory.prefectures[selectedPrefecture]
-    : null;
+  const sortedCategories = [...categories].sort((a, b) => {
+    const nameA = getCategoryName(a.name);
+    const nameB = getCategoryName(b.name);
+    return nameA.localeCompare(nameB);
+  });
 
   return (
     <div className="space-y-4">
       <h3 className="font-semibold text-gray-900">{t('browse.category')}</h3>
       <div className="space-y-2 max-h-96 overflow-y-auto">
-        {sortedCategories.map((category) => {
-          const categoryData = categoryTree[category.id];
-          const isSelected = selectedCategoryId === category.id;
-          return (
-            <div key={category.id}>
+        {sortedCategories.length === 0 ? (
+          <p className="text-sm text-gray-500">{t('browse.noCategories')}</p>
+        ) : (
+          sortedCategories.map((category) => {
+            const isSelected = selectedCategoryId === category.id;
+            const count = getCategoryShopCount(allShops, category.id);
+            return (
               <button
-                onClick={() => {
-                  onSelectCategory(isSelected ? null : category.id);
-                  onSelectPrefecture(null);
-                  onSelectCity(null);
-                }}
+                key={category.id}
+                onClick={() => onSelectCategory(isSelected ? null : category.id)}
                 className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                   isSelected
                     ? 'bg-blue-100 text-blue-700 font-medium'
@@ -718,78 +391,12 @@ function CategoryNavigation({
               >
                 <div className="flex items-center justify-between">
                   <span>{getCategoryName(category.name)}</span>
-                  <span className="text-xs text-gray-500">({categoryData?.shopCount || 0})</span>
+                  <span className="text-xs text-gray-500">({count})</span>
                 </div>
               </button>
-              {isSelected && selectedCategory && (
-                <>
-                  {selectedPrefecture ? (
-                    <div className="mt-2 ml-4 space-y-1">
-                      {selectedPrefectureData && Object.keys(selectedPrefectureData.cities)
-                        .sort((a, b) => {
-                          const nameA = getCityName(a);
-                          const nameB = getCityName(b);
-                          return nameA.localeCompare(nameB, 'ja');
-                        })
-                        .map((cityKey) => {
-                          const city = selectedPrefectureData.cities[cityKey];
-                          const isCitySelected = selectedCity === cityKey;
-                          return (
-                            <button
-                              key={cityKey}
-                              onClick={() => onSelectCity(isCitySelected ? null : cityKey)}
-                              className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
-                                isCitySelected
-                                  ? 'bg-blue-50 text-blue-600 font-medium'
-                                  : 'text-gray-600 hover:bg-gray-50'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span>{getCityName(cityKey)}</span>
-                                <span className="text-xs text-gray-500">({city.shopCount})</span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                    </div>
-                  ) : (
-                    <div className="mt-2 ml-4 space-y-1">
-                      {Object.keys(selectedCategory.prefectures)
-                        .sort((a, b) => {
-                          const nameA = getPrefectureName(a);
-                          const nameB = getPrefectureName(b);
-                          return nameA.localeCompare(nameB, 'ja');
-                        })
-                        .map((prefKey) => {
-                          const prefecture = selectedCategory.prefectures[prefKey];
-                          const isPrefSelected = selectedPrefecture === prefKey;
-                          return (
-                            <button
-                              key={prefKey}
-                              onClick={() => {
-                                onSelectPrefecture(isPrefSelected ? null : prefKey);
-                                onSelectCity(null);
-                              }}
-                              className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
-                                isPrefSelected
-                                  ? 'bg-blue-50 text-blue-600 font-medium'
-                                  : 'text-gray-600 hover:bg-gray-50'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span>{getPrefectureName(prefKey)}</span>
-                                <span className="text-xs text-gray-500">({prefecture.shopCount})</span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );
@@ -834,11 +441,4 @@ function ShopCard({ shop, getCategoryName, t }: { shop: Shop; getCategoryName: (
       </div>
     </Link>
   );
-}
-
-export default function BrowsePage() {
-  console.log('🌐 BrowsePage wrapper component rendering');
-  
-  // No Suspense needed since we're not using useSearchParams()
-  return <BrowsePageContent />;
 }
