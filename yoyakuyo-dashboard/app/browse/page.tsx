@@ -277,6 +277,15 @@ function BrowsePageContent() {
   const displayShops = useMemo(() => {
     let shops: Shop[] = [];
     
+    // Fallback: If trees are empty but we have filtered shops, show them directly
+    const areaTreeEmpty = Object.keys(areaTree).length === 0;
+    const categoryTreeEmpty = Object.keys(categoryTree).length === 0;
+    
+    if (areaTreeEmpty && categoryTreeEmpty && filteredShops.length > 0) {
+      console.log('⚠️ Trees are empty, falling back to showing all filtered shops directly');
+      return filteredShops;
+    }
+    
     if (browseMode === 'area') {
       if (selectedCity && selectedPrefecture) {
         shops = areaTree[selectedPrefecture]?.cities[selectedCity]?.shops || [];
@@ -291,6 +300,12 @@ function BrowsePageContent() {
         shops = Object.values(areaTree).flatMap(prefecture => 
           Object.values(prefecture.cities).flatMap(city => city.shops)
         );
+        
+        // Fallback: If tree is empty, show all filtered shops
+        if (shops.length === 0 && filteredShops.length > 0) {
+          console.log('⚠️ Area tree is empty, falling back to showing all filtered shops');
+          shops = filteredShops;
+        }
       }
     } else {
       // Category mode
@@ -318,6 +333,12 @@ function BrowsePageContent() {
             Object.values(pref.cities).flatMap(city => city.shops)
           )
         );
+        
+        // Fallback: If tree is empty, show all filtered shops
+        if (shops.length === 0 && filteredShops.length > 0) {
+          console.log('⚠️ Category tree is empty, falling back to showing all filtered shops');
+          shops = filteredShops;
+        }
       }
     }
     
@@ -330,7 +351,24 @@ function BrowsePageContent() {
       seen.add(shop.id);
       return true;
     });
-  }, [browseMode, selectedPrefecture, selectedCity, selectedCategoryId, areaTree, categoryTree]);
+  }, [browseMode, selectedPrefecture, selectedCity, selectedCategoryId, areaTree, categoryTree, filteredShops]);
+
+  // Debug logging to understand what's happening
+  useEffect(() => {
+    console.log('🔍 Browse Page Debug Info:', {
+      shopsCount: shops.length,
+      filteredShopsCount: filteredShops.length,
+      areaTreeKeys: Object.keys(areaTree),
+      categoryTreeKeys: Object.keys(categoryTree),
+      areaTreeShopCount: Object.values(areaTree).reduce((sum, pref) => sum + pref.shopCount, 0),
+      categoryTreeShopCount: Object.values(categoryTree).reduce((sum, cat) => sum + cat.shopCount, 0),
+      displayShopsCount: displayShops.length,
+      selectedPrefecture,
+      selectedCity,
+      selectedCategoryId,
+      browseMode
+    });
+  }, [shops.length, filteredShops.length, areaTree, categoryTree, displayShops.length, selectedPrefecture, selectedCity, selectedCategoryId, browseMode]);
 
   // Reset navigation when mode changes
   const handleModeChange = (mode: BrowseMode) => {
