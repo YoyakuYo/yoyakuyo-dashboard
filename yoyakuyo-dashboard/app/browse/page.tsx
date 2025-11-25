@@ -4,7 +4,7 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
@@ -34,33 +34,84 @@ function BrowsePageContent() {
   // Log immediately when component renders
   console.log('🎬 BrowsePageContent component is rendering!');
   
-  const searchParams = useSearchParams();
   const router = useRouter();
   const t = useTranslations();
   const [shops, setShops] = useState<Shop[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Read search params from URL directly (non-suspending approach)
+  // Initialize from URL if available, otherwise empty
+  const getInitialSearchParams = (): URLSearchParams => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search);
+    }
+    return new URLSearchParams();
+  };
+  
+  const [searchParams, setSearchParams] = useState<URLSearchParams>(getInitialSearchParams());
+  
+  // Load search params from URL on mount (doesn't suspend)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setSearchParams(params);
+      console.log('✅ Search params loaded from URL:', {
+        search: params.get('search'),
+        mode: params.get('mode'),
+        prefecture: params.get('prefecture'),
+        city: params.get('city'),
+        category: params.get('category')
+      });
+    }
+  }, []);
+  
+  // Update search params when URL changes
+  useEffect(() => {
+    const handleRouteChange = () => {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        setSearchParams(params);
+      }
+    };
+    
+    // Listen for route changes
+    window.addEventListener('popstate', handleRouteChange);
+    return () => window.removeEventListener('popstate', handleRouteChange);
+  }, []);
+  
   // Safely get search params with fallbacks
-  const searchQueryParam = searchParams?.get('search') || '';
-  const modeParam = searchParams?.get('mode') as BrowseMode;
+  const searchQueryParam = searchParams.get('search') || '';
+  const modeParam = (searchParams.get('mode') as BrowseMode) || 'area';
   
   const [searchQuery, setSearchQuery] = useState(searchQueryParam);
-  const [browseMode, setBrowseMode] = useState<BrowseMode>(modeParam || 'area');
+  const [browseMode, setBrowseMode] = useState<BrowseMode>(modeParam);
   
-  // Log after searchParams is accessed
-  console.log('📋 Search params loaded:', { searchQueryParam, modeParam });
+  // Update state when search params change
+  useEffect(() => {
+    const newSearch = searchParams.get('search') || '';
+    const newMode = (searchParams.get('mode') as BrowseMode) || 'area';
+    setSearchQuery(newSearch);
+    setBrowseMode(newMode);
+  }, [searchParams]);
   
   // Navigation state - safely get from search params
   const [selectedPrefecture, setSelectedPrefecture] = useState<string | null>(
-    searchParams?.get('prefecture') || null
+    searchParams.get('prefecture') || null
   );
   const [selectedCity, setSelectedCity] = useState<string | null>(
-    searchParams?.get('city') || null
+    searchParams.get('city') || null
   );
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
-    searchParams?.get('category') || null
+    searchParams.get('category') || null
   );
+  
+  // Update navigation state when search params change
+  useEffect(() => {
+    setSelectedPrefecture(searchParams.get('prefecture') || null);
+    setSelectedCity(searchParams.get('city') || null);
+    setSelectedCategoryId(searchParams.get('category') || null);
+  }, [searchParams]);
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
   // Debounced search
@@ -258,6 +309,12 @@ function BrowsePageContent() {
     if (selectedCategoryId) params.set('category', selectedCategoryId);
     const newUrl = `/browse${params.toString() ? `?${params.toString()}` : ''}`;
     router.replace(newUrl, { scroll: false });
+    
+    // Update searchParams state to reflect URL change
+    if (typeof window !== 'undefined') {
+      const newParams = new URLSearchParams(window.location.search);
+      setSearchParams(newParams);
+    }
   }, [debouncedSearch, browseMode, selectedPrefecture, selectedCity, selectedCategoryId, router]);
 
   // Build data trees
