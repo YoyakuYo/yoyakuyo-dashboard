@@ -31,26 +31,35 @@ interface Category {
 type BrowseMode = 'area' | 'category';
 
 function BrowsePageContent() {
+  // Log immediately when component renders
+  console.log('🎬 BrowsePageContent component is rendering!');
+  
   const searchParams = useSearchParams();
   const router = useRouter();
   const t = useTranslations();
   const [shops, setShops] = useState<Shop[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [browseMode, setBrowseMode] = useState<BrowseMode>(
-    (searchParams.get('mode') as BrowseMode) || 'area'
-  );
   
-  // Navigation state
+  // Safely get search params with fallbacks
+  const searchQueryParam = searchParams?.get('search') || '';
+  const modeParam = searchParams?.get('mode') as BrowseMode;
+  
+  const [searchQuery, setSearchQuery] = useState(searchQueryParam);
+  const [browseMode, setBrowseMode] = useState<BrowseMode>(modeParam || 'area');
+  
+  // Log after searchParams is accessed
+  console.log('📋 Search params loaded:', { searchQueryParam, modeParam });
+  
+  // Navigation state - safely get from search params
   const [selectedPrefecture, setSelectedPrefecture] = useState<string | null>(
-    searchParams.get('prefecture') || null
+    searchParams?.get('prefecture') || null
   );
   const [selectedCity, setSelectedCity] = useState<string | null>(
-    searchParams.get('city') || null
+    searchParams?.get('city') || null
   );
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
-    searchParams.get('category') || null
+    searchParams?.get('category') || null
   );
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
@@ -126,6 +135,9 @@ function BrowsePageContent() {
         if (contentType && contentType.includes('application/json')) {
           try {
             const data = await res.json();
+            console.log('📦 Received data type:', typeof data, 'Keys:', data ? Object.keys(data) : 'null');
+            console.log('📦 Data has "data" property:', 'data' in (data || {}), 'Type of data.data:', typeof data?.data);
+            console.log('📦 data.data is array?', Array.isArray(data?.data), 'Length:', Array.isArray(data?.data) ? data.data.length : 'N/A');
             
             // Backend returns: { data: [...], pagination: {...} } when no limit is specified
             // Handle multiple response formats for compatibility
@@ -168,6 +180,13 @@ function BrowsePageContent() {
               !shop.claim_status || shop.claim_status !== 'hidden'
             );
             
+            console.log('✅ Parsed shops:', {
+              totalReceived: shopsArray.length,
+              visibleAfterFilter: visibleShops.length,
+              hiddenCount: shopsArray.length - visibleShops.length,
+              firstShop: visibleShops[0] ? { id: visibleShops[0].id, name: visibleShops[0].name } : null
+            });
+            
             setShops(visibleShops);
           } catch (jsonError: any) {
             console.error('❌ Error parsing shops JSON:', jsonError);
@@ -191,8 +210,20 @@ function BrowsePageContent() {
   }, [apiUrl, debouncedSearch]);
 
   useEffect(() => {
+    console.log('🚀 useEffect triggered - calling fetchShops');
     fetchShops();
   }, [fetchShops]);
+  
+  // Immediate log to verify component mounted
+  useEffect(() => {
+    console.log('✅ BrowsePageContent mounted and ready');
+    console.log('🔧 API URL:', apiUrl || 'NOT SET');
+    console.log('📊 Initial state:', { 
+      shopsCount: shops.length, 
+      categoriesCount: categories.length,
+      loading 
+    });
+  }, []);
 
   // Auto-select prefecture with most shops on first load (if no filters selected)
   useEffect(() => {
@@ -781,12 +812,15 @@ function ShopCard({ shop, getCategoryName, t }: { shop: Shop; getCategoryName: (
 }
 
 export default function BrowsePage() {
+  console.log('🌐 BrowsePage wrapper component rendering');
+  
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-2 text-sm text-gray-400">Waiting for search params...</p>
         </div>
       </div>
     }>
