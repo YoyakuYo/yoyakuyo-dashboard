@@ -21,6 +21,7 @@ import {
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface Category {
   id: string;
@@ -52,6 +53,7 @@ function BrowsePageContent() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     searchParams.get('category') || null
   );
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
@@ -98,7 +100,12 @@ function BrowsePageContent() {
         const contentType = res.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
           const data = await res.json();
-          const shopsArray = Array.isArray(data) ? data : (data.shops || []);
+          // Backend returns: { data: [...], pagination: {...} }
+          const shopsArray = Array.isArray(data) 
+            ? data 
+            : (data.data && Array.isArray(data.data) 
+              ? data.data 
+              : (data.shops || []));
           const visibleShops = shopsArray.filter((shop: Shop) => 
             !shop.claim_status || shop.claim_status !== 'hidden'
           );
@@ -118,6 +125,29 @@ function BrowsePageContent() {
   useEffect(() => {
     fetchShops();
   }, [fetchShops]);
+
+  // Auto-select prefecture with most shops on first load (if no filters selected)
+  useEffect(() => {
+    const hasFilters = selectedPrefecture || selectedCity || selectedCategoryId || debouncedSearch;
+    
+    if (!hasFilters && !hasAutoSelected && shops.length === 0 && !loading) {
+      // Fetch top prefecture and auto-select it
+      fetch(`${apiUrl}/shops/top-prefecture`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.prefecture && data.shopCount > 0) {
+            setSelectedPrefecture(data.prefecture);
+            setHasAutoSelected(true);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching top prefecture:', error);
+          // Fallback to Tokyo if API fails
+          setSelectedPrefecture('tokyo');
+          setHasAutoSelected(true);
+        });
+    }
+  }, [shops.length, loading, selectedPrefecture, selectedCity, selectedCategoryId, debouncedSearch, hasAutoSelected, apiUrl]);
 
   // Update URL when filters change
   useEffect(() => {

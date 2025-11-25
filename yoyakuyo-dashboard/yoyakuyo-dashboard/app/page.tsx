@@ -11,11 +11,13 @@ import { AuthError } from '@supabase/supabase-js';
 import { useAuth } from '@/lib/useAuth';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
+import { authApi } from '@/lib/api';
 import { LandingHeader } from './components/LandingHeader';
 import CategoryCarousel from './components/CategoryCarousel';
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Modal component
 const Modal = React.memo(({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) => {
@@ -113,54 +115,92 @@ function HomeContent() {
 
     try {
       const supabase = getSupabaseClient();
-      
-      // Step 1: Sign in with Supabase Auth
-      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: loginPassword,
-      });
+      let authData: any = null;
+      let signInError: any = null;
+
+      // Try direct Supabase auth first (fastest, works if CORS is configured)
+      try {
+        const result = await supabase.auth.signInWithPassword({
+          email: loginEmail,
+          password: loginPassword,
+        });
+        authData = result.data;
+        signInError = result.error;
+      } catch (directError: any) {
+        // If CORS error or network error, fallback to backend
+        const isCorsError = directError?.message?.includes('CORS') || 
+                           directError?.message?.includes('Failed to fetch') ||
+                           directError?.name === 'TypeError';
+        
+        if (isCorsError) {
+          console.log('CORS error detected, using backend login route...');
+          
+          // Use backend login route (bypasses CORS)
+          try {
+            const backendResponse = await authApi.login(loginEmail, loginPassword);
+            
+            if (backendResponse.success && backendResponse.session) {
+              // Set session in Supabase client
+              const { error: setSessionError } = await supabase.auth.setSession({
+                access_token: backendResponse.session.access_token,
+                refresh_token: backendResponse.session.refresh_token,
+              });
+
+              if (setSessionError) {
+                setLoginError(setSessionError.message || 'Failed to set session');
+                setLoginLoading(false);
+                return;
+              }
+
+              // Get user from session
+              const { data: { user } } = await supabase.auth.getUser();
+              authData = { user, session: backendResponse.session };
+              signInError = null;
+            } else {
+              signInError = { message: backendResponse.error || 'Login failed' };
+            }
+          } catch (backendError: any) {
+            signInError = { message: backendError.message || 'Login failed' };
+          }
+        } else {
+          // Other error, use it directly
+          signInError = directError;
+        }
+      }
 
       if (signInError) {
-        // Return proper error message from Supabase
         setLoginError(signInError.message || 'Invalid login credentials');
         setLoginLoading(false);
         return;
       }
 
-      if (!authData.user) {
+      if (!authData?.user) {
         setLoginError('Login failed: No user data returned');
         setLoginLoading(false);
         return;
       }
 
-      // Step 2: Verify session is stored (Supabase automatically stores it)
-      // Get the session to ensure it's properly set
+      // Verify session is stored
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
         console.warn('Session error after login:', sessionError);
       }
 
-      if (!currentSession && authData.session) {
-        // Session should be automatically stored, but if not, use the one from signIn
-        console.warn('Session not found after login, using signIn session');
+      // Sync user to users table if missing
+      try {
+        await authApi.syncUser(
+          authData.user.id,
+          authData.user.email || loginEmail,
+          authData.user.user_metadata?.name
+        );
+        console.log('User synced to users table');
+      } catch (syncError) {
+        // Log error but don't block login
+        console.warn('Failed to sync user to users (non-blocking):', syncError);
       }
 
-      // Step 3: Fetch user profile from public.users (optional, for display purposes)
-      const { data: userProfile, error: profileError } = await supabase
-        .from('users')
-        .select('id, name, email')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (profileError && profileError.code !== 'PGRST116') {
-        // PGRST116 = no rows returned, which is okay (user might not have profile yet)
-        console.warn('Could not fetch user profile:', profileError);
-        // Continue anyway - user can still access the dashboard
-      }
-
-      // Step 4: Close modal and redirect to owner dashboard
-      // Session is automatically stored by Supabase, no need to wait
+      // Close modal and redirect to owner dashboard
       setShowLoginModal(false);
       router.push('/owner/dashboard');
       router.refresh();
@@ -481,6 +521,11 @@ function HomeContent() {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
               placeholder="••••••••"
             />
+            <div className="mt-2 text-right">
+              <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                Forgot your password?
+              </Link>
+            </div>
           </div>
 
           <button
@@ -617,10 +662,7 @@ export default function Home() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
+        <p className="text-gray-600">Loading...</p>
       </div>
     }>
       <HomeContent />
