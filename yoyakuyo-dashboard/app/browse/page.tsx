@@ -21,7 +21,6 @@ import {
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 interface Category {
   id: string;
@@ -67,19 +66,36 @@ function BrowsePageContent() {
   // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
+      if (!apiUrl) {
+        console.error('❌ NEXT_PUBLIC_API_URL is not set! Cannot fetch categories.');
+        setCategories([]);
+        return;
+      }
+
       try {
         const res = await fetch(`${apiUrl}/categories`);
+        
         if (res.ok) {
           const contentType = res.headers.get('content-type');
           if (contentType && contentType.includes('application/json')) {
-            const data = await res.json();
-            setCategories(Array.isArray(data) ? data : []);
+            try {
+              const data = await res.json();
+              setCategories(Array.isArray(data) ? data : []);
+            } catch (jsonError: any) {
+              console.error('❌ Error parsing categories JSON:', jsonError);
+              setCategories([]);
+            }
+          } else {
+            console.error('❌ Expected JSON but received:', contentType);
+            setCategories([]);
           }
+        } else {
+          const errorText = await res.text().catch(() => 'Unknown error');
+          console.error('❌ Error fetching categories:', res.status, res.statusText, errorText);
+          setCategories([]);
         }
       } catch (error: any) {
-        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-          console.error('Error fetching categories:', error);
-        }
+        console.error('❌ Exception fetching categories:', error);
         setCategories([]);
       }
     };
@@ -88,6 +104,13 @@ function BrowsePageContent() {
 
   // Fetch shops
   const fetchShops = useCallback(async () => {
+    if (!apiUrl) {
+      console.error('❌ NEXT_PUBLIC_API_URL is not set! Cannot fetch shops.');
+      setShops([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -95,27 +118,72 @@ function BrowsePageContent() {
         params.set('search', debouncedSearch.trim());
       }
 
-      const res = await fetch(`${apiUrl}/shops${params.toString() ? `?${params.toString()}` : ''}`);
+      const url = `${apiUrl}/shops${params.toString() ? `?${params.toString()}` : ''}`;
+      const res = await fetch(url);
+      
       if (res.ok) {
         const contentType = res.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
-          const data = await res.json();
-          // Backend returns: { data: [...], pagination: {...} }
-          const shopsArray = Array.isArray(data) 
-            ? data 
-            : (data.data && Array.isArray(data.data) 
-              ? data.data 
-              : (data.shops || []));
-          const visibleShops = shopsArray.filter((shop: Shop) => 
-            !shop.claim_status || shop.claim_status !== 'hidden'
-          );
-          setShops(visibleShops);
+          try {
+            const data = await res.json();
+            
+            // Backend returns: { data: [...], pagination: {...} } when no limit is specified
+            // Handle multiple response formats for compatibility
+            let shopsArray: Shop[] = [];
+            
+            if (Array.isArray(data)) {
+              // Direct array response (legacy format)
+              shopsArray = data;
+            } else if (data && typeof data === 'object') {
+              // Object response - check data.data first (current format: { data: [...], pagination: {...} })
+              if (data.data !== undefined && data.data !== null) {
+                if (Array.isArray(data.data)) {
+                  shopsArray = data.data;
+                } else {
+                  console.warn('⚠️ data.data exists but is not an array:', typeof data.data, data.data);
+                }
+              }
+              // Fallback to data.shops (alternative format)
+              else if (data.shops !== undefined && data.shops !== null) {
+                if (Array.isArray(data.shops)) {
+                  shopsArray = data.shops;
+                } else {
+                  console.warn('⚠️ data.shops exists but is not an array:', typeof data.shops);
+                }
+              } else {
+                // Debug log only if we can't find the shops array - this helps identify the issue
+                console.warn('⚠️ No shops array found in response. Response structure:', {
+                  keys: Object.keys(data),
+                  hasData: 'data' in data,
+                  hasShops: 'shops' in data,
+                  dataType: typeof data.data,
+                  shopsType: typeof data.shops
+                });
+              }
+            } else {
+              console.warn('⚠️ Unexpected response format. Expected array or object, got:', typeof data);
+            }
+            
+            const visibleShops = shopsArray.filter((shop: Shop) => 
+              !shop.claim_status || shop.claim_status !== 'hidden'
+            );
+            
+            setShops(visibleShops);
+          } catch (jsonError: any) {
+            console.error('❌ Error parsing shops JSON:', jsonError);
+            setShops([]);
+          }
+        } else {
+          console.error('❌ Expected JSON response but got:', contentType);
+          setShops([]);
         }
+      } else {
+        const errorText = await res.text().catch(() => 'Unknown error');
+        console.error('❌ Error fetching shops:', res.status, res.statusText, errorText);
+        setShops([]);
       }
     } catch (error: any) {
-      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-        console.error('Error fetching shops:', error);
-      }
+      console.error('❌ Exception fetching shops:', error);
       setShops([]);
     } finally {
       setLoading(false);
@@ -218,6 +286,11 @@ function BrowsePageContent() {
         if (prefecture) {
           shops = Object.values(prefecture.cities).flatMap(city => city.shops);
         }
+      } else {
+        // No prefecture selected - show ALL shops from all prefectures
+        shops = Object.values(areaTree).flatMap(prefecture => 
+          Object.values(prefecture.cities).flatMap(city => city.shops)
+        );
       }
     } else {
       // Category mode
@@ -238,6 +311,13 @@ function BrowsePageContent() {
             Object.values(pref.cities).flatMap(city => city.shops)
           );
         }
+      } else {
+        // No category selected - show ALL shops from all categories
+        shops = Object.values(categoryTree).flatMap(category =>
+          Object.values(category.prefectures).flatMap(pref => 
+            Object.values(pref.cities).flatMap(city => city.shops)
+          )
+        );
       }
     }
     
