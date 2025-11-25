@@ -60,96 +60,127 @@ export interface CategoryTree {
 }
 
 // ---------------------------------------------
-// JAPAN PREFECTURE LIST (47 prefectures)
+// PREFECTURE MAP (47 prefectures with major cities)
 // ---------------------------------------------
-const PREFECTURES = [
-  "北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
-  "茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県",
-  "新潟県","富山県","石川県","福井県","山梨県","長野県",
-  "岐阜県","静岡県","愛知県","三重県",
-  "滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県",
-  "鳥取県","島根県","岡山県","広島県","山口県",
-  "徳島県","香川県","愛媛県","高知県",
-  "福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"
-];
+const PREFECTURE_MAP = {
+  "北海道": ["札幌市"],
+  "青森県": [],
+  "岩手県": [],
+  "宮城県": ["仙台市"],
+  "秋田県": [],
+  "山形県": [],
+  "福島県": [],
+  "茨城県": [],
+  "栃木県": [],
+  "群馬県": [],
+  "埼玉県": ["さいたま市"],
+  "千葉県": ["千葉市"],
+  "東京都": ["新宿区","渋谷区","品川区","港区","千代田区","豊島区","中野区","世田谷区"],
+  "神奈川県": ["横浜市","川崎市"],
+  "新潟県": [],
+  "富山県": [],
+  "石川県": [],
+  "福井県": [],
+  "山梨県": [],
+  "長野県": [],
+  "岐阜県": [],
+  "静岡県": [],
+  "愛知県": ["名古屋市"],
+  "三重県": [],
+  "滋賀県": [],
+  "京都府": ["京都市"],
+  "大阪府": ["大阪市"],
+  "兵庫県": ["神戸市"],
+  "奈良県": [],
+  "和歌山県": [],
+  "鳥取県": [],
+  "島根県": [],
+  "岡山県": [],
+  "広島県": ["広島市"],
+  "山口県": [],
+  "徳島県": [],
+  "香川県": [],
+  "愛媛県": [],
+  "高知県": [],
+  "福岡県": ["福岡市"],
+  "佐賀県": [],
+  "長崎県": [],
+  "熊本県": ["熊本市"],
+  "大分県": [],
+  "宮崎県": [],
+  "鹿児島県": [],
+  "沖縄県": ["那覇市"]
+};
 
-// Regex for all prefectures
-const PREFECTURE_REGEX = new RegExp(
-  PREFECTURES.join("|")
-);
-
-// ---------------------------------------------
-// EXTRACT PREFECTURE
-// ---------------------------------------------
+// --------------------
+// Extract Prefecture
+// --------------------
 export function extractPrefecture(shop: Shop): string {
-  // Prefer shop.prefecture if your API provides it correctly
-  if (shop.prefecture && shop.prefecture.trim().length > 0) {
-    return shop.prefecture.trim();
+  const addr = shop.address || "";
+
+  // 1. Direct prefecture extraction
+  for (const prefecture of Object.keys(PREFECTURE_MAP)) {
+    if (addr.includes(prefecture)) return prefecture;
   }
 
-  const address = (shop.address || "").trim();
-
-  // Try regex for 47 prefectures
-  const match = address.match(PREFECTURE_REGEX);
-  if (match) return match[0];
-
-  return "不明"; // "unknown"
-}
-
-// ---------------------------------------------
-// EXTRACT CITY (区・市・町・村)
-// ---------------------------------------------
-export function extractCity(shop: Shop): string {
-  // Prefer city field if API provides it correctly
-  if (shop.city && shop.city.trim().length > 0) {
-    return shop.city.trim();
+  // 2. Deduce prefecture from city ("大阪市" → "大阪府")
+  if (shop.city) {
+    const cityValue = shop.city;
+    for (const [pref, cities] of Object.entries(PREFECTURE_MAP)) {
+      if (cities.some(city => cityValue.includes(city))) {
+        return pref;
+      }
+    }
   }
-
-  const address = (shop.address || "").trim();
-
-  // Japanese city patterns
-  const cityRegex = /([^\s,、]+?(市|区|町|村))/;
-  const match = address.match(cityRegex);
-  if (match) return match[1];
 
   return "不明";
 }
 
-// ---------------------------------------------
-// BUILD AREA TREE (Prefecture → City → Shops)
-// ---------------------------------------------
+// --------------------
+// Extract City
+// --------------------
+export function extractCity(shop: Shop): string {
+  if (shop.city) return shop.city;
+
+  const addr = shop.address || "";
+
+  const cityMatch = addr.match(/([^\s,]+?(市|区|町|村))/);
+  if (cityMatch) return cityMatch[1];
+
+  return "不明";
+}
+
+// --------------------
+// Build Area Tree
+// --------------------
 export function buildAreaTree(shops: Shop[]): AreaTree {
   const tree: AreaTree = {};
 
   for (const shop of shops) {
-    // Skip hidden shops
     if (shop.claim_status === "hidden") continue;
 
-    const prefecture = extractPrefecture(shop);
+    const pref = extractPrefecture(shop);
     const city = extractCity(shop);
 
-    // Initialize prefecture node
-    if (!tree[prefecture]) {
-      tree[prefecture] = {
-        name: prefecture,
-        shopCount: 0,
-        cities: {}
+    if (!tree[pref]) {
+      tree[pref] = {
+        name: pref,
+        cities: {},
+        shopCount: 0
       };
     }
 
-    // Initialize city node
-    if (!tree[prefecture].cities[city]) {
-      tree[prefecture].cities[city] = {
+    if (!tree[pref].cities[city]) {
+      tree[pref].cities[city] = {
         name: city,
         shopCount: 0,
         shops: []
       };
     }
 
-    // Add shop
-    tree[prefecture].cities[city].shops.push(shop);
-    tree[prefecture].cities[city].shopCount++;
-    tree[prefecture].shopCount++;
+    tree[pref].cities[city].shops.push(shop);
+    tree[pref].cities[city].shopCount++;
+    tree[pref].shopCount++;
   }
 
   return tree;
