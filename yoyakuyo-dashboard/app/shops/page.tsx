@@ -388,46 +388,53 @@ const MyShopPage = () => {
           console.log('No shop found for user');
           setShop(null);
           setShopForm({});
+          setPageLoading(false);
           return;
         }
         
         if (res.ok) {
           const contentType = res.headers.get('content-type');
           if (contentType && contentType.includes('application/json')) {
-            const response = await res.json();
-            // Backend returns: { data: [...], pagination: {...} }
-            const shopsArray = Array.isArray(response) 
-              ? response 
-              : (response.data && Array.isArray(response.data) 
-                ? response.data 
-                : []);
-            if (shopsArray.length > 0) {
-              // Use the first shop if multiple exist
-              const userShop = shopsArray[0];
-              setShop(userShop);
-              setShopForm({
-                name: userShop.name || '',
-                address: userShop.address || '',
-                phone: userShop.phone || '',
-                email: userShop.email || '',
-                website: userShop.website || '',
-                google_place_id: userShop.google_place_id || '',
-                city: userShop.city || '',
-                country: userShop.country || '',
-                zip_code: userShop.zip_code || '',
-                description: userShop.description || '',
-                language_code: userShop.language_code || '',
-                category: userShop.category || null,
-                subcategory: userShop.subcategory || null,
-                logo_url: userShop.logo_url || null,
-                cover_photo_url: userShop.cover_photo_url || null,
-              });
-              // Fetch related data
-              fetchServices(userShop.id);
-              fetchStaff(userShop.id);
-              fetchBookings(userShop.id);
-              fetchPhotos(userShop.id);
-            } else {
+            try {
+              const response = await res.json();
+              // Backend returns: { data: [...], pagination: {...} }
+              const shopsArray = Array.isArray(response) 
+                ? response 
+                : (response.data && Array.isArray(response.data) 
+                  ? response.data 
+                  : []);
+              if (shopsArray.length > 0) {
+                // Use the first shop if multiple exist
+                const userShop = shopsArray[0];
+                setShop(userShop);
+                setShopForm({
+                  name: userShop.name || '',
+                  address: userShop.address || '',
+                  phone: userShop.phone || '',
+                  email: userShop.email || '',
+                  website: userShop.website || '',
+                  google_place_id: userShop.google_place_id || '',
+                  city: userShop.city || '',
+                  country: userShop.country || '',
+                  zip_code: userShop.zip_code || '',
+                  description: userShop.description || '',
+                  language_code: userShop.language_code || '',
+                  category: userShop.category || null,
+                  subcategory: userShop.subcategory || null,
+                  logo_url: userShop.logo_url || null,
+                  cover_photo_url: userShop.cover_photo_url || null,
+                });
+                // Fetch related data
+                fetchServices(userShop.id);
+                fetchStaff(userShop.id);
+                fetchBookings(userShop.id);
+                fetchPhotos(userShop.id);
+              } else {
+                setShop(null);
+                setShopForm({});
+              }
+            } catch (jsonError: any) {
+              console.error('Error parsing JSON response:', jsonError);
               setShop(null);
               setShopForm({});
             }
@@ -437,7 +444,19 @@ const MyShopPage = () => {
             setShopForm({});
           }
         } else {
-          const errorText = await res.text().catch(() => 'Unknown error');
+          // Handle non-200 responses
+          const contentType = res.headers.get('content-type');
+          let errorText = 'Unknown error';
+          if (contentType && contentType.includes('application/json')) {
+            try {
+              const errorData = await res.json();
+              errorText = errorData.error || errorData.message || errorText;
+            } catch {
+              errorText = await res.text().catch(() => 'Unknown error');
+            }
+          } else {
+            errorText = await res.text().catch(() => 'Unknown error');
+          }
           console.error('Error fetching shop:', res.status, res.statusText, errorText);
           setShop(null);
           setShopForm({});

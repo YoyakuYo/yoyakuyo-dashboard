@@ -66,7 +66,7 @@ export default function SettingsPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMessage("");
+    setMessage(null);
 
     try {
       const res = await fetch(`${apiUrl}/users/me`, {
@@ -81,14 +81,48 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
-        setMessage({ type: 'success', text: "Settings saved successfully!" });
-        setTimeout(() => setMessage(null), 3000);
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          await res.json(); // Consume the response
+          setMessage({ type: 'success', text: "Settings saved successfully!" });
+          setTimeout(() => setMessage(null), 3000);
+        } else {
+          // Non-JSON response - try to read as text
+          const text = await res.text();
+          console.warn('Non-JSON response from server:', text);
+          setMessage({ type: 'error', text: "Failed to save settings: Invalid response format." });
+        }
+      } else {
+        // Handle error response
+        const contentType = res.headers.get('content-type');
+        let errorMessage = "Failed to save settings.";
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const errorData = await res.json();
+            errorMessage = errorData.error || errorData.message || errorMessage;
+          } catch {
+            // If JSON parse fails, use default message
+          }
+        } else {
+          try {
+            const errorText = await res.text();
+            if (errorText) {
+              errorMessage = errorText;
+            }
+          } catch {
+            // If text parse fails, use default message
+          }
+        }
+        setMessage({ type: 'error', text: errorMessage });
+      }
+    } catch (error: any) {
+      console.error("Error saving settings:", error);
+      // Check if it's a JSON parse error
+      if (error?.message?.includes('JSON') || error?.message?.includes('Unexpected token')) {
+        setMessage({ type: 'error', text: "Failed to save settings: Server returned invalid response." });
       } else {
         setMessage({ type: 'error', text: "Failed to save settings." });
       }
-    } catch (error) {
-      console.error("Error saving settings:", error);
-      setMessage({ type: 'error', text: "Failed to save settings." });
     } finally {
       setLoading(false);
     }
