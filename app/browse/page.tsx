@@ -162,6 +162,9 @@ function BrowsePageContent() {
       if (debouncedSearch.trim()) {
         params.set('search', debouncedSearch.trim());
       }
+      
+      // No limit specified - backend will fetch all shops in batches
+      // This allows the browse page to show all available shops for area/category navigation
 
       const url = `${apiUrl}/shops${params.toString() ? `?${params.toString()}` : ''}`;
       console.log('🔍 Fetching shops from:', url);
