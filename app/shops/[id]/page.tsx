@@ -137,10 +137,6 @@ export default function PublicShopDetailPage() {
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
-  // AI Chat state
-  const [chatMessages, setChatMessages] = useState<Message[]>([]);
-  const [chatInput, setChatInput] = useState<string>('');
-  const [chatLoading, setChatLoading] = useState(false);
 
   // Reviews state
   const [reviews, setReviews] = useState<any[]>([]);
@@ -205,24 +201,6 @@ export default function PublicShopDetailPage() {
     fetchShopData();
   }, [shopId, apiUrl, t]);
 
-  // Load chat messages
-  useEffect(() => {
-    if (!shopId) return;
-
-    const fetchMessages = async () => {
-      try {
-        const res = await fetch(`${apiUrl}/messages?shop_id=${shopId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setChatMessages(Array.isArray(data) ? data : []);
-        }
-      } catch (error) {
-        console.error('Error fetching messages:', error);
-      }
-    };
-
-    fetchMessages();
-  }, [shopId, apiUrl]);
 
   // Load reviews
   useEffect(() => {
@@ -340,78 +318,6 @@ export default function PublicShopDetailPage() {
     }
   };
 
-  const handleChatSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim() || chatLoading || !shopId) return;
-
-    const userMessage = chatInput.trim();
-    setChatInput('');
-    setChatLoading(true);
-
-    // Add user message to chat
-    const newUserMessage: Message = {
-      id: Date.now().toString(),
-      sender_type: 'customer',
-      message: userMessage,
-      created_at: new Date().toISOString(),
-    };
-    setChatMessages(prev => [...prev, newUserMessage]);
-
-    try {
-      // Get anonymous session ID for customer tracking
-      const anonymousSessionId = typeof window !== 'undefined' 
-        ? localStorage.getItem('yoyaku_yo_anonymous_session') || `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        : null;
-      
-      if (anonymousSessionId && typeof window !== 'undefined') {
-        localStorage.setItem('yoyaku_yo_anonymous_session', anonymousSessionId);
-      }
-
-      const res = await fetch(`${apiUrl}/ai/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          shopId,
-          message: userMessage,
-          source: 'customer',
-          customerId: anonymousSessionId, // Include for persistent history
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const aiMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          sender_type: 'ai',
-          message: data.response || t('chat.noResponse'),
-          created_at: new Date().toISOString(),
-        };
-        setChatMessages(prev => [...prev, aiMessage]);
-      } else {
-        const errorData = await res.json();
-        const errorMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          sender_type: 'ai',
-          message: `${t('chat.errorEncountered')}: ${errorData.error || t('common.unknown')}`,
-          created_at: new Date().toISOString(),
-        };
-        setChatMessages(prev => [...prev, errorMessage]);
-      }
-    } catch (error) {
-      console.error('Error sending chat message:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        sender_type: 'ai',
-        message: t('chat.cannotRespond'),
-        created_at: new Date().toISOString(),
-      };
-      setChatMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setChatLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -735,53 +641,6 @@ export default function PublicShopDetailPage() {
           )}
         </div>
 
-        {/* AI Chat Widget */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">{t('chat.title')}</h2>
-          <div className="space-y-4">
-            <div className="h-64 overflow-y-auto border border-gray-200 rounded-lg p-4 space-y-3">
-              {chatMessages.length === 0 ? (
-                <p className="text-gray-500 text-sm text-center py-4">
-                  {t('chat.startConversation')}
-                </p>
-              ) : (
-                chatMessages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.sender_type === 'customer' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                        msg.sender_type === 'customer'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            <form onSubmit={handleChatSubmit} className="flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder={t('chat.placeholder')}
-                disabled={chatLoading}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              />
-              <button
-                type="submit"
-                disabled={!chatInput.trim() || chatLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {t('chat.send')}
-              </button>
-            </form>
-          </div>
-        </div>
       </div>
     </div>
     </div>

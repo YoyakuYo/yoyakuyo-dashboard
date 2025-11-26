@@ -18,10 +18,38 @@ import {
 import { AreaNavigation } from './components/AreaNavigation';
 import { CategoryNavigation } from './components/CategoryNavigation';
 import { ShopCard } from './components/ShopCard';
-import { BrowseAIAssistant } from './components/BrowseAIAssistant';
+import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
+
+// Component to update browse context
+function UpdateBrowseContext({
+  shops,
+  selectedPrefecture,
+  selectedCity,
+  selectedCategoryId,
+  searchQuery,
+  setBrowseContext,
+}: {
+  shops: Shop[];
+  selectedPrefecture: string | null;
+  selectedCity: string | null;
+  selectedCategoryId: string | null;
+  searchQuery: string;
+  setBrowseContext: (context: any) => void;
+}) {
+  useEffect(() => {
+    setBrowseContext({
+      shops,
+      selectedPrefecture,
+      selectedCity,
+      selectedCategoryId,
+      searchQuery,
+    });
+  }, [shops, selectedPrefecture, selectedCity, selectedCategoryId, searchQuery, setBrowseContext]);
+  return null;
+}
 
 interface Category {
   id: string;
@@ -36,6 +64,7 @@ function BrowsePageContent() {
   const router = useRouter();
   const t = useTranslations();
   const locale = useLocale();
+  const browseContext = useBrowseAIContext(); // Get context to share with global AI bubble
   const [shops, setShops] = useState<Shop[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -472,15 +501,17 @@ function BrowsePageContent() {
         )}
       </div>
 
-      {/* AI Assistant */}
-      <BrowseAIAssistant
-        shops={displayShops}
-        selectedPrefecture={selectedPrefecture}
-        selectedCity={selectedCity}
-        selectedCategoryId={selectedCategoryId}
-        searchQuery={debouncedSearch}
-        locale={locale || 'en'}
-      />
+      {/* Update global AI bubble context with browse page state */}
+      {browseContext && (
+        <UpdateBrowseContext
+          shops={displayShops}
+          selectedPrefecture={selectedPrefecture}
+          selectedCity={selectedCity}
+          selectedCategoryId={selectedCategoryId}
+          searchQuery={debouncedSearch}
+          setBrowseContext={browseContext.setBrowseContext}
+        />
+      )}
     </div>
   );
 }

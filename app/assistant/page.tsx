@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/useAuth";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import OwnerPowerBot from "@/app/components/OwnerPowerBot";
+import { OwnerAIChat } from "@/app/components/OwnerAIChat";
 
 export default function AssistantPage() {
   const { user, loading: authLoading } = useAuth();
@@ -34,8 +34,8 @@ export default function AssistantPage() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">{t('nav.aiAssistant')}</h1>
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-[calc(100vh-200px)] min-h-[600px]">
-          {/* Full-page chat UI */}
-          <OwnerPowerBot fullPage={true} />
+          {/* Full-page chat UI - shares conversation with bubble via OwnerAIChatProvider in DashboardLayout */}
+          <OwnerAIChat fullPage={true} />
         </div>
       </div>
     </div>

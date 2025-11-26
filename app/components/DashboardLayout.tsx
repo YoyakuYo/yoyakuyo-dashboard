@@ -10,7 +10,7 @@ import AuthGuard from "./AuthGuard";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import PublicLayoutWrapper from "./PublicLayoutWrapper";
-import OwnerPowerBot from "./OwnerPowerBot";
+import { OwnerAIChatProvider, OwnerAIChat } from "./OwnerAIChat";
 import { useBookingNotificationsHook } from "@/lib/useBookingNotifications";
 
 // Routes that should NOT have dashboard layout (Header, Sidebar, AuthGuard)
@@ -70,14 +70,16 @@ export default function DashboardLayout({
   // For owner dashboard routes, apply full dashboard layout with AuthGuard
   return (
     <AuthGuard>
-      <BookingNotificationsWrapper>
-        <Header />
-        <Sidebar />
-        <main className="lg:ml-64 pt-16 min-h-screen bg-gray-50">
-          {children}
-        </main>
-        <OwnerPowerBot />
-      </BookingNotificationsWrapper>
+      <OwnerAIChatProvider>
+        <BookingNotificationsWrapper>
+          <Header />
+          <Sidebar />
+          <main className="lg:ml-64 pt-16 min-h-screen bg-gray-50">
+            {children}
+          </main>
+          <OwnerAIChat />
+        </BookingNotificationsWrapper>
+      </OwnerAIChatProvider>
     </AuthGuard>
   );
 }
