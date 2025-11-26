@@ -14,7 +14,18 @@ interface Message {
   timestamp: Date;
 }
 
+interface Shop {
+  id: string;
+  name: string;
+  address?: string | null;
+  prefecture?: string | null;
+  normalized_city?: string | null;
+  category_id?: string | null;
+  description?: string | null;
+}
+
 interface BrowseAIAssistantProps {
+  shops?: Shop[];
   selectedPrefecture?: string | null;
   selectedCity?: string | null;
   selectedCategoryId?: string | null;
@@ -23,6 +34,7 @@ interface BrowseAIAssistantProps {
 }
 
 export function BrowseAIAssistant({
+  shops = [],
   selectedPrefecture,
   selectedCity,
   selectedCategoryId,
@@ -92,6 +104,15 @@ export function BrowseAIAssistant({
           prefecture: selectedPrefecture || null,
           category: selectedCategoryId || null,
           searchQuery: searchQuery || null,
+          shops: shops.map(s => ({
+            id: s.id,
+            name: s.name,
+            address: s.address,
+            prefecture: s.prefecture,
+            normalized_city: s.normalized_city,
+            category_id: s.category_id,
+            description: s.description,
+          })),
         }),
       });
 
@@ -202,7 +223,27 @@ export function BrowseAIAssistant({
                       : 'bg-white text-gray-900 border border-gray-200'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  <div className="text-sm whitespace-pre-wrap">
+                    {msg.content.split(/(\/shops\/[a-zA-Z0-9-]+)/g).map((part, idx) => {
+                      if (part.startsWith('/shops/')) {
+                        const shopId = part.replace('/shops/', '');
+                        return (
+                          <a
+                            key={idx}
+                            href={part}
+                            className="text-purple-600 hover:text-purple-800 underline font-semibold"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              window.location.href = part;
+                            }}
+                          >
+                            {part}
+                          </a>
+                        );
+                      }
+                      return <span key={idx}>{part}</span>;
+                    })}
+                  </div>
                 </div>
               </div>
             ))}
