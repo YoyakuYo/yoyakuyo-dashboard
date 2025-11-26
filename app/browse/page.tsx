@@ -474,6 +474,7 @@ function BrowsePageContent() {
 
       {/* AI Assistant */}
       <BrowseAIAssistant
+        shops={displayShops}
         selectedPrefecture={selectedPrefecture}
         selectedCity={selectedCity}
         selectedCategoryId={selectedCategoryId}
