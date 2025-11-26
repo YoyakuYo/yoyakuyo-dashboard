@@ -12,8 +12,6 @@ import {
   buildAreaTree,
   buildCategoryTree,
   filterShopsBySearch,
-  extractPrefecture,
-  extractCity,
   type Shop,
   type AreaTree,
   type CategoryTree,
