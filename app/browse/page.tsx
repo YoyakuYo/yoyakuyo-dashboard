@@ -4,7 +4,7 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
 import {
@@ -18,6 +18,7 @@ import {
 import { AreaNavigation } from './components/AreaNavigation';
 import { CategoryNavigation } from './components/CategoryNavigation';
 import { ShopCard } from './components/ShopCard';
+import { BrowseAIAssistant } from './components/BrowseAIAssistant';
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
@@ -34,6 +35,7 @@ function BrowsePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const t = useTranslations();
+  const locale = useLocale();
   const [shops, setShops] = useState<Shop[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -469,6 +471,15 @@ function BrowsePageContent() {
           </div>
         )}
       </div>
+
+      {/* AI Assistant */}
+      <BrowseAIAssistant
+        selectedPrefecture={selectedPrefecture}
+        selectedCity={selectedCity}
+        selectedCategoryId={selectedCategoryId}
+        searchQuery={debouncedSearch}
+        locale={locale || 'en'}
+      />
     </div>
   );
 }
