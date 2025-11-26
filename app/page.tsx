@@ -17,7 +17,6 @@ import CategoryCarousel from './components/CategoryCarousel';
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 // Modal component
 const Modal = React.memo(({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) => {
