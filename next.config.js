@@ -10,21 +10,29 @@ const nextConfig = {
   // Exclude API and other apps directories from Next.js compilation
   webpack: (config, { isServer }) => {
     // Exclude apps/api, apps/dashboard, yoyakuyo-api, and yoyakuyo-dashboard from compilation
-    const existingIgnored = config.watchOptions?.ignored;
-    const ignoredArray = Array.isArray(existingIgnored) 
-      ? existingIgnored 
-      : (existingIgnored ? [existingIgnored] : []);
+    // Safely handle watchOptions.ignored - it might be undefined, a string, an array, or other types
+    if (!config.watchOptions) {
+      config.watchOptions = {};
+    }
     
-    config.watchOptions = {
-      ...config.watchOptions,
-      ignored: [
-        ...ignoredArray,
-        '**/apps/api/**',
-        '**/apps/dashboard/**',
-        '**/yoyakuyo-api/**',
-        '**/yoyakuyo-dashboard/**',
-      ],
-    };
+    const existingIgnored = config.watchOptions.ignored;
+    let ignoredArray = [];
+    
+    if (Array.isArray(existingIgnored)) {
+      ignoredArray = existingIgnored;
+    } else if (existingIgnored) {
+      // If it's a string or other non-array value, wrap it in an array
+      ignoredArray = [existingIgnored];
+    }
+    // If undefined/null, ignoredArray stays as empty array
+    
+    config.watchOptions.ignored = [
+      ...ignoredArray,
+      '**/apps/api/**',
+      '**/apps/dashboard/**',
+      '**/yoyakuyo-api/**',
+      '**/yoyakuyo-dashboard/**',
+    ];
     
     return config;
   },
