@@ -49,6 +49,8 @@ export function BrowseAIAssistant({
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Track conversation history for context
+  const [rememberedLocation, setRememberedLocation] = useState<string | null>(null);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -63,6 +65,33 @@ export function BrowseAIAssistant({
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
+
+  // Extract location from conversation messages
+  useEffect(() => {
+    // Look for location mentions in user messages (scan from newest to oldest)
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.role === 'user') {
+        // Patterns to match location mentions
+        const locationPatterns = [
+          /(?:live in|from|I'm in|I am in|located in|in|at|near)\s+([^\s,\.!?]+(?:\s+[^\s,\.!?]+)?(?:\s*(?:shi|city|ward|ku|cho|machi|市|区|町|村))?)/i,
+          /(?:do you have|are there|any|shops?)\s+(?:in|at|near)\s+([^\s,\.!?]+(?:\s+[^\s,\.!?]+)?(?:\s*(?:shi|city|ward|ku|cho|machi|市|区|町|村))?)/i,
+        ];
+        
+        for (const pattern of locationPatterns) {
+          const match = msg.content.match(pattern);
+          if (match && match[1]) {
+            const extractedLocation = match[1].trim();
+            if (extractedLocation && extractedLocation !== rememberedLocation) {
+              setRememberedLocation(extractedLocation);
+              break;
+            }
+          }
+        }
+        if (rememberedLocation) break;
+      }
+    }
+  }, [messages]); // Only depend on messages, not rememberedLocation to avoid loops
 
   // Suggested prompts
   const suggestedPrompts = [
@@ -93,6 +122,12 @@ export function BrowseAIAssistant({
     setError(null);
 
     try {
+      // Build conversation history from previous messages (last 10 for context)
+      const conversationHistory = messages.slice(-10).map(msg => ({
+        role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+        content: msg.content,
+      }));
+
       const response = await fetch(`${apiUrl}/public-ai/chat`, {
         method: 'POST',
         headers: {
@@ -110,9 +145,11 @@ export function BrowseAIAssistant({
             address: s.address,
             prefecture: s.prefecture,
             normalized_city: s.normalized_city,
+            city: s.city || null, // Add city field if available
             category_id: s.category_id,
             description: s.description,
           })),
+          conversationHistory: conversationHistory, // Pass conversation history
         }),
       });
 
