@@ -30,10 +30,13 @@ export default function AssistantPage() {
   }
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">{t('nav.aiAssistant')}</h1>
-      <div className="bg-white rounded-lg shadow p-6">
-        <OwnerPowerBot />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">{t('nav.aiAssistant')}</h1>
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-[calc(100vh-200px)] min-h-[600px]">
+          {/* Full-page chat UI */}
+          <OwnerPowerBot fullPage={true} />
+        </div>
       </div>
     </div>
   );

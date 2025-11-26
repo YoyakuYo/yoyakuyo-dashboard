@@ -14,9 +14,13 @@ interface Message {
   timestamp: Date;
 }
 
-export default function OwnerPowerBot() {
+interface OwnerPowerBotProps {
+  fullPage?: boolean; // If true, render as full-page chat instead of floating bubble
+}
+
+export default function OwnerPowerBot({ fullPage = false }: OwnerPowerBotProps) {
   const { user } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(fullPage); // Auto-open if fullPage mode
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -346,8 +350,8 @@ export default function OwnerPowerBot() {
 
   return (
     <>
-      {/* Chat Bubble Button */}
-      {!isOpen && (
+      {/* Chat Bubble Button - only show if not fullPage mode */}
+      {!fullPage && !isOpen && (
         <button
           onClick={() => setIsOpen(true)}
           className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50 group"
@@ -362,21 +366,26 @@ export default function OwnerPowerBot() {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col z-50">
+        <div className={fullPage 
+          ? "w-full h-full bg-white flex flex-col" 
+          : "fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col z-50"
+        }>
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-t-xl flex items-center justify-between">
+          <div className={`bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 ${fullPage ? '' : 'rounded-t-xl'} flex items-center justify-between`}>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
               <h3 className="font-bold">{botTitle}</h3>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:text-gray-200 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            {!fullPage && (
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-white hover:text-gray-200 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
 
           {/* Messages */}
@@ -412,7 +421,7 @@ export default function OwnerPowerBot() {
           </div>
 
           {/* Input */}
-          <div className="border-t border-gray-200 p-3 bg-white rounded-b-xl">
+          <div className={`border-t border-gray-200 p-3 bg-white ${fullPage ? '' : 'rounded-b-xl'}`}>
             <form onSubmit={handleSend} className="flex gap-2">
               <input
                 type="text"
