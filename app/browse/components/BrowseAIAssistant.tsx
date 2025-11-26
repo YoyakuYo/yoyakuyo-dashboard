@@ -20,6 +20,7 @@ interface Shop {
   address?: string | null;
   prefecture?: string | null;
   normalized_city?: string | null;
+  city?: string | null;
   category_id?: string | null;
   description?: string | null;
 }
