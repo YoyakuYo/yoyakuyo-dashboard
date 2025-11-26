@@ -129,13 +129,20 @@ export function BrowseAIAssistant({
         content: msg.content,
       }));
 
-      const response = await fetch(`${apiUrl}/public-ai/chat`, {
+      // Build messages array for unified endpoint
+      const messagesForAPI = [
+        ...conversationHistory,
+        { role: 'user' as const, content: userMessage.content },
+      ];
+
+      const response = await fetch(`${apiUrl}/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: userMessage.content,
+          role: 'customer',
+          messages: messagesForAPI,
           locale: locale,
           prefecture: selectedPrefecture || null,
           category: selectedCategoryId || null,
@@ -146,11 +153,10 @@ export function BrowseAIAssistant({
             address: s.address,
             prefecture: s.prefecture,
             normalized_city: s.normalized_city,
-            city: s.city || null, // Add city field if available
+            city: s.city || null,
             category_id: s.category_id,
             description: s.description,
           })),
-          conversationHistory: conversationHistory, // Pass conversation history
         }),
       });
 

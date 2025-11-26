@@ -6,12 +6,14 @@
 
 import Link from "next/link";
 import LanguageToggle from "./LanguageToggle";
+import { BrowseAIAssistant } from "../browse/components/BrowseAIAssistant";
+import { BrowseAIProvider, useBrowseAIContext } from "./BrowseAIContext";
+import { useLocale } from "next-intl";
 
-export default function PublicLayoutWrapper({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function PublicLayoutContent({ children }: { children: React.ReactNode }) {
+  const locale = useLocale();
+  const browseContext = useBrowseAIContext();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Global Public Header - appears on ALL public pages */}
@@ -32,7 +34,29 @@ export default function PublicLayoutWrapper({
       <main>
         {children}
       </main>
+
+      {/* Global Public AI Bubble - appears on ALL public pages */}
+      <BrowseAIAssistant
+        shops={browseContext?.shops || []}
+        selectedPrefecture={browseContext?.selectedPrefecture ?? undefined}
+        selectedCity={browseContext?.selectedCity ?? undefined}
+        selectedCategoryId={browseContext?.selectedCategoryId ?? undefined}
+        searchQuery={browseContext?.searchQuery ?? undefined}
+        locale={locale as string}
+      />
     </div>
+  );
+}
+
+export default function PublicLayoutWrapper({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <BrowseAIProvider>
+      <PublicLayoutContent>{children}</PublicLayoutContent>
+    </BrowseAIProvider>
   );
 }
 
