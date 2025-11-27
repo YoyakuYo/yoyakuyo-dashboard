@@ -168,12 +168,15 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || loading || !shopId) return;
+    if (!input.trim() || loading) {
+      return;
+    }
 
+    const messageContent = input.trim();
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content: input.trim(),
+      content: messageContent,
       timestamp: new Date(),
     };
 
@@ -183,13 +186,34 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
     setError(null);
 
     try {
+      // If shopId is not loaded yet, try to load it first
+      let currentShopId = shopId;
+      if (!currentShopId && user?.id) {
+        try {
+          const shopsRes = await fetch(`${apiUrl}/shops?my_shops=true&page=1&limit=1`, {
+            headers: { 'x-user-id': user.id },
+          });
+          if (shopsRes.ok) {
+            const shopsData = await shopsRes.json();
+            const shops = shopsData.shops || shopsData.data || [];
+            if (shops.length > 0) {
+              currentShopId = shops[0].id;
+              setShopId(currentShopId);
+            }
+          }
+        } catch (err) {
+          console.error('Error loading shop:', err);
+          // Continue anyway - some commands might work without shopId
+        }
+      }
+
       // Build messages array for unified endpoint
       const messagesForAPI = [
         ...messages.slice(-10).map(m => ({
           role: m.role,
           content: m.content,
         })),
-        { role: 'user' as const, content: userMessage.content },
+        { role: 'user' as const, content: messageContent },
       ];
 
       const response = await fetch(`${apiUrl}/ai/chat`, {
@@ -202,7 +226,7 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
           role: 'owner',
           messages: messagesForAPI,
           userId: user?.id,
-          shopContext: { shopId },
+          shopContext: currentShopId ? { shopId: currentShopId } : undefined,
           locale: ownerLanguage,
         }),
       });
@@ -356,6 +380,12 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
               <button
                 type="submit"
                 disabled={loading || !input.trim()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (input.trim() && !loading) {
+                    handleSend(e);
+                  }
+                }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 {loading ? '...' : '→'}
