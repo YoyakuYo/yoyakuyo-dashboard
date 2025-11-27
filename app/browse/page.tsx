@@ -8,7 +8,6 @@ import { useTranslations, useLocale } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
 import {
-  buildAreaTree,
   buildCategoryTree,
   filterShopsBySearch,
   type Shop,
@@ -68,6 +67,11 @@ function BrowsePageContent() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalShops, setTotalShops] = useState(0);
+  const [areaTree, setAreaTree] = useState<AreaTree>({});
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [browseMode, setBrowseMode] = useState<BrowseMode>(
     (searchParams.get('mode') as BrowseMode) || 'area'
@@ -146,83 +150,124 @@ function BrowsePageContent() {
     fetchCategories();
   }, [apiUrl]);
 
-  // Fetch shops
-  const fetchShops = useCallback(async () => {
-    // Add check for apiUrl
+  // Fetch area tree from backend
+  const fetchAreaTree = useCallback(async () => {
+    if (!apiUrl) return;
+    
+    try {
+      const res = await fetch(`${apiUrl}/shops/area-tree`);
+      if (res.ok) {
+        const tree = await res.json();
+        setAreaTree(tree);
+      }
+    } catch (error) {
+      console.error('Error fetching area tree:', error);
+    }
+  }, [apiUrl]);
+
+  // Fetch shops with pagination
+  const fetchShops = useCallback(async (page: number = 1, append: boolean = false) => {
     if (!apiUrl) {
       console.error('❌ NEXT_PUBLIC_API_URL is not set! Cannot fetch shops.');
-      setShops([]);
-      setLoading(false);
+      if (!append) {
+        setShops([]);
+        setLoading(false);
+      }
       return;
     }
 
     try {
-      setLoading(true);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setShops([]);
+        setCurrentPage(1);
+      }
+
       const params = new URLSearchParams();
+      params.set('page', page.toString());
+      params.set('limit', '30');
+      
       if (debouncedSearch.trim()) {
         params.set('search', debouncedSearch.trim());
       }
-      
-      // No limit specified - backend will fetch all shops in batches
-      // This allows the browse page to show all available shops for area/category navigation
+      if (selectedPrefecture) {
+        params.set('prefecture', selectedPrefecture);
+      }
+      if (selectedCity) {
+        params.set('city', selectedCity);
+      }
+      if (selectedCategoryId) {
+        params.set('category', selectedCategoryId);
+      }
 
-      const url = `${apiUrl}/shops${params.toString() ? `?${params.toString()}` : ''}`;
+      const url = `${apiUrl}/shops?${params.toString()}`;
       console.log('🔍 Fetching shops from:', url);
       
       const res = await fetch(url);
       
-      console.log('📡 Shops response status:', res.status, res.statusText);
-      
       if (res.ok) {
         const contentType = res.headers.get('content-type');
-        console.log('📦 Shops content-type:', contentType);
         
         if (contentType && contentType.includes('application/json')) {
           try {
             const data = await res.json();
-            console.log('📊 Raw shops response:', data);
             
-            // Backend returns: { data: [...], pagination: {...} }
-            const shopsArray = Array.isArray(data) 
-              ? data 
-              : (data.data && Array.isArray(data.data) 
-                ? data.data 
-                : (data.shops || []));
-            
-            console.log('✅ Shops array length:', shopsArray.length);
+            // Backend returns: { shops: [...], page, limit, total, totalPages }
+            const shopsArray = data.shops || [];
             
             const visibleShops = shopsArray.filter((shop: Shop) => 
               !shop.claim_status || shop.claim_status !== 'hidden'
             );
             
-            console.log('✅ Visible shops after filtering:', visibleShops.length);
-            setShops(visibleShops);
-            console.log('✅ Shops state updated, total shops:', visibleShops.length);
+            if (append) {
+              setShops(prev => [...prev, ...visibleShops]);
+            } else {
+              setShops(visibleShops);
+            }
+            
+            setTotalShops(data.total || 0);
+            setHasMore(page < (data.totalPages || 1));
+            setCurrentPage(page);
           } catch (jsonError: any) {
             console.error('❌ Error parsing shops JSON:', jsonError);
-            setShops([]);
+            if (!append) setShops([]);
           }
         } else {
           console.error('❌ Expected JSON response but got:', contentType);
-          setShops([]);
+          if (!append) setShops([]);
         }
       } else {
-        // Handle non-200 responses
         const errorText = await res.text().catch(() => 'Unknown error');
         console.error('❌ Error fetching shops:', res.status, res.statusText, errorText);
-        setShops([]);
+        if (!append) setShops([]);
       }
     } catch (error: any) {
       console.error('❌ Exception fetching shops:', error);
-      setShops([]);
+      if (!append) setShops([]);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [apiUrl, debouncedSearch]);
+  }, [apiUrl, debouncedSearch, selectedPrefecture, selectedCity, selectedCategoryId]);
 
+  // Fetch area tree on mount
   useEffect(() => {
-    fetchShops();
-  }, [fetchShops]);
+    fetchAreaTree();
+  }, [fetchAreaTree]);
+
+  // Fetch shops when filters change
+  useEffect(() => {
+    fetchShops(1, false);
+  }, [debouncedSearch, selectedPrefecture, selectedCity, selectedCategoryId]);
+
+  // Load more shops
+  const loadMoreShops = useCallback(() => {
+    if (!loadingMore && hasMore) {
+      fetchShops(currentPage + 1, true);
+    }
+  }, [loadingMore, hasMore, currentPage, fetchShops]);
 
   // Auto-select prefecture with most shops on first load (if no filters selected)
   useEffect(() => {
@@ -259,23 +304,14 @@ function BrowsePageContent() {
     router.replace(newUrl, { scroll: false });
   }, [debouncedSearch, browseMode, selectedPrefecture, selectedCity, selectedCategoryId, router]);
 
-  // Build data trees
+  // Filter shops by search (client-side filtering on already-loaded shops)
   const filteredShops = useMemo(() => {
     return filterShopsBySearch(shops, debouncedSearch);
   }, [shops, debouncedSearch]);
 
-  const areaTree = useMemo(() => {
-    const tree = buildAreaTree(filteredShops);
-    console.log('🌳 Area tree built:', Object.keys(tree).length, 'prefectures');
-    console.log('🌳 Area tree keys:', Object.keys(tree));
-    return tree;
-  }, [filteredShops]);
-
+  // Build category tree from loaded shops (for navigation)
   const categoryTree = useMemo(() => {
-    const tree = buildCategoryTree(filteredShops, categories);
-    console.log('🌳 Category tree built:', Object.keys(tree).length, 'categories');
-    console.log('🌳 Category tree keys:', Object.keys(tree));
-    return tree;
+    return buildCategoryTree(filteredShops, categories);
   }, [filteredShops, categories]);
 
   // Get translated prefecture name
@@ -309,64 +345,18 @@ function BrowsePageContent() {
     }
   };
 
-  // Get shops to display based on current selection
+  // Display shops - use loaded shops directly (already filtered by backend)
   const displayShops = useMemo(() => {
-    let shops: Shop[] = [];
-    
-    if (browseMode === 'area') {
-      if (selectedCity && selectedPrefecture) {
-        shops = areaTree[selectedPrefecture]?.cities[selectedCity]?.shops || [];
-      } else if (selectedPrefecture) {
-        // Return all shops in prefecture
-        const prefecture = areaTree[selectedPrefecture];
-        if (prefecture) {
-          shops = Object.values(prefecture.cities).flatMap(city => city.shops);
-        }
-      } else {
-        // No prefecture selected - show ALL shops from all prefectures
-        shops = Object.values(areaTree).flatMap(prefecture => 
-          Object.values(prefecture.cities).flatMap(city => city.shops)
-        );
-      }
-    } else {
-      // Category mode
-      if (selectedCity && selectedPrefecture && selectedCategoryId) {
-        shops = categoryTree[selectedCategoryId]?.prefectures[selectedPrefecture]?.cities[selectedCity]?.shops || [];
-      } else if (selectedPrefecture && selectedCategoryId) {
-        const category = categoryTree[selectedCategoryId];
-        if (category) {
-          const prefecture = category.prefectures[selectedPrefecture];
-          if (prefecture) {
-            shops = Object.values(prefecture.cities).flatMap(city => city.shops);
-          }
-        }
-      } else if (selectedCategoryId) {
-        const category = categoryTree[selectedCategoryId];
-        if (category) {
-          shops = Object.values(category.prefectures).flatMap(pref => 
-            Object.values(pref.cities).flatMap(city => city.shops)
-          );
-        }
-      } else {
-        // No category selected - show ALL shops from all categories
-        shops = Object.values(categoryTree).flatMap(category =>
-          Object.values(category.prefectures).flatMap(pref => 
-            Object.values(pref.cities).flatMap(city => city.shops)
-          )
-        );
-      }
-    }
-    
     // Deduplicate shops by ID to prevent duplicate key errors
     const seen = new Set<string>();
-    return shops.filter(shop => {
+    return filteredShops.filter(shop => {
       if (seen.has(shop.id)) {
         return false;
       }
       seen.add(shop.id);
       return true;
     });
-  }, [browseMode, selectedPrefecture, selectedCity, selectedCategoryId, areaTree, categoryTree]);
+  }, [filteredShops]);
 
   // Reset navigation when mode changes
   const handleModeChange = (mode: BrowseMode) => {
@@ -439,10 +429,19 @@ function BrowsePageContent() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">{t('shops.loading')}</p>
+        {loading && shops.length === 0 ? (
+          <div className="lg:col-span-3">
+            {/* Skeleton Loader */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(9)].map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+                  <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -490,13 +489,38 @@ function BrowsePageContent() {
               ) : (
                 <>
                   <div className="mb-4 text-sm text-gray-600">
-                    {t('shops.shopsFound', { count: displayShops.length })}
+                    {t('shops.shopsFound', { count: totalShops || displayShops.length })}
+                    {displayShops.length < totalShops && (
+                      <span className="ml-2">({displayShops.length} loaded)</span>
+                    )}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {displayShops.map((shop) => (
                       <ShopCard key={shop.id} shop={shop} getCategoryName={getCategoryName} t={t} />
                     ))}
+                    {loadingMore && (
+                      <>
+                        {[...Array(3)].map((_, i) => (
+                          <div key={`skeleton-${i}`} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+                            <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
+                            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                            <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                            <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                          </div>
+                        ))}
+                      </>
+                    )}
                   </div>
+                  {hasMore && !loadingMore && (
+                    <div className="mt-6 text-center">
+                      <button
+                        onClick={loadMoreShops}
+                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        {t('shops.loadMore') || 'Load More'}
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
