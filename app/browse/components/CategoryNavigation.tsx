@@ -40,8 +40,8 @@ export function CategoryNavigation({
   getCityName,
   t,
 }: CategoryNavigationProps) {
+  // Show all categories, even if they have 0 shops (don't filter by categoryTree)
   const sortedCategories = categories
-    .filter(cat => categoryTree[cat.id])
     .sort((a, b) => {
       const nameA = getCategoryName(a.name);
       const nameB = getCategoryName(b.name);
@@ -59,6 +59,7 @@ export function CategoryNavigation({
       <div className="space-y-2 max-h-96 overflow-y-auto">
         {sortedCategories.map((category) => {
           const categoryData = categoryTree[category.id];
+          const shopCount = categoryData?.shopCount || 0;
           const isSelected = selectedCategoryId === category.id;
           return (
             <div key={category.id}>
@@ -76,7 +77,7 @@ export function CategoryNavigation({
               >
                 <div className="flex items-center justify-between">
                   <span>{getCategoryName(category.name)}</span>
-                  <span className="text-xs text-gray-500">({categoryData.shopCount})</span>
+                  <span className="text-xs text-gray-500">({shopCount})</span>
                 </div>
               </button>
               {isSelected && selectedCategory && (
