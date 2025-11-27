@@ -75,20 +75,40 @@ export default function DashboardPage() {
   const loadShops = async () => {
     setLoadingShops(true);
     try {
-      // Don't specify limit to fetch all shops (backend will batch fetch)
-      const response = await shopsApi.getAll() as { data?: Shop[]; count?: number; page?: number; limit?: number; pagination?: { total: number; totalPages: number } } | Shop[];
-      if (Array.isArray(response)) {
-        setShops(response);
-      } else if (response?.data) {
-        // Handle paginated response: { data: [...], pagination: {...} }
-        const shopsData = Array.isArray(response.data) 
-          ? response.data 
-          : [];
-        setShops(shopsData);
-        console.log(`Loaded ${shopsData.length} shops (total: ${response.pagination?.total || shopsData.length})`);
-      } else {
+      // Only load user's shops with pagination (limit 50 for performance)
+      // Use my_shops=true to filter by owner_user_id
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!apiUrl) {
+        console.error("API URL not configured");
         setShops([]);
+        return;
       }
+
+      const supabase = getSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setShops([]);
+        return;
+      }
+
+      // Fetch user's shops with pagination
+      const response = await fetch(`${apiUrl}/shops?page=1&limit=50&my_shops=true`, {
+        headers: {
+          'x-user-id': user.id,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load shops: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      // Handle paginated response: { shops: [...], page, limit, total, totalPages }
+      const shopsData = Array.isArray(data.shops) ? data.shops : [];
+      setShops(shopsData);
+      console.log(`Loaded ${shopsData.length} user shops (total: ${data.total || shopsData.length})`);
     } catch (error) {
       console.error("Error loading shops:", error);
       setShops([]);

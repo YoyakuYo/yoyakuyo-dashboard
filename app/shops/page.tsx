@@ -301,7 +301,8 @@ const MyShopPage = () => {
       const fetchUnclaimedShops = async () => {
         try {
           setClaimLoading(true);
-          const res = await fetch(`${apiUrl}/shops?unclaimed=true`, {
+          // Use pagination to limit response (limit to 50 for performance)
+          const res = await fetch(`${apiUrl}/shops?unclaimed=true&page=1&limit=50`, {
             headers: {
               'Content-Type': 'application/json',
             },
@@ -311,7 +312,15 @@ const MyShopPage = () => {
             const contentType = res.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
               const data = await res.json();
-              setUnclaimedShops(Array.isArray(data) ? data : []);
+              // Handle paginated response: { shops: [...], page, limit, total, totalPages }
+              const shopsArray = Array.isArray(data)
+                ? data
+                : (data.shops && Array.isArray(data.shops)
+                  ? data.shops
+                  : (data.data && Array.isArray(data.data)
+                    ? data.data
+                    : []));
+              setUnclaimedShops(shopsArray);
             } else {
               console.error('Expected JSON but received:', contentType);
               setUnclaimedShops([]);
@@ -359,7 +368,8 @@ const MyShopPage = () => {
         }
 
         // Fetch shops owned by user - backend filters by owner_user_id when my_shops=true
-        const url = `${apiUrl}/shops?my_shops=true`;
+        // Use pagination to limit response (only need first shop, limit to 1 for performance)
+        const url = `${apiUrl}/shops?my_shops=true&page=1&limit=1`;
         console.log('Fetching shop from:', url);
         console.log('User ID:', user.id);
         
@@ -397,12 +407,14 @@ const MyShopPage = () => {
           if (contentType && contentType.includes('application/json')) {
             try {
               const response = await res.json();
-              // Backend returns: { data: [...], pagination: {...} }
+              // Backend returns paginated: { shops: [...], page, limit, total, totalPages }
               const shopsArray = Array.isArray(response) 
                 ? response 
-                : (response.data && Array.isArray(response.data) 
-                  ? response.data 
-                  : []);
+                : (response.shops && Array.isArray(response.shops)
+                  ? response.shops
+                  : (response.data && Array.isArray(response.data) 
+                    ? response.data 
+                    : []));
               if (shopsArray.length > 0) {
                 // Use the first shop if multiple exist
                 const userShop = shopsArray[0];
