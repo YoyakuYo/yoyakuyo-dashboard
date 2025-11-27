@@ -1335,7 +1335,7 @@ const MyShopPage = () => {
               <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('myShop.claimExistingShop')}</h3>
               <p className="text-gray-600 mb-4">{t('myShop.claimOwnership')}</p>
               <button
-                onClick={() => setShowClaimShop(true)}
+                onClick={() => router.push('/owner/claim')}
                 className="w-full px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
               >
                 {t('myShop.claimShop')}
