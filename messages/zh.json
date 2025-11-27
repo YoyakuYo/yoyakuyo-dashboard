@@ -40,7 +40,9 @@
     "viewDetails": "查看详情",
     "loading": "正在加载店铺...",
     "noShops": "未找到店铺",
-    "tryAdjusting": "请尝试调整搜索或类别筛选器"
+    "tryAdjusting": "请尝试调整搜索或类别筛选器",
+    "loadMore": "加载更多",
+    "loadingMore": "正在加载更多店铺..."
   },
   "categories": {
     "all": "所有类别",

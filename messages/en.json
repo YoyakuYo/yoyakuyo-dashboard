@@ -373,7 +373,9 @@
     "clearAreaFilter": "Clear area filter",
     "inAreas": "in {count} {count, plural, one {area} other {areas}}",
     "showLess": "Show less ({hidden} hidden)",
-    "seeAllAreas": "See all {count} areas →"
+    "seeAllAreas": "See all {count} areas →",
+    "loadMore": "Load More",
+    "loadingMore": "Loading more shops..."
   },
   "myShop": {
     "title": "My Shop",

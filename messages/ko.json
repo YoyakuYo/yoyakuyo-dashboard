@@ -14,7 +14,9 @@
     "viewDetails": "자세히 보기",
     "loading": "상점 로딩 중...",
     "noShops": "상점을 찾을 수 없습니다",
-    "tryAdjusting": "검색 또는 카테고리 필터를 조정해 보세요"
+    "tryAdjusting": "검색 또는 카테고리 필터를 조정해 보세요",
+    "loadMore": "더 보기",
+    "loadingMore": "더 많은 상점 로딩 중..."
   },
   "categories": {
     "all": "모든 카테고리",

@@ -14,7 +14,9 @@
     "viewDetails": "Tingnan ang detalye",
     "loading": "Naglo-load ng mga tindahan...",
     "noShops": "Walang nahanap na tindahan",
-    "tryAdjusting": "Subukan na ayusin ang iyong paghahanap o filter ng kategorya"
+    "tryAdjusting": "Subukan na ayusin ang iyong paghahanap o filter ng kategorya",
+    "loadMore": "Mag-load pa",
+    "loadingMore": "Naglo-load pa ng mga tindahan..."
   },
   "categories": {
     "all": "Lahat ng Kategorya",
