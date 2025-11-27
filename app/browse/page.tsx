@@ -304,13 +304,24 @@ function BrowsePageContent() {
 
   // Get translated category name
   const getCategoryName = (categoryName: string): string => {
-    const key = categoryName.toLowerCase().replace(/\s+/g, '_');
+    if (!categoryName || categoryName.trim() === '') {
+      return 'Unknown Category';
+    }
+    
+    // Try to translate using the category name as-is
+    const key = categoryName.toLowerCase().replace(/\s+/g, '_').replace(/&/g, 'and').replace(/[^a-z0-9_]/g, '_');
     try {
       const translated = t(`categories.${key}`);
-      return translated !== `categories.${key}` ? translated : categoryName;
+      // If translation exists and is different from the key, use it
+      if (translated && translated !== `categories.${key}`) {
+        return translated;
+      }
     } catch {
-      return categoryName;
+      // Translation failed, continue to return original name
     }
+    
+    // Return the original category name if translation doesn't exist
+    return categoryName;
   };
 
   // Display shops - use loaded shops directly (already filtered by backend)
