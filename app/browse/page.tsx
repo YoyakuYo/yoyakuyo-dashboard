@@ -14,6 +14,7 @@ import {
   type AreaTree,
   type CategoryTree,
 } from '@/lib/browse/shopBrowseData';
+import { CATEGORIES } from '@/lib/categories';
 import { AreaNavigation } from './components/AreaNavigation';
 import { CategoryNavigation } from './components/CategoryNavigation';
 import { ShopCard } from './components/ShopCard';
@@ -103,52 +104,18 @@ function BrowsePageContent() {
     console.log('🔧 API URL configured:', apiUrl || '❌ NOT SET - Check NEXT_PUBLIC_API_URL env var');
   }, []);
 
-  // Fetch categories
+  // Use local categories instead of fetching from API
+  // This ensures all categories defined in lib/categories.ts are available
   useEffect(() => {
-    const fetchCategories = async () => {
-      // Add check for apiUrl
-      if (!apiUrl) {
-        console.error('❌ NEXT_PUBLIC_API_URL is not set! Cannot fetch categories.');
-        setCategories([]);
-        return;
-      }
-
-      try {
-        const url = `${apiUrl}/categories`;
-        console.log('🔍 Fetching categories from:', url);
-        const res = await fetch(url);
-        
-        console.log('📡 Categories response status:', res.status, res.statusText);
-        
-        if (res.ok) {
-          const contentType = res.headers.get('content-type');
-          console.log('📦 Categories content-type:', contentType);
-          
-          if (contentType && contentType.includes('application/json')) {
-            try {
-              const data = await res.json();
-              console.log('✅ Categories fetched:', data?.length || 0, 'items');
-              setCategories(Array.isArray(data) ? data : []);
-            } catch (jsonError: any) {
-              console.error('❌ Error parsing categories JSON:', jsonError);
-              setCategories([]);
-            }
-          } else {
-            console.error('❌ Expected JSON but received:', contentType);
-            setCategories([]);
-          }
-        } else {
-          const errorText = await res.text().catch(() => 'Unknown error');
-          console.error('❌ Error fetching categories:', res.status, res.statusText, errorText);
-          setCategories([]);
-        }
-      } catch (error: any) {
-        console.error('❌ Exception fetching categories:', error);
-        setCategories([]);
-      }
-    };
-    fetchCategories();
-  }, [apiUrl]);
+    // Convert CATEGORIES to the format expected by the component
+    const formattedCategories = CATEGORIES.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      description: cat.nameJa, // Use Japanese name as description
+    }));
+    console.log('✅ Using local categories:', formattedCategories.length, 'items');
+    setCategories(formattedCategories);
+  }, []);
 
   // Fetch area tree from backend
   const fetchAreaTree = useCallback(async () => {
