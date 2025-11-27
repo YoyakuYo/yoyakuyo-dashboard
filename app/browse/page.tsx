@@ -73,6 +73,7 @@ function BrowsePageContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalShops, setTotalShops] = useState(0);
   const [areaTree, setAreaTree] = useState<AreaTree>({});
+  const [categoryStats, setCategoryStats] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [browseMode, setBrowseMode] = useState<BrowseMode>(
     (searchParams.get('mode') as BrowseMode) || 'area'
@@ -129,6 +130,22 @@ function BrowsePageContent() {
       }
     } catch (error) {
       console.error('Error fetching area tree:', error);
+    }
+  }, [apiUrl]);
+
+  // Fetch category stats (shop counts per category) from backend
+  const fetchCategoryStats = useCallback(async () => {
+    if (!apiUrl) return;
+    
+    try {
+      const res = await fetch(`${apiUrl}/categories/stats`);
+      if (res.ok) {
+        const stats = await res.json();
+        setCategoryStats(stats);
+        console.log('✅ Category stats loaded:', stats);
+      }
+    } catch (error) {
+      console.error('Error fetching category stats:', error);
     }
   }, [apiUrl]);
 
@@ -219,10 +236,11 @@ function BrowsePageContent() {
     }
   }, [apiUrl, debouncedSearch, selectedPrefecture, selectedCity, selectedCategoryId]);
 
-  // Fetch area tree on mount
+  // Fetch area tree and category stats on mount
   useEffect(() => {
     fetchAreaTree();
-  }, [fetchAreaTree]);
+    fetchCategoryStats();
+  }, [fetchAreaTree, fetchCategoryStats]);
 
   // Fetch shops when filters change
   useEffect(() => {
@@ -278,9 +296,31 @@ function BrowsePageContent() {
   }, [shops, debouncedSearch]);
 
   // Build category tree from loaded shops (for navigation)
+  // Then merge in category stats from backend for accurate counts
   const categoryTree = useMemo(() => {
-    return buildCategoryTree(filteredShops, categories);
-  }, [filteredShops, categories]);
+    const tree = buildCategoryTree(filteredShops, categories);
+    
+    // Merge backend category stats to get accurate counts for all categories
+    // This ensures categories show correct shop counts even if shops aren't loaded yet
+    for (const category of categories) {
+      if (!tree[category.id]) {
+        // Initialize category if it doesn't exist in tree
+        tree[category.id] = {
+          name: category.name,
+          slug: category.name.toLowerCase().replace(/\s+/g, '-'),
+          shopCount: 0,
+          prefectures: {},
+        };
+      }
+      
+      // Update shop count from backend stats if available
+      if (categoryStats[category.id] !== undefined) {
+        tree[category.id].shopCount = categoryStats[category.id];
+      }
+    }
+    
+    return tree;
+  }, [filteredShops, categories, categoryStats]);
 
   // Get translated prefecture name
   const getPrefectureName = (key: string): string => {
