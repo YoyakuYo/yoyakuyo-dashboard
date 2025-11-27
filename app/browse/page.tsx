@@ -313,10 +313,9 @@ function BrowsePageContent() {
         };
       }
       
-      // Update shop count from backend stats if available
-      if (categoryStats[category.id] !== undefined) {
-        tree[category.id].shopCount = categoryStats[category.id];
-      }
+      // Update shop count from backend stats if available, otherwise use 0
+      // This ensures all categories show a count (even if 0)
+      tree[category.id].shopCount = categoryStats[category.id] ?? 0;
     }
     
     return tree;
