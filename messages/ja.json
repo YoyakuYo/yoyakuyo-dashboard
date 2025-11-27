@@ -372,7 +372,9 @@
     "clearAreaFilter": "エリアフィルターをクリア",
     "inAreas": "{count}エリア",
     "showLess": "折りたたむ（{hidden}件非表示）",
-    "seeAllAreas": "全{count}エリアを見る →"
+    "seeAllAreas": "全{count}エリアを見る →",
+    "loadMore": "もっと見る",
+    "loadingMore": "さらに読み込み中..."
   },
   "myShop": {
     "title": "マイショップ",

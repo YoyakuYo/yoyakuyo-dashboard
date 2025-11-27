@@ -40,7 +40,9 @@
     "viewDetails": "Ver detalhes",
     "loading": "Carregando lojas...",
     "noShops": "Nenhuma loja encontrada",
-    "tryAdjusting": "Tente ajustar sua pesquisa ou filtro de categoria"
+    "tryAdjusting": "Tente ajustar sua pesquisa ou filtro de categoria",
+    "loadMore": "Carregar mais",
+    "loadingMore": "Carregando mais lojas..."
   },
   "categories": {
     "all": "Todas as Categorias",
