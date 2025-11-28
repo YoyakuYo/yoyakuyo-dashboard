@@ -10,6 +10,8 @@ import { apiUrl } from '@/lib/apiClient';
 import ReviewCard from '../components/ReviewCard';
 import ReviewStats from '../components/ReviewStats';
 import ShopCalendar from '../components/ShopCalendar';
+import { useBookingNotifications } from '../components/BookingNotificationContext';
+import NotificationDot from '../components/NotificationDot';
 
 // LINE QR Code Component
 function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | null; user: any }) {
@@ -193,6 +195,7 @@ const MyShopPage = () => {
   const authLoading = Boolean(loading); // Ensure it's always a boolean for stable dependency array
   const router = useRouter();
   const t = useTranslations();
+  const { unreadBookingsCount } = useBookingNotifications();
 
   const [shop, setShop] = useState<Shop | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
@@ -1533,6 +1536,9 @@ const MyShopPage = () => {
               }`}
             >
               {t(`myShop.${tab}`)}
+              {tab === 'bookings' && unreadBookingsCount > 0 && (
+                <NotificationDot className="absolute top-1 right-1" />
+              )}
               {activeTab === tab && (
                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
               )}

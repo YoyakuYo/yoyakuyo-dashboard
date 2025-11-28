@@ -163,6 +163,12 @@
     "downloadQRCode": "下载二维码",
     "lineLinkCopied": "LINE链接已复制到剪贴板！",
     "lineReservationText": "LINEで予約はこちら"
+  },
+  "dashboard": {
+    "notifications": {
+      "pending": "您有待处理的预约",
+      "none": "没有待处理的预约"
+    }
   }
 }
 

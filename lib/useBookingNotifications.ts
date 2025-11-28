@@ -28,7 +28,11 @@ export function useBookingNotificationsHook() {
       if (bookingsRes.ok) {
         const bookingsData = await bookingsRes.json();
         const bookings = Array.isArray(bookingsData) ? bookingsData : [];
-        const pendingCount = bookings.filter((booking: any) => booking.status === 'pending').length;
+        // Count bookings with pending statuses: pending, awaiting_confirmation, reschedule_requested
+        const pendingStatuses = ['pending', 'awaiting_confirmation', 'reschedule_requested'];
+        const pendingCount = bookings.filter((booking: any) => 
+          pendingStatuses.includes(booking.status)
+        ).length;
         setUnreadBookingsCount(pendingCount);
       }
     } catch (error: any) {
@@ -58,8 +62,9 @@ export function useBookingNotificationsHook() {
         async (payload: any) => {
           const newBooking = payload.new;
           
-          // Check if booking belongs to owner's shop and is pending
-          if (newBooking && newBooking.status === 'pending') {
+          // Check if booking belongs to owner's shop and has a pending status
+          const pendingStatuses = ['pending', 'awaiting_confirmation', 'reschedule_requested'];
+          if (newBooking && pendingStatuses.includes(newBooking.status)) {
             // If we have shop IDs cached, check immediately
             if (shopIdsRef.current.length > 0 && shopIdsRef.current.includes(newBooking.shop_id)) {
               // Reload count to ensure accuracy
@@ -82,13 +87,13 @@ export function useBookingNotificationsHook() {
           const updatedBooking = payload.new;
           const oldBooking = payload.old;
 
-          // If status changed from pending to something else, decrement
-          if (oldBooking?.status === 'pending' && updatedBooking?.status !== 'pending') {
-            // Reload count to ensure accuracy
-            await reloadPendingCount();
-          }
-          // If status changed to pending, reload count
-          else if (oldBooking?.status !== 'pending' && updatedBooking?.status === 'pending') {
+          // If status changed from pending to something else, or vice versa, reload count
+          const pendingStatuses = ['pending', 'awaiting_confirmation', 'reschedule_requested'];
+          const wasPending = oldBooking?.status && pendingStatuses.includes(oldBooking.status);
+          const isPending = updatedBooking?.status && pendingStatuses.includes(updatedBooking.status);
+          
+          if (wasPending !== isPending) {
+            // Status changed between pending and non-pending, reload count
             await reloadPendingCount();
           }
         }
@@ -134,7 +139,12 @@ export function useBookingNotificationsHook() {
           if (bookingsRes.ok) {
             const bookingsData = await bookingsRes.json();
             const bookings = Array.isArray(bookingsData) ? bookingsData : [];
-            const pendingCount = bookings.filter((booking: any) => booking.status === 'pending').length;
+            // Count bookings with pending statuses: pending, awaiting_confirmation, reschedule_requested
+            // Note: awaiting_confirmation and reschedule_requested may not exist yet, but we check for them for future compatibility
+            const pendingStatuses = ['pending', 'awaiting_confirmation', 'reschedule_requested'];
+            const pendingCount = bookings.filter((booking: any) => 
+              pendingStatuses.includes(booking.status)
+            ).length;
             setUnreadBookingsCount(pendingCount);
           }
         }

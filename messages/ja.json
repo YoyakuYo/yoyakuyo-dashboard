@@ -582,5 +582,11 @@
     "downloadQRCode": "QRコードをダウンロード",
     "lineLinkCopied": "LINEリンクをクリップボードにコピーしました！",
     "lineReservationText": "LINEで予約はこちら"
+  },
+  "dashboard": {
+    "notifications": {
+      "pending": "未処理の予約があります",
+      "none": "未処理の予約はありません"
+    }
   }
 }

@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
 import { useBookingNotifications } from './BookingNotificationContext';
+import NotificationDot from './NotificationDot';
 
 const Sidebar = React.memo(() => {
   const pathname = usePathname();
@@ -126,6 +127,9 @@ const Sidebar = React.memo(() => {
                   )}
                   <span className="text-xl">{item.icon}</span>
                   <span className={`font-medium ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
+                  {item.href === '/bookings' && unreadBookingsCount > 0 && (
+                    <NotificationDot className="ml-auto" />
+                  )}
                   {item.badge !== undefined && item.badge > 0 && (
                     <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
                       {item.badge}

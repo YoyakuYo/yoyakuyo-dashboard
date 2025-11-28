@@ -581,5 +581,11 @@
     "downloadQRCode": "Download QR Code",
     "lineLinkCopied": "LINE link copied to clipboard!",
     "lineReservationText": "LINEで予約はこちら"
+  },
+  "dashboard": {
+    "notifications": {
+      "pending": "You have pending bookings",
+      "none": "No pending bookings"
+    }
   }
 }

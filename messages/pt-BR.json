@@ -163,6 +163,12 @@
     "downloadQRCode": "Baixar código QR",
     "lineLinkCopied": "Link LINE copiado para a área de transferência!",
     "lineReservationText": "LINEで予約はこちら"
+  },
+  "dashboard": {
+    "notifications": {
+      "pending": "Você tem reservas pendentes",
+      "none": "Não há reservas pendentes"
+    }
   }
 }
 

@@ -5,6 +5,8 @@ import { useAuth } from "@/lib/useAuth";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 import { useTranslations } from "next-intl";
+import { useBookingNotifications } from "@/app/components/BookingNotificationContext";
+import NotificationDot from "@/app/components/NotificationDot";
 // Format date helper
 const formatDate = (dateString: string) => {
   try {
@@ -42,6 +44,7 @@ export default function BookingsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const t = useTranslations();
+  const { unreadBookingsCount } = useBookingNotifications();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
@@ -116,10 +119,18 @@ export default function BookingsPage() {
     return null;
   }
 
+  // Count pending bookings from current bookings list
+  const pendingStatuses = ['pending', 'awaiting_confirmation', 'reschedule_requested'];
+  const pendingCount = bookings.filter((booking) => pendingStatuses.includes(booking.status)).length;
+  const hasPendingBookings = pendingCount > 0;
+
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">{t('nav.bookings')}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-gray-900">{t('nav.bookings')}</h1>
+          {hasPendingBookings && <NotificationDot />}
+        </div>
         
         <div className="flex gap-2">
           {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map((status) => (
@@ -137,6 +148,13 @@ export default function BookingsPage() {
           ))}
         </div>
       </div>
+
+      {hasPendingBookings && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2">
+          <NotificationDot />
+          <p className="text-sm text-yellow-800">{t('dashboard.notifications.pending')}</p>
+        </div>
+      )}
 
       {filteredBookings.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-6">
