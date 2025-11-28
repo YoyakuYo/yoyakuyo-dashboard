@@ -29,6 +29,7 @@ interface Shop {
   phone?: string | null;
   email?: string | null;
   website?: string | null;
+  opening_hours?: any | null;
   description?: string | null;
   logo_url?: string | null;
   cover_photo_url?: string | null;
@@ -86,6 +87,32 @@ interface Photo {
   url: string;
   created_at: string;
   updated_at: string;
+}
+
+function formatOpeningHours(openingHours: any): string {
+  if (!openingHours || typeof openingHours !== 'object') {
+    return 'Not specified';
+  }
+
+  // Handle Google Places format: { "monday": ["09:00", "18:00"], ... }
+  if (openingHours.monday || openingHours.tuesday || openingHours.wednesday) {
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return days.map((day, idx) => {
+      const hours = openingHours[day];
+      if (Array.isArray(hours) && hours.length >= 2) {
+        return `${dayNames[idx]}: ${hours[0]} - ${hours[1]}`;
+      }
+      return `${dayNames[idx]}: Closed`;
+    }).join('\n');
+  }
+
+  // Handle weekday_text format: ["Monday: 9:00 AM – 6:00 PM", ...]
+  if (Array.isArray(openingHours.weekday_text)) {
+    return openingHours.weekday_text.join('\n');
+  }
+
+  return JSON.stringify(openingHours);
 }
 
 export default function PublicShopDetailPage() {
@@ -357,6 +384,27 @@ export default function PublicShopDetailPage() {
               <p><strong>{t('myShop.address')}:</strong> {shop.address}</p>
               {shop.phone && <p><strong>{t('myShop.phone')}:</strong> {shop.phone}</p>}
               {shop.email && <p><strong>{t('myShop.email')}:</strong> {shop.email}</p>}
+              {shop.website && (
+                <p>
+                  <strong>Website:</strong>{' '}
+                  <a 
+                    href={shop.website.startsWith('http') ? shop.website : `https://${shop.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    {shop.website}
+                  </a>
+                </p>
+              )}
+              {shop.opening_hours && (
+                <div className="mt-2">
+                  <strong>Opening Hours:</strong>
+                  <div className="mt-1 text-sm whitespace-pre-line">
+                    {formatOpeningHours(shop.opening_hours)}
+                  </div>
+                </div>
+              )}
             </div>
             {shop.description && (
               <div className="mt-4">
