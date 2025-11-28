@@ -386,7 +386,7 @@ export default function PublicShopDetailPage() {
               {shop.email && <p><strong>{t('myShop.email')}:</strong> {shop.email}</p>}
               {shop.website && (
                 <p>
-                  <strong>Website:</strong>{' '}
+                  <strong>{t('common.website')}:</strong>{' '}
                   <a 
                     href={shop.website.startsWith('http') ? shop.website : `https://${shop.website}`}
                     target="_blank"
@@ -399,7 +399,7 @@ export default function PublicShopDetailPage() {
               )}
               {shop.opening_hours && (
                 <div className="mt-2">
-                  <strong>Opening Hours:</strong>
+                  <strong>{t('shops.openingHours')}:</strong>
                   <div className="mt-1 text-sm whitespace-pre-line">
                     {formatOpeningHours(shop.opening_hours)}
                   </div>
@@ -420,11 +420,11 @@ export default function PublicShopDetailPage() {
                     alt="LINE QR Code" 
                     className="w-48 h-48 border-2 border-gray-200 rounded-lg"
                   />
-                  <p className="text-sm text-gray-600">LINEで予約はこちら</p>
+                  <p className="text-sm text-gray-600">{t('line.lineReservationText')}</p>
                 </div>
               ) : (
                 <div className="text-center text-gray-500 text-sm py-4">
-                  Connect LINE to generate QR code
+                  {t('line.connectLineToGenerate')}
                 </div>
               )}
             </div>
@@ -433,7 +433,7 @@ export default function PublicShopDetailPage() {
           {/* Map */}
           {shop.latitude && shop.longitude && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Location</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">{t('shops.location')}</h2>
               <ShopMap
                 latitude={shop.latitude}
                 longitude={shop.longitude}

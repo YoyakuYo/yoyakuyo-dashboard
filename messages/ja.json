@@ -140,7 +140,8 @@
     "rescheduled": "予約が変更されました！",
     "failedToCancel": "予約のキャンセルに失敗しました",
     "failedToReschedule": "予約の変更に失敗しました",
-    "failedToCreate": "予約の作成に失敗しました。もう一度お試しください。"
+    "failedToCreate": "予約の作成に失敗しました。もう一度お試しください。",
+    "noBookingsFound": "予約が見つかりませんでした。"
   },
   "chat": {
     "title": "AIアシスタントとチャット",
@@ -369,6 +370,8 @@
     "photosWillAppear": "店舗オーナーが写真を追加すると、ここに表示されます。",
     "noServicesAvailable": "利用可能なサービスがありません。",
     "noStaffAvailable": "スタッフ情報がありません。",
+    "openingHours": "営業時間",
+    "location": "場所",
     "filteredByArea": "エリアでフィルター:",
     "clearAreaFilter": "エリアフィルターをクリア",
     "inAreas": "{count}エリア",

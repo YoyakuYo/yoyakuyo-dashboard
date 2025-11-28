@@ -102,7 +102,7 @@ const Sidebar = React.memo(() => {
     { href: '/analytics', label: t('analytics.title'), icon: '📊' },
     { href: '/assistant', label: t('nav.aiAssistant'), icon: '🤖', badge: unreadCount > 0 ? unreadCount : undefined },
     { href: '/bookings', label: t('nav.bookings'), icon: '📅', badge: unreadBookingsCount > 0 ? unreadBookingsCount : undefined },
-    { href: '/settings', label: 'Settings', icon: '⚙️' },
+    { href: '/settings', label: t('settings.title'), icon: '⚙️' },
   ];
 
   return (

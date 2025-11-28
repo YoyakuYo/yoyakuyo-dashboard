@@ -140,7 +140,8 @@
     "rescheduled": "Booking rescheduled successfully!",
     "failedToCancel": "Failed to cancel booking",
     "failedToReschedule": "Failed to reschedule booking",
-    "failedToCreate": "Failed to create booking. Please try again."
+    "failedToCreate": "Failed to create booking. Please try again.",
+    "noBookingsFound": "No bookings found."
   },
   "chat": {
     "title": "Chat with AI assistant",
@@ -369,6 +370,8 @@
     "photosWillAppear": "Photos will appear here once added by the shop owner.",
     "noServicesAvailable": "No services available.",
     "noStaffAvailable": "No staff information available.",
+    "openingHours": "Opening Hours",
+    "location": "Location",
     "filteredByArea": "Filtered by area:",
     "clearAreaFilter": "Clear area filter",
     "inAreas": "in {count} {count, plural, one {area} other {areas}}",

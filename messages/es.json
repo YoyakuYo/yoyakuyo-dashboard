@@ -42,7 +42,9 @@
     "noShops": "No se encontraron tiendas",
     "tryAdjusting": "Intente ajustar su búsqueda o filtro de categoría",
     "loadMore": "Cargar más",
-    "loadingMore": "Cargando más tiendas..."
+    "loadingMore": "Cargando más tiendas...",
+    "openingHours": "Horario de Atención",
+    "location": "Ubicación"
   },
   "categories": {
     "all": "Todas las Categorías",

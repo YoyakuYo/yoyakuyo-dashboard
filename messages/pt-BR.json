@@ -42,7 +42,9 @@
     "noShops": "Nenhuma loja encontrada",
     "tryAdjusting": "Tente ajustar sua pesquisa ou filtro de categoria",
     "loadMore": "Carregar mais",
-    "loadingMore": "Carregando mais lojas..."
+    "loadingMore": "Carregando mais lojas...",
+    "openingHours": "Horário de Funcionamento",
+    "location": "Localização"
   },
   "categories": {
     "all": "Todas as Categorias",
@@ -60,6 +62,9 @@
     "kanagawa": "Kanagawa",
     "aichi": "Aichi",
     "fukuoka": "Fukuoka"
+  },
+  "booking": {
+    "noBookingsFound": "Nenhuma reserva encontrada."
   },
   "common": {
     "save": "Salvar alterações",

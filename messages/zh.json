@@ -42,7 +42,9 @@
     "noShops": "未找到店铺",
     "tryAdjusting": "请尝试调整搜索或类别筛选器",
     "loadMore": "加载更多",
-    "loadingMore": "正在加载更多店铺..."
+    "loadingMore": "正在加载更多店铺...",
+    "openingHours": "营业时间",
+    "location": "位置"
   },
   "categories": {
     "all": "所有类别",
@@ -60,6 +62,9 @@
     "kanagawa": "神奈川县",
     "aichi": "爱知县",
     "fukuoka": "福冈县"
+  },
+  "booking": {
+    "noBookingsFound": "未找到预约。"
   },
   "common": {
     "save": "保存更改",

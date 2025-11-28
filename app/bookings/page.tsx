@@ -132,7 +132,7 @@ export default function BookingsPage() {
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
+              {t(`status.${status}`)}
             </button>
           ))}
         </div>
@@ -140,7 +140,7 @@ export default function BookingsPage() {
 
       {filteredBookings.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-500">No bookings found.</p>
+          <p className="text-gray-500">{t('booking.noBookingsFound')}</p>
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -148,19 +148,19 @@ export default function BookingsPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Customer
+                  {t('myShop.customer')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Service
+                  {t('myShop.service')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date & Time
+                  {t('myShop.dateTime')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                  {t('common.status')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
+                  {t('common.actions')}
                 </th>
               </tr>
             </thead>
@@ -194,7 +194,7 @@ export default function BookingsPage() {
                           : 'bg-gray-100 text-gray-800'
                       }`}
                     >
-                      {booking.status}
+                      {t(`status.${booking.status}`)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -204,13 +204,13 @@ export default function BookingsPage() {
                           onClick={() => updateBookingStatus(booking.id, 'confirmed')}
                           className="text-green-600 hover:text-green-900 mr-4"
                         >
-                          Confirm
+                          {t('common.confirm')}
                         </button>
                         <button
                           onClick={() => updateBookingStatus(booking.id, 'cancelled')}
                           className="text-red-600 hover:text-red-900"
                         >
-                          Cancel
+                          {t('common.cancel')}
                         </button>
                       </>
                     )}
@@ -219,7 +219,7 @@ export default function BookingsPage() {
                         onClick={() => updateBookingStatus(booking.id, 'completed')}
                         className="text-blue-600 hover:text-blue-900"
                       >
-                        Complete
+                        {t('status.completed')}
                       </button>
                     )}
                   </td>
