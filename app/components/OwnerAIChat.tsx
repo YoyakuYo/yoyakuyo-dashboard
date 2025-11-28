@@ -123,6 +123,7 @@ interface OwnerAIChatProps {
 export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
   const { messages, addMessage, isOpen: shouldOpenFromContext } = useOwnerAIChat();
   const { user } = useAuth();
+  const t = useTranslations();
   const [isOpen, setIsOpen] = useState(fullPage);
   
   // Open chat when shouldOpenFromContext is set to true
