@@ -10,15 +10,17 @@ ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE bookings
 ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
--- Ensure customer_name exists (should already exist, but adding IF NOT EXISTS for safety)
--- Note: customer_name is already used in code, so it likely exists
--- We'll add it only if it doesn't exist to avoid errors
+-- Add customer_name if missing
+ALTER TABLE bookings
+ADD COLUMN IF NOT EXISTS customer_name TEXT;
 
--- Ensure date field exists (should already exist based on code usage)
--- Note: date is already used in code, so it likely exists
+-- Add date field if missing (DATE type for YYYY-MM-DD format)
+ALTER TABLE bookings
+ADD COLUMN IF NOT EXISTS date DATE;
 
--- Ensure time field or time_slot exists (code uses time_slot)
--- Note: time_slot is already used in code, so it likely exists
+-- Add time_slot field if missing (TEXT for HH:MM format)
+ALTER TABLE bookings
+ADD COLUMN IF NOT EXISTS time_slot TEXT;
 
 -- Ensure status exists with correct enum values
 -- Status already exists from add_bookings_status.sql, but ensure it has all required values
