@@ -52,18 +52,37 @@ export default function HeroCarousel({ onSlideChange }: HeroCarouselProps) {
     goToSlide(newIndex);
   }, [currentIndex, goToSlide]);
 
-  // Get image path - placeholder for now, will be replaced with actual images
+  // Get image path - maps slide IDs to imgur URLs
   const getImagePath = (slideId: string) => {
-    // For now, use placeholder or category images
-    // TODO: Replace with actual hero images from public/hero/ or CDN
-    return `/categories/${currentSlide.categoryKey === 'hair' ? 'hair-salon' : 
-                          currentSlide.categoryKey === 'nails' ? 'nails' :
-                          currentSlide.categoryKey === 'eyelash' ? 'eyelash' :
-                          currentSlide.categoryKey === 'spa' ? 'spa' :
-                          currentSlide.categoryKey === 'hotel' ? 'hotel' :
-                          currentSlide.categoryKey === 'restaurant' ? 'restaurant' :
-                          currentSlide.categoryKey === 'onsen' ? 'onsen' :
-                          currentSlide.categoryKey === 'clinic' ? 'womens-clinic' : 'beauty-salon'}.jpg`;
+    // Map each slide ID to its corresponding imgur URL
+    const imageMap: Record<string, string> = {
+      // HAIR
+      'hair-salon-environment': 'https://i.imgur.com/1QZYzj7.jpeg',
+      'hair-salon-action': 'https://i.imgur.com/bmwxF0D.jpeg',
+      // NAILS
+      'nail-salon-environment': 'https://i.imgur.com/vZrU0VU.jpeg',
+      'nail-salon-action': 'https://i.imgur.com/EjzknWe.jpeg',
+      // EYELASH
+      'eyelash-environment': 'https://i.imgur.com/XGuT0DR.jpeg',
+      'eyelash-action': 'https://i.imgur.com/hDi1YEq.jpeg',
+      // SPA
+      'spa-environment': 'https://i.imgur.com/WT0uox2.jpeg',
+      'spa-action': 'https://i.imgur.com/ucUgid2.jpeg',
+      // HOTEL
+      'hotel-environment': 'https://i.imgur.com/JUO6xWJ.jpeg',
+      'hotel-action': 'https://i.imgur.com/JC2qkQn.jpeg',
+      // RESTAURANT
+      'restaurant-environment': 'https://i.imgur.com/TkZD01Y.jpeg',
+      'restaurant-action': 'https://i.imgur.com/JOuGk4V.jpeg',
+      // ONSEN
+      'onsen-environment': 'https://i.imgur.com/2cUypPf.jpeg',
+      'onsen-action': 'https://i.imgur.com/2cUypPf.jpeg', // Using same as environment (no separate action URL provided)
+      // CLINIC
+      'clinic-environment': 'https://i.imgur.com/YERkZiK.jpeg',
+      'clinic-action': 'https://i.imgur.com/YERkZiK.jpeg', // Using same as environment (no separate action URL provided)
+    };
+    
+    return imageMap[slideId] || 'https://i.imgur.com/1QZYzj7.jpeg'; // Fallback to hair salon image
   };
 
   const title = isJapanese ? currentSlide.titleJa : currentSlide.titleEn;
@@ -86,8 +105,8 @@ export default function HeroCarousel({ onSlideChange }: HeroCarouselProps) {
           className="object-cover transition-opacity duration-1000"
           sizes="100vw"
           onError={(e) => {
-            // Fallback to placeholder if image fails
-            (e.target as HTMLImageElement).src = '/categories/beauty-salon.jpg';
+            // Fallback to hair salon image if image fails
+            (e.target as HTMLImageElement).src = 'https://i.imgur.com/1QZYzj7.jpeg';
           }}
         />
       </div>
