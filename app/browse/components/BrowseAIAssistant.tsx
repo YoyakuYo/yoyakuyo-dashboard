@@ -170,12 +170,11 @@ export function BrowseAIAssistant({
       // Check if booking was created (booking_result in response)
       let messageContent = data.response || 'Sorry, I could not generate a response.';
       
-      // If booking was created, enhance the message with booking details
-      if (data.booking_result && data.booking_result.success) {
-        const booking = data.booking_result;
-        messageContent = `✅ Booking confirmed! Your appointment at ${booking.shop_name || 'the shop'} is scheduled for ${booking.confirmed_date} at ${booking.confirmed_time}. The shop owner will confirm shortly.\n\n${messageContent}`;
-      } else if (data.booking_result && !data.booking_result.success) {
-        // Booking failed - AI should have explained, but add context
+      // The AI already generates booking confirmation messages with properly formatted dates
+      // Don't prepend a duplicate message - the AI handles the confirmation message
+      // Only add a warning prefix if booking failed and AI didn't already indicate failure
+      if (data.booking_result && !data.booking_result.success && !messageContent.includes('⚠️') && !messageContent.includes('Sorry')) {
+        // Booking failed - AI should have explained, but add context if missing
         messageContent = `⚠️ ${messageContent}`;
       }
       
