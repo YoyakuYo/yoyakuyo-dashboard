@@ -197,38 +197,41 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
               <p className="text-sm font-medium text-gray-700 mb-2">
                 {t('myShop.selectedDate')}: {selectedDate.toLocaleDateString()}
               </p>
-              {isHoliday(selectedDate) ? (
-                <div>
-                  <p className="text-sm text-red-600 mb-2">
-                    {t('myShop.dateMarkedAsClosed')}
-                    {getHolidayReason(selectedDate) && `: ${getHolidayReason(selectedDate)}`}
-                  </p>
+              {isHoliday(selectedDate) && (
+                <p className="text-sm text-red-600 mb-2">
+                  {t('myShop.dateMarkedAsClosed')}
+                  {getHolidayReason(selectedDate) && `: ${getHolidayReason(selectedDate)}`}
+                </p>
+              )}
+              <div className="space-y-2">
+                {!isHoliday(selectedDate) && (
+                  <>
+                    <input
+                      type="text"
+                      placeholder={t('myShop.reasonOptional')}
+                      value={holidayReason}
+                      onChange={(e) => setHolidayReason(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                    <button
+                      onClick={handleAddHoliday}
+                      disabled={loading}
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {loading ? t('myShop.addingHoliday') : t('myShop.markAsClosed')}
+                    </button>
+                  </>
+                )}
+                {isHoliday(selectedDate) && (
                   <button
                     onClick={() => handleRemoveHoliday(selectedDate.toISOString().split('T')[0])}
                     disabled={loading}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                   >
-                    {loading ? t('myShop.removingHoliday') : t('myShop.removeHoliday')}
+                    {loading ? t('myShop.removingHoliday') : t('myShop.markAsOpen')}
                   </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="text"
-                    placeholder={t('myShop.reasonOptional')}
-                    value={holidayReason}
-                    onChange={(e) => setHolidayReason(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2"
-                  />
-                  <button
-                    onClick={handleAddHoliday}
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {loading ? t('myShop.addingHoliday') : t('myShop.markAsClosed')}
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </div>

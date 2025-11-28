@@ -482,6 +482,7 @@
     "dateMarkedAsClosed": "This date is marked as closed",
     "removingHoliday": "Removing...",
     "markAsClosed": "Mark as Closed",
+    "markAsOpen": "Mark as Open",
     "addingHoliday": "Adding...",
     "closedDates": "Closed Dates",
     "noClosedDatesSet": "No closed dates set",
