@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import ReviewCard from '../components/ReviewCard';
 import ReviewStats from '../components/ReviewStats';
+import ShopCalendar from '../components/ShopCalendar';
 
 // LINE QR Code Component
 function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | null; user: any }) {
@@ -194,7 +195,7 @@ const MyShopPage = () => {
 
   const [shop, setShop] = useState<Shop | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'staff' | 'bookings' | 'photos' | 'reviews'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'staff' | 'bookings' | 'photos' | 'reviews' | 'calendar'>('overview');
   
   // Form states
   const [editingShop, setEditingShop] = useState(false);
@@ -1506,7 +1507,7 @@ const MyShopPage = () => {
       {/* Tabs */}
       <div className="mb-6 border-b border-gray-200">
         <div className="flex gap-1">
-          {(['overview', 'services', 'bookings', 'photos', 'reviews'] as const).map((tab) => (
+          {(['overview', 'services', 'bookings', 'photos', 'reviews', 'calendar'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => {
@@ -1980,6 +1981,10 @@ const MyShopPage = () => {
             </>
           )}
         </div>
+      )}
+
+      {activeTab === 'calendar' && shop && user && (
+        <ShopCalendar shopId={shop.id} userId={user.id} />
       )}
 
       {activeTab === 'photos' && (
