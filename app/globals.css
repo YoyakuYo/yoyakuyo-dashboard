@@ -2,3 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design System Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500&display=swap');
+
+@layer base {
+  :root {
+    --primary-bg: #050816;
+    --primary-text: #F9FAFB;
+    --accent-pink: #EC4899;
+    --accent-blue: #0EA5E9;
+    --muted-text: #9CA3AF;
+    --card-bg: #0B1120;
+    --border-soft: #1F2933;
+  }
+  
+  .font-heading {
+    font-family: 'Poppins', system-ui, sans-serif;
+  }
+  
+  .font-body {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+

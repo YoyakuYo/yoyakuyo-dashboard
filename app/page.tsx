@@ -13,7 +13,9 @@ import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { authApi } from '@/lib/api';
 import { LandingHeader } from './components/LandingHeader';
-import CategoryCarousel from './components/CategoryCarousel';
+import HeroCarousel from './components/landing/HeroCarousel';
+import { BrowseAIAssistant } from './browse/components/BrowseAIAssistant';
+import { BrowseAIProvider } from './components/BrowseAIContext';
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
@@ -344,43 +346,19 @@ function HomeContent() {
   const handleCloseSignupModal = useCallback(() => setShowSignupModal(false), []);
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <LandingHeader 
-        onOpenLogin={() => setShowLoginModal(true)}
-        onOpenSignup={() => setShowSignupModal(true)}
-      />
+    <BrowseAIProvider>
+      <div className="min-h-screen bg-primary-bg">
+        {/* Header */}
+        <LandingHeader 
+          onOpenLogin={() => setShowLoginModal(true)}
+          onOpenSignup={() => setShowSignupModal(true)}
+        />
 
-      {/* Hero Section with Carousel */}
-      <section className="relative w-full h-[70vh] md:h-[80vh] overflow-hidden">
-        <div className="absolute inset-0">
-          <CategoryCarousel />
-        </div>
-        
-        {/* Additional dark overlay for better text contrast */}
-        <div className="absolute inset-0 bg-black/30 z-10" />
-        
-        {/* Overlay with Title and CTA */}
-        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-          <div className="text-center px-4 pointer-events-auto">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 drop-shadow-2xl">
-              {t('home.heroTitle')}
-            </h1>
-            <p className="text-xl md:text-2xl lg:text-3xl text-white/90 mb-8 drop-shadow-lg">
-              {t('home.heroSubtitle')}
-            </p>
-            <Link
-              href="/browse"
-              className="inline-block bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white font-semibold py-4 px-8 rounded-full shadow-xl hover:shadow-2xl transition-all duration-200 text-lg"
-            >
-              {t('home.browseShops')}
-            </Link>
-          </div>
-        </div>
-      </section>
+        {/* Hero Carousel */}
+        <HeroCarousel />
 
       {/* Search & Quick Actions */}
-      <section className="py-12 bg-gradient-to-b from-white to-gray-50">
+      <section className="py-12 bg-card-bg border-t border-border-soft">
         <div className="max-w-4xl mx-auto px-4">
           <form onSubmit={handleSearch} className="mb-8">
             <div className="flex gap-2">
@@ -389,11 +367,11 @@ function HomeContent() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('home.searchPlaceholder')}
-                className="flex-1 px-6 py-4 border-2 border-gray-200 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-lg"
+                className="flex-1 px-6 py-4 bg-primary-bg border-2 border-border-soft rounded-theme focus:ring-2 focus:ring-accent-blue focus:border-accent-blue outline-none text-lg text-primary-text placeholder-muted-text font-body"
               />
               <button
                 type="submit"
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full transition-colors"
+                className="px-8 py-4 bg-accent-blue hover:bg-accent-blue/90 text-primary-text font-heading font-semibold rounded-theme transition-colors"
               >
                 {t('common.search')}
               </button>
@@ -403,19 +381,19 @@ function HomeContent() {
           <div className="flex flex-wrap gap-4 justify-center">
             <Link
               href="/browse?mode=category"
-              className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-full border-2 border-gray-200 hover:border-blue-300 transition-all shadow-sm hover:shadow-md"
+              className="px-6 py-3 bg-card-bg hover:bg-card-bg/80 text-primary-text font-body font-medium rounded-theme border-2 border-border-soft hover:border-accent-pink transition-all shadow-sm hover:shadow-md"
             >
               {t('home.browseByCategory')}
             </Link>
             <Link
               href="/browse?mode=area"
-              className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-full border-2 border-gray-200 hover:border-blue-300 transition-all shadow-sm hover:shadow-md"
+              className="px-6 py-3 bg-card-bg hover:bg-card-bg/80 text-primary-text font-body font-medium rounded-theme border-2 border-border-soft hover:border-accent-pink transition-all shadow-sm hover:shadow-md"
             >
               {t('home.browseByArea')}
             </Link>
             <Link
               href="/browse"
-              className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-full border-2 border-gray-200 hover:border-blue-300 transition-all shadow-sm hover:shadow-md"
+              className="px-6 py-3 bg-card-bg hover:bg-card-bg/80 text-primary-text font-body font-medium rounded-theme border-2 border-border-soft hover:border-accent-pink transition-all shadow-sm hover:shadow-md"
             >
               {t('home.nearbyServices')}
             </Link>
@@ -424,73 +402,73 @@ function HomeContent() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-16 md:py-24 bg-primary-bg">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
+          <h2 className="text-3xl md:text-4xl font-heading font-bold text-center text-primary-text mb-12">
             {t('home.howItWorks')}
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             {/* For Customers Card */}
-            <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-2xl p-8 shadow-lg border border-pink-200 hover:shadow-xl transition-shadow">
+            <div className="bg-card-bg border border-border-soft rounded-theme p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-5xl mb-4">👥</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              <h3 className="text-2xl font-heading font-bold text-primary-text mb-4">
                 {t('home.forCustomersTitle')}
               </h3>
-              <ul className="space-y-3 text-gray-700">
+              <ul className="space-y-3 text-muted-text font-body">
                 <li className="flex items-start gap-2">
-                  <span className="text-pink-600 mt-1">✓</span>
+                  <span className="text-accent-pink mt-1">✓</span>
                   <span>{t('home.forCustomersBullet1')}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-pink-600 mt-1">✓</span>
+                  <span className="text-accent-pink mt-1">✓</span>
                   <span>{t('home.forCustomersBullet2')}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-pink-600 mt-1">✓</span>
+                  <span className="text-accent-pink mt-1">✓</span>
                   <span>{t('home.forCustomersBullet3')}</span>
                 </li>
               </ul>
             </div>
 
             {/* For Owners Card */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8 shadow-lg border border-blue-200 hover:shadow-xl transition-shadow">
+            <div className="bg-card-bg border border-border-soft rounded-theme p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-5xl mb-4">💼</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              <h3 className="text-2xl font-heading font-bold text-primary-text mb-4">
                 {t('home.forOwnersTitle')}
               </h3>
-              <ul className="space-y-3 text-gray-700">
+              <ul className="space-y-3 text-muted-text font-body">
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
+                  <span className="text-accent-blue mt-1">✓</span>
                   <span>{t('home.forOwnersBullet1')}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
+                  <span className="text-accent-blue mt-1">✓</span>
                   <span>{t('home.forOwnersBullet2')}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
+                  <span className="text-accent-blue mt-1">✓</span>
                   <span>{t('home.forOwnersBullet3')}</span>
                 </li>
               </ul>
             </div>
 
             {/* AI Assistance Card */}
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-8 shadow-lg border border-purple-200 hover:shadow-xl transition-shadow">
+            <div className="bg-card-bg border border-border-soft rounded-theme p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-5xl mb-4">🤖</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              <h3 className="text-2xl font-heading font-bold text-primary-text mb-4">
                 {t('home.aiAssistanceTitle')}
               </h3>
-              <ul className="space-y-3 text-gray-700">
+              <ul className="space-y-3 text-muted-text font-body">
                 <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">✓</span>
+                  <span className="text-accent-pink mt-1">✓</span>
                   <span>{t('home.aiAssistanceBullet1')}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">✓</span>
+                  <span className="text-accent-pink mt-1">✓</span>
                   <span>{t('home.aiAssistanceBullet2')}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">✓</span>
+                  <span className="text-accent-pink mt-1">✓</span>
                   <span>{t('home.aiAssistanceBullet3')}</span>
                 </li>
               </ul>
@@ -498,6 +476,30 @@ function HomeContent() {
           </div>
         </div>
       </section>
+
+      {/* CTA for Shop Owners */}
+      <section className="py-16 bg-card-bg border-t border-border-soft">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-4xl font-heading font-bold text-primary-text mb-4">
+            {t('home.forOwnersTitle')}
+          </h2>
+          <p className="text-lg text-muted-text font-body mb-8">
+            {t('home.forOwnersDesc')}
+          </p>
+          <button
+            onClick={() => setShowSignupModal(true)}
+            className="px-8 py-4 bg-accent-blue hover:bg-accent-blue/90 text-primary-text font-heading font-semibold rounded-theme transition-colors shadow-lg hover:shadow-xl"
+          >
+            {t('home.joinAsOwner')}
+          </button>
+        </div>
+      </section>
+
+      {/* AI Assistant Bubble - Must remain untouched */}
+      <BrowseAIAssistant
+        shops={[]}
+        locale={typeof window !== 'undefined' ? (localStorage.getItem('yoyaku_yo_language') || 'en') : 'en'}
+      />
 
       {/* Login Modal */}
       <Modal isOpen={showLoginModal} onClose={handleCloseLoginModal}>
@@ -673,7 +675,8 @@ function HomeContent() {
           </button>
         </p>
       </Modal>
-    </div>
+      </div>
+    </BrowseAIProvider>
   );
 }
 
