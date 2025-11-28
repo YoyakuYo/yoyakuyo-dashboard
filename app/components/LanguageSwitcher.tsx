@@ -53,8 +53,8 @@ export function LanguageSwitcher() {
     // Dispatch custom event to notify NextIntlProvider
     window.dispatchEvent(new Event('languageChanged'));
     
-    // Refresh the page to apply new locale
-    router.refresh();
+    // Force a full page reload to ensure all translations are applied
+    window.location.reload();
   };
 
   const currentLang = languages.find(l => l.code === currentLocale) || languages[0];
