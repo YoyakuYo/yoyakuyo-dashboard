@@ -5,7 +5,7 @@
 "use client";
 
 import Link from "next/link";
-import LanguageToggle from "./LanguageToggle";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { BrowseAIAssistant } from "../browse/components/BrowseAIAssistant";
 import { BrowseAIProvider, useBrowseAIContext } from "./BrowseAIContext";
 import { useLocale } from "next-intl";
@@ -24,7 +24,7 @@ function PublicLayoutContent({ children }: { children: React.ReactNode }) {
               Yoyaku Yo
             </Link>
             <nav className="flex items-center gap-4">
-              <LanguageToggle />
+              <LanguageSwitcher />
             </nav>
           </div>
         </div>

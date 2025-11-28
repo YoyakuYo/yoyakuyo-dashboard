@@ -60,6 +60,88 @@
     "kanagawa": "Kanagawa",
     "aichi": "Aichi",
     "fukuoka": "Fukuoka"
+  },
+  "common": {
+    "save": "Salvar alterações",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "create": "Criar",
+    "update": "Atualizar",
+    "submit": "Enviar",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "name": "Nome",
+    "email": "E-mail",
+    "phone": "Telefone",
+    "status": "Status",
+    "date": "Data",
+    "time": "Hora",
+    "optional": "Opcional",
+    "required": "Obrigatório",
+    "actions": "Ações"
+  },
+  "nav": {
+    "shops": "Lojas",
+    "ownerLogin": "Login do Proprietário",
+    "myShop": "Minha Loja",
+    "aiAssistant": "Assistente IA",
+    "bookings": "Reservas",
+    "logout": "Sair",
+    "dashboard": "Painel Yoyaku Yo"
+  },
+  "myShop": {
+    "title": "Minha Loja",
+    "overview": "Visão Geral",
+    "services": "Serviços",
+    "staff": "Equipe",
+    "bookings": "Reservas",
+    "photos": "Fotos",
+    "reviews": "Avaliações",
+    "calendar": "Calendário",
+    "selectedDate": "Data selecionada",
+    "reasonOptional": "Motivo (opcional)",
+    "markAsClosed": "Marcar como fechado",
+    "calendarManagement": "Gerenciamento de calendário",
+    "dateMarkedAsClosed": "Esta data está marcada como fechada",
+    "removeHoliday": "Remover feriado",
+    "removingHoliday": "Removendo...",
+    "addingHoliday": "Adicionando...",
+    "closedDates": "Datas fechadas",
+    "noClosedDatesSet": "Nenhuma data fechada definida",
+    "holidayAddedSuccess": "Feriado adicionado",
+    "holidayRemovedSuccess": "Feriado removido",
+    "failedToAddHoliday": "Falha ao adicionar feriado",
+    "failedToRemoveHoliday": "Falha ao remover feriado",
+    "remove": "Remover"
+  },
+  "analytics": {
+    "title": "Análises",
+    "totalBookings": "Total de Reservas",
+    "pending": "Pendente",
+    "confirmed": "Confirmado",
+    "completed": "Concluído",
+    "cancelled": "Cancelado",
+    "noAnalyticsData": "Nenhum dado de análise disponível."
+  },
+  "settings": {
+    "title": "Configurações",
+    "accountInformation": "Informações da Conta",
+    "notifications": "Notificações",
+    "email": "E-mail",
+    "userId": "ID do Usuário",
+    "manageNotifications": "Gerencie como você recebe notificações sobre reservas e mensagens.",
+    "emailNotificationsNewBookings": "Notificações por e-mail para novas reservas",
+    "emailNotificationsCustomerMessages": "Notificações por e-mail para mensagens de clientes",
+    "pushNotifications": "Notificações push (quando disponível)"
+  },
+  "status": {
+    "pending": "Pendente",
+    "confirmed": "Confirmado",
+    "rejected": "Rejeitado",
+    "cancelled": "Cancelado",
+    "completed": "Concluído"
   }
 }
 

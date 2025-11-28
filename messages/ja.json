@@ -545,7 +545,24 @@
     "last30Days": "過去30日間",
     "last90Days": "過去90日間",
     "custom": "カスタム",
-    "date": "日付"
+    "date": "日付",
+    "totalBookings": "総予約数",
+    "pending": "保留中",
+    "confirmed": "確認済み",
+    "completed": "完了",
+    "cancelled": "キャンセル済み",
+    "noAnalyticsData": "分析データがありません。"
+  },
+  "settings": {
+    "title": "設定",
+    "accountInformation": "アカウント情報",
+    "notifications": "通知",
+    "email": "メール",
+    "userId": "ユーザーID",
+    "manageNotifications": "予約やメッセージに関する通知の受信方法を管理します。",
+    "emailNotificationsNewBookings": "新しい予約のメール通知",
+    "emailNotificationsCustomerMessages": "顧客メッセージのメール通知",
+    "pushNotifications": "プッシュ通知（利用可能な場合）"
   },
   "line": {
     "loginWithLine": "LINEでログイン",

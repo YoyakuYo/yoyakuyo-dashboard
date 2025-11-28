@@ -60,6 +60,88 @@
     "kanagawa": "神奈川县",
     "aichi": "爱知县",
     "fukuoka": "福冈县"
+  },
+  "common": {
+    "save": "保存更改",
+    "cancel": "取消",
+    "edit": "编辑",
+    "delete": "删除",
+    "create": "创建",
+    "update": "更新",
+    "submit": "提交",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "name": "姓名",
+    "email": "电子邮件",
+    "phone": "电话",
+    "status": "状态",
+    "date": "日期",
+    "time": "时间",
+    "optional": "可选",
+    "required": "必需",
+    "actions": "操作"
+  },
+  "nav": {
+    "shops": "店铺",
+    "ownerLogin": "店主登录",
+    "myShop": "我的店铺",
+    "aiAssistant": "AI助手",
+    "bookings": "预约",
+    "logout": "登出",
+    "dashboard": "Yoyaku Yo仪表板"
+  },
+  "myShop": {
+    "title": "我的店铺",
+    "overview": "概览",
+    "services": "服务",
+    "staff": "员工",
+    "bookings": "预约",
+    "photos": "照片",
+    "reviews": "评论",
+    "calendar": "日历",
+    "selectedDate": "选择的日期",
+    "reasonOptional": "原因（可选）",
+    "markAsClosed": "标记为关闭",
+    "calendarManagement": "日历管理",
+    "dateMarkedAsClosed": "此日期已标记为关闭",
+    "removeHoliday": "删除假期",
+    "removingHoliday": "删除中...",
+    "addingHoliday": "添加中...",
+    "closedDates": "关闭日期",
+    "noClosedDatesSet": "未设置关闭日期",
+    "holidayAddedSuccess": "假期已添加",
+    "holidayRemovedSuccess": "假期已删除",
+    "failedToAddHoliday": "添加假期失败",
+    "failedToRemoveHoliday": "删除假期失败",
+    "remove": "删除"
+  },
+  "analytics": {
+    "title": "分析",
+    "totalBookings": "总预约数",
+    "pending": "待处理",
+    "confirmed": "已确认",
+    "completed": "已完成",
+    "cancelled": "已取消",
+    "noAnalyticsData": "没有可用的分析数据。"
+  },
+  "settings": {
+    "title": "设置",
+    "accountInformation": "账户信息",
+    "notifications": "通知",
+    "email": "电子邮件",
+    "userId": "用户ID",
+    "manageNotifications": "管理您如何接收有关预约和消息的通知。",
+    "emailNotificationsNewBookings": "新预约的电子邮件通知",
+    "emailNotificationsCustomerMessages": "客户消息的电子邮件通知",
+    "pushNotifications": "推送通知（可用时）"
+  },
+  "status": {
+    "pending": "待处理",
+    "confirmed": "已确认",
+    "rejected": "已拒绝",
+    "cancelled": "已取消",
+    "completed": "已完成"
   }
 }
 

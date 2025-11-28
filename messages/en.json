@@ -518,7 +518,24 @@
     "last30Days": "Last 30 Days",
     "last90Days": "Last 90 Days",
     "custom": "Custom",
-    "date": "Date"
+    "date": "Date",
+    "totalBookings": "Total Bookings",
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "noAnalyticsData": "No analytics data available."
+  },
+  "settings": {
+    "title": "Settings",
+    "accountInformation": "Account Information",
+    "notifications": "Notifications",
+    "email": "Email",
+    "userId": "User ID",
+    "manageNotifications": "Manage how you receive notifications about bookings and messages.",
+    "emailNotificationsNewBookings": "Email notifications for new bookings",
+    "emailNotificationsCustomerMessages": "Email notifications for customer messages",
+    "pushNotifications": "Push notifications (when available)"
   },
   "line": {
     "loginWithLine": "Login with LINE",
