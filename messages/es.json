@@ -63,6 +63,9 @@
     "aichi": "Aichi",
     "fukuoka": "Fukuoka"
   },
+  "booking": {
+    "noBookingsFound": "No se encontraron reservas."
+  },
   "common": {
     "save": "Guardar cambios",
     "cancel": "Cancelar",
