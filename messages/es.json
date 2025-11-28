@@ -142,6 +142,22 @@
     "rejected": "Rechazado",
     "cancelled": "Cancelado",
     "completed": "Completado"
+  },
+  "line": {
+    "loginWithLine": "Iniciar sesión con LINE",
+    "connectLineAccount": "Conectar cuenta LINE",
+    "lineConnected": "LINE Conectado",
+    "lineNotConnected": "LINE No Conectado",
+    "shareOnLine": "Compartir en LINE",
+    "disconnect": "Desconectar",
+    "lineQRCode": "Código QR de LINE",
+    "connectLineToGenerate": "Conecte LINE para generar código QR",
+    "connecting": "Conectando...",
+    "connectLineAccountButton": "Conectar cuenta LINE",
+    "copyLineLink": "Copiar enlace LINE",
+    "downloadQRCode": "Descargar código QR",
+    "lineLinkCopied": "¡Enlace LINE copiado al portapapeles!",
+    "lineReservationText": "LINEで予約はこちら"
   }
 }
 

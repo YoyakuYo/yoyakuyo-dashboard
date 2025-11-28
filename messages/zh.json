@@ -142,6 +142,22 @@
     "rejected": "已拒绝",
     "cancelled": "已取消",
     "completed": "已完成"
+  },
+  "line": {
+    "loginWithLine": "使用LINE登录",
+    "connectLineAccount": "连接LINE账户",
+    "lineConnected": "LINE已连接",
+    "lineNotConnected": "LINE未连接",
+    "shareOnLine": "在LINE上分享",
+    "disconnect": "断开连接",
+    "lineQRCode": "LINE二维码",
+    "connectLineToGenerate": "连接LINE以生成二维码",
+    "connecting": "连接中...",
+    "connectLineAccountButton": "连接LINE账户",
+    "copyLineLink": "复制LINE链接",
+    "downloadQRCode": "下载二维码",
+    "lineLinkCopied": "LINE链接已复制到剪贴板！",
+    "lineReservationText": "LINEで予約はこちら"
   }
 }
 
