@@ -110,6 +110,7 @@
     "selectedDate": "Fecha seleccionada",
     "reasonOptional": "Razón (opcional)",
     "markAsClosed": "Marcar como cerrado",
+    "markAsOpen": "Marcar como abierto",
     "calendarManagement": "Gestión de calendario",
     "dateMarkedAsClosed": "Esta fecha está marcada como cerrada",
     "removeHoliday": "Eliminar día festivo",
