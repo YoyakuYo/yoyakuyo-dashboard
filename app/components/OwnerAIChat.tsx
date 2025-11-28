@@ -17,6 +17,8 @@ interface OwnerAIChatContextType {
   messages: Message[];
   addMessage: (message: Message) => void;
   clearMessages: () => void;
+  openChat: () => void;
+  isOpen: boolean;
 }
 
 const OwnerAIChatContext = createContext<OwnerAIChatContextType | null>(null);
@@ -34,23 +36,12 @@ export function OwnerAIChatProvider({ children }: { children: React.ReactNode })
   const [messages, setMessages] = useState<Message[]>([]);
   const { user } = useAuth();
   const [shopId, setShopId] = useState<string | null>(null);
-  const [ownerLanguage, setOwnerLanguage] = useState('en');
+  const [shouldOpenChat, setShouldOpenChat] = useState(false);
+  // Language is now auto-detected by backend from shop data, no need to load from user profile
 
-  // Load owner language and shop
+  // Load shop ID
   useEffect(() => {
     if (user?.id) {
-      // Load owner language
-      fetch(`${apiUrl}/users/me`, {
-        headers: { 'x-user-id': user.id },
-      })
-        .then(res => res.ok ? res.json() : null)
-        .then(data => {
-          if (data?.preferredLanguage) {
-            setOwnerLanguage(data.preferredLanguage);
-          }
-        })
-        .catch(() => {});
-
       // Load shop ID
       fetch(`${apiUrl}/shops`, {
         headers: { 'x-user-id': user.id },
@@ -101,8 +92,23 @@ export function OwnerAIChatProvider({ children }: { children: React.ReactNode })
     setMessages([]);
   };
 
+  const openChat = () => {
+    setShouldOpenChat(true);
+  };
+
+  // Reset shouldOpenChat after it's been consumed
+  useEffect(() => {
+    if (shouldOpenChat) {
+      // Reset after a short delay to allow components to react
+      const timer = setTimeout(() => {
+        setShouldOpenChat(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldOpenChat]);
+
   return (
-    <OwnerAIChatContext.Provider value={{ messages, addMessage, clearMessages }}>
+    <OwnerAIChatContext.Provider value={{ messages, addMessage, clearMessages, openChat, isOpen: shouldOpenChat }}>
       {children}
     </OwnerAIChatContext.Provider>
   );
@@ -114,16 +120,23 @@ interface OwnerAIChatProps {
 }
 
 export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
-  const { messages, addMessage } = useOwnerAIChat();
+  const { messages, addMessage, isOpen: shouldOpenFromContext } = useOwnerAIChat();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(fullPage);
+  
+  // Open chat when shouldOpenFromContext is set to true
+  useEffect(() => {
+    if (shouldOpenFromContext && !fullPage) {
+      setIsOpen(true);
+    }
+  }, [shouldOpenFromContext, fullPage]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [shopId, setShopId] = useState<string | null>(null);
-  const [ownerLanguage, setOwnerLanguage] = useState('en');
+  // Language is now auto-detected by backend from shop data, no need to load from user profile
 
   // Load shop ID
   useEffect(() => {
@@ -135,17 +148,6 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
         .then(shops => {
           if (shops && Array.isArray(shops) && shops.length > 0) {
             setShopId(shops[0].id);
-          }
-        })
-        .catch(() => {});
-
-      fetch(`${apiUrl}/users/me`, {
-        headers: { 'x-user-id': user.id },
-      })
-        .then(res => res.ok ? res.json() : null)
-        .then(data => {
-          if (data?.preferredLanguage) {
-            setOwnerLanguage(data.preferredLanguage);
           }
         })
         .catch(() => {});
@@ -227,7 +229,7 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
           messages: messagesForAPI,
           userId: user?.id,
           shopContext: currentShopId ? { shopId: currentShopId } : undefined,
-          locale: ownerLanguage,
+          locale: 'auto', // Backend will auto-detect from shop data
         }),
       });
 
@@ -262,7 +264,7 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
     }
   };
 
-  const botTitle = ownerLanguage === 'ja' ? 'AIアシスタント' : 'AI Assistant';
+  const botTitle = 'AI Assistant'; // Language-specific title will be handled by backend
 
   return (
     <>
@@ -312,14 +314,12 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
             {messages.length === 0 && (
               <div className="text-center text-gray-500 text-sm py-8">
                 <p className="font-medium mb-2">
-                  {ownerLanguage === 'ja' 
-                    ? 'おはようございます。今日は何をお手伝いできますか？'
-                    : 'Good morning, what can I do for you today?'}
+                  Good morning, what can I do for you today?
                 </p>
                 <ul className="text-left space-y-1 text-xs mt-4">
-                  <li>• {ownerLanguage === 'ja' ? '予約の確認' : 'Check bookings'}</li>
-                  <li>• {ownerLanguage === 'ja' ? 'スケジュールの確認' : 'View schedule'}</li>
-                  <li>• {ownerLanguage === 'ja' ? '店舗のパフォーマンス' : 'Shop performance'}</li>
+                  <li>• Check bookings</li>
+                  <li>• View schedule</li>
+                  <li>• Shop performance</li>
                 </ul>
               </div>
             )}
@@ -373,7 +373,7 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
                     handleSend(e);
                   }
                 }}
-                placeholder={ownerLanguage === 'ja' ? 'コマンドまたはチャットを入力...' : 'Type a command or chat...'}
+                placeholder="Type a command or chat..."
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 disabled={loading}
               />

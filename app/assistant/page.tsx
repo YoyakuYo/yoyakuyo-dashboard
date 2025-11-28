@@ -1,21 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useAuth } from "@/lib/useAuth";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { OwnerAIChat } from "@/app/components/OwnerAIChat";
+import { useOwnerAIChat } from "@/app/components/OwnerAIChat";
 
 export default function AssistantPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const t = useTranslations();
+  const { openChat } = useOwnerAIChat();
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login");
     }
   }, [user, authLoading, router]);
+
+  // Open the AI chat bubble when this page loads
+  useEffect(() => {
+    if (user && !authLoading) {
+      openChat();
+    }
+  }, [user, authLoading, openChat]);
 
   if (authLoading) {
     return (
@@ -29,14 +35,11 @@ export default function AssistantPage() {
     return null;
   }
 
+  // Just show a simple message - the bubble will open automatically
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">{t('nav.aiAssistant')}</h1>
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden h-[calc(100vh-200px)] min-h-[600px]">
-          {/* Full-page chat UI - shares conversation with bubble via OwnerAIChatProvider in DashboardLayout */}
-          <OwnerAIChat fullPage={true} />
-        </div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-gray-600">Opening AI Assistant...</p>
       </div>
     </div>
   );
