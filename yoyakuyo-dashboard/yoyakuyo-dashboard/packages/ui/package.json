@@ -1,0 +1,13 @@
+{
+  "name": "@bookyo/ui",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.tsx",
+  "dependencies": {
+    "react": "^18.0.0",
+    "@bookyo/shared": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
