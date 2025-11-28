@@ -13,6 +13,7 @@ import ShopCalendar from '../components/ShopCalendar';
 
 // LINE QR Code Component
 function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | null; user: any }) {
+  const t = useTranslations();
   const [connecting, setConnecting] = useState(false);
 
   const deeplinkUrl = shop?.line_destination_id 
@@ -53,7 +54,7 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
   const handleCopyLink = () => {
     if (deeplinkUrl) {
       navigator.clipboard.writeText(deeplinkUrl);
-      alert('LINE link copied to clipboard!');
+      alert(t('line.lineLinkCopied'));
     }
   };
 
@@ -84,13 +85,13 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
   if (!shop?.line_qr_code_url || !shop?.line_destination_id) {
     return (
       <div className="text-center space-y-4 py-4">
-        <p className="text-gray-500">Connect LINE to generate QR code</p>
+        <p className="text-gray-500">{t('line.connectLineToGenerate')}</p>
         <button
           onClick={handleConnectLine}
           disabled={connecting}
           className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {connecting ? 'Connecting...' : 'Connect LINE Account'}
+          {connecting ? t('line.connecting') : t('line.connectLineAccountButton')}
         </button>
       </div>
     );
@@ -100,22 +101,22 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
     <div className="flex flex-col items-center space-y-4">
       <img 
         src={shop.line_qr_code_url} 
-        alt="LINE QR Code" 
+        alt={t('line.lineQRCode')} 
         className="w-48 h-48 border-2 border-gray-300 rounded-lg" 
       />
-      <p className="text-sm text-gray-600 text-center">LINEで予約はこちら</p>
+      <p className="text-sm text-gray-600 text-center">{t('line.lineReservationText')}</p>
       <div className="flex gap-2">
         <button
           onClick={handleCopyLink}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
-          Copy LINE Link
+          {t('line.copyLineLink')}
         </button>
         <button
           onClick={handleDownloadQr}
           className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
         >
-          Download QR Code
+          {t('line.downloadQRCode')}
         </button>
       </div>
     </div>
@@ -1693,7 +1694,7 @@ const MyShopPage = () => {
           {/* LINE QR Code Section */}
           {shop && (
             <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">LINE QR Code</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('line.lineQRCode')}</h3>
               <LineQrSection shopId={shop.id} shop={shop} user={user} />
             </div>
           )}

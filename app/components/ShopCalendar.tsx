@@ -80,17 +80,17 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
       });
 
       if (res.ok) {
-        setSuccess('Holiday added successfully');
+        setSuccess(t('myShop.holidayAddedSuccess'));
         setHolidayReason('');
         setSelectedDate(null);
         await fetchHolidays();
       } else {
         const errorData = await res.json();
-        setError(errorData.error || 'Failed to add holiday');
+        setError(errorData.error || t('myShop.failedToAddHoliday'));
       }
     } catch (error) {
       console.error('Error adding holiday:', error);
-      setError('Failed to add holiday');
+      setError(t('myShop.failedToAddHoliday'));
     } finally {
       setLoading(false);
     }
@@ -111,15 +111,15 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
       });
 
       if (res.ok) {
-        setSuccess('Holiday removed successfully');
+        setSuccess(t('myShop.holidayRemovedSuccess'));
         await fetchHolidays();
       } else {
         const errorData = await res.json();
-        setError(errorData.error || 'Failed to remove holiday');
+        setError(errorData.error || t('myShop.failedToRemoveHoliday'));
       }
     } catch (error) {
       console.error('Error removing holiday:', error);
-      setError('Failed to remove holiday');
+      setError(t('myShop.failedToRemoveHoliday'));
     } finally {
       setLoading(false);
     }
@@ -160,7 +160,7 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Calendar Management</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">{t('myShop.calendarManagement')}</h2>
 
       {/* Success/Error Messages */}
       {success && (
@@ -195,12 +195,12 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
           {selectedDate && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
               <p className="text-sm font-medium text-gray-700 mb-2">
-                Selected Date: {selectedDate.toLocaleDateString()}
+                {t('myShop.selectedDate')}: {selectedDate.toLocaleDateString()}
               </p>
               {isHoliday(selectedDate) ? (
                 <div>
                   <p className="text-sm text-red-600 mb-2">
-                    This date is marked as closed
+                    {t('myShop.dateMarkedAsClosed')}
                     {getHolidayReason(selectedDate) && `: ${getHolidayReason(selectedDate)}`}
                   </p>
                   <button
@@ -208,14 +208,14 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
                     disabled={loading}
                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
                   >
-                    {loading ? 'Removing...' : 'Remove Holiday'}
+                    {loading ? t('myShop.removingHoliday') : t('myShop.removeHoliday')}
                   </button>
                 </div>
               ) : (
                 <div>
                   <input
                     type="text"
-                    placeholder="Reason (optional)"
+                    placeholder={t('myShop.reasonOptional')}
                     value={holidayReason}
                     onChange={(e) => setHolidayReason(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2"
@@ -225,7 +225,7 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
                     disabled={loading}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {loading ? 'Adding...' : 'Mark as Closed'}
+                    {loading ? t('myShop.addingHoliday') : t('myShop.markAsClosed')}
                   </button>
                 </div>
               )}
@@ -235,9 +235,9 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
 
         {/* Holidays List */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Closed Dates</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('myShop.closedDates')}</h3>
           {holidays.length === 0 ? (
-            <p className="text-gray-500 text-sm">No closed dates set</p>
+            <p className="text-gray-500 text-sm">{t('myShop.noClosedDatesSet')}</p>
           ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {holidays.map((holiday) => (
@@ -258,7 +258,7 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
                     disabled={loading}
                     className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
                   >
-                    Remove
+                    {t('myShop.remove')}
                   </button>
                 </div>
               ))}

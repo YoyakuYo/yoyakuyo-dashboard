@@ -42,7 +42,8 @@
     "date": "日付",
     "time": "時間",
     "optional": "任意",
-    "required": "必須"
+    "required": "必須",
+    "characters": "文字"
   },
   "auth": {
     "signInToShop": "店舗にサインイン",
@@ -383,6 +384,8 @@
     "staff": "スタッフ",
     "bookings": "予約",
     "photos": "写真",
+    "reviews": "レビュー",
+    "calendar": "カレンダー",
     "shopName": "店舗名",
     "address": "住所",
     "phone": "電話",
@@ -454,7 +457,33 @@
     "photoDeleted": "写真が削除されました！",
     "failedToUpload": "写真のアップロードに失敗しました",
     "failedToDelete": "写真の削除に失敗しました",
-    "photosSaved": "写真が保存されました！"
+    "photosSaved": "写真が保存されました！",
+    "manageClosedDates": "休業日の管理",
+    "currentClosedDates": "現在の休業日",
+    "editHoliday": "休業日を編集",
+    "addHoliday": "休業日を追加",
+    "updateHoliday": "休業日を更新",
+    "removeHoliday": "休業日を削除",
+    "reasonOptional": "理由（任意）",
+    "noClosedDates": "休業日が設定されていません。",
+    "loadingHolidays": "休業日を読み込み中...",
+    "failedToFetchHolidays": "休業日の取得に失敗しました。",
+    "failedToAddHoliday": "休業日の追加に失敗しました。",
+    "failedToRemoveHoliday": "休業日の削除に失敗しました。",
+    "invalidRemoveRequest": "無効な削除リクエストです。",
+    "saving": "保存中...",
+    "removing": "削除中...",
+    "remove": "削除",
+    "calendarManagement": "カレンダー管理",
+    "selectedDate": "選択した日付",
+    "dateMarkedAsClosed": "この日付は休業日として設定されています",
+    "removingHoliday": "削除中...",
+    "markAsClosed": "休業日として設定",
+    "addingHoliday": "追加中...",
+    "closedDates": "休業日",
+    "noClosedDatesSet": "休業日が設定されていません",
+    "holidayAddedSuccess": "休業日が追加されました",
+    "holidayRemovedSuccess": "休業日が削除されました"
   },
   "assistant": {
     "title": "AIアシスタント",
@@ -524,6 +553,14 @@
     "lineConnected": "LINE接続済み",
     "lineNotConnected": "LINE未接続",
     "shareOnLine": "LINEでシェア",
-    "disconnect": "切断"
+    "disconnect": "切断",
+    "lineQRCode": "LINE QRコード",
+    "connectLineToGenerate": "QRコードを生成するためにLINEに接続",
+    "connecting": "接続中...",
+    "connectLineAccountButton": "LINEアカウントを接続",
+    "copyLineLink": "LINEリンクをコピー",
+    "downloadQRCode": "QRコードをダウンロード",
+    "lineLinkCopied": "LINEリンクをクリップボードにコピーしました！",
+    "lineReservationText": "LINEで予約はこちら"
   }
 }
