@@ -113,6 +113,7 @@
     "markAsOpen": "Marcar como abierto",
     "calendarManagement": "Gestión de calendario",
     "dateMarkedAsClosed": "Esta fecha está marcada como cerrada",
+    "dateMarkedAsOpen": "Esta fecha está abierta",
     "removeHoliday": "Eliminar día festivo",
     "removingHoliday": "Eliminando...",
     "addingHoliday": "Agregando...",

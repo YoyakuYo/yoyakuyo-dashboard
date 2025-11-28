@@ -480,6 +480,7 @@
     "calendarManagement": "Calendar Management",
     "selectedDate": "Selected Date",
     "dateMarkedAsClosed": "This date is marked as closed",
+    "dateMarkedAsOpen": "This date is open",
     "removingHoliday": "Removing...",
     "markAsClosed": "Mark as Closed",
     "markAsOpen": "Mark as Open",

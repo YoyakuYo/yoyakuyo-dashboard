@@ -480,6 +480,7 @@
     "calendarManagement": "カレンダー管理",
     "selectedDate": "選択した日付",
     "dateMarkedAsClosed": "この日付は休業日として設定されています",
+    "dateMarkedAsOpen": "この日付は営業日です",
     "removingHoliday": "削除中...",
     "markAsClosed": "休業日として設定",
     "markAsOpen": "営業日に設定",

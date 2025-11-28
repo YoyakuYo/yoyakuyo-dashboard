@@ -113,6 +113,7 @@
     "markAsOpen": "标记为开放",
     "calendarManagement": "日历管理",
     "dateMarkedAsClosed": "此日期已标记为关闭",
+    "dateMarkedAsOpen": "此日期已开放",
     "removeHoliday": "删除假期",
     "removingHoliday": "删除中...",
     "addingHoliday": "添加中...",
