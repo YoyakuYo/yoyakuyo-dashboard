@@ -5,30 +5,30 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import Image from 'next/image';
 
-// Hero slideshow images - using Unsplash high-quality images
+// Hero slideshow images - DIFFERENT from customer page, using unique Unsplash images
 const heroImages = [
   {
-    url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920&q=80',
+    url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1920&q=80',
     alt: 'Luxury hotel lobby',
   },
   {
-    url: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1920&q=80',
+    url: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1920&q=80',
     alt: 'Spa room with soft lighting',
   },
   {
-    url: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1920&q=80',
+    url: 'https://images.unsplash.com/photo-1522338242992-e1a54906a8da?w=1920&q=80',
     alt: 'Modern beauty salon interior',
   },
   {
-    url: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=1920&q=80',
+    url: 'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=1920&q=80',
     alt: 'Beautiful nail salon',
   },
   {
-    url: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1920&q=80',
+    url: 'https://images.unsplash.com/photo-1616394584738-fc6e612e0b09?w=1920&q=80',
     alt: 'Eyelash salon interior',
   },
   {
-    url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80',
+    url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1920&q=80',
     alt: 'Restaurant and izakaya interior',
   },
 ];
