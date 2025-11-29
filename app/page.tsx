@@ -13,8 +13,10 @@ import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { authApi } from '@/lib/api';
 import { LandingHeader } from './components/LandingHeader';
-import MarketingHeroSlideshow from './components/landing/MarketingHeroSlideshow';
-import CategorySpotlight from './components/landing/CategorySpotlight';
+import CommercialHero from './components/landing/CommercialHero';
+import CommercialBlocks from './components/landing/CommercialBlocks';
+import CategoryBanners from './components/landing/CategoryBanners';
+import CTABlocks from './components/landing/CTABlocks';
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
@@ -62,11 +64,14 @@ function HomeContent() {
   const { user, loading: authLoading } = useAuth();
   
   let t: ReturnType<typeof useTranslations>;
+  let tLanding: ReturnType<typeof useTranslations>;
   try {
-    t = useTranslations('landing');
+    t = useTranslations('home');
+    tLanding = useTranslations('landing');
   } catch (error) {
     console.warn("🔥 useTranslations not ready, using fallback:", error);
     t = ((key: string) => key) as ReturnType<typeof useTranslations>;
+    tLanding = ((key: string) => key) as ReturnType<typeof useTranslations>;
   }
 
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -315,143 +320,93 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
+      {/* Header - Only Language Selector */}
       <LandingHeader 
         onOpenLogin={() => setShowLoginModal(true)}
         onOpenSignup={() => setShowSignupModal(true)}
       />
 
-      {/* Hero Section with Slideshow */}
-      <MarketingHeroSlideshow />
+      {/* Hero Section - Clean, Minimal */}
+      <CommercialHero />
 
-      {/* Why Yoyaku Yo Section */}
+      {/* Commercial Blocks */}
+      <CommercialBlocks />
+
+      {/* Category Banners - Stacked Full-Width */}
+      <CategoryBanners />
+
+      {/* CTA Blocks */}
+      <CTABlocks />
+
+      {/* How It Works Section */}
       <section className="py-16 md:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
-            {t('whyTitle')}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow text-center">
-              <div className="text-5xl mb-4">⏱️</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {t('whyCard1Title')}
-              </h3>
-              <p className="text-gray-600">
-                {t('whyCard1Text')}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow text-center">
-              <div className="text-5xl mb-4">🤖</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {t('whyCard2Title')}
-              </h3>
-              <p className="text-gray-600">
-                {t('whyCard2Text')}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow text-center">
-              <div className="text-5xl mb-4">✓</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {t('whyCard3Title')}
-              </h3>
-              <p className="text-gray-600">
-                {t('whyCard3Text')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Category Spotlight Section */}
-      <CategorySpotlight />
-
-      {/* How It Works Section */}
-      <section className="py-16 md:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
-            {t('howItWorksTitle')}
+            {tLanding('howItWorksTitle')}
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             {/* For Customers Card */}
             <div className="bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-5xl mb-4">👥</div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {t('forCustomersTitle')}
+                {tLanding('forCustomersTitle')}
               </h3>
               <ul className="space-y-3 text-gray-700 mb-6">
                 <li className="flex items-start gap-2">
                   <span className="text-pink-600 mt-1">✓</span>
-                  <span>{t('forCustomersBullet1')}</span>
+                  <span>{tLanding('forCustomersBullet1')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-pink-600 mt-1">✓</span>
-                  <span>{t('forCustomersBullet2')}</span>
+                  <span>{tLanding('forCustomersBullet2')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-pink-600 mt-1">✓</span>
-                  <span>{t('forCustomersBullet3')}</span>
+                  <span>{tLanding('forCustomersBullet3')}</span>
                 </li>
               </ul>
-              <Link
-                href="/customer-signup"
-                className="block w-full text-center px-6 py-3 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-lg transition-colors"
-              >
-                {t('joinAsCustomer')}
-              </Link>
-              <p className="text-xs text-gray-600 mt-2 text-center">
-                {t('joinAsCustomerDesc')}
-              </p>
             </div>
 
             {/* For Owners Card */}
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-5xl mb-4">💼</div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {t('forOwnersTitle')}
+                {tLanding('forOwnersTitle')}
               </h3>
               <ul className="space-y-3 text-gray-700 mb-6">
                 <li className="flex items-start gap-2">
                   <span className="text-blue-600 mt-1">✓</span>
-                  <span>{t('forOwnersBullet1')}</span>
+                  <span>{tLanding('forOwnersBullet1')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-blue-600 mt-1">✓</span>
-                  <span>{t('forOwnersBullet2')}</span>
+                  <span>{tLanding('forOwnersBullet2')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-blue-600 mt-1">✓</span>
-                  <span>{t('forOwnersBullet3')}</span>
+                  <span>{tLanding('forOwnersBullet3')}</span>
                 </li>
               </ul>
-              <button
-                onClick={() => setShowSignupModal(true)}
-                className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
-              >
-                {t('joinAsOwner')}
-              </button>
-              <p className="text-xs text-gray-600 mt-2 text-center">
-                {t('joinAsOwnerDesc')}
-              </p>
             </div>
 
             {/* AI Assistance Card */}
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-5xl mb-4">🤖</div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {t('aiAssistanceTitle')}
+                {tLanding('aiAssistanceTitle')}
               </h3>
               <ul className="space-y-3 text-gray-700">
                 <li className="flex items-start gap-2">
                   <span className="text-purple-600 mt-1">✓</span>
-                  <span>{t('aiAssistanceBullet1')}</span>
+                  <span>{tLanding('aiAssistanceBullet1')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-600 mt-1">✓</span>
-                  <span>{t('aiAssistanceBullet2')}</span>
+                  <span>{tLanding('aiAssistanceBullet2')}</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-600 mt-1">✓</span>
-                  <span>{t('aiAssistanceBullet3')}</span>
+                  <span>{tLanding('aiAssistanceBullet3')}</span>
                 </li>
               </ul>
             </div>
