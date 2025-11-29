@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/useAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
 export default function CustomerSettingsPage() {
-  const { user } = useAuth();
+  const { user } = useCustomAuth();
   const [profile, setProfile] = useState({
     name: "",
     email: "",

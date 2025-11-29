@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/useAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 export default function CustomerBookingsPage() {
-  const { user } = useAuth();
+  const { user } = useCustomAuth();
   const searchParams = useSearchParams();
   const filter = searchParams.get("filter") || "all";
   const [bookings, setBookings] = useState<any[]>([]);

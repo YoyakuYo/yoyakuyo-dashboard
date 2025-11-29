@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useAuth } from "@/lib/useAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { apiUrl } from "@/lib/apiClient";
 
 export default function CustomerChatPage() {
-  const { user } = useAuth();
+  const { user, session } = useCustomAuth();
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -129,11 +129,17 @@ export default function CustomerChatPage() {
         },
       ];
 
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+      
+      if (session?.token) {
+        headers["Authorization"] = `Bearer ${session.token}`;
+      }
+
       const response = await fetch(`${apiUrl}/ai/chat`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           role: "customer",
           messages: apiMessages,

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/useAuth";
+import { CustomAuthProvider } from "@/lib/useCustomAuth";
 import DashboardLayout from "./components/DashboardLayout";
 import { NextIntlProviderWrapper } from "./components/NextIntlProvider";
 import { BookingNotificationProvider } from "./components/BookingNotificationContext";
@@ -27,11 +28,13 @@ export default function RootLayout({
       <body className={inter.className}>
         <NextIntlProviderWrapper>
           <AuthProvider>
-            <BookingNotificationProvider>
-              <DashboardLayout>
-                {children}
-              </DashboardLayout>
-            </BookingNotificationProvider>
+            <CustomAuthProvider>
+              <BookingNotificationProvider>
+                <DashboardLayout>
+                  {children}
+                </DashboardLayout>
+              </BookingNotificationProvider>
+            </CustomAuthProvider>
           </AuthProvider>
         </NextIntlProviderWrapper>
       </body>

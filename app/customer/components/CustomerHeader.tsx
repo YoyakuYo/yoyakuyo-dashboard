@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/useAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 import { useTranslations } from "next-intl";
 
 export default function CustomerHeader() {
-  const { user, signOut } = useAuth();
+  const { user, signOut } = useCustomAuth();
   const router = useRouter();
   const t = useTranslations();
   const [profile, setProfile] = useState<any>(null);
@@ -87,7 +87,7 @@ export default function CustomerHeader() {
     <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-40 lg:left-64">
       <div className="h-full px-4 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/customer" className="text-xl font-bold text-blue-600 hover:text-blue-700">
+        <Link href="/customer/home" className="text-xl font-bold text-blue-600 hover:text-blue-700">
           Yoyaku Yo
         </Link>
 

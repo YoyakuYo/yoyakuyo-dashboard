@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getSupabaseClient } from "@/lib/supabaseClient";
-import { useAuth } from "@/lib/useAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 
 export default function CustomerAuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, role } = useCustomAuth();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
 
@@ -20,31 +19,11 @@ export default function CustomerAuthGuard({ children }: { children: React.ReactN
         return;
       }
 
-      // Check if user has customer profile
-      const supabase = getSupabaseClient();
-      const { data: profile, error } = await supabase
-        .from("customer_profiles")
-        .select("id")
-        .eq("id", user.id)
-        .single();
 
-      if (error || !profile) {
-        // User exists but no customer profile - might be owner
-        // Check if they have owner profile
-        const { data: ownerProfile } = await supabase
-          .from("users")
-          .select("id")
-          .eq("id", user.id)
-          .single();
-
-        if (ownerProfile) {
-          // This is an owner, redirect to owner dashboard
-          router.push("/dashboard");
-          return;
-        }
-
-        // No profile at all, redirect to customer signup to create one
-        router.push("/customer-signup");
+      // Check if user is a customer
+      if (role !== 'customer') {
+        // User is an owner, redirect to owner dashboard
+        router.push("/dashboard");
         return;
       }
 
@@ -65,7 +44,7 @@ export default function CustomerAuthGuard({ children }: { children: React.ReactN
     );
   }
 
-  if (!user) {
+  if (!user || role !== 'customer') {
     return null; // Will redirect
   }
 

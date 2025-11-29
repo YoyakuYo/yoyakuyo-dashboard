@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 
 export default function CustomerSignupPage() {
   const t = useTranslations();
+  const { signUp } = useCustomAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const router = useRouter();
@@ -33,60 +35,20 @@ export default function CustomerSignupPage() {
       return;
     }
 
-    try {
-      const supabase = getSupabaseClient();
-      
-      // Sign up with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name: name,
-            user_type: 'customer', // Mark as customer
-          },
-        },
-      });
+    const result = await signUp(email, password, name, 'customer', phone || undefined);
 
-      if (authError) {
-        setMessage(`Error: ${authError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      if (!authData?.user) {
-        setMessage('Error: Signup failed - no user data');
-        setLoading(false);
-        return;
-      }
-
-      // Create customer profile
-      const { error: profileError } = await supabase
-        .from("customer_profiles")
-        .insert({
-          id: authData.user.id,
-          name: name,
-          email: email,
-        });
-
-      if (profileError) {
-        console.error("Profile creation error:", profileError);
-        // Continue anyway - profile might already exist
-      }
-
-      // Wait for auth state to update
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // Redirect to customer dashboard
-      setMessage("Account created! Redirecting...");
-      setTimeout(() => {
-        router.push("/customer");
-        router.refresh();
-      }, 300);
-    } catch (error: any) {
-      setMessage(`Unexpected error: ${error.message}`);
+    if (!result.success) {
+      setMessage(`Error: ${result.error || 'Signup failed'}`);
       setLoading(false);
+      return;
     }
+
+    // Redirect to customer dashboard
+    setMessage("Account created! Redirecting...");
+    setTimeout(() => {
+      router.push("/customer/home");
+      router.refresh();
+    }, 300);
   };
 
   return (
@@ -156,6 +118,20 @@ export default function CustomerSignupPage() {
               minLength={6}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium mb-2 text-gray-700">
+              Phone (Optional)
+            </label>
+            <input
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="+81 90-1234-5678"
             />
           </div>
 

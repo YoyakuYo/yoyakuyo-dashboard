@@ -4,10 +4,30 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Protect customer routes - redirect to login if not authenticated
-  if (pathname.startsWith("/customer") && !pathname.startsWith("/customer-login") && !pathname.startsWith("/customer-signup")) {
-    // This will be handled by CustomerAuthGuard component
-    // Middleware just ensures the route exists
+  // Protect customer routes - check for session token
+  if (pathname.startsWith("/customer") && 
+      !pathname.startsWith("/customer-login") && 
+      !pathname.startsWith("/customer-signup")) {
+    
+    // Check for session token in cookies or headers
+    const sessionToken = request.cookies.get("yoyaku_session_token")?.value ||
+                        request.headers.get("authorization")?.replace("Bearer ", "");
+
+    // If no token, let CustomerAuthGuard handle the redirect
+    // This allows the component to check localStorage as well
+    return NextResponse.next();
+  }
+
+  // Protect owner routes (if they exist)
+  if (pathname.startsWith("/owner") || 
+      pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/shops") && pathname !== "/shops" && !pathname.includes("/shops/")) {
+    // Owner routes - check for owner session
+    const sessionToken = request.cookies.get("yoyaku_session_token")?.value ||
+                        request.headers.get("authorization")?.replace("Bearer ", "");
+    
+    // If no token, redirect to login
+    // Owner auth guard will handle detailed checks
     return NextResponse.next();
   }
 
@@ -17,6 +37,8 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/customer/:path*",
+    "/owner/:path*",
+    "/dashboard/:path*",
   ],
 };
 

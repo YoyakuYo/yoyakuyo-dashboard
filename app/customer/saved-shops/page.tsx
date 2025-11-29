@@ -6,18 +6,18 @@ import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
 import Image from "next/image";
 
-export default function CustomerFavoritesPage() {
+export default function CustomerSavedShopsPage() {
   const { user } = useCustomAuth();
-  const [favorites, setFavorites] = useState<any[]>([]);
+  const [savedShops, setSavedShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      loadFavorites();
+      loadSavedShops();
     }
   }, [user]);
 
-  const loadFavorites = async () => {
+  const loadSavedShops = async () => {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from("customer_favorites")
@@ -39,14 +39,14 @@ export default function CustomerFavoritesPage() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Error loading favorites:", error);
+      console.error("Error loading saved shops:", error);
     } else {
-      setFavorites(data || []);
+      setSavedShops(data || []);
     }
     setLoading(false);
   };
 
-  const handleRemoveFavorite = async (shopId: string) => {
+  const handleRemoveSaved = async (shopId: string) => {
     const supabase = getSupabaseClient();
     const { error } = await supabase
       .from("customer_favorites")
@@ -55,10 +55,10 @@ export default function CustomerFavoritesPage() {
       .eq("shop_id", shopId);
 
     if (error) {
-      console.error("Error removing favorite:", error);
-      alert("Failed to remove favorite");
+      console.error("Error removing saved shop:", error);
+      alert("Failed to remove saved shop");
     } else {
-      loadFavorites();
+      loadSavedShops();
     }
   };
 
@@ -79,27 +79,27 @@ export default function CustomerFavoritesPage() {
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">My Favorite Shops</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">Saved Shops</h1>
 
-      {favorites.length === 0 ? (
+      {savedShops.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-12 text-center">
-          <p className="text-gray-500 mb-4">You haven't saved any favorite shops yet.</p>
+          <p className="text-gray-500 mb-4">You haven't saved any shops yet.</p>
           <Link
             href="/customer/shops"
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
-            Browse shops to add favorites →
+            Browse shops to save your favorites →
           </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {favorites.map((favorite) => {
-            const shop = favorite.shops;
+          {savedShops.map((saved) => {
+            const shop = saved.shops;
             if (!shop) return null;
 
             return (
               <div
-                key={favorite.id}
+                key={saved.id}
                 className="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden"
               >
                 {shop.main_image_url && (
@@ -115,15 +115,15 @@ export default function CustomerFavoritesPage() {
                 <div className="p-4">
                   <div className="flex items-start justify-between mb-2">
                     <Link
-                      href={`/customer/shops/${shop.id}`}
+                      href={`/customer/shop/${shop.id}`}
                       className="text-lg font-semibold text-gray-900 hover:text-blue-600"
                     >
                       {shop.name}
                     </Link>
                     <button
-                      onClick={() => handleRemoveFavorite(shop.id)}
+                      onClick={() => handleRemoveSaved(shop.id)}
                       className="text-red-500 hover:text-red-700 p-1"
-                      title="Remove from favorites"
+                      title="Remove from saved"
                     >
                       <svg
                         className="w-5 h-5 fill-current"
@@ -144,7 +144,7 @@ export default function CustomerFavoritesPage() {
                     <p className="text-sm text-gray-500 mb-2">{shop.address}</p>
                   )}
                   {shop.rating && (
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
+                    <div className="flex items-center gap-1 text-sm text-gray-600 mb-4">
                       <span className="text-yellow-500">★</span>
                       <span>{shop.rating.toFixed(1)}</span>
                       {shop.review_count && (
@@ -152,9 +152,9 @@ export default function CustomerFavoritesPage() {
                       )}
                     </div>
                   )}
-                  <div className="mt-4 flex gap-2">
+                  <div className="flex gap-2">
                     <Link
-                      href={`/customer/shops/${shop.id}`}
+                      href={`/customer/shop/${shop.id}`}
                       className="flex-1 px-4 py-2 text-sm font-medium text-center text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
                     >
                       View Shop

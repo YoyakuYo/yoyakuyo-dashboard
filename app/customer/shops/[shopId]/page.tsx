@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { useAuth } from "@/lib/useAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,7 +10,7 @@ import Image from "next/image";
 export default function CustomerShopDetailPage() {
   const params = useParams();
   const shopId = params.shopId as string;
-  const { user } = useAuth();
+  const { user } = useCustomAuth();
   const [shop, setShop] = useState<any>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);

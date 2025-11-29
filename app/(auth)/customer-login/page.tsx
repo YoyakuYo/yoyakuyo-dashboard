@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 
 export default function CustomerLoginPage() {
   const t = useTranslations();
+  const { signIn } = useCustomAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,55 +20,20 @@ export default function CustomerLoginPage() {
     setLoading(true);
     setMessage("");
 
-    try {
-      const supabase = getSupabaseClient();
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    const result = await signIn(email, password, 'customer');
 
-      if (error) {
-        setMessage(`Error: ${error.message}`);
-        setLoading(false);
-        return;
-      }
-
-      if (!data?.user) {
-        setMessage('Error: Login failed - no user data');
-        setLoading(false);
-        return;
-      }
-
-      // Check if user has a customer profile
-      const { data: profile, error: profileError } = await supabase
-        .from("customer_profiles")
-        .select("*")
-        .eq("id", data.user.id)
-        .single();
-
-      // If no profile exists, create one
-      if (!profile && !profileError) {
-        await supabase.from("customer_profiles").insert({
-          id: data.user.id,
-          name: data.user.user_metadata?.name || data.user.email?.split("@")[0] || "Customer",
-          email: data.user.email || email,
-        });
-      }
-
-      // Wait for auth state to update
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // Redirect to customer dashboard
-      setMessage("Login successful! Redirecting...");
-      setTimeout(() => {
-        router.push("/customer");
-        router.refresh();
-      }, 300);
-    } catch (error: any) {
-      setMessage(`Unexpected error: ${error.message}`);
+    if (!result.success) {
+      setMessage(`Error: ${result.error || 'Login failed'}`);
       setLoading(false);
+      return;
     }
+
+    // Redirect to customer dashboard
+    setMessage("Login successful! Redirecting...");
+    setTimeout(() => {
+      router.push("/customer/home");
+      router.refresh();
+    }, 300);
   };
 
   return (
