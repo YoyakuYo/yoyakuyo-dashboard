@@ -3,11 +3,12 @@
 
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useCustomAuth } from "@/lib/useCustomAuth";
 import { apiUrl } from "@/lib/apiClient";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 interface Thread {
@@ -28,7 +29,7 @@ interface Message {
   read_by_customer: boolean;
 }
 
-export default function CustomerMessagesPage() {
+function CustomerMessagesPageContent() {
   const { user } = useCustomAuth();
   const t = useTranslations();
   const searchParams = useSearchParams();
@@ -389,6 +390,21 @@ export default function CustomerMessagesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CustomerMessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    }>
+      <CustomerMessagesPageContent />
+    </Suspense>
   );
 }
 
