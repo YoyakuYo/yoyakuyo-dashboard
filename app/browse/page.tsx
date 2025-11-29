@@ -572,8 +572,8 @@ function BrowsePageContent() {
       {browseContext && (
         <UpdateBrowseContext
           shops={displayShops}
-          selectedPrefecture={selectedPrefecture}
-          selectedCity={selectedCity}
+          selectedPrefectures={selectedPrefectures}
+          selectedCities={selectedCities}
           selectedCategoryId={selectedCategoryId}
           searchQuery={debouncedSearch}
           setBrowseContext={browseContext.setBrowseContext}
