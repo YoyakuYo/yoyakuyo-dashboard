@@ -1,5 +1,5 @@
 // apps/dashboard/app/page.tsx
-// Redesigned landing page with hybrid beauty + tech design and multi-language support
+// Landing page only - no shop browsing (moved to customer dashboard)
 
 "use client";
 
@@ -13,10 +13,6 @@ import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { authApi } from '@/lib/api';
 import { LandingHeader } from './components/LandingHeader';
-import HeroCarousel from './components/landing/HeroCarousel';
-import CategoryGrid from './components/landing/CategoryGrid';
-import { BrowseAIAssistant } from './browse/components/BrowseAIAssistant';
-import { BrowseAIProvider } from './components/BrowseAIContext';
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
@@ -73,7 +69,6 @@ function HomeContent() {
 
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -334,74 +329,26 @@ function HomeContent() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/browse?search=${encodeURIComponent(searchQuery.trim())}`);
-    } else {
-      router.push('/browse');
-    }
-  };
-
   const handleCloseLoginModal = useCallback(() => setShowLoginModal(false), []);
   const handleCloseSignupModal = useCallback(() => setShowSignupModal(false), []);
 
   return (
-    <BrowseAIProvider>
-      <div className="min-h-screen bg-white">
-        {/* Header */}
-        <LandingHeader 
-          onOpenLogin={() => setShowLoginModal(true)}
-          onOpenSignup={() => setShowSignupModal(true)}
-        />
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <LandingHeader 
+        onOpenLogin={() => setShowLoginModal(true)}
+        onOpenSignup={() => setShowSignupModal(true)}
+      />
 
-        {/* Hero Carousel */}
-        <HeroCarousel />
-
-        {/* Category Grid */}
-        <CategoryGrid />
-
-      {/* Search & Quick Actions */}
-      <section className="py-12 bg-gray-50 border-t border-gray-200">
-        <div className="max-w-4xl mx-auto px-4">
-          <form onSubmit={handleSearch} className="mb-8">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('home.searchPlaceholder')}
-                className="flex-1 px-6 py-4 bg-white border-2 border-gray-300 rounded-theme focus:ring-2 focus:ring-accent-blue focus:border-accent-blue outline-none text-lg text-gray-900 placeholder-gray-400 font-body"
-              />
-              <button
-                type="submit"
-                className="px-8 py-4 bg-accent-blue hover:bg-accent-blue/90 text-white font-heading font-semibold rounded-theme transition-colors"
-              >
-                {t('common.search')}
-              </button>
-            </div>
-          </form>
-
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Link
-              href="/browse?mode=category"
-              className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-900 font-body font-medium rounded-theme border-2 border-gray-300 hover:border-accent-pink transition-all shadow-sm hover:shadow-md"
-            >
-              {t('home.browseByCategory')}
-            </Link>
-            <Link
-              href="/browse?mode=area"
-              className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-900 font-body font-medium rounded-theme border-2 border-gray-300 hover:border-accent-pink transition-all shadow-sm hover:shadow-md"
-            >
-              {t('home.browseByArea')}
-            </Link>
-            <Link
-              href="/browse"
-              className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-900 font-body font-medium rounded-theme border-2 border-gray-300 hover:border-accent-pink transition-all shadow-sm hover:shadow-md"
-            >
-              {t('home.nearbyServices')}
-            </Link>
-          </div>
+      {/* Hero Section */}
+      <section className="py-20 md:py-32 bg-gradient-to-br from-blue-50 to-pink-50">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+            {t('home.welcomeTitle') || 'Welcome to Yoyaku Yo'}
+          </h1>
+          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
+            {t('home.welcomeSubtitle') || 'Book beauty and wellness services with ease'}
+          </p>
         </div>
       </section>
 
@@ -418,7 +365,7 @@ function HomeContent() {
               <h3 className="text-2xl font-heading font-bold text-gray-900 mb-4">
                 {t('home.forCustomersTitle')}
               </h3>
-              <ul className="space-y-3 text-gray-700 font-body">
+              <ul className="space-y-3 text-gray-700 font-body mb-6">
                 <li className="flex items-start gap-2">
                   <span className="text-accent-pink mt-1">✓</span>
                   <span>{t('home.forCustomersBullet1')}</span>
@@ -432,6 +379,12 @@ function HomeContent() {
                   <span>{t('home.forCustomersBullet3')}</span>
                 </li>
               </ul>
+              <Link
+                href="/customer-signup"
+                className="block w-full text-center px-6 py-3 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-lg transition-colors"
+              >
+                {t('home.joinAsCustomer') || 'Join as Customer'}
+              </Link>
             </div>
 
             {/* For Owners Card */}
@@ -440,7 +393,7 @@ function HomeContent() {
               <h3 className="text-2xl font-heading font-bold text-gray-900 mb-4">
                 {t('home.forOwnersTitle')}
               </h3>
-              <ul className="space-y-3 text-gray-700 font-body">
+              <ul className="space-y-3 text-gray-700 font-body mb-6">
                 <li className="flex items-start gap-2">
                   <span className="text-accent-blue mt-1">✓</span>
                   <span>{t('home.forOwnersBullet1')}</span>
@@ -454,6 +407,12 @@ function HomeContent() {
                   <span>{t('home.forOwnersBullet3')}</span>
                 </li>
               </ul>
+              <button
+                onClick={() => setShowSignupModal(true)}
+                className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+              >
+                {t('home.joinAsOwner')}
+              </button>
             </div>
 
             {/* AI Assistance Card */}
@@ -480,30 +439,6 @@ function HomeContent() {
           </div>
         </div>
       </section>
-
-      {/* CTA for Shop Owners */}
-      <section className="py-16 bg-gray-50 border-t border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 mb-4">
-            {t('home.forOwnersTitle')}
-          </h2>
-          <p className="text-lg text-gray-700 font-body mb-8">
-            {t('home.forOwnersDesc')}
-          </p>
-          <button
-            onClick={() => setShowSignupModal(true)}
-            className="px-8 py-4 bg-accent-blue hover:bg-accent-blue/90 text-white font-heading font-semibold rounded-theme transition-colors shadow-lg hover:shadow-xl"
-          >
-            {t('home.joinAsOwner')}
-          </button>
-        </div>
-      </section>
-
-      {/* AI Assistant Bubble - Must remain untouched */}
-      <BrowseAIAssistant
-        shops={[]}
-        locale={typeof window !== 'undefined' ? (localStorage.getItem('yoyaku_yo_language') || 'en') : 'en'}
-      />
 
       {/* Login Modal */}
       <Modal isOpen={showLoginModal} onClose={handleCloseLoginModal}>
@@ -679,8 +614,7 @@ function HomeContent() {
           </button>
         </p>
       </Modal>
-      </div>
-    </BrowseAIProvider>
+    </div>
   );
 }
 
