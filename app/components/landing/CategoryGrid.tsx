@@ -3,13 +3,16 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { CATEGORIES, getTopLevelCategories, getSubcategories, hasSubcategories } from '@/lib/categories';
 import { getCategoryImages } from '@/lib/categoryImages';
 
 export default function CategoryGrid() {
   const locale = useLocale();
+  const pathname = usePathname();
   const isJapanese = locale === 'ja';
+  const isCustomerDashboard = pathname?.startsWith('/customer');
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState<Record<string, number>>({});
 
@@ -49,7 +52,9 @@ export default function CategoryGrid() {
                 onMouseLeave={() => setExpandedCategory(null)}
               >
                 <Link
-                  href={`/browse?category=${category.id}`}
+                  href={isCustomerDashboard 
+                    ? `/customer/shops?category=${category.id}` 
+                    : `/browse?category=${category.id}`}
                   className="relative overflow-hidden rounded-theme bg-white border-2 border-gray-200 hover:border-accent-pink transition-all duration-300 shadow-lg hover:shadow-xl block"
                 >
                   <div className="relative aspect-[4/3] w-full">

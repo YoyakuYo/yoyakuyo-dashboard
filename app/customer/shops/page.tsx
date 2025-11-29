@@ -12,26 +12,60 @@ export default function CustomerShopsPage() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
+    // Get category from URL params
+    const params = new URLSearchParams(window.location.search);
+    const category = params.get('category');
+    if (category) {
+      setSelectedCategory(category);
+    }
+    
     loadShops();
     loadFavorites();
   }, []);
 
   const loadShops = async () => {
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase
-      .from("shops")
-      .select("*")
-      .order("name", { ascending: true })
-      .limit(50);
+    try {
+      const supabase = getSupabaseClient();
+      // Load all shops - use pagination for large datasets
+      let allShops: any[] = [];
+      let page = 0;
+      const pageSize = 1000; // Load 1000 at a time
+      let hasMore = true;
 
-    if (error) {
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("shops")
+          .select("*")
+          .order("name", { ascending: true })
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+
+        if (error) {
+          console.error("Error loading shops:", error);
+          hasMore = false;
+        } else if (data && data.length > 0) {
+          allShops = [...allShops, ...data];
+          // If we got less than pageSize, we've reached the end
+          if (data.length < pageSize) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+
+      setShops(allShops);
+      console.log(`Loaded ${allShops.length} shops`);
+    } catch (error) {
       console.error("Error loading shops:", error);
-    } else {
-      setShops(data || []);
+      setShops([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const loadFavorites = async () => {
@@ -80,11 +114,25 @@ export default function CustomerShopsPage() {
     }
   };
 
-  const filteredShops = shops.filter((shop) =>
-    shop.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    shop.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    shop.category?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredShops = shops.filter((shop) => {
+    // Filter by category if selected
+    if (selectedCategory && shop.category !== selectedCategory && shop.subcategory !== selectedCategory) {
+      return false;
+    }
+    
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return (
+        shop.name?.toLowerCase().includes(query) ||
+        shop.address?.toLowerCase().includes(query) ||
+        shop.category?.toLowerCase().includes(query) ||
+        shop.subcategory?.toLowerCase().includes(query)
+      );
+    }
+    
+    return true;
+  });
 
   if (loading) {
     return (
