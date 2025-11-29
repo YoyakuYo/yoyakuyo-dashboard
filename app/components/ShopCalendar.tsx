@@ -227,16 +227,28 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
                   <button
                     onClick={handleAddHoliday}
                     disabled={loading || isHoliday(selectedDate)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`px-4 py-2 text-white rounded-lg transition-colors ${
+                      loading || isHoliday(selectedDate)
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-blue-600 hover:bg-blue-700'
+                    }`}
                   >
-                    {loading ? t('myShop.addingHoliday') : t('myShop.markAsClosed')}
+                    {loading && !isHoliday(selectedDate) ? t('myShop.addingHoliday') : t('myShop.markAsClosed')}
                   </button>
                   <button
-                    onClick={() => handleRemoveHoliday(selectedDate.toISOString().split('T')[0])}
+                    onClick={() => {
+                      if (selectedDate && isHoliday(selectedDate)) {
+                        handleRemoveHoliday(selectedDate.toISOString().split('T')[0]);
+                      }
+                    }}
                     disabled={loading || !isHoliday(selectedDate)}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`px-4 py-2 text-white rounded-lg transition-colors ${
+                      loading || !isHoliday(selectedDate)
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-green-600 hover:bg-green-700'
+                    }`}
                   >
-                    {loading ? t('myShop.removingHoliday') : t('myShop.markAsOpen')}
+                    {loading && isHoliday(selectedDate) ? t('myShop.removingHoliday') : t('myShop.markAsOpen')}
                   </button>
                 </div>
               </div>

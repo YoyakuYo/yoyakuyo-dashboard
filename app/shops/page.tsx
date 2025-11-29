@@ -190,6 +190,81 @@ interface Booking {
   services?: { name: string } | null;
 }
 
+// Opening Hours Editor Component
+function OpeningHoursEditor({ 
+  openingHours, 
+  onChange 
+}: { 
+  openingHours: any; 
+  onChange: (hours: any) => void;
+}) {
+  const t = useTranslations();
+  const days = [
+    { key: 'monday', label: t('myShop.monday') },
+    { key: 'tuesday', label: t('myShop.tuesday') },
+    { key: 'wednesday', label: t('myShop.wednesday') },
+    { key: 'thursday', label: t('myShop.thursday') },
+    { key: 'friday', label: t('myShop.friday') },
+    { key: 'saturday', label: t('myShop.saturday') },
+    { key: 'sunday', label: t('myShop.sunday') },
+  ];
+
+  const handleDayChange = (day: string, openTime: string, closeTime: string) => {
+    const updated = { ...(openingHours || {}) };
+    if (openTime && closeTime) {
+      updated[day] = [openTime, closeTime];
+    } else {
+      updated[day] = null;
+    }
+    onChange(updated);
+  };
+
+  const getDayHours = (day: string): [string, string] => {
+    if (openingHours && openingHours[day] && Array.isArray(openingHours[day])) {
+      return [openingHours[day][0] || '09:00', openingHours[day][1] || '18:00'];
+    }
+    return ['09:00', '18:00'];
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        {t('myShop.openingHours')}
+      </label>
+      {days.map((day) => {
+        const [openTime, closeTime] = getDayHours(day.key);
+        return (
+          <div key={day.key} className="flex items-center gap-3">
+            <div className="w-24 text-sm font-medium text-gray-700">
+              {day.label}
+            </div>
+            <input
+              type="time"
+              value={openTime}
+              onChange={(e) => handleDayChange(day.key, e.target.value, closeTime)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+            <span className="text-gray-500">-</span>
+            <input
+              type="time"
+              value={closeTime}
+              onChange={(e) => handleDayChange(day.key, openTime, e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => handleDayChange(day.key, '', '')}
+              className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              {t('myShop.closed')}
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const MyShopPage = () => {
   const { user, loading } = useAuth();
   const authLoading = Boolean(loading); // Ensure it's always a boolean for stable dependency array
@@ -215,6 +290,7 @@ const MyShopPage = () => {
     zip_code: '',
     description: '',
     language_code: '',
+    opening_hours: null,
   });
   const [showCreateShop, setShowCreateShop] = useState(false);
   const [showClaimShop, setShowClaimShop] = useState(false);
@@ -1097,6 +1173,7 @@ const MyShopPage = () => {
       if (shopForm.zip_code !== undefined && shopForm.zip_code !== null) updateData.zip_code = shopForm.zip_code;
       if (shopForm.description !== undefined && shopForm.description !== null) updateData.description = shopForm.description;
       if (shopForm.language_code !== undefined && shopForm.language_code !== null) updateData.language_code = shopForm.language_code;
+      if (shopForm.opening_hours !== undefined) updateData.opening_hours = shopForm.opening_hours;
 
       const res = await fetch(`${apiUrl}/shops/${shop.id}`, {
         method: 'PUT',
@@ -1652,6 +1729,12 @@ const MyShopPage = () => {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
                 </div>
+                <div>
+                  <OpeningHoursEditor
+                    openingHours={shopForm.opening_hours || {}}
+                    onChange={(hours) => setShopForm(prev => ({ ...prev, opening_hours: hours }))}
+                  />
+                </div>
                 <div className="flex gap-4">
                   <button
                     type="submit"
@@ -1675,6 +1758,7 @@ const MyShopPage = () => {
                         zip_code: shop.zip_code || '',
                         description: shop.description || '',
                         language_code: shop.language_code || '',
+                        opening_hours: shop.opening_hours || null,
                         category: shop.category || null,
                         subcategory: shop.subcategory || null,
                         logo_url: shop.logo_url || null,
@@ -1691,6 +1775,7 @@ const MyShopPage = () => {
                         zip_code: '',
                         description: '',
                         language_code: '',
+                        opening_hours: null,
                       });
                     }}
                     className="px-6 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 transition-colors"

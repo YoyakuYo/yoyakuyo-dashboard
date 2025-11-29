@@ -6,7 +6,6 @@ import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'reac
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
-import { LanguageSwitcher } from '@/app/components/LanguageSwitcher';
 import {
   buildCategoryTree,
   filterShopsBySearch,
@@ -384,7 +383,6 @@ function BrowsePageContent() {
             <h1 className="text-2xl font-bold text-gray-900">
               {t('shops.shops')}
             </h1>
-            <LanguageSwitcher />
           </div>
         </div>
       </div>
