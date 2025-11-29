@@ -161,7 +161,7 @@ export default function HeroCarousel({ onSlideChange }: HeroCarouselProps) {
                    bg-card-bg/80 hover:bg-card-bg/90
                    border border-border-soft
                    rounded-full p-3 md:p-4
-                   text-primary-text hover:text-accent-blue
+                   text-gray-900 hover:text-accent-blue
                    transition-all duration-200
                    focus:outline-none focus:ring-2 focus:ring-accent-blue"
         aria-label="Next slide"

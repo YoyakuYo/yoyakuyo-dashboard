@@ -435,9 +435,9 @@ function HomeContent() {
             </div>
 
             {/* For Owners Card */}
-            <div className="bg-card-bg border border-border-soft rounded-theme p-8 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="bg-gray-50 border border-gray-200 rounded-theme p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-5xl mb-4">💼</div>
-              <h3 className="text-2xl font-heading font-bold text-primary-text mb-4">
+              <h3 className="text-2xl font-heading font-bold text-gray-900 mb-4">
                 {t('home.forOwnersTitle')}
               </h3>
               <ul className="space-y-3 text-gray-700 font-body">
@@ -457,9 +457,9 @@ function HomeContent() {
             </div>
 
             {/* AI Assistance Card */}
-            <div className="bg-card-bg border border-border-soft rounded-theme p-8 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="bg-gray-50 border border-gray-200 rounded-theme p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-5xl mb-4">🤖</div>
-              <h3 className="text-2xl font-heading font-bold text-primary-text mb-4">
+              <h3 className="text-2xl font-heading font-bold text-gray-900 mb-4">
                 {t('home.aiAssistanceTitle')}
               </h3>
               <ul className="space-y-3 text-gray-700 font-body">
