@@ -43,7 +43,8 @@
     "time": "時間",
     "optional": "任意",
     "required": "必須",
-    "characters": "文字"
+    "characters": "文字",
+    "selectAll": "すべて選択"
   },
   "auth": {
     "signInToShop": "店舗にサインイン",
