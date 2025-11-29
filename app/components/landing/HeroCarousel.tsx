@@ -91,7 +91,7 @@ export default function HeroCarousel({ onSlideChange }: HeroCarouselProps) {
 
   return (
     <section
-      className="relative w-full h-[70vh] md:h-[80vh] lg:h-[90vh] overflow-hidden bg-primary-bg"
+      className="relative w-full h-[70vh] md:h-[80vh] lg:h-[90vh] overflow-hidden bg-white"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -112,8 +112,8 @@ export default function HeroCarousel({ onSlideChange }: HeroCarouselProps) {
         />
       </div>
 
-      {/* Dark overlay for text readability */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
+      {/* Light overlay for text readability - much lighter */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-black/10 to-transparent" />
 
       {/* Caption Card - Desktop: Left or Right, Mobile: Bottom */}
       <div className={`
@@ -122,16 +122,17 @@ export default function HeroCarousel({ onSlideChange }: HeroCarouselProps) {
         ${isLeftCaption ? 'md:left-8 lg:left-16' : 'md:right-8 lg:right-16'}
         bottom-8 left-4 right-4
         md:max-w-lg lg:max-w-xl
-        bg-card-bg/95 backdrop-blur-sm
-        border border-border-soft
+        bg-white/95 backdrop-blur-sm
+        border border-gray-200
         rounded-theme
         p-6 md:p-8 lg:p-10
         transition-all duration-500
+        shadow-xl
       `}>
-        <h2 className="font-heading font-bold text-3xl md:text-4xl lg:text-5xl text-primary-text mb-3 md:mb-4">
+        <h2 className="font-heading font-bold text-3xl md:text-4xl lg:text-5xl text-gray-900 mb-3 md:mb-4">
           {title}
         </h2>
-        <p className="font-body text-muted-text text-base md:text-lg leading-relaxed">
+        <p className="font-body text-gray-700 text-base md:text-lg leading-relaxed">
           {subtitle}
         </p>
       </div>
@@ -140,10 +141,11 @@ export default function HeroCarousel({ onSlideChange }: HeroCarouselProps) {
       <button
         onClick={goToPrevious}
         className="absolute left-4 top-1/2 -translate-y-1/2 z-30
-                   bg-card-bg/80 hover:bg-card-bg/90
-                   border border-border-soft
+                   bg-white/90 hover:bg-white
+                   border border-gray-300
                    rounded-full p-3 md:p-4
-                   text-primary-text hover:text-accent-blue
+                   text-gray-900 hover:text-accent-blue
+                   shadow-lg
                    transition-all duration-200
                    focus:outline-none focus:ring-2 focus:ring-accent-blue"
         aria-label="Previous slide"

@@ -348,7 +348,7 @@ function HomeContent() {
 
   return (
     <BrowseAIProvider>
-      <div className="min-h-screen bg-primary-bg">
+      <div className="min-h-screen bg-white">
         {/* Header */}
         <LandingHeader 
           onOpenLogin={() => setShowLoginModal(true)}
@@ -362,7 +362,7 @@ function HomeContent() {
         <CategoryGrid />
 
       {/* Search & Quick Actions */}
-      <section className="py-12 bg-card-bg border-t border-border-soft">
+      <section className="py-12 bg-gray-50 border-t border-gray-200">
         <div className="max-w-4xl mx-auto px-4">
           <form onSubmit={handleSearch} className="mb-8">
             <div className="flex gap-2">
@@ -371,11 +371,11 @@ function HomeContent() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('home.searchPlaceholder')}
-                className="flex-1 px-6 py-4 bg-primary-bg border-2 border-border-soft rounded-theme focus:ring-2 focus:ring-accent-blue focus:border-accent-blue outline-none text-lg text-primary-text placeholder-muted-text font-body"
+                className="flex-1 px-6 py-4 bg-white border-2 border-gray-300 rounded-theme focus:ring-2 focus:ring-accent-blue focus:border-accent-blue outline-none text-lg text-gray-900 placeholder-gray-400 font-body"
               />
               <button
                 type="submit"
-                className="px-8 py-4 bg-accent-blue hover:bg-accent-blue/90 text-primary-text font-heading font-semibold rounded-theme transition-colors"
+                className="px-8 py-4 bg-accent-blue hover:bg-accent-blue/90 text-white font-heading font-semibold rounded-theme transition-colors"
               >
                 {t('common.search')}
               </button>
@@ -385,19 +385,19 @@ function HomeContent() {
           <div className="flex flex-wrap gap-4 justify-center">
             <Link
               href="/browse?mode=category"
-              className="px-6 py-3 bg-card-bg hover:bg-card-bg/80 text-primary-text font-body font-medium rounded-theme border-2 border-border-soft hover:border-accent-pink transition-all shadow-sm hover:shadow-md"
+              className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-900 font-body font-medium rounded-theme border-2 border-gray-300 hover:border-accent-pink transition-all shadow-sm hover:shadow-md"
             >
               {t('home.browseByCategory')}
             </Link>
             <Link
               href="/browse?mode=area"
-              className="px-6 py-3 bg-card-bg hover:bg-card-bg/80 text-primary-text font-body font-medium rounded-theme border-2 border-border-soft hover:border-accent-pink transition-all shadow-sm hover:shadow-md"
+              className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-900 font-body font-medium rounded-theme border-2 border-gray-300 hover:border-accent-pink transition-all shadow-sm hover:shadow-md"
             >
               {t('home.browseByArea')}
             </Link>
             <Link
               href="/browse"
-              className="px-6 py-3 bg-card-bg hover:bg-card-bg/80 text-primary-text font-body font-medium rounded-theme border-2 border-border-soft hover:border-accent-pink transition-all shadow-sm hover:shadow-md"
+              className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-900 font-body font-medium rounded-theme border-2 border-gray-300 hover:border-accent-pink transition-all shadow-sm hover:shadow-md"
             >
               {t('home.nearbyServices')}
             </Link>
@@ -406,19 +406,19 @@ function HomeContent() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-16 md:py-24 bg-primary-bg">
+      <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-heading font-bold text-center text-primary-text mb-12">
+          <h2 className="text-3xl md:text-4xl font-heading font-bold text-center text-gray-900 mb-12">
             {t('home.howItWorks')}
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             {/* For Customers Card */}
-            <div className="bg-card-bg border border-border-soft rounded-theme p-8 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="bg-gray-50 border border-gray-200 rounded-theme p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-5xl mb-4">👥</div>
-              <h3 className="text-2xl font-heading font-bold text-primary-text mb-4">
+              <h3 className="text-2xl font-heading font-bold text-gray-900 mb-4">
                 {t('home.forCustomersTitle')}
               </h3>
-              <ul className="space-y-3 text-muted-text font-body">
+              <ul className="space-y-3 text-gray-700 font-body">
                 <li className="flex items-start gap-2">
                   <span className="text-accent-pink mt-1">✓</span>
                   <span>{t('home.forCustomersBullet1')}</span>
@@ -440,7 +440,7 @@ function HomeContent() {
               <h3 className="text-2xl font-heading font-bold text-primary-text mb-4">
                 {t('home.forOwnersTitle')}
               </h3>
-              <ul className="space-y-3 text-muted-text font-body">
+              <ul className="space-y-3 text-gray-700 font-body">
                 <li className="flex items-start gap-2">
                   <span className="text-accent-blue mt-1">✓</span>
                   <span>{t('home.forOwnersBullet1')}</span>
@@ -462,7 +462,7 @@ function HomeContent() {
               <h3 className="text-2xl font-heading font-bold text-primary-text mb-4">
                 {t('home.aiAssistanceTitle')}
               </h3>
-              <ul className="space-y-3 text-muted-text font-body">
+              <ul className="space-y-3 text-gray-700 font-body">
                 <li className="flex items-start gap-2">
                   <span className="text-accent-pink mt-1">✓</span>
                   <span>{t('home.aiAssistanceBullet1')}</span>
@@ -482,17 +482,17 @@ function HomeContent() {
       </section>
 
       {/* CTA for Shop Owners */}
-      <section className="py-16 bg-card-bg border-t border-border-soft">
+      <section className="py-16 bg-gray-50 border-t border-gray-200">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-heading font-bold text-primary-text mb-4">
+          <h2 className="text-3xl md:text-4xl font-heading font-bold text-gray-900 mb-4">
             {t('home.forOwnersTitle')}
           </h2>
-          <p className="text-lg text-muted-text font-body mb-8">
+          <p className="text-lg text-gray-700 font-body mb-8">
             {t('home.forOwnersDesc')}
           </p>
           <button
             onClick={() => setShowSignupModal(true)}
-            className="px-8 py-4 bg-accent-blue hover:bg-accent-blue/90 text-primary-text font-heading font-semibold rounded-theme transition-colors shadow-lg hover:shadow-xl"
+            className="px-8 py-4 bg-accent-blue hover:bg-accent-blue/90 text-white font-heading font-semibold rounded-theme transition-colors shadow-lg hover:shadow-xl"
           >
             {t('home.joinAsOwner')}
           </button>

@@ -28,9 +28,9 @@ export default function CategoryGrid() {
   const isJapanese = locale === 'ja';
 
   return (
-    <section className="py-16 md:py-24 bg-primary-bg">
+    <section className="py-16 md:py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-heading font-bold text-center text-primary-text mb-12">
+        <h2 className="text-3xl md:text-4xl font-heading font-bold text-center text-gray-900 mb-12">
           {isJapanese ? 'カテゴリーから探す' : 'Browse by Category'}
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
@@ -42,7 +42,7 @@ export default function CategoryGrid() {
               <Link
                 key={category.id}
                 href={`/browse?category=${category.id}`}
-                className="group relative overflow-hidden rounded-theme bg-card-bg border-2 border-border-soft hover:border-accent-pink transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="group relative overflow-hidden rounded-theme bg-white border-2 border-gray-200 hover:border-accent-pink transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 <div className="relative aspect-[4/3] w-full">
                   <Image

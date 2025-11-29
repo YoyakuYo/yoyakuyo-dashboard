@@ -7,13 +7,13 @@
 
 @layer base {
   :root {
-    --primary-bg: #050816;
-    --primary-text: #F9FAFB;
+    --primary-bg: #FFFFFF;
+    --primary-text: #1F2937;
     --accent-pink: #EC4899;
     --accent-blue: #0EA5E9;
-    --muted-text: #9CA3AF;
-    --card-bg: #0B1120;
-    --border-soft: #1F2933;
+    --muted-text: #6B7280;
+    --card-bg: #F9FAFB;
+    --border-soft: #E5E7EB;
   }
   
   .font-heading {
