@@ -345,6 +345,8 @@
     "ueno": "上野"
   },
   "browse": {
+    "subcategories": "サブカテゴリー",
+    "citiesInPrefecture": "{prefecture}の市区町村",
     "byArea": "エリアで探す",
     "byCategory": "カテゴリーで探す",
     "prefecture": "都道府県",
