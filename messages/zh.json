@@ -265,6 +265,38 @@
       "pending": "您有待处理的预约",
       "none": "没有待处理的预约"
     }
+  },
+  "assistant": {
+    "title": "AI助手",
+    "subtitle": "管理客户对话并获得AI帮助",
+    "customerConversations": "客户对话",
+    "selectConversation": "选择对话",
+    "selectConversationDesc": "从左侧选择线程以查看消息",
+    "noConversations": "还没有对话",
+    "loadingThreads": "正在加载线程...",
+    "youAreHandling": "✓ 您正在处理",
+    "letAiHandle": "让AI处理",
+    "noMessages": "还没有消息",
+    "startConversation": "开始对话！",
+    "booking": "预约：",
+    "sending": "发送中...",
+    "send": "发送",
+    "typeMessage": "输入您的消息...",
+    "youAreTyping": "您正在输入...",
+    "capabilitiesTitle": "AI助手功能",
+    "capabilitiesDescription": "AI助手可通过右下角的聊天气泡在整个仪表板中使用。它可以通过以下功能帮助您高效管理店铺：",
+    "capabilityManageBookings": "管理预约 - 查看、确认、拒绝或取消客户预约",
+    "capabilityModifySchedule": "修改时间表 - 更新店铺的日历和可用性",
+    "capabilityUpdateShopHours": "更新营业时间 - 更改开店和关店时间",
+    "capabilityAnswerMessages": "回答客户消息 - 自动响应客户询问",
+    "capabilityAutomatedResponses": "创建自动回复 - 为常见问题设置自动回复",
+    "capabilityAnalyzePerformance": "分析店铺表现 - 获取预约、收入和趋势的洞察",
+    "capabilityRemindBookings": "提醒即将到来的预约 - 获取待处理预约的通知",
+    "capabilityEditServices": "编辑服务和价格 - 更新您的服务内容和定价",
+    "capabilityAddStaff": "添加新员工 - 管理您的团队成员及其时间表",
+    "capabilityMarkHolidays": "标记假期和关闭日期 - 设置店铺关闭的日期",
+    "capabilityCheckAvailability": "检查可用性 - 查看实时预约可用性",
+    "capabilitiesCTA": "点击右下角的AI助手聊天气泡开始使用！"
   }
 }
 

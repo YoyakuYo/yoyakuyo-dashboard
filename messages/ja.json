@@ -516,7 +516,21 @@
     "sending": "送信中...",
     "send": "送信",
     "typeMessage": "メッセージを入力...",
-    "youAreTyping": "入力中..."
+    "youAreTyping": "入力中...",
+    "capabilitiesTitle": "AIアシスタントの機能",
+    "capabilitiesDescription": "AIアシスタントは、ダッシュボード全体で右下のチャットバブルから利用できます。以下の機能で店舗を効率的に管理できます：",
+    "capabilityManageBookings": "予約管理 - 顧客の予約を表示、確認、拒否、またはキャンセル",
+    "capabilityModifySchedule": "スケジュール変更 - 店舗のカレンダーと空き状況を更新",
+    "capabilityUpdateShopHours": "営業時間の更新 - 開店・閉店時間を変更",
+    "capabilityAnswerMessages": "顧客メッセージへの対応 - 顧客の問い合わせに自動で返信",
+    "capabilityAutomatedResponses": "自動返信の作成 - よくある質問への自動返信を設定",
+    "capabilityAnalyzePerformance": "店舗パフォーマンスの分析 - 予約、収益、トレンドのインサイトを取得",
+    "capabilityRemindBookings": "今後の予約のリマインダー - 保留中の予約の通知を取得",
+    "capabilityEditServices": "サービスと価格の編集 - サービス内容と価格を更新",
+    "capabilityAddStaff": "スタッフの追加 - チームメンバーとスケジュールを管理",
+    "capabilityMarkHolidays": "休業日と閉店日の設定 - 店舗が閉まる日を設定",
+    "capabilityCheckAvailability": "空き状況の確認 - リアルタイムの予約空き状況を表示",
+    "capabilitiesCTA": "右下のAIアシスタントチャットバブルをクリックして始めましょう！"
   },
   "status": {
     "pending": "保留中",

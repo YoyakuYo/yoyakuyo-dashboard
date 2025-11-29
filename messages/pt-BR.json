@@ -265,6 +265,38 @@
       "pending": "Você tem reservas pendentes",
       "none": "Não há reservas pendentes"
     }
+  },
+  "assistant": {
+    "title": "Assistente IA",
+    "subtitle": "Gerencie conversas com clientes e obtenha ajuda da IA",
+    "customerConversations": "Conversas com Clientes",
+    "selectConversation": "Selecionar uma conversa",
+    "selectConversationDesc": "Escolha uma thread à esquerda para ver mensagens",
+    "noConversations": "Ainda não há conversas",
+    "loadingThreads": "Carregando threads...",
+    "youAreHandling": "✓ Você está lidando",
+    "letAiHandle": "Deixar a IA lidar",
+    "noMessages": "Ainda não há mensagens",
+    "startConversation": "Inicie a conversa!",
+    "booking": "Reserva:",
+    "sending": "Enviando...",
+    "send": "Enviar",
+    "typeMessage": "Digite sua mensagem...",
+    "youAreTyping": "Você está digitando...",
+    "capabilitiesTitle": "Capacidades do Assistente IA",
+    "capabilitiesDescription": "Seu Assistente IA está disponível em todo o painel através da bolha de chat no canto inferior direito. Ele pode ajudá-lo a gerenciar sua loja com eficiência com as seguintes capacidades:",
+    "capabilityManageBookings": "Gerenciar reservas - Ver, confirmar, rejeitar ou cancelar reservas de clientes",
+    "capabilityModifySchedule": "Modificar horário - Atualizar o calendário e disponibilidade da sua loja",
+    "capabilityUpdateShopHours": "Atualizar horário da loja - Alterar horários de abertura e fechamento",
+    "capabilityAnswerMessages": "Responder mensagens de clientes - Responder automaticamente a consultas de clientes",
+    "capabilityAutomatedResponses": "Criar respostas automatizadas - Configurar respostas automáticas para perguntas comuns",
+    "capabilityAnalyzePerformance": "Analisar desempenho da loja - Obter insights sobre reservas, receita e tendências",
+    "capabilityRemindBookings": "Lembrar o proprietário sobre próximas reservas - Obter notificações para reservas pendentes",
+    "capabilityEditServices": "Editar serviços e preços - Atualizar suas ofertas de serviços e preços",
+    "capabilityAddStaff": "Adicionar novo pessoal - Gerenciar membros da equipe e seus horários",
+    "capabilityMarkHolidays": "Marcar feriados e datas fechadas - Definir dias em que sua loja está fechada",
+    "capabilityCheckAvailability": "Verificar disponibilidade - Ver disponibilidade de reservas em tempo real",
+    "capabilitiesCTA": "Clique na bolha de chat do Assistente IA no canto inferior direito para começar!"
   }
 }
 

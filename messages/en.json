@@ -514,7 +514,21 @@
     "sending": "Sending...",
     "send": "Send",
     "typeMessage": "Type your message...",
-    "youAreTyping": "You are typing..."
+    "youAreTyping": "You are typing...",
+    "capabilitiesTitle": "AI Assistant Capabilities",
+    "capabilitiesDescription": "Your AI Assistant is available throughout the dashboard via the chat bubble in the bottom-right corner. It can help you manage your shop efficiently with the following capabilities:",
+    "capabilityManageBookings": "Manage bookings - View, confirm, reject, or cancel customer bookings",
+    "capabilityModifySchedule": "Modify schedule - Update your shop's calendar and availability",
+    "capabilityUpdateShopHours": "Update shop hours - Change opening and closing times",
+    "capabilityAnswerMessages": "Answer customer messages - Respond to customer inquiries automatically",
+    "capabilityAutomatedResponses": "Create automated responses - Set up automatic replies for common questions",
+    "capabilityAnalyzePerformance": "Analyze shop performance - Get insights on bookings, revenue, and trends",
+    "capabilityRemindBookings": "Remind the owner about upcoming bookings - Get notifications for pending bookings",
+    "capabilityEditServices": "Edit services and prices - Update your service offerings and pricing",
+    "capabilityAddStaff": "Add new staff - Manage your team members and their schedules",
+    "capabilityMarkHolidays": "Mark holidays and closed dates - Set days when your shop is closed",
+    "capabilityCheckAvailability": "Check availability - View real-time booking availability",
+    "capabilitiesCTA": "Click the AI Assistant chat bubble in the bottom-right corner to get started!"
   },
   "status": {
     "pending": "Pending",

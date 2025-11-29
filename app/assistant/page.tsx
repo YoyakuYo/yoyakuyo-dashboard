@@ -28,18 +28,17 @@ export default function AssistantPage() {
     return null;
   }
 
-  // MODIFIED: Replace blank screen with static capabilities list
+  // MODIFIED: Replace blank screen with static capabilities list (now fully translated)
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Title Section */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            AI Assistant Capabilities
+            {t('assistant.capabilitiesTitle')}
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Your AI Assistant is available throughout the dashboard via the chat bubble in the bottom-right corner. 
-            It can help you manage your shop efficiently with the following capabilities:
+            {t('assistant.capabilitiesDescription')}
           </p>
         </div>
 
@@ -48,47 +47,47 @@ export default function AssistantPage() {
           <ul className="space-y-4 text-gray-700">
             <li className="flex items-start gap-3">
               <span className="text-blue-600 font-bold text-xl mt-1">•</span>
-              <span className="text-lg">Manage bookings - View, confirm, reject, or cancel customer bookings</span>
+              <span className="text-lg">{t('assistant.capabilityManageBookings')}</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-blue-600 font-bold text-xl mt-1">•</span>
-              <span className="text-lg">Modify schedule - Update your shop's calendar and availability</span>
+              <span className="text-lg">{t('assistant.capabilityModifySchedule')}</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-blue-600 font-bold text-xl mt-1">•</span>
-              <span className="text-lg">Update shop hours - Change opening and closing times</span>
+              <span className="text-lg">{t('assistant.capabilityUpdateShopHours')}</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-blue-600 font-bold text-xl mt-1">•</span>
-              <span className="text-lg">Answer customer messages - Respond to customer inquiries automatically</span>
+              <span className="text-lg">{t('assistant.capabilityAnswerMessages')}</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-blue-600 font-bold text-xl mt-1">•</span>
-              <span className="text-lg">Create automated responses - Set up automatic replies for common questions</span>
+              <span className="text-lg">{t('assistant.capabilityAutomatedResponses')}</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-blue-600 font-bold text-xl mt-1">•</span>
-              <span className="text-lg">Analyze shop performance - Get insights on bookings, revenue, and trends</span>
+              <span className="text-lg">{t('assistant.capabilityAnalyzePerformance')}</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-blue-600 font-bold text-xl mt-1">•</span>
-              <span className="text-lg">Remind the owner about upcoming bookings - Get notifications for pending bookings</span>
+              <span className="text-lg">{t('assistant.capabilityRemindBookings')}</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-blue-600 font-bold text-xl mt-1">•</span>
-              <span className="text-lg">Edit services and prices - Update your service offerings and pricing</span>
+              <span className="text-lg">{t('assistant.capabilityEditServices')}</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-blue-600 font-bold text-xl mt-1">•</span>
-              <span className="text-lg">Add new staff - Manage your team members and their schedules</span>
+              <span className="text-lg">{t('assistant.capabilityAddStaff')}</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-blue-600 font-bold text-xl mt-1">•</span>
-              <span className="text-lg">Mark holidays and closed dates - Set days when your shop is closed</span>
+              <span className="text-lg">{t('assistant.capabilityMarkHolidays')}</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-blue-600 font-bold text-xl mt-1">•</span>
-              <span className="text-lg">Check availability - View real-time booking availability</span>
+              <span className="text-lg">{t('assistant.capabilityCheckAvailability')}</span>
             </li>
           </ul>
         </div>
@@ -96,7 +95,7 @@ export default function AssistantPage() {
         {/* Call to Action */}
         <div className="text-center mt-8">
           <p className="text-gray-600 mb-4">
-            Click the AI Assistant chat bubble in the bottom-right corner to get started!
+            {t('assistant.capabilitiesCTA')}
           </p>
           <button
             onClick={() => router.push('/shops')}
