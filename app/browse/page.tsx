@@ -11,11 +11,9 @@ import {
   buildCategoryTree,
   filterShopsBySearch,
   type Shop,
-  type AreaTree,
   type CategoryTree,
 } from '@/lib/browse/shopBrowseData';
 import { CATEGORIES } from '@/lib/categories';
-import { AreaNavigation } from './components/AreaNavigation';
 import { CategoryNavigation } from './components/CategoryNavigation';
 import { ShopCard } from './components/ShopCard';
 import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
@@ -59,8 +57,6 @@ interface Category {
   description?: string | null;
 }
 
-type BrowseMode = 'area' | 'category';
-
 function BrowsePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -74,12 +70,8 @@ function BrowsePageContent() {
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalShops, setTotalShops] = useState(0);
-  const [areaTree, setAreaTree] = useState<AreaTree>({});
   const [categoryStats, setCategoryStats] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [browseMode, setBrowseMode] = useState<BrowseMode>(
-    (searchParams.get('mode') as BrowseMode) || 'area'
-  );
   
   // Navigation state - Changed to arrays for multiple selection
   const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>(() => {
@@ -139,20 +131,6 @@ function BrowsePageContent() {
     setCategories(formattedCategories);
   }, []);
 
-  // Fetch area tree from backend
-  const fetchAreaTree = useCallback(async () => {
-    if (!apiUrl) return;
-    
-    try {
-      const res = await fetch(`${apiUrl}/shops/area-tree`);
-      if (res.ok) {
-        const tree = await res.json();
-        setAreaTree(tree);
-      }
-    } catch (error) {
-      console.error('Error fetching area tree:', error);
-    }
-  }, [apiUrl]);
 
   // Fetch category stats (shop counts per category) from backend
   const fetchCategoryStats = useCallback(async () => {
@@ -258,11 +236,10 @@ function BrowsePageContent() {
     }
   }, [apiUrl, debouncedSearch, selectedPrefectures, selectedCities, selectedCategoryId]);
 
-  // Fetch area tree and category stats on mount
+  // Fetch category stats on mount
   useEffect(() => {
-    fetchAreaTree();
     fetchCategoryStats();
-  }, [fetchAreaTree, fetchCategoryStats]);
+  }, [fetchCategoryStats]);
 
   // Fetch shops when filters change
   useEffect(() => {
@@ -304,13 +281,12 @@ function BrowsePageContent() {
   useEffect(() => {
     const params = new URLSearchParams();
     if (debouncedSearch) params.set('search', debouncedSearch);
-    if (browseMode) params.set('mode', browseMode);
     if (selectedPrefectures.length > 0) params.set('prefecture', selectedPrefectures.join(','));
     if (selectedCities.length > 0) params.set('city', selectedCities.join(','));
     if (selectedCategoryId) params.set('category', selectedCategoryId);
     const newUrl = `/browse${params.toString() ? `?${params.toString()}` : ''}`;
     router.replace(newUrl, { scroll: false });
-  }, [debouncedSearch, browseMode, selectedPrefectures, selectedCities, selectedCategoryId, router]);
+  }, [debouncedSearch, selectedPrefectures, selectedCities, selectedCategoryId, router]);
 
   // Filter shops by search (client-side filtering on already-loaded shops)
   const filteredShops = useMemo(() => {
@@ -398,24 +374,6 @@ function BrowsePageContent() {
     });
   }, [filteredShops]);
 
-  // Reset navigation when mode changes
-  const handleModeChange = (mode: BrowseMode) => {
-    setBrowseMode(mode);
-    setSelectedPrefectures([]);
-    setSelectedCities([]);
-    setSelectedCategoryId(null);
-  };
-
-  // Sort prefectures by name
-  const sortedPrefectures = useMemo(() => {
-    const prefs = Object.keys(browseMode === 'area' ? areaTree : 
-      (selectedCategoryId && categoryTree[selectedCategoryId] ? categoryTree[selectedCategoryId].prefectures : {}));
-    return prefs.sort((a, b) => {
-      const nameA = getPrefectureName(a);
-      const nameB = getPrefectureName(b);
-      return nameA.localeCompare(nameB, 'ja');
-    });
-  }, [browseMode, areaTree, categoryTree, selectedCategoryId, getPrefectureName]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -443,31 +401,6 @@ function BrowsePageContent() {
           />
         </div>
 
-        {/* Tabs */}
-        <div className="mb-6 border-b border-gray-200">
-          <div className="flex gap-4">
-            <button
-              onClick={() => handleModeChange('area')}
-              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                browseMode === 'area'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {t('browse.byArea')}
-            </button>
-            <button
-              onClick={() => handleModeChange('category')}
-              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                browseMode === 'category'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {t('browse.byCategory')}
-            </button>
-          </div>
-        </div>
 
         {loading && shops.length === 0 ? (
           <div className="lg:col-span-3">
@@ -488,33 +421,20 @@ function BrowsePageContent() {
             {/* Left Sidebar - Navigation */}
             <aside className="lg:col-span-1">
               <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-24">
-                {browseMode === 'area' ? (
-                  <AreaNavigation
-                    areaTree={areaTree}
-                    selectedPrefectures={selectedPrefectures}
-                    selectedCities={selectedCities}
-                    onTogglePrefecture={togglePrefecture}
-                    onToggleCity={toggleCity}
-                    getPrefectureName={getPrefectureName}
-                    getCityName={getCityName}
-                    t={t}
-                  />
-                ) : (
-                  <CategoryNavigation
-                    categoryTree={categoryTree}
-                    categories={categories}
-                    selectedCategoryId={selectedCategoryId}
-                    selectedPrefectures={selectedPrefectures}
-                    selectedCities={selectedCities}
-                    onSelectCategory={setSelectedCategoryId}
-                    onTogglePrefecture={togglePrefecture}
-                    onToggleCity={toggleCity}
-                    getCategoryName={getCategoryName}
-                    getPrefectureName={getPrefectureName}
-                    getCityName={getCityName}
-                    t={t}
-                  />
-                )}
+                <CategoryNavigation
+                  categoryTree={categoryTree}
+                  categories={categories}
+                  selectedCategoryId={selectedCategoryId}
+                  selectedPrefectures={selectedPrefectures}
+                  selectedCities={selectedCities}
+                  onSelectCategory={setSelectedCategoryId}
+                  onTogglePrefecture={togglePrefecture}
+                  onToggleCity={toggleCity}
+                  getCategoryName={getCategoryName}
+                  getPrefectureName={getPrefectureName}
+                  getCityName={getCityName}
+                  t={t}
+                />
               </div>
             </aside>
 
