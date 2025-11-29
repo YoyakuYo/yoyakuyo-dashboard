@@ -1,5 +1,5 @@
 // apps/dashboard/app/page.tsx
-// Landing page only - no shop browsing (moved to customer dashboard)
+// Commercial Marketing Landing Page - No shop browsing (moved to customer dashboard)
 
 "use client";
 
@@ -13,6 +13,8 @@ import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { authApi } from '@/lib/api';
 import { LandingHeader } from './components/LandingHeader';
+import MarketingHeroSlideshow from './components/landing/MarketingHeroSlideshow';
+import CategorySpotlight from './components/landing/CategorySpotlight';
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
@@ -61,7 +63,7 @@ function HomeContent() {
   
   let t: ReturnType<typeof useTranslations>;
   try {
-    t = useTranslations();
+    t = useTranslations('landing');
   } catch (error) {
     console.warn("🔥 useTranslations not ready, using fallback:", error);
     t = ((key: string) => key) as ReturnType<typeof useTranslations>;
@@ -88,12 +90,17 @@ function HomeContent() {
     const handleOpenLoginModal = () => {
       setShowLoginModal(true);
     };
+    const handleOpenSignupModal = () => {
+      setShowSignupModal(true);
+    };
     if (typeof window !== 'undefined') {
       window.addEventListener('openLoginModal', handleOpenLoginModal);
+      window.addEventListener('openSignupModal', handleOpenSignupModal);
     }
     return () => {
       if (typeof window !== 'undefined') {
         window.removeEventListener('openLoginModal', handleOpenLoginModal);
+        window.removeEventListener('openSignupModal', handleOpenSignupModal);
       }
     };
   }, []);
@@ -115,7 +122,6 @@ function HomeContent() {
       let authData: any = null;
       let signInError: any = null;
 
-      // Try direct Supabase auth first (fastest, works if CORS is configured)
       try {
         const result = await supabase.auth.signInWithPassword({
           email: loginEmail,
@@ -124,20 +130,15 @@ function HomeContent() {
         authData = result.data;
         signInError = result.error;
       } catch (directError: any) {
-        // If CORS error or network error, fallback to backend
         const isCorsError = directError?.message?.includes('CORS') || 
                            directError?.message?.includes('Failed to fetch') ||
                            directError?.name === 'TypeError';
         
         if (isCorsError) {
-          console.log('CORS error detected, using backend login route...');
-          
-          // Use backend login route (bypasses CORS)
           try {
             const backendResponse = await authApi.login(loginEmail, loginPassword);
             
             if (backendResponse.success && backendResponse.session) {
-              // Set session in Supabase client
               const { error: setSessionError } = await supabase.auth.setSession({
                 access_token: backendResponse.session.access_token,
                 refresh_token: backendResponse.session.refresh_token,
@@ -149,7 +150,6 @@ function HomeContent() {
                 return;
               }
 
-              // Get user from session
               const { data: { user } } = await supabase.auth.getUser();
               authData = { user, session: backendResponse.session };
               signInError = null;
@@ -160,7 +160,6 @@ function HomeContent() {
             signInError = { message: backendError.message || 'Login failed' };
           }
         } else {
-          // Other error, use it directly
           signInError = directError;
         }
       }
@@ -177,35 +176,20 @@ function HomeContent() {
         return;
       }
 
-      // Verify session is stored
-      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.warn('Session error after login:', sessionError);
-      }
-
-      // Sync user to users table if missing
       try {
         await authApi.syncUser(
           authData.user.id,
           authData.user.email || loginEmail,
           authData.user.user_metadata?.name
         );
-        console.log('User synced to users table');
       } catch (syncError) {
-        // Log error but don't block login
         console.warn('Failed to sync user to users (non-blocking):', syncError);
       }
 
-      // Ensure session is properly set and auth state is updated
-      // Wait a moment for onAuthStateChange to fire and update the AuthProvider
       await new Promise(resolve => setTimeout(resolve, 200));
       
-      // Verify session is set
       const { data: { session: verifySession } } = await supabase.auth.getSession();
       if (!verifySession && authData.session) {
-        console.warn('Session not found after login, but we have authData.session');
-        // Session should be set by Supabase automatically, but if not, try to set it
         await supabase.auth.setSession({
           access_token: authData.session.access_token,
           refresh_token: authData.session.refresh_token,
@@ -213,12 +197,9 @@ function HomeContent() {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      // Close modal and redirect to owner dashboard
       setShowLoginModal(false);
-      // Small delay to ensure auth state propagates, then redirect
       setTimeout(() => {
         router.push('/owner/dashboard');
-        // Force a refresh of server components to pick up new auth state
         router.refresh();
       }, 300);
     } catch (err) {
@@ -340,99 +321,137 @@ function HomeContent() {
         onOpenSignup={() => setShowSignupModal(true)}
       />
 
-      {/* Hero Section */}
-      <section className="py-20 md:py-32 bg-gradient-to-br from-blue-50 to-pink-50">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-            {t('home.welcomeTitle') || 'Welcome to Yoyaku Yo'}
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            {t('home.welcomeSubtitle') || 'Book beauty and wellness services with ease'}
-          </p>
+      {/* Hero Section with Slideshow */}
+      <MarketingHeroSlideshow />
+
+      {/* Why Yoyaku Yo Section */}
+      <section className="py-16 md:py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
+            {t('whyTitle')}
+          </h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow text-center">
+              <div className="text-5xl mb-4">⏱️</div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                {t('whyCard1Title')}
+              </h3>
+              <p className="text-gray-600">
+                {t('whyCard1Text')}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow text-center">
+              <div className="text-5xl mb-4">🤖</div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                {t('whyCard2Title')}
+              </h3>
+              <p className="text-gray-600">
+                {t('whyCard2Text')}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow text-center">
+              <div className="text-5xl mb-4">✓</div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                {t('whyCard3Title')}
+              </h3>
+              <p className="text-gray-600">
+                {t('whyCard3Text')}
+              </p>
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* Category Spotlight Section */}
+      <CategorySpotlight />
 
       {/* How It Works Section */}
       <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-heading font-bold text-center text-gray-900 mb-12">
-            {t('home.howItWorks')}
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
+            {t('howItWorksTitle')}
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
             {/* For Customers Card */}
-            <div className="bg-gray-50 border border-gray-200 rounded-theme p-8 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-5xl mb-4">👥</div>
-              <h3 className="text-2xl font-heading font-bold text-gray-900 mb-4">
-                {t('home.forCustomersTitle')}
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                {t('forCustomersTitle')}
               </h3>
-              <ul className="space-y-3 text-gray-700 font-body mb-6">
+              <ul className="space-y-3 text-gray-700 mb-6">
                 <li className="flex items-start gap-2">
-                  <span className="text-accent-pink mt-1">✓</span>
-                  <span>{t('home.forCustomersBullet1')}</span>
+                  <span className="text-pink-600 mt-1">✓</span>
+                  <span>{t('forCustomersBullet1')}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-accent-pink mt-1">✓</span>
-                  <span>{t('home.forCustomersBullet2')}</span>
+                  <span className="text-pink-600 mt-1">✓</span>
+                  <span>{t('forCustomersBullet2')}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-accent-pink mt-1">✓</span>
-                  <span>{t('home.forCustomersBullet3')}</span>
+                  <span className="text-pink-600 mt-1">✓</span>
+                  <span>{t('forCustomersBullet3')}</span>
                 </li>
               </ul>
               <Link
                 href="/customer-signup"
                 className="block w-full text-center px-6 py-3 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-lg transition-colors"
               >
-                {t('home.joinAsCustomer') || 'Join as Customer'}
+                {t('joinAsCustomer')}
               </Link>
+              <p className="text-xs text-gray-600 mt-2 text-center">
+                {t('joinAsCustomerDesc')}
+              </p>
             </div>
 
             {/* For Owners Card */}
-            <div className="bg-gray-50 border border-gray-200 rounded-theme p-8 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-5xl mb-4">💼</div>
-              <h3 className="text-2xl font-heading font-bold text-gray-900 mb-4">
-                {t('home.forOwnersTitle')}
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                {t('forOwnersTitle')}
               </h3>
-              <ul className="space-y-3 text-gray-700 font-body mb-6">
+              <ul className="space-y-3 text-gray-700 mb-6">
                 <li className="flex items-start gap-2">
-                  <span className="text-accent-blue mt-1">✓</span>
-                  <span>{t('home.forOwnersBullet1')}</span>
+                  <span className="text-blue-600 mt-1">✓</span>
+                  <span>{t('forOwnersBullet1')}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-accent-blue mt-1">✓</span>
-                  <span>{t('home.forOwnersBullet2')}</span>
+                  <span className="text-blue-600 mt-1">✓</span>
+                  <span>{t('forOwnersBullet2')}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-accent-blue mt-1">✓</span>
-                  <span>{t('home.forOwnersBullet3')}</span>
+                  <span className="text-blue-600 mt-1">✓</span>
+                  <span>{t('forOwnersBullet3')}</span>
                 </li>
               </ul>
               <button
                 onClick={() => setShowSignupModal(true)}
                 className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
               >
-                {t('home.joinAsOwner')}
+                {t('joinAsOwner')}
               </button>
+              <p className="text-xs text-gray-600 mt-2 text-center">
+                {t('joinAsOwnerDesc')}
+              </p>
             </div>
 
             {/* AI Assistance Card */}
-            <div className="bg-gray-50 border border-gray-200 rounded-theme p-8 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-5xl mb-4">🤖</div>
-              <h3 className="text-2xl font-heading font-bold text-gray-900 mb-4">
-                {t('home.aiAssistanceTitle')}
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                {t('aiAssistanceTitle')}
               </h3>
-              <ul className="space-y-3 text-gray-700 font-body">
+              <ul className="space-y-3 text-gray-700">
                 <li className="flex items-start gap-2">
-                  <span className="text-accent-pink mt-1">✓</span>
-                  <span>{t('home.aiAssistanceBullet1')}</span>
+                  <span className="text-purple-600 mt-1">✓</span>
+                  <span>{t('aiAssistanceBullet1')}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-accent-pink mt-1">✓</span>
-                  <span>{t('home.aiAssistanceBullet2')}</span>
+                  <span className="text-purple-600 mt-1">✓</span>
+                  <span>{t('aiAssistanceBullet2')}</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-accent-pink mt-1">✓</span>
-                  <span>{t('home.aiAssistanceBullet3')}</span>
+                  <span className="text-purple-600 mt-1">✓</span>
+                  <span>{t('aiAssistanceBullet3')}</span>
                 </li>
               </ul>
             </div>
@@ -506,7 +525,7 @@ function HomeContent() {
             }}
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
-            {t('home.joinAsOwner')}
+            {t('joinAsOwner')}
           </button>
         </p>
       </Modal>
