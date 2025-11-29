@@ -251,8 +251,12 @@ export default function BookingsPage() {
               {filteredBookings.map((booking) => (
                 <tr key={booking.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{booking.customer_name || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">{booking.customer_email || 'N/A'}</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {booking.customer_name || booking.customer_email || 'N/A'}
+                    </div>
+                    {booking.customer_email && booking.customer_email !== booking.customer_name && (
+                      <div className="text-sm text-gray-500">{booking.customer_email}</div>
+                    )}
                     {booking.customer_email && (
                       <Link
                         href={`/messages?bookingId=${booking.id}`}
@@ -263,7 +267,9 @@ export default function BookingsPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{booking.services?.name || 'N/A'}</div>
+                    <div className="text-sm text-gray-900">
+                      {booking.services?.name || (booking.service_id ? 'Service ID: ' + booking.service_id : 'N/A')}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
