@@ -88,6 +88,23 @@ export function BrowseAIAssistant({
     }
   }, [sessionId, shops.length]);
 
+  // Reload conversation history when chat opens to ensure we have the latest messages
+  useEffect(() => {
+    if (isOpen && sessionId && shops.length > 0) {
+      loadConversationHistory();
+    }
+  }, [isOpen, sessionId, shops.length]);
+
+  // Also reload history periodically (every 30 seconds) when chat is open
+  useEffect(() => {
+    if (isOpen && sessionId && shops.length > 0) {
+      const interval = setInterval(() => {
+        loadConversationHistory();
+      }, 30000); // Reload every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [isOpen, sessionId, shops.length]);
+
   const loadConversationHistory = async () => {
     if (!sessionId || shops.length === 0) return;
     
@@ -230,6 +247,14 @@ export function BrowseAIAssistant({
       };
 
       setMessages(prev => [...prev, aiMessage]);
+      
+      // Reload history from database after sending message to ensure we have the latest
+      // This ensures messages are always in sync with the database
+      if (sessionId && shops.length > 0) {
+        setTimeout(() => {
+          loadConversationHistory();
+        }, 1000); // Wait 1 second for backend to save
+      }
     } catch (err: any) {
       console.error('Error sending message to AI:', err);
       setError(err.message || 'Failed to send message. Please try again.');

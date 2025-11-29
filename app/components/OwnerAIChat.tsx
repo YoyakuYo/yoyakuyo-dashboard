@@ -20,6 +20,7 @@ interface OwnerAIChatContextType {
   clearMessages: () => void;
   openChat: () => void;
   isOpen: boolean;
+  reloadHistory: () => Promise<void>;
 }
 
 const OwnerAIChatContext = createContext<OwnerAIChatContextType | null>(null);
@@ -97,6 +98,10 @@ export function OwnerAIChatProvider({ children }: { children: React.ReactNode })
     setShouldOpenChat(true);
   };
 
+  const reloadHistory = async () => {
+    await loadConversationHistory();
+  };
+
   // Reset shouldOpenChat after it's been consumed
   useEffect(() => {
     if (shouldOpenChat) {
@@ -109,7 +114,7 @@ export function OwnerAIChatProvider({ children }: { children: React.ReactNode })
   }, [shouldOpenChat]);
 
   return (
-    <OwnerAIChatContext.Provider value={{ messages, addMessage, clearMessages, openChat, isOpen: shouldOpenChat }}>
+    <OwnerAIChatContext.Provider value={{ messages, addMessage, clearMessages, openChat, isOpen: shouldOpenChat, reloadHistory }}>
       {children}
     </OwnerAIChatContext.Provider>
   );
@@ -121,7 +126,7 @@ interface OwnerAIChatProps {
 }
 
 export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
-  const { messages, addMessage, isOpen: shouldOpenFromContext } = useOwnerAIChat();
+  const { messages, addMessage, isOpen: shouldOpenFromContext, reloadHistory } = useOwnerAIChat();
   const { user } = useAuth();
   const t = useTranslations();
   const [isOpen, setIsOpen] = useState(fullPage);
@@ -142,6 +147,7 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [shopId, setShopId] = useState<string | null>(null);
+  const historyLoadedRef = useRef(false); // Track if history has been loaded
   // Language is now auto-detected by backend from shop data, no need to load from user profile
 
   // Load shop ID
@@ -159,6 +165,23 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
         .catch(() => {});
     }
   }, [user]);
+
+  // Reload conversation history when chat opens to ensure we have the latest messages
+  useEffect(() => {
+    if (isOpen && user?.id && shopId) {
+      reloadHistory();
+    }
+  }, [isOpen, user?.id, shopId]);
+
+  // Also reload history periodically (every 30 seconds) when chat is open to catch new messages
+  useEffect(() => {
+    if (isOpen && user?.id && shopId) {
+      const interval = setInterval(() => {
+        reloadHistory();
+      }, 30000); // Reload every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [isOpen, user?.id, shopId, reloadHistory]);
 
   // Scroll to bottom
   useEffect(() => {
