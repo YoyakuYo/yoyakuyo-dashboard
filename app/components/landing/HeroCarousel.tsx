@@ -52,37 +52,37 @@ export default function HeroCarousel({ onSlideChange }: HeroCarouselProps) {
     goToSlide(newIndex);
   }, [currentIndex, goToSlide]);
 
-  // Get image path - maps slide IDs to imgur URLs
+  // Get image path - maps slide IDs to Unsplash URLs (high-quality stock photos)
   const getImagePath = (slideId: string) => {
-    // Map each slide ID to its corresponding imgur URL
+    // Map each slide ID to its corresponding Unsplash image URL
     const imageMap: Record<string, string> = {
-      // HAIR
-      'hair-salon-environment': 'https://i.imgur.com/1QZYzj7.jpeg',
-      'hair-salon-action': 'https://i.imgur.com/bmwxF0D.jpeg',
-      // NAILS
-      'nail-salon-environment': 'https://i.imgur.com/vZrU0VU.jpeg',
-      'nail-salon-action': 'https://i.imgur.com/EjzknWe.jpeg',
-      // EYELASH
-      'eyelash-environment': 'https://i.imgur.com/XGuT0DR.jpeg',
-      'eyelash-action': 'https://i.imgur.com/hDi1YEq.jpeg',
-      // SPA
-      'spa-environment': 'https://i.imgur.com/WT0uox2.jpeg',
-      'spa-action': 'https://i.imgur.com/ucUgid2.jpeg',
-      // HOTEL
-      'hotel-environment': 'https://i.imgur.com/JUO6xWJ.jpeg',
-      'hotel-action': 'https://i.imgur.com/JC2qkQn.jpeg',
-      // RESTAURANT
-      'restaurant-environment': 'https://i.imgur.com/TkZD01Y.jpeg',
-      'restaurant-action': 'https://i.imgur.com/JOuGk4V.jpeg',
-      // ONSEN
-      'onsen-environment': 'https://i.imgur.com/2cUypPf.jpeg',
-      'onsen-action': 'https://i.imgur.com/2cUypPf.jpeg', // Using same as environment (no separate action URL provided)
-      // CLINIC
-      'clinic-environment': 'https://i.imgur.com/YERkZiK.jpeg',
-      'clinic-action': 'https://i.imgur.com/YERkZiK.jpeg', // Using same as environment (no separate action URL provided)
+      // HAIR - Luxury hair salon interior
+      'hair-salon-environment': 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1920&q=80',
+      'hair-salon-action': 'https://images.unsplash.com/photo-1522338242992-e1a54906a8da?w=1920&q=80',
+      // NAILS - Beautiful nail salon
+      'nail-salon-environment': 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1920&q=80',
+      'nail-salon-action': 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=1920&q=80',
+      // EYELASH - Soft eyelash salon
+      'eyelash-environment': 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=1920&q=80',
+      'eyelash-action': 'https://images.unsplash.com/photo-1616394584738-fc6e612e0b09?w=1920&q=80',
+      // SPA - Relaxing spa environment
+      'spa-environment': 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1920&q=80',
+      'spa-action': 'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=1920&q=80',
+      // HOTEL - Luxury hotel room
+      'hotel-environment': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920&q=80',
+      'hotel-action': 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1920&q=80',
+      // RESTAURANT - Fine dining restaurant
+      'restaurant-environment': 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80',
+      'restaurant-action': 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1920&q=80',
+      // ONSEN - Japanese hot spring
+      'onsen-environment': 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1920&q=80',
+      'onsen-action': 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=1920&q=80',
+      // CLINIC - Clean medical clinic
+      'clinic-environment': 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=1920&q=80',
+      'clinic-action': 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=1920&q=80',
     };
     
-    return imageMap[slideId] || 'https://i.imgur.com/1QZYzj7.jpeg'; // Fallback to hair salon image
+    return imageMap[slideId] || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1920&q=80'; // Fallback to hair salon image
   };
 
   const title = isJapanese ? currentSlide.titleJa : currentSlide.titleEn;
@@ -107,7 +107,7 @@ export default function HeroCarousel({ onSlideChange }: HeroCarouselProps) {
           unoptimized={true}
           onError={(e) => {
             // Fallback to hair salon image if image fails
-            (e.target as HTMLImageElement).src = 'https://i.imgur.com/1QZYzj7.jpeg';
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1920&q=80';
           }}
         />
       </div>

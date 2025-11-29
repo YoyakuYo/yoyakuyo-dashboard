@@ -6,21 +6,21 @@ import Link from 'next/link';
 import { useLocale } from 'next-intl';
 import { CATEGORIES } from '@/lib/categories';
 
-// Map category imageKeys to imgur URLs for beautiful representative images
+// Map category imageKeys to Unsplash URLs (high-quality stock photos)
 const categoryImageMap: Record<string, string> = {
-  'restaurant': 'https://i.imgur.com/TkZD01Y.jpeg',
-  'hotel': 'https://i.imgur.com/JUO6xWJ.jpeg',
-  'hair-salon': 'https://i.imgur.com/1QZYzj7.jpeg',
-  'barber': 'https://i.imgur.com/bmwxF0D.jpeg',
-  'nails': 'https://i.imgur.com/vZrU0VU.jpeg',
-  'eyelash': 'https://i.imgur.com/XGuT0DR.jpeg',
-  'onsen': 'https://i.imgur.com/2cUypPf.jpeg',
-  'spa': 'https://i.imgur.com/WT0uox2.jpeg',
-  'beauty-salon': 'https://i.imgur.com/1QZYzj7.jpeg',
-  'dental': 'https://i.imgur.com/YERkZiK.jpeg',
-  'womens-clinic': 'https://i.imgur.com/YERkZiK.jpeg',
-  'golf': 'https://i.imgur.com/JC2qkQn.jpeg',
-  'karaoke': 'https://i.imgur.com/JOuGk4V.jpeg',
+  'restaurant': 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80',
+  'hotel': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
+  'hair-salon': 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80',
+  'barber': 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80',
+  'nails': 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80',
+  'eyelash': 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=800&q=80',
+  'onsen': 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80',
+  'spa': 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80',
+  'beauty-salon': 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80',
+  'dental': 'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=800&q=80',
+  'womens-clinic': 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800&q=80',
+  'golf': 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=800&q=80',
+  'karaoke': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
 };
 
 export default function CategoryGrid() {
@@ -35,7 +35,7 @@ export default function CategoryGrid() {
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {CATEGORIES.map((category) => {
-            const imageUrl = categoryImageMap[category.imageKey] || 'https://i.imgur.com/1QZYzj7.jpeg';
+            const imageUrl = categoryImageMap[category.imageKey] || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80';
             const categoryName = isJapanese ? category.nameJa : category.name;
 
             return (
@@ -53,7 +53,7 @@ export default function CategoryGrid() {
                     sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                     unoptimized={true}
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://i.imgur.com/1QZYzj7.jpeg';
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80';
                     }}
                   />
                   {/* Gradient overlay for text readability */}

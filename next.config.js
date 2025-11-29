@@ -7,9 +7,17 @@ const nextConfig = {
   // Ensure proper port configuration
   // Port is set via command line: next start -p 3001
   
-  // Allow external images from imgur and other sources
+  // Allow external images from Unsplash and other sources
   images: {
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'unsplash.com',
+      },
       {
         protocol: 'https',
         hostname: 'i.imgur.com',
