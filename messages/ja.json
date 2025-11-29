@@ -143,6 +143,13 @@
     "failedToCreate": "予約の作成に失敗しました。もう一度お試しください。",
     "noBookingsFound": "予約が見つかりませんでした。"
   },
+  "bookings": {
+    "all": "すべて",
+    "pending": "保留中",
+    "confirmed": "確認済み",
+    "completed": "完了",
+    "cancelled": "キャンセル済み"
+  },
   "chat": {
     "title": "AIアシスタントとチャット",
     "placeholder": "メッセージを入力...",

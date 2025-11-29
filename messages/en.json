@@ -143,6 +143,13 @@
     "failedToCreate": "Failed to create booking. Please try again.",
     "noBookingsFound": "No bookings found."
   },
+  "bookings": {
+    "all": "All",
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
   "chat": {
     "title": "Chat with AI assistant",
     "placeholder": "Type your message...",

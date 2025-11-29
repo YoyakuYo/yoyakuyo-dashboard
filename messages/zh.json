@@ -66,6 +66,13 @@
   "booking": {
     "noBookingsFound": "未找到预约。"
   },
+  "bookings": {
+    "all": "全部",
+    "pending": "待处理",
+    "confirmed": "已确认",
+    "completed": "已完成",
+    "cancelled": "已取消"
+  },
   "common": {
     "save": "保存更改",
     "cancel": "取消",

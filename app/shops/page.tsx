@@ -1135,7 +1135,7 @@ const MyShopPage = () => {
       // Create FormData
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('shopId', shop.id);
+      formData.append('shop_id', shop.id); // Use shop_id instead of shopId
       formData.append('type', type);
 
       // Ensure API URL is set correctly

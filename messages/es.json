@@ -66,6 +66,13 @@
   "booking": {
     "noBookingsFound": "No se encontraron reservas."
   },
+  "bookings": {
+    "all": "Todas",
+    "pending": "Pendiente",
+    "confirmed": "Confirmado",
+    "completed": "Completado",
+    "cancelled": "Cancelado"
+  },
   "common": {
     "save": "Guardar cambios",
     "cancel": "Cancelar",

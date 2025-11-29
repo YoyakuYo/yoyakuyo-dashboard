@@ -55,6 +55,13 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
     }
   }, [shopId, userId]);
 
+  // Re-fetch holidays when selectedDate changes to ensure accurate state
+  useEffect(() => {
+    if (selectedDate && shopId && userId) {
+      fetchHolidays();
+    }
+  }, [selectedDate, shopId, userId]);
+
   // Mark date as holiday
   const handleAddHoliday = async () => {
     if (!selectedDate) return;

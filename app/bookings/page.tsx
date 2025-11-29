@@ -145,7 +145,7 @@ export default function BookingsPage() {
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              {t(`status.${status}`)}
+              {t(`bookings.${status}`)}
             </button>
           ))}
         </div>
