@@ -49,7 +49,7 @@ const categories: Category[] = [
   },
   {
     id: 'eyelash_salon',
-    image: 'https://images.unsplash.com/photo-1616394584738-fc6e612e0b09?w=1920&q=80',
+    image: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=1920&q=80',
     nameKey: 'eyelashSalon',
     descKey: 'eyelashSalonDesc',
     modalTitleKey: 'eyelashSalonModalTitle',
@@ -196,7 +196,13 @@ export default function CategoryBanners() {
                   className="object-cover transition-transform duration-700 group-hover:scale-105"
                   sizes="100vw"
                   unoptimized={true}
+                  onError={(e) => {
+                    // Fallback to gradient if image fails
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
                 />
+                {/* Fallback gradient background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-400 via-pink-500 to-red-500" />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent" />
               </div>
 
