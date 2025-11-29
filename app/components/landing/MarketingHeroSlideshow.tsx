@@ -3,15 +3,34 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import Image from 'next/image';
 
-// Hero slideshow images - using placeholder paths (user will replace with actual images)
+// Hero slideshow images - using Unsplash high-quality images
 const heroImages = [
-  '/images/hero/hotel-lobby.jpg',
-  '/images/hero/spa-room.jpg',
-  '/images/hero/beauty-salon.jpg',
-  '/images/hero/nail-salon.jpg',
-  '/images/hero/eyelash-salon.jpg',
-  '/images/hero/restaurant-izakaya.jpg',
+  {
+    url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920&q=80',
+    alt: 'Luxury hotel lobby',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1920&q=80',
+    alt: 'Spa room with soft lighting',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1920&q=80',
+    alt: 'Modern beauty salon interior',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=1920&q=80',
+    alt: 'Beautiful nail salon',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1920&q=80',
+    alt: 'Eyelash salon interior',
+  },
+  {
+    url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80',
+    alt: 'Restaurant and izakaya interior',
+  },
 ];
 
 export default function MarketingHeroSlideshow() {
@@ -37,14 +56,22 @@ export default function MarketingHeroSlideshow() {
             className={`absolute inset-0 transition-opacity duration-1000 ${
               index === currentSlide ? 'opacity-100' : 'opacity-0'
             }`}
-            style={{
-              backgroundImage: `url(${image})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
           >
-            {/* Fallback gradient if image doesn't load */}
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500" />
+            <Image
+              src={image.url}
+              alt={image.alt}
+              fill
+              priority={index === 0}
+              className="object-cover"
+              sizes="100vw"
+              unoptimized={true}
+              onError={(e) => {
+                // Fallback to gradient if image fails
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+            {/* Fallback gradient - only shows if image fails */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 hidden" />
           </div>
         ))}
       </div>
