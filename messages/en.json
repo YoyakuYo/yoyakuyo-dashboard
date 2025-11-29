@@ -621,6 +621,18 @@
       "none": "No pending bookings"
     }
   },
+  "customer": {
+    "nav": {
+      "home": "Home",
+      "myBookings": "My Bookings",
+      "savedShops": "Saved Shops",
+      "favorites": "Favorites",
+      "aiChat": "AI Chat",
+      "notifications": "Notifications",
+      "browseShops": "Browse Shops",
+      "settings": "Settings"
+    }
+  },
   "landing": {
     "heroTitle": "Find and Book Japan's Best Beauty, Wellness & Lifestyle Services",
     "heroSubtitle": "Fast, easy, AI-powered reservations across 15+ categories",

@@ -17,12 +17,32 @@ export default function CustomerNotificationsPage() {
   }, [user]);
 
   const loadNotifications = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     const supabase = getSupabaseClient();
+    
+    // First, get customer_profile_id from customer_auth_id
+    const { data: profile } = await supabase
+      .from("customer_profiles")
+      .select("id")
+      .eq("customer_auth_id", user.id)
+      .maybeSingle();
+
+    if (!profile?.id) {
+      console.error("Customer profile not found for user:", user.id);
+      setNotifications([]);
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
       .eq("recipient_type", "customer")
-      .eq("recipient_id", user?.id)
+      .eq("recipient_id", profile.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -34,26 +54,39 @@ export default function CustomerNotificationsPage() {
   };
 
   const subscribeToNotifications = () => {
-    const supabase = getSupabaseClient();
-    const channel = supabase
-      .channel("customer-notifications-subscription")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `recipient_type=eq.customer&recipient_id=eq.${user?.id}`,
-        },
-        () => {
-          loadNotifications();
-        }
-      )
-      .subscribe();
+    if (!user?.id) return;
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const supabase = getSupabaseClient();
+    
+    // Get customer_profile_id for subscription
+    supabase
+      .from("customer_profiles")
+      .select("id")
+      .eq("customer_auth_id", user.id)
+      .maybeSingle()
+      .then(({ data: profile }) => {
+        if (!profile?.id) return;
+
+        const channel = supabase
+          .channel("customer-notifications-subscription")
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "notifications",
+              filter: `recipient_type=eq.customer&recipient_id=eq.${profile.id}`,
+            },
+            () => {
+              loadNotifications();
+            }
+          )
+          .subscribe();
+
+        return () => {
+          supabase.removeChannel(channel);
+        };
+      });
   };
 
   const markAsRead = async (notificationId: string) => {
@@ -71,12 +104,24 @@ export default function CustomerNotificationsPage() {
   };
 
   const markAllAsRead = async () => {
+    if (!user?.id) return;
+
     const supabase = getSupabaseClient();
+    
+    // Get customer_profile_id
+    const { data: profile } = await supabase
+      .from("customer_profiles")
+      .select("id")
+      .eq("customer_auth_id", user.id)
+      .maybeSingle();
+
+    if (!profile?.id) return;
+
     const { error } = await supabase
       .from("notifications")
       .update({ is_read: true })
       .eq("recipient_type", "customer")
-      .eq("recipient_id", user?.id)
+      .eq("recipient_id", profile.id)
       .eq("is_read", false);
 
     if (error) {

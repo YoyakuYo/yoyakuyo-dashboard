@@ -275,6 +275,18 @@
       "none": "没有待处理的预约"
     }
   },
+  "customer": {
+    "nav": {
+      "home": "首页",
+      "myBookings": "我的预约",
+      "savedShops": "保存的店铺",
+      "favorites": "收藏",
+      "aiChat": "AI聊天",
+      "notifications": "通知",
+      "browseShops": "浏览店铺",
+      "settings": "设置"
+    }
+  },
   "landing": {
     "heroTitle": "查找并预订日本最佳的美容、健康与生活方式服务",
     "heroSubtitle": "在15+个类别中快速、轻松、AI驱动的预订",

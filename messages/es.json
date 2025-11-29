@@ -275,6 +275,18 @@
       "none": "No hay reservas pendientes"
     }
   },
+  "customer": {
+    "nav": {
+      "home": "Inicio",
+      "myBookings": "Mis Reservas",
+      "savedShops": "Tiendas Guardadas",
+      "favorites": "Favoritos",
+      "aiChat": "Chat IA",
+      "notifications": "Notificaciones",
+      "browseShops": "Explorar Tiendas",
+      "settings": "Configuración"
+    }
+  },
   "landing": {
     "heroTitle": "Encuentra y Reserva los Mejores Servicios de Belleza, Bienestar y Estilo de Vida de Japón",
     "heroSubtitle": "Reservas rápidas, fáciles y con IA en más de 15 categorías",

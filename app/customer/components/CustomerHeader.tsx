@@ -17,53 +17,65 @@ export default function CustomerHeader() {
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      const loadProfile = async () => {
-        const supabase = getSupabaseClient();
-        const { data } = await supabase
-          .from("customer_profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-        if (data) setProfile(data);
-      };
-      loadProfile();
+    if (!user) return;
 
-      // Load unread notifications
-      const loadUnreadCount = async () => {
-        const supabase = getSupabaseClient();
-        const { data } = await supabase
+    const supabase = getSupabaseClient();
+    let channel: any = null;
+    
+    // Load profile and notifications
+    const loadData = async () => {
+      // Get customer_profile_id from customer_auth_id
+      const { data: profileData } = await supabase
+        .from("customer_profiles")
+        .select("*")
+        .eq("customer_auth_id", user.id)
+        .maybeSingle();
+      
+      if (profileData) {
+        setProfile(profileData);
+        
+        // Load unread notifications using customer_profile_id
+        const { data: notifications } = await supabase
           .from("notifications")
           .select("id", { count: "exact" })
           .eq("recipient_type", "customer")
-          .eq("recipient_id", user.id)
+          .eq("recipient_id", profileData.id)
           .eq("is_read", false);
-        setUnreadCount(data?.length || 0);
-      };
-      loadUnreadCount();
+        setUnreadCount(notifications?.length || 0);
 
-      // Subscribe to notification changes
-      const supabase = getSupabaseClient();
-      const channel = supabase
-        .channel("customer-notifications")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "notifications",
-            filter: `recipient_type=eq.customer&recipient_id=eq.${user.id}`,
-          },
-          () => {
-            loadUnreadCount();
-          }
-        )
-        .subscribe();
-
-      return () => {
+        // Subscribe to notification changes
+        channel = supabase
+          .channel("customer-notifications")
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "notifications",
+              filter: `recipient_type=eq.customer&recipient_id=eq.${profileData.id}`,
+            },
+            async () => {
+              // Reload unread count
+              const { data: updatedNotifications } = await supabase
+                .from("notifications")
+                .select("id", { count: "exact" })
+                .eq("recipient_type", "customer")
+                .eq("recipient_id", profileData.id)
+                .eq("is_read", false);
+              setUnreadCount(updatedNotifications?.length || 0);
+            }
+          )
+          .subscribe();
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      if (channel) {
         supabase.removeChannel(channel);
-      };
-    }
+      }
+    };
   }, [user]);
 
   const handleSignOut = async () => {

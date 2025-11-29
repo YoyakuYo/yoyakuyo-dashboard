@@ -19,8 +19,65 @@ export default function CustomerBookingsPage() {
     }
   }, [user, filter]);
 
-  const loadBookings = async () => {
+  // Subscribe to real-time booking updates
+  useEffect(() => {
+    if (!user?.id) return;
+
     const supabase = getSupabaseClient();
+    
+    // Get customer_profile_id for subscription
+    supabase
+      .from("customer_profiles")
+      .select("id")
+      .eq("customer_auth_id", user.id)
+      .maybeSingle()
+      .then(({ data: profile }) => {
+        if (!profile?.id) return;
+
+        const channel = supabase
+          .channel("customer-bookings-subscription")
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "bookings",
+              filter: `customer_profile_id=eq.${profile.id}`,
+            },
+            () => {
+              loadBookings();
+            }
+          )
+          .subscribe();
+
+        return () => {
+          supabase.removeChannel(channel);
+        };
+      });
+  }, [user]);
+
+  const loadBookings = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+    
+    // First, get customer_profile_id from customer_auth_id
+    const { data: profile } = await supabase
+      .from("customer_profiles")
+      .select("id")
+      .eq("customer_auth_id", user.id)
+      .maybeSingle();
+
+    if (!profile?.id) {
+      console.error("Customer profile not found for user:", user.id);
+      setBookings([]);
+      setLoading(false);
+      return;
+    }
+
     let query = supabase
       .from("bookings")
       .select(`
@@ -37,7 +94,7 @@ export default function CustomerBookingsPage() {
           price
         )
       `)
-      .eq("customer_profile_id", user?.id)
+      .eq("customer_profile_id", profile.id)
       .order("created_at", { ascending: false });
 
     if (filter !== "all") {

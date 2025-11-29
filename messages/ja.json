@@ -624,6 +624,18 @@
       "none": "未処理の予約はありません"
     }
   },
+  "customer": {
+    "nav": {
+      "home": "ホーム",
+      "myBookings": "予約一覧",
+      "savedShops": "保存した店舗",
+      "favorites": "お気に入り",
+      "aiChat": "AIチャット",
+      "notifications": "通知",
+      "browseShops": "店舗を閲覧",
+      "settings": "設定"
+    }
+  },
   "landing": {
     "heroTitle": "日本最高の美容・ウェルネス・ライフスタイルサービスを見つけて予約",
     "heroSubtitle": "15以上のカテゴリーで高速、簡単、AI対応の予約",
