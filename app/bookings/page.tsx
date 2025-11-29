@@ -33,7 +33,7 @@ interface Booking {
   time_slot?: string | null;
   start_time?: string | null;
   end_time?: string | null;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'awaiting_confirmation' | 'reschedule_requested';
   notes?: string | null;
   created_at: string;
   shops?: { id: string; name: string } | null;
@@ -120,8 +120,10 @@ export default function BookingsPage() {
   }
 
   // Count pending bookings from current bookings list
-  const pendingStatuses = ['pending', 'awaiting_confirmation', 'reschedule_requested'];
-  const pendingCount = bookings.filter((booking) => pendingStatuses.includes(booking.status)).length;
+  const pendingStatuses = ['pending', 'awaiting_confirmation', 'reschedule_requested'] as const;
+  const pendingCount = bookings.filter((booking) => 
+    (pendingStatuses as readonly string[]).includes(booking.status)
+  ).length;
   const hasPendingBookings = pendingCount > 0;
 
   return (
