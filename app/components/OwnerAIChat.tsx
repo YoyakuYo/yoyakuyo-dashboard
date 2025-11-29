@@ -57,13 +57,6 @@ export function OwnerAIChatProvider({ children }: { children: React.ReactNode })
     }
   }, [user]);
 
-  // Load conversation history when shopId is available
-  useEffect(() => {
-    if (user?.id && shopId) {
-      loadConversationHistory();
-    }
-  }, [user, shopId]);
-
   const loadConversationHistory = async () => {
     if (!user?.id || !shopId) return;
     try {
@@ -84,6 +77,13 @@ export function OwnerAIChatProvider({ children }: { children: React.ReactNode })
       console.error('Error loading conversation history:', error);
     }
   };
+
+  // Load conversation history when user logs in or shopId is available
+  useEffect(() => {
+    if (user?.id && shopId) {
+      loadConversationHistory();
+    }
+  }, [user?.id, shopId]); // Only depend on user.id and shopId to avoid unnecessary reloads
 
   const addMessage = (message: Message) => {
     setMessages(prev => [...prev, message]);

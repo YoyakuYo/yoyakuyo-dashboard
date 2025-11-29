@@ -52,6 +52,8 @@ export function BrowseAIAssistant({
   const inputRef = useRef<HTMLInputElement>(null);
   // Track conversation history for context
   const [rememberedLocation, setRememberedLocation] = useState<string | null>(null);
+  // Session ID for persistent conversation history
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -66,6 +68,47 @@ export function BrowseAIAssistant({
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
+
+  // Initialize session ID from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      let storedSessionId = localStorage.getItem('yoyaku_yo_customer_ai_session');
+      if (!storedSessionId) {
+        storedSessionId = `customer_ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('yoyaku_yo_customer_ai_session', storedSessionId);
+      }
+      setSessionId(storedSessionId);
+    }
+  }, []);
+
+  // Load conversation history when session ID is available
+  useEffect(() => {
+    if (sessionId && shops.length > 0) {
+      loadConversationHistory();
+    }
+  }, [sessionId, shops.length]);
+
+  const loadConversationHistory = async () => {
+    if (!sessionId || shops.length === 0) return;
+    
+    try {
+      // Use the first shop's ID for loading history (customer AI is general, not shop-specific)
+      const shopId = shops[0].id;
+      const res = await fetch(`${apiUrl}/customer-ai/my-messages?customerId=${sessionId}&shopId=${shopId}`);
+      if (res.ok) {
+        const history = await res.json();
+        const convertedMessages: Message[] = (Array.isArray(history) ? history : []).map((msg: any) => ({
+          id: msg.id || `msg-${Date.now()}-${Math.random()}`,
+          role: msg.role === 'user' ? 'user' : 'assistant',
+          content: msg.message || msg.content || '',
+          timestamp: new Date(msg.created_at || Date.now()),
+        }));
+        setMessages(convertedMessages);
+      }
+    } catch (error) {
+      console.error('Error loading conversation history:', error);
+    }
+  };
 
   // Extract location from conversation messages
   useEffect(() => {
@@ -147,6 +190,7 @@ export function BrowseAIAssistant({
           prefecture: selectedPrefecture || null,
           category: selectedCategoryId || null,
           searchQuery: searchQuery || null,
+          customerId: sessionId, // Send session ID for persistent storage
           shops: shops.map(s => ({
             id: s.id,
             name: s.name,
