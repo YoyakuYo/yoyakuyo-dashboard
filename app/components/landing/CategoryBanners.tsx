@@ -127,15 +127,21 @@ function CategoryModal({ category, onClose }: CategoryModalProps) {
             className="object-cover rounded-t-2xl"
             sizes="100vw"
             unoptimized={true}
+            onError={(e) => {
+              // Fallback to gradient if image fails
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
           />
+          {/* Fallback gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 rounded-t-2xl" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent rounded-t-2xl" />
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center text-gray-800 text-xl font-bold transition-colors"
+            className="absolute top-4 right-4 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center text-gray-800 text-xl font-bold transition-colors z-10"
           >
             ×
           </button>
-          <div className="absolute bottom-6 left-6 right-6">
+          <div className="absolute bottom-6 left-6 right-6 z-10">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-2">
               {t(category.modalTitleKey)}
             </h2>
