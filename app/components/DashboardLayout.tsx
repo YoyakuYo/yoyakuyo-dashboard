@@ -61,6 +61,14 @@ export default function DashboardLayout({
     return <>{children}</>;
   }
 
+  // Check if this is a customer route
+  const isCustomerRoute = pathname?.startsWith("/customer");
+  
+  // For customer routes, don't apply any layout (customer layout handles it)
+  if (isCustomerRoute) {
+    return <>{children}</>;
+  }
+
   // For public routes, wrap with PublicLayoutWrapper (includes header)
   if (!isOwnerRoute) {
     console.log("🔥 DashboardLayout: Applying PublicLayoutWrapper for public route:", pathname);
