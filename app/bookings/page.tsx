@@ -10,17 +10,59 @@ import NotificationDot from "@/app/components/NotificationDot";
 import PaymentDetailsModal from "@/app/components/payments/PaymentDetailsModal";
 import Link from "next/link";
 // Format date helper
-const formatDate = (dateString: string) => {
+const formatDate = (dateString: string | null | undefined) => {
+  if (!dateString) return 'N/A';
   try {
     const date = new Date(dateString);
+    // Check if date is valid (not epoch or invalid)
+    if (isNaN(date.getTime()) || date.getTime() === 0) {
+      return 'N/A';
+    }
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'long', 
       day: 'numeric' 
     });
   } catch {
-    return dateString;
+    return 'N/A';
   }
+};
+
+// Format time helper
+const formatTime = (timeSlot: string | null | undefined, startTime: string | null | undefined) => {
+  if (startTime) {
+    try {
+      const date = new Date(startTime);
+      if (!isNaN(date.getTime()) && date.getTime() !== 0) {
+        return date.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false
+        });
+      }
+    } catch {
+      // Fall through to time_slot
+    }
+  }
+  if (timeSlot) {
+    // If timeSlot is an ISO string, extract time
+    if (timeSlot.includes('T')) {
+      try {
+        const date = new Date(timeSlot);
+        if (!isNaN(date.getTime()) && date.getTime() !== 0) {
+          return date.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false
+          });
+        }
+      } catch {
+        // Return as-is if parsing fails
+      }
+    }
+    return timeSlot;
+  }
+  return 'N/A';
 };
 
 interface Payment {
@@ -228,7 +270,7 @@ export default function BookingsPage() {
                       {formatDate(booking.date)}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {booking.time_slot || booking.start_time || 'N/A'}
+                      {formatTime(booking.time_slot, booking.start_time)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
