@@ -760,6 +760,7 @@
     "nav": {
       "home": "Home",
       "myBookings": "My Bookings",
+      "messages": "Messages",
       "savedShops": "Saved Shops",
       "favorites": "Favorites",
       "aiChat": "AI Chat",
@@ -767,6 +768,19 @@
       "browseShops": "Browse Shops",
       "settings": "Settings"
     }
+  },
+  "messages": {
+    "title": "Messages",
+    "conversations": "Conversations",
+    "noConversations": "No conversations yet",
+    "noMessages": "No messages yet. Start the conversation!",
+    "typeMessage": "Type a message...",
+    "send": "Send",
+    "sending": "Sending...",
+    "selectConversation": "Select a conversation to start messaging",
+    "customer": "Customer",
+    "shop": "Shop",
+    "browseShops": "Browse shops to start messaging"
   },
   "landing": {
     "heroTitle": "Find and Book Japan's Best Beauty, Wellness & Lifestyle Services",

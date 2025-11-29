@@ -207,6 +207,12 @@ export default function CustomerShopDetailPage() {
               Book Appointment
             </Link>
             <Link
+              href={`/customer/messages?shopId=${shop.id}`}
+              className="px-6 py-3 text-center font-medium text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors"
+            >
+              Message Shop
+            </Link>
+            <Link
               href={`/customer/chat`}
               className="px-6 py-3 text-center font-medium text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
             >
