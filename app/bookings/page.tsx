@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { useBookingNotifications } from "@/app/components/BookingNotificationContext";
 import NotificationDot from "@/app/components/NotificationDot";
 import PaymentDetailsModal from "@/app/components/payments/PaymentDetailsModal";
+import Link from "next/link";
 // Format date helper
 const formatDate = (dateString: string) => {
   try {
@@ -210,6 +211,14 @@ export default function BookingsPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{booking.customer_name || 'N/A'}</div>
                     <div className="text-sm text-gray-500">{booking.customer_email || 'N/A'}</div>
+                    {booking.customer_email && (
+                      <Link
+                        href={`/messages?bookingId=${booking.id}`}
+                        className="mt-2 inline-block text-xs text-blue-600 hover:text-blue-700 hover:underline"
+                      >
+                        💬 Message Customer
+                      </Link>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{booking.services?.name || 'N/A'}</div>

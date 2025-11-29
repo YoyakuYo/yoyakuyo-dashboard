@@ -63,6 +63,14 @@ function CustomerMessagesPageContent() {
     }
   }, [shopIdParam, user, threads]);
 
+  // Handle bookingId parameter - find or create thread for this booking
+  useEffect(() => {
+    const bookingIdParam = searchParams.get('bookingId');
+    if (bookingIdParam && user && !selectedThread) {
+      loadThreadForBooking(bookingIdParam);
+    }
+  }, [searchParams, user]);
+
   useEffect(() => {
     if (selectedThread) {
       loadMessages(selectedThread);
@@ -84,6 +92,24 @@ function CustomerMessagesPageContent() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const loadThreadForBooking = async (bookingId: string) => {
+    if (!user?.id) return;
+
+    try {
+      const res = await fetch(`${apiUrl}/messages/booking/${bookingId}/thread`, {
+        headers: { 'x-user-id': user.id },
+      });
+
+      if (res.ok) {
+        const thread = await res.json();
+        setSelectedThread(thread.id);
+        await loadThreads(); // Refresh thread list
+      }
+    } catch (error) {
+      console.error("Error loading thread for booking:", error);
+    }
   };
 
   const startThreadForShop = async (shopId: string) => {

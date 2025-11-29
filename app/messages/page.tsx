@@ -3,11 +3,12 @@
 
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useAuth } from "@/lib/useAuth";
 import { apiUrl } from "@/lib/apiClient";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 
 interface Thread {
   id: string;
@@ -31,9 +32,11 @@ interface Message {
   read_by_customer: boolean;
 }
 
-export default function MessagesPage() {
+function MessagesPageContent() {
   const { user } = useAuth();
   const t = useTranslations();
+  const searchParams = useSearchParams();
+  const bookingIdParam = searchParams.get('bookingId');
   const [threads, setThreads] = useState<Thread[]>([]);
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -48,6 +51,13 @@ export default function MessagesPage() {
       loadThreads();
     }
   }, [user]);
+
+  // Handle bookingId parameter - find or create thread for this booking
+  useEffect(() => {
+    if (bookingIdParam && user && !selectedThread) {
+      loadThreadForBooking(bookingIdParam);
+    }
+  }, [bookingIdParam, user]);
 
   useEffect(() => {
     if (selectedThread) {
@@ -70,6 +80,24 @@ export default function MessagesPage() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const loadThreadForBooking = async (bookingId: string) => {
+    if (!user?.id) return;
+
+    try {
+      const res = await fetch(`${apiUrl}/messages/booking/${bookingId}/thread`, {
+        headers: { 'x-user-id': user.id },
+      });
+
+      if (res.ok) {
+        const thread = await res.json();
+        setSelectedThread(thread.id);
+        await loadThreads(); // Refresh thread list
+      }
+    } catch (error) {
+      console.error("Error loading thread for booking:", error);
+    }
   };
 
   const loadThreads = async () => {
@@ -307,6 +335,21 @@ export default function MessagesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    }>
+      <MessagesPageContent />
+    </Suspense>
   );
 }
 

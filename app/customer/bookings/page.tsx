@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCustomerNotifications } from "../components/CustomerNotificationContext";
+import { apiUrl } from "@/lib/apiClient";
 
-export default function CustomerBookingsPage() {
+function CustomerBookingsPageContent() {
   const { user } = useCustomAuth();
   const searchParams = useSearchParams();
   const filter = searchParams.get("filter") || "all";
@@ -238,6 +239,14 @@ export default function CustomerBookingsPage() {
                       Pay Now
                     </Link>
                   )}
+                  {booking.shops?.id && (
+                    <Link
+                      href={`/customer/messages?bookingId=${booking.id}`}
+                      className="px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors text-center"
+                    >
+                      💬 Message Shop
+                    </Link>
+                  )}
                   <Link
                     href={`/customer/bookings/${booking.id}`}
                     className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
@@ -251,6 +260,21 @@ export default function CustomerBookingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CustomerBookingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    }>
+      <CustomerBookingsPageContent />
+    </Suspense>
   );
 }
 
