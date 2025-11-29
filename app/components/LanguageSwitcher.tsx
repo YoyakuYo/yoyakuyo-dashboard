@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { SupportedLocale } from '../../i18n';
 
-const languages: Array<{ code: SupportedLocale; name: string; flag: string }> = [
-  { code: 'ja', name: '日本語', flag: '🇯🇵' },
-  { code: 'en', name: 'English', flag: '🇺🇸' },
-  { code: 'zh', name: '中文', flag: '🇨🇳' },
-  { code: 'es', name: 'Español', flag: '🇪🇸' },
-  { code: 'pt-BR', name: 'Português', flag: '🇧🇷' },
+const languages: Array<{ code: SupportedLocale; name: string }> = [
+  { code: 'ja', name: '日本語' },
+  { code: 'en', name: 'English' },
+  { code: 'zh', name: '中文' },
+  { code: 'es', name: 'Español' },
+  { code: 'pt-BR', name: 'Português' },
 ];
 
 export function LanguageSwitcher() {
@@ -66,7 +66,6 @@ export function LanguageSwitcher() {
         className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
         aria-label="Change language"
       >
-        <span className="text-lg">{currentLang.flag}</span>
         <span className="text-sm font-medium text-gray-700">{currentLang.name}</span>
         <svg
           className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -94,7 +93,6 @@ export function LanguageSwitcher() {
                     currentLocale === lang.code ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
                   }`}
                 >
-                  <span className="text-lg">{lang.flag}</span>
                   <span className="text-sm">{lang.name}</span>
                   {currentLocale === lang.code && (
                     <span className="ml-auto text-blue-600">✓</span>
