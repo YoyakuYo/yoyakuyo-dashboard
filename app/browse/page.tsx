@@ -79,17 +79,36 @@ function BrowsePageContent() {
     (searchParams.get('mode') as BrowseMode) || 'area'
   );
   
-  // Navigation state
-  const [selectedPrefecture, setSelectedPrefecture] = useState<string | null>(
-    searchParams.get('prefecture') || null
-  );
-  const [selectedCity, setSelectedCity] = useState<string | null>(
-    searchParams.get('city') || null
-  );
+  // Navigation state - Changed to arrays for multiple selection
+  const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>(() => {
+    const pref = searchParams.get('prefecture');
+    return pref ? pref.split(',').filter(Boolean) : [];
+  });
+  const [selectedCities, setSelectedCities] = useState<string[]>(() => {
+    const city = searchParams.get('city');
+    return city ? city.split(',').filter(Boolean) : [];
+  });
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     searchParams.get('category') || null
   );
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
+  
+  // Toggle functions for checkbox-based selection
+  const togglePrefecture = (pref: string) => {
+    setSelectedPrefectures(prev => 
+      prev.includes(pref) 
+        ? prev.filter(p => p !== pref)
+        : [...prev, pref]
+    );
+  };
+  
+  const toggleCity = (city: string) => {
+    setSelectedCities(prev => 
+      prev.includes(city) 
+        ? prev.filter(c => c !== city)
+        : [...prev, city]
+    );
+  };
 
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
@@ -176,11 +195,12 @@ function BrowsePageContent() {
       if (debouncedSearch.trim()) {
         params.set('search', debouncedSearch.trim());
       }
-      if (selectedPrefecture) {
-        params.set('prefecture', selectedPrefecture);
+      // Support multiple prefectures and cities (comma-separated)
+      if (selectedPrefectures.length > 0) {
+        params.set('prefecture', selectedPrefectures.join(','));
       }
-      if (selectedCity) {
-        params.set('city', selectedCity);
+      if (selectedCities.length > 0) {
+        params.set('city', selectedCities.join(','));
       }
       if (selectedCategoryId) {
         params.set('category', selectedCategoryId);
@@ -234,7 +254,7 @@ function BrowsePageContent() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [apiUrl, debouncedSearch, selectedPrefecture, selectedCity, selectedCategoryId]);
+  }, [apiUrl, debouncedSearch, selectedPrefectures, selectedCities, selectedCategoryId]);
 
   // Fetch area tree and category stats on mount
   useEffect(() => {
@@ -246,7 +266,7 @@ function BrowsePageContent() {
   useEffect(() => {
     fetchShops(1, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, selectedPrefecture, selectedCity, selectedCategoryId]);
+  }, [debouncedSearch, selectedPrefectures, selectedCities, selectedCategoryId]);
 
   // Load more shops
   const loadMoreShops = useCallback(() => {
@@ -257,7 +277,7 @@ function BrowsePageContent() {
 
   // Auto-select prefecture with most shops on first load (if no filters selected)
   useEffect(() => {
-    const hasFilters = selectedPrefecture || selectedCity || selectedCategoryId || debouncedSearch;
+    const hasFilters = selectedPrefectures.length > 0 || selectedCities.length > 0 || selectedCategoryId || debouncedSearch;
     
     if (!hasFilters && !hasAutoSelected && shops.length === 0 && !loading) {
       // Fetch top prefecture and auto-select it
@@ -265,30 +285,30 @@ function BrowsePageContent() {
         .then(res => res.json())
         .then(data => {
           if (data.prefecture && data.shopCount > 0) {
-            setSelectedPrefecture(data.prefecture);
+            setSelectedPrefectures([data.prefecture]);
             setHasAutoSelected(true);
           }
         })
         .catch(error => {
           console.error('Error fetching top prefecture:', error);
           // Fallback to Tokyo if API fails
-          setSelectedPrefecture('tokyo');
+          setSelectedPrefectures(['tokyo']);
           setHasAutoSelected(true);
         });
     }
-  }, [shops.length, loading, selectedPrefecture, selectedCity, selectedCategoryId, debouncedSearch, hasAutoSelected, apiUrl]);
+  }, [shops.length, loading, selectedPrefectures, selectedCities, selectedCategoryId, debouncedSearch, hasAutoSelected, apiUrl]);
 
   // Update URL when filters change
   useEffect(() => {
     const params = new URLSearchParams();
     if (debouncedSearch) params.set('search', debouncedSearch);
     if (browseMode) params.set('mode', browseMode);
-    if (selectedPrefecture) params.set('prefecture', selectedPrefecture);
-    if (selectedCity) params.set('city', selectedCity);
+    if (selectedPrefectures.length > 0) params.set('prefecture', selectedPrefectures.join(','));
+    if (selectedCities.length > 0) params.set('city', selectedCities.join(','));
     if (selectedCategoryId) params.set('category', selectedCategoryId);
     const newUrl = `/browse${params.toString() ? `?${params.toString()}` : ''}`;
     router.replace(newUrl, { scroll: false });
-  }, [debouncedSearch, browseMode, selectedPrefecture, selectedCity, selectedCategoryId, router]);
+  }, [debouncedSearch, browseMode, selectedPrefectures, selectedCities, selectedCategoryId, router]);
 
   // Filter shops by search (client-side filtering on already-loaded shops)
   const filteredShops = useMemo(() => {
@@ -379,8 +399,8 @@ function BrowsePageContent() {
   // Reset navigation when mode changes
   const handleModeChange = (mode: BrowseMode) => {
     setBrowseMode(mode);
-    setSelectedPrefecture(null);
-    setSelectedCity(null);
+    setSelectedPrefectures([]);
+    setSelectedCities([]);
     setSelectedCategoryId(null);
   };
 
@@ -469,10 +489,10 @@ function BrowsePageContent() {
                 {browseMode === 'area' ? (
                   <AreaNavigation
                     areaTree={areaTree}
-                    selectedPrefecture={selectedPrefecture}
-                    selectedCity={selectedCity}
-                    onSelectPrefecture={setSelectedPrefecture}
-                    onSelectCity={setSelectedCity}
+                    selectedPrefectures={selectedPrefectures}
+                    selectedCities={selectedCities}
+                    onTogglePrefecture={togglePrefecture}
+                    onToggleCity={toggleCity}
                     getPrefectureName={getPrefectureName}
                     getCityName={getCityName}
                     t={t}
@@ -482,11 +502,11 @@ function BrowsePageContent() {
                     categoryTree={categoryTree}
                     categories={categories}
                     selectedCategoryId={selectedCategoryId}
-                    selectedPrefecture={selectedPrefecture}
-                    selectedCity={selectedCity}
+                    selectedPrefectures={selectedPrefectures}
+                    selectedCities={selectedCities}
                     onSelectCategory={setSelectedCategoryId}
-                    onSelectPrefecture={setSelectedPrefecture}
-                    onSelectCity={setSelectedCity}
+                    onTogglePrefecture={togglePrefecture}
+                    onToggleCity={toggleCity}
                     getCategoryName={getCategoryName}
                     getPrefectureName={getPrefectureName}
                     getCityName={getCityName}

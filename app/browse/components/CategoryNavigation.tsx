@@ -1,9 +1,11 @@
 // app/browse/components/CategoryNavigation.tsx
 // Category-based navigation component for browse page
+// Supports hierarchical categories with subcategories and checkbox-based location selection
 
 "use client";
 import React from 'react';
 import type { CategoryTree } from '@/lib/browse/shopBrowseData';
+import { CATEGORIES, getSubcategories, hasSubcategories } from '@/lib/categories';
 
 interface Category {
   id: string;
@@ -15,11 +17,11 @@ interface CategoryNavigationProps {
   categoryTree: CategoryTree;
   categories: Category[];
   selectedCategoryId: string | null;
-  selectedPrefecture: string | null;
-  selectedCity: string | null;
+  selectedPrefectures: string[]; // Changed to array for multiple selection
+  selectedCities: string[]; // Changed to array for multiple selection
   onSelectCategory: (id: string | null) => void;
-  onSelectPrefecture: (pref: string | null) => void;
-  onSelectCity: (city: string | null) => void;
+  onTogglePrefecture: (pref: string) => void; // Changed to toggle for checkbox
+  onToggleCity: (city: string) => void; // Changed to toggle for checkbox
   getCategoryName: (name: string) => string;
   getPrefectureName: (key: string) => string;
   getCityName: (key: string) => string;
@@ -30,18 +32,24 @@ export function CategoryNavigation({
   categoryTree,
   categories,
   selectedCategoryId,
-  selectedPrefecture,
-  selectedCity,
+  selectedPrefectures,
+  selectedCities,
   onSelectCategory,
-  onSelectPrefecture,
-  onSelectCity,
+  onTogglePrefecture,
+  onToggleCity,
   getCategoryName,
   getPrefectureName,
   getCityName,
   t,
 }: CategoryNavigationProps) {
-  // Show all categories, even if they have 0 shops (don't filter by categoryTree)
-  const sortedCategories = categories
+  // Filter to show only top-level categories (not subcategories)
+  // Subcategories will be shown under their parent
+  const topLevelCategories = categories.filter(cat => {
+    const categoryDef = CATEGORIES.find(c => c.id === cat.id);
+    return !categoryDef?.isSubcategory;
+  });
+
+  const sortedCategories = topLevelCategories
     .sort((a, b) => {
       const nameA = getCategoryName(a.name);
       const nameB = getCategoryName(b.name);
@@ -49,9 +57,6 @@ export function CategoryNavigation({
     });
 
   const selectedCategory = selectedCategoryId ? categoryTree[selectedCategoryId] : null;
-  const selectedPrefectureData = selectedCategory && selectedPrefecture
-    ? selectedCategory.prefectures[selectedPrefecture]
-    : null;
 
   return (
     <div className="space-y-4">
@@ -61,13 +66,15 @@ export function CategoryNavigation({
           const categoryData = categoryTree[category.id];
           const shopCount = categoryData?.shopCount || 0;
           const isSelected = selectedCategoryId === category.id;
+          const categoryDef = CATEGORIES.find(c => c.id === category.id);
+          const subcategories = categoryDef ? getSubcategories(category.id) : [];
+          const hasSubs = hasSubcategories(category.id);
+
           return (
             <div key={category.id}>
               <button
                 onClick={() => {
                   onSelectCategory(isSelected ? null : category.id);
-                  onSelectPrefecture(null);
-                  onSelectCity(null);
                 }}
                 className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                   isSelected
@@ -76,43 +83,55 @@ export function CategoryNavigation({
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span>{getCategoryName(category.name)}</span>
+                  <div className="flex items-center gap-2">
+                    <span>{getCategoryName(category.name)}</span>
+                    {hasSubs && (
+                      <span className="text-xs text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">
+                        {subcategories.length} {t('browse.subcategories') || 'subcategories'}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-xs text-gray-500">({shopCount})</span>
                 </div>
               </button>
+              
+              {/* Show subcategories when parent is selected */}
+              {isSelected && hasSubs && subcategories.length > 0 && (
+                <div className="mt-1 ml-4 space-y-1 border-l-2 border-blue-200 pl-3">
+                  {subcategories.map((subcat) => {
+                    const subcatData = categoryTree[subcat.id];
+                    const subcatShopCount = subcatData?.shopCount || 0;
+                    const subcatCategory = categories.find(c => c.id === subcat.id);
+                    if (!subcatCategory) return null;
+                    
+                    return (
+                      <button
+                        key={subcat.id}
+                        onClick={() => {
+                          onSelectCategory(subcat.id);
+                        }}
+                        className="w-full text-left px-2 py-1 rounded text-sm text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">└</span>
+                          <span>{getCategoryName(subcatCategory.name)}</span>
+                        </div>
+                        <span className="text-xs text-gray-400">({subcatShopCount})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Show location checkboxes when category is selected */}
               {isSelected && selectedCategory && (
-                <>
-                  {selectedPrefecture ? (
-                    <div className="mt-2 ml-4 space-y-1">
-                      {selectedPrefectureData && Object.keys(selectedPrefectureData.cities)
-                        .sort((a, b) => {
-                          const nameA = getCityName(a);
-                          const nameB = getCityName(b);
-                          return nameA.localeCompare(nameB, 'ja');
-                        })
-                        .map((cityKey) => {
-                          const city = selectedPrefectureData.cities[cityKey];
-                          const isCitySelected = selectedCity === cityKey;
-                          return (
-                            <button
-                              key={cityKey}
-                              onClick={() => onSelectCity(isCitySelected ? null : cityKey)}
-                              className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
-                                isCitySelected
-                                  ? 'bg-blue-50 text-blue-600 font-medium'
-                                  : 'text-gray-600 hover:bg-gray-50'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span>{getCityName(cityKey)}</span>
-                                <span className="text-xs text-gray-500">({city.shopCount})</span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                    </div>
-                  ) : (
-                    <div className="mt-2 ml-4 space-y-1">
+                <div className="mt-3 ml-4 space-y-3">
+                  {/* Prefectures with checkboxes */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">
+                      {t('browse.prefecture') || 'Prefecture'}
+                    </h4>
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
                       {Object.keys(selectedCategory.prefectures)
                         .sort((a, b) => {
                           const nameA = getPrefectureName(a);
@@ -121,30 +140,70 @@ export function CategoryNavigation({
                         })
                         .map((prefKey) => {
                           const prefecture = selectedCategory.prefectures[prefKey];
-                          const isPrefSelected = selectedPrefecture === prefKey;
+                          const isPrefChecked = selectedPrefectures.includes(prefKey);
+                          const prefCities = prefecture.cities || {};
+                          const hasCheckedCities = Object.keys(prefCities).some(cityKey => 
+                            selectedCities.includes(cityKey)
+                          );
+                          
                           return (
-                            <button
-                              key={prefKey}
-                              onClick={() => {
-                                onSelectPrefecture(isPrefSelected ? null : prefKey);
-                                onSelectCity(null);
-                              }}
-                              className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
-                                isPrefSelected
-                                  ? 'bg-blue-50 text-blue-600 font-medium'
-                                  : 'text-gray-600 hover:bg-gray-50'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span>{getPrefectureName(prefKey)}</span>
-                                <span className="text-xs text-gray-500">({prefecture.shopCount})</span>
-                              </div>
-                            </button>
+                            <div key={prefKey} className="space-y-1">
+                              <label className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-50 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={isPrefChecked}
+                                  onChange={() => onTogglePrefecture(prefKey)}
+                                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                />
+                                <div className="flex items-center justify-between flex-1">
+                                  <span className="text-sm text-gray-700">
+                                    {getPrefectureName(prefKey)}
+                                  </span>
+                                  <span className="text-xs text-gray-500">({prefecture.shopCount})</span>
+                                </div>
+                              </label>
+                              
+                              {/* Show cities when prefecture is checked */}
+                              {isPrefChecked && Object.keys(prefCities).length > 0 && (
+                                <div className="ml-6 space-y-1">
+                                  {Object.keys(prefCities)
+                                    .sort((a, b) => {
+                                      const nameA = getCityName(a);
+                                      const nameB = getCityName(b);
+                                      return nameA.localeCompare(nameB, 'ja');
+                                    })
+                                    .map((cityKey) => {
+                                      const city = prefCities[cityKey];
+                                      const isCityChecked = selectedCities.includes(cityKey);
+                                      
+                                      return (
+                                        <label
+                                          key={cityKey}
+                                          className="flex items-center gap-2 px-2 py-0.5 rounded hover:bg-gray-50 cursor-pointer"
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={isCityChecked}
+                                            onChange={() => onToggleCity(cityKey)}
+                                            className="w-3.5 h-3.5 text-blue-600 rounded focus:ring-blue-500"
+                                          />
+                                          <div className="flex items-center justify-between flex-1">
+                                            <span className="text-xs text-gray-600">
+                                              {getCityName(cityKey)}
+                                            </span>
+                                            <span className="text-xs text-gray-400">({city.shopCount})</span>
+                                          </div>
+                                        </label>
+                                      );
+                                    })}
+                                </div>
+                              )}
+                            </div>
                           );
                         })}
                     </div>
-                  )}
-                </>
+                  </div>
+                </div>
               )}
             </div>
           );

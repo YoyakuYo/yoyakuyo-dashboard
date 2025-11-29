@@ -345,6 +345,7 @@
     "ueno": "Ueno"
   },
   "browse": {
+    "subcategories": "subcategories",
     "byArea": "By Area",
     "byCategory": "By Category",
     "prefecture": "Prefecture",

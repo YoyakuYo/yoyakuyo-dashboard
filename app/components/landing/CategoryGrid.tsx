@@ -1,31 +1,29 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import { CATEGORIES } from '@/lib/categories';
-
-// Map category imageKeys to Unsplash URLs (high-quality stock photos)
-const categoryImageMap: Record<string, string> = {
-  'restaurant': 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80',
-  'hotel': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
-  'hair-salon': 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80',
-  'barber': 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&q=80',
-  'nails': 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80',
-  'eyelash': 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=800&q=80',
-  'onsen': 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80',
-  'spa': 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80',
-  'beauty-salon': 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80',
-  'dental': 'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=800&q=80',
-  'womens-clinic': 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800&q=80',
-  'golf': 'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?w=800&q=80',
-  'karaoke': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
-};
+import { CATEGORIES, getTopLevelCategories, getSubcategories, hasSubcategories } from '@/lib/categories';
+import { getCategoryImages } from '@/lib/categoryImages';
 
 export default function CategoryGrid() {
   const locale = useLocale();
   const isJapanese = locale === 'ja';
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState<Record<string, number>>({});
+
+  // Get only top-level categories (not subcategories)
+  const topLevelCategories = getTopLevelCategories();
+
+  const handleImageChange = (categoryId: string, direction: 'next' | 'prev') => {
+    const images = getCategoryImages(CATEGORIES.find(c => c.id === categoryId)?.imageKey || '');
+    const currentIndex = currentImageIndex[categoryId] || 0;
+    const newIndex = direction === 'next' 
+      ? (currentIndex + 1) % images.length
+      : (currentIndex - 1 + images.length) % images.length;
+    setCurrentImageIndex(prev => ({ ...prev, [categoryId]: newIndex }));
+  };
 
   return (
     <section className="py-16 md:py-24 bg-white">
@@ -34,38 +32,117 @@ export default function CategoryGrid() {
           {isJapanese ? 'カテゴリーから探す' : 'Browse by Category'}
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-          {CATEGORIES.map((category) => {
-            const imageUrl = categoryImageMap[category.imageKey] || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80';
+          {topLevelCategories.map((category) => {
+            const images = getCategoryImages(category.imageKey);
+            const currentIndex = currentImageIndex[category.id] || 0;
+            const currentImage = images[currentIndex];
             const categoryName = isJapanese ? category.nameJa : category.name;
+            const subcategories = getSubcategories(category.id);
+            const hasSubs = hasSubcategories(category.id);
+            const isExpanded = expandedCategory === category.id;
 
             return (
-              <Link
+              <div
                 key={category.id}
-                href={`/browse?category=${category.id}`}
-                className="group relative overflow-hidden rounded-theme bg-white border-2 border-gray-200 hover:border-accent-pink transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="group relative"
+                onMouseEnter={() => setExpandedCategory(category.id)}
+                onMouseLeave={() => setExpandedCategory(null)}
               >
-                <div className="relative aspect-[4/3] w-full">
-                  <Image
-                    src={imageUrl}
-                    alt={categoryName}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-300"
-                    sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                    unoptimized={true}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80';
-                    }}
-                  />
-                  {/* Gradient overlay for text readability */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                  {/* Category name */}
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <h3 className="text-lg md:text-xl font-heading font-bold text-white drop-shadow-lg">
-                      {categoryName}
-                    </h3>
+                <Link
+                  href={`/browse?category=${category.id}`}
+                  className="relative overflow-hidden rounded-theme bg-white border-2 border-gray-200 hover:border-accent-pink transition-all duration-300 shadow-lg hover:shadow-xl block"
+                >
+                  <div className="relative aspect-[4/3] w-full">
+                    {/* Image carousel */}
+                    <div className="relative w-full h-full">
+                      <Image
+                        src={currentImage}
+                        alt={categoryName}
+                        fill
+                        className="object-cover transition-opacity duration-300"
+                        sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                        unoptimized={true}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80';
+                        }}
+                      />
+                      
+                      {/* Image navigation arrows (show on hover) */}
+                      {images.length > 1 && isExpanded && (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleImageChange(category.id, 'prev');
+                            }}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 z-10 transition-all"
+                            aria-label="Previous image"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleImageChange(category.id, 'next');
+                            }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 z-10 transition-all"
+                            aria-label="Next image"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                          
+                          {/* Image indicators */}
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+                            {images.map((_, idx) => (
+                              <div
+                                key={idx}
+                                className={`w-1.5 h-1.5 rounded-full transition-all ${
+                                  idx === currentIndex ? 'bg-white' : 'bg-white/50'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    
+                    {/* Gradient overlay for text readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                    
+                    {/* Category name */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <h3 className="text-lg md:text-xl font-heading font-bold text-white drop-shadow-lg">
+                        {categoryName}
+                      </h3>
+                      {hasSubs && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {subcategories.slice(0, 3).map((subcat) => (
+                            <span
+                              key={subcat.id}
+                              className="text-xs bg-white/20 backdrop-blur-sm text-white px-2 py-0.5 rounded"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                window.location.href = `/browse?category=${subcat.id}`;
+                              }}
+                            >
+                              {isJapanese ? subcat.nameJa : subcat.name}
+                            </span>
+                          ))}
+                          {subcategories.length > 3 && (
+                            <span className="text-xs bg-white/20 backdrop-blur-sm text-white px-2 py-0.5 rounded">
+                              +{subcategories.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </div>
             );
           })}
         </div>
