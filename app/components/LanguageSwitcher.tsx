@@ -67,7 +67,7 @@ export function LanguageSwitcher() {
         aria-label="Change language"
       >
         <span className="text-lg">{currentLang.flag}</span>
-        <span className="text-sm font-medium text-gray-700">{currentLang.code.toUpperCase()}</span>
+        <span className="text-sm font-medium text-gray-700">{currentLang.name}</span>
         <svg
           className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
