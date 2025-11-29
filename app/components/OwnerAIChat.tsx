@@ -125,11 +125,15 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
   const { user } = useAuth();
   const t = useTranslations();
   const [isOpen, setIsOpen] = useState(fullPage);
+  // MODIFIED: Add ref to track if user manually closed the chat
+  const userClosedRef = useRef(false);
   
-  // Open chat when shouldOpenFromContext is set to true
+  // MODIFIED: Open chat when shouldOpenFromContext is set to true, but only if user hasn't manually closed it
   useEffect(() => {
-    if (shouldOpenFromContext && !fullPage) {
+    if (shouldOpenFromContext && !fullPage && !userClosedRef.current) {
       setIsOpen(true);
+      // Reset the closed flag when context opens it (e.g., from assistant page)
+      userClosedRef.current = false;
     }
   }, [shouldOpenFromContext, fullPage]);
   const [input, setInput] = useState('');
@@ -273,7 +277,11 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
       {/* Chat Bubble Button - only show if not fullPage mode */}
       {!fullPage && !isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            // MODIFIED: Reset userClosedRef when user manually opens chat
+            userClosedRef.current = false;
+            setIsOpen(true);
+          }}
           className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50 group"
           aria-label={t('nav.aiAssistant')}
         >
@@ -299,10 +307,13 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
             {!fullPage && (
               <button
                 onClick={() => {
+                  // MODIFIED: Set userClosedRef to true to prevent auto-reopening
+                  userClosedRef.current = true;
                   setIsOpen(false);
                   onClose?.();
                 }}
                 className="text-white hover:text-gray-200 transition-colors"
+                aria-label="Close chat"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
