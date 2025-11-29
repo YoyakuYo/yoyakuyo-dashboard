@@ -57,7 +57,7 @@ export default function BookingsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const t = useTranslations();
-  const { unreadBookingsCount } = useBookingNotifications();
+  const { unreadBookingsCount, setUnreadBookingsCount } = useBookingNotifications();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
@@ -72,8 +72,11 @@ export default function BookingsPage() {
   useEffect(() => {
     if (user?.id) {
       loadBookings();
+      // Reset notification dot when owner opens bookings page
+      // The count will be recalculated after loadBookings completes
+      setUnreadBookingsCount(0);
     }
-  }, [user, filter]);
+  }, [user, filter, setUnreadBookingsCount]);
 
   const loadBookings = async () => {
     try {

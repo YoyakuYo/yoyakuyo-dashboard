@@ -8,10 +8,11 @@ import { useAuth } from './useAuth';
 import { getSupabaseClient } from './supabaseClient';
 import { useBookingNotifications } from '@/app/components/BookingNotificationContext';
 import { apiUrl } from './apiClient';
+import { getSupabaseClient as getSupabase } from './supabaseClient';
 
 export function useBookingNotificationsHook() {
   const { user } = useAuth();
-  const { setUnreadBookingsCount } = useBookingNotifications();
+  const { setUnreadBookingsCount, setNewBookingNotification } = useBookingNotifications();
   const subscriptionRef = useRef<any>(null);
   const shopIdsRef = useRef<string[]>([]);
 
@@ -65,8 +66,80 @@ export function useBookingNotificationsHook() {
           // Check if booking belongs to owner's shop and has a pending status
           const pendingStatuses = ['pending', 'awaiting_confirmation', 'reschedule_requested'];
           if (newBooking && pendingStatuses.includes(newBooking.status)) {
-            // If we have shop IDs cached, check immediately
+            // Check if booking belongs to owner's shop
             if (shopIdsRef.current.length > 0 && shopIdsRef.current.includes(newBooking.shop_id)) {
+              // Show pop-up notification
+              const supabase = getSupabaseClient();
+              const { data: shopData } = await supabase
+                .from('shops')
+                .select('name')
+                .eq('id', newBooking.shop_id)
+                .single();
+              
+              const { data: serviceData } = await supabase
+                .from('services')
+                .select('name')
+                .eq('id', newBooking.service_id)
+                .maybeSingle();
+              
+              const date = newBooking.date || newBooking.booking_date || 'N/A';
+              const time = newBooking.start_time 
+                ? new Date(newBooking.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                : newBooking.time_slot || newBooking.booking_time || 'N/A';
+              
+              setNewBookingNotification({
+                id: newBooking.id,
+                customerName: newBooking.customer_name || 'Customer',
+                serviceName: serviceData?.name,
+                date: date,
+                time: time,
+                isAICreated: newBooking.is_ai_created || false,
+              });
+              
+              // Reload count to ensure accuracy
+              await reloadPendingCount();
+            } else if (shopIdsRef.current.length === 0) {
+              // Shop IDs not loaded yet, reload them and check again
+              const shopsRes = await fetch(`${apiUrl}/shops`, {
+                headers: {
+                  'x-user-id': user?.id || '',
+                },
+              });
+              if (shopsRes.ok) {
+                const shopsData = await shopsRes.json();
+                const shops = Array.isArray(shopsData) ? shopsData : [];
+                shopIdsRef.current = shops.map((shop: any) => shop.id);
+                
+                if (shopIdsRef.current.includes(newBooking.shop_id)) {
+                  // Show pop-up notification
+                  const supabase = getSupabaseClient();
+                  const { data: shopData } = await supabase
+                    .from('shops')
+                    .select('name')
+                    .eq('id', newBooking.shop_id)
+                    .single();
+                  
+                  const { data: serviceData } = await supabase
+                    .from('services')
+                    .select('name')
+                    .eq('id', newBooking.service_id)
+                    .maybeSingle();
+                  
+                  const date = newBooking.date || newBooking.booking_date || 'N/A';
+                  const time = newBooking.start_time 
+                    ? new Date(newBooking.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                    : newBooking.time_slot || newBooking.booking_time || 'N/A';
+                  
+                  setNewBookingNotification({
+                    id: newBooking.id,
+                    customerName: newBooking.customer_name || 'Customer',
+                    serviceName: serviceData?.name,
+                    date: date,
+                    time: time,
+                    isAICreated: newBooking.is_ai_created || false,
+                  });
+                }
+              }
               // Reload count to ensure accuracy
               await reloadPendingCount();
             } else {

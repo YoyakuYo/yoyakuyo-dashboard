@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useCustomerNotifications } from "./CustomerNotificationContext";
+import NotificationDot from "@/app/components/NotificationDot";
 
 export default function CustomerSidebar() {
   const pathname = usePathname();
   const t = useTranslations();
+  const { unreadNotificationsCount, unreadBookingsCount } = useCustomerNotifications();
 
   const isActive = (path: string) => {
     if (path === "/customer/home") {
@@ -54,6 +57,12 @@ export default function CustomerSidebar() {
                 />
               </svg>
               <span>{t(item.labelKey)}</span>
+              {item.href === "/customer/notifications" && unreadNotificationsCount > 0 && (
+                <NotificationDot className="ml-auto" />
+              )}
+              {item.href === "/customer/bookings" && unreadBookingsCount > 0 && (
+                <NotificationDot className="ml-auto" />
+              )}
             </Link>
           ))}
         </nav>

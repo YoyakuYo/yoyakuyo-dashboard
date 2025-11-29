@@ -12,6 +12,9 @@ import Sidebar from "./Sidebar";
 import PublicLayoutWrapper from "./PublicLayoutWrapper";
 import { OwnerAIChatProvider, OwnerAIChat } from "./OwnerAIChat";
 import { useBookingNotificationsHook } from "@/lib/useBookingNotifications";
+import BookingNotificationBar from "./BookingNotificationBar";
+import { useBookingNotifications } from "./BookingNotificationContext";
+import { useRouter } from "next/navigation";
 
 // Routes that should NOT have dashboard layout (Header, Sidebar, AuthGuard)
 const authRoutes: string[] = [];
@@ -92,9 +95,32 @@ export default function DashboardLayout({
   );
 }
 
-// Wrapper component to initialize booking notifications hook
+// Wrapper component to initialize booking notifications hook and show pop-ups
 function BookingNotificationsWrapper({ children }: { children: React.ReactNode }) {
   useBookingNotificationsHook();
-  return <>{children}</>;
+  const { newBookingNotification, setNewBookingNotification } = useBookingNotifications();
+  const router = useRouter();
+
+  const handleDismiss = () => {
+    setNewBookingNotification(null);
+  };
+
+  const handleViewBooking = (bookingId: string) => {
+    setNewBookingNotification(null);
+    router.push(`/bookings?highlight=${bookingId}`);
+  };
+
+  return (
+    <>
+      {children}
+      {newBookingNotification && (
+        <BookingNotificationBar
+          notification={newBookingNotification}
+          onDismiss={handleDismiss}
+          onViewBooking={handleViewBooking}
+        />
+      )}
+    </>
+  );
 }
 

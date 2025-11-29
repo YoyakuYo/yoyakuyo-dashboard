@@ -5,6 +5,7 @@ import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useCustomerNotifications } from "../components/CustomerNotificationContext";
 
 export default function CustomerBookingsPage() {
   const { user } = useCustomAuth();
@@ -12,12 +13,15 @@ export default function CustomerBookingsPage() {
   const filter = searchParams.get("filter") || "all";
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { setUnreadBookingsCount } = useCustomerNotifications();
 
   useEffect(() => {
     if (user) {
       loadBookings();
+      // Reset notification dot when customer opens bookings page
+      setUnreadBookingsCount(0);
     }
-  }, [user, filter]);
+  }, [user, filter, setUnreadBookingsCount]);
 
   // Subscribe to real-time booking updates
   useEffect(() => {
