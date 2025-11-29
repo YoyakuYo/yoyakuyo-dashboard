@@ -24,17 +24,54 @@ export default function PaymentPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Get booking from session storage or URL params
-    const bookingData = sessionStorage.getItem("pendingBooking");
-    if (bookingData) {
-      const parsed = JSON.parse(bookingData);
-      setBooking(parsed);
-      loadServiceDetails(parsed.service_id);
+    // Get booking from URL params, session storage, or fetch from API
+    const urlParams = new URLSearchParams(window.location.search);
+    const bookingId = urlParams.get("bookingId");
+    
+    if (bookingId) {
+      // Fetch booking from API
+      loadBookingFromApi(bookingId);
     } else {
-      setError("No booking found. Please start a new booking.");
+      // Try session storage (for new bookings)
+      const bookingData = sessionStorage.getItem("pendingBooking");
+      if (bookingData) {
+        const parsed = JSON.parse(bookingData);
+        setBooking(parsed);
+        loadServiceDetails(parsed.service_id);
+        setLoading(false);
+      } else {
+        setError("No booking found. Please start a new booking.");
+        setLoading(false);
+      }
     }
-    setLoading(false);
   }, []);
+
+  const loadBookingFromApi = async (bookingId: string) => {
+    try {
+      const response = await fetch(`${apiUrl}/bookings/${bookingId}`, {
+        headers: {
+          'x-user-id': user?.id || '',
+        },
+      });
+      
+      if (response.ok) {
+        const bookingData = await response.json();
+        setBooking(bookingData);
+        if (bookingData.service_id) {
+          loadServiceDetails(bookingData.service_id);
+        } else if (bookingData.services?.id) {
+          loadServiceDetails(bookingData.services.id);
+        }
+      } else {
+        setError("Failed to load booking details.");
+      }
+    } catch (error) {
+      console.error("Error loading booking:", error);
+      setError("Failed to load booking details.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadServiceDetails = async (serviceId: string) => {
     try {

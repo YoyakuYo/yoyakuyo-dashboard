@@ -38,50 +38,48 @@ export default function CustomerChatPage() {
 
     const supabase = getSupabaseClient();
     
-    // First, get the customer_profile_id from customer_profiles table
-    // user.id is from customers table, we need to find the matching customer_profiles.id
+    // First, get or create customer_profile
+    let profileId: string | null = null;
+    
+    // Try to find existing profile
     const { data: customerProfile } = await supabase
       .from("customer_profiles")
       .select("id")
       .eq("customer_auth_id", user.id)
-      .single();
+      .maybeSingle();
 
-    if (!customerProfile) {
-      console.error("Customer profile not found for user:", user.id);
-      // Try using user.id directly as fallback (in case customer_profiles.id = customers.id)
-      const profileId = user.id;
-      
-      // Get or create session with fallback ID
-      const { data: existingSession } = await supabase
-        .from("customer_chat_sessions")
+    if (customerProfile) {
+      profileId = customerProfile.id;
+    } else {
+      // Profile doesn't exist - create it
+      console.log("Creating customer profile for chat session...");
+      const { data: newProfile, error: profileError } = await supabase
+        .from("customer_profiles")
+        .insert({
+          id: user.id, // Use customer.id as profile.id
+          customer_auth_id: user.id,
+          email: user.email || '',
+          name: user.name || user.email?.split('@')[0] || 'Customer',
+        })
         .select("id")
-        .eq("customer_id", profileId)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .single();
 
-      if (existingSession) {
-        setSessionId(existingSession.id);
+      if (profileError) {
+        console.error("Error creating customer profile:", profileError);
+        // If insert fails, try using user.id directly
+        profileId = user.id;
+      } else if (newProfile) {
+        profileId = newProfile.id;
       } else {
-        // Create new session
-        const { data: newSession, error } = await supabase
-          .from("customer_chat_sessions")
-          .insert({
-            customer_id: profileId,
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error("Error creating chat session:", error);
-        } else if (newSession) {
-          setSessionId(newSession.id);
-        }
+        // Fallback to user.id
+        profileId = user.id;
       }
+    }
+    
+    if (!profileId) {
+      console.error("Could not determine profile ID");
       return;
     }
-
-    const profileId = customerProfile.id;
     
     // Get or create session
     const { data: existingSession } = await supabase
@@ -106,6 +104,10 @@ export default function CustomerChatPage() {
 
       if (error) {
         console.error("Error creating chat session:", error);
+        // Even if session creation fails, allow chat to work with a temporary session
+        // This prevents the input from being permanently disabled
+        const tempSessionId = `temp-${user.id}-${Date.now()}`;
+        setSessionId(tempSessionId);
       } else if (newSession) {
         setSessionId(newSession.id);
       }
@@ -131,7 +133,19 @@ export default function CustomerChatPage() {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !sessionId || !user) return;
+    if (!input.trim() || !user) return;
+    
+    // If no sessionId yet, try to initialize it first
+    if (!sessionId) {
+      await initializeSession();
+      // Wait a bit for session to be set
+      await new Promise(resolve => setTimeout(resolve, 500));
+      // If still no sessionId, create a temporary one
+      if (!sessionId) {
+        const tempSessionId = `temp-${user.id}-${Date.now()}`;
+        setSessionId(tempSessionId);
+      }
+    }
 
     const userMessage = input.trim();
     setInput("");
@@ -290,13 +304,13 @@ export default function CustomerChatPage() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={loading || !sessionId}
+              placeholder={sessionId ? "Type your message..." : "Initializing chat..."}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+              disabled={loading}
             />
             <button
               type="submit"
-              disabled={loading || !input.trim() || !sessionId}
+              disabled={loading || !input.trim()}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Send

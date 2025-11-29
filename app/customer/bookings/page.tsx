@@ -30,11 +30,15 @@ export default function CustomerBookingsPage() {
           name,
           address,
           phone
+        ),
+        services (
+          id,
+          name,
+          price
         )
       `)
       .eq("customer_profile_id", user?.id)
-      .order("booking_date", { ascending: false })
-      .order("booking_time", { ascending: false });
+      .order("created_at", { ascending: false });
 
     if (filter !== "all") {
       if (filter === "upcoming") {
@@ -165,6 +169,14 @@ export default function CustomerBookingsPage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
+                  {(booking.payment_status === 'unpaid' || booking.payment_status === 'pending') && booking.shops?.id && (
+                    <Link
+                      href={`/book/${booking.shops.id}/payment?bookingId=${booking.id}`}
+                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors text-center"
+                    >
+                      Pay Now
+                    </Link>
+                  )}
                   <Link
                     href={`/customer/bookings/${booking.id}`}
                     className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
