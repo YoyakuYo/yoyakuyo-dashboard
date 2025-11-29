@@ -16,9 +16,14 @@ export default function CustomerChatPage() {
   useEffect(() => {
     if (user) {
       initializeSession();
-      loadHistory();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (sessionId) {
+      loadHistory();
+    }
+  }, [sessionId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -33,14 +38,59 @@ export default function CustomerChatPage() {
 
     const supabase = getSupabaseClient();
     
+    // First, get the customer_profile_id from customer_profiles table
+    // user.id is from customers table, we need to find the matching customer_profiles.id
+    const { data: customerProfile } = await supabase
+      .from("customer_profiles")
+      .select("id")
+      .eq("customer_auth_id", user.id)
+      .single();
+
+    if (!customerProfile) {
+      console.error("Customer profile not found for user:", user.id);
+      // Try using user.id directly as fallback (in case customer_profiles.id = customers.id)
+      const profileId = user.id;
+      
+      // Get or create session with fallback ID
+      const { data: existingSession } = await supabase
+        .from("customer_chat_sessions")
+        .select("id")
+        .eq("customer_id", profileId)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingSession) {
+        setSessionId(existingSession.id);
+      } else {
+        // Create new session
+        const { data: newSession, error } = await supabase
+          .from("customer_chat_sessions")
+          .insert({
+            customer_id: profileId,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Error creating chat session:", error);
+        } else if (newSession) {
+          setSessionId(newSession.id);
+        }
+      }
+      return;
+    }
+
+    const profileId = customerProfile.id;
+    
     // Get or create session
     const { data: existingSession } = await supabase
       .from("customer_chat_sessions")
       .select("id")
-      .eq("customer_id", user.id)
+      .eq("customer_id", profileId)
       .order("updated_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (existingSession) {
       setSessionId(existingSession.id);
@@ -49,12 +99,14 @@ export default function CustomerChatPage() {
       const { data: newSession, error } = await supabase
         .from("customer_chat_sessions")
         .insert({
-          customer_id: user.id,
+          customer_id: profileId,
         })
         .select()
         .single();
 
-      if (!error && newSession) {
+      if (error) {
+        console.error("Error creating chat session:", error);
+      } else if (newSession) {
         setSessionId(newSession.id);
       }
     }
@@ -70,7 +122,9 @@ export default function CustomerChatPage() {
       .eq("session_id", sessionId)
       .order("created_at", { ascending: true });
 
-    if (!error && data) {
+    if (error) {
+      console.error("Error loading chat history:", error);
+    } else if (data) {
       setMessages(data);
     }
   };
