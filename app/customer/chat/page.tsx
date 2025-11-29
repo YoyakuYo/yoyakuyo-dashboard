@@ -136,14 +136,18 @@ export default function CustomerChatPage() {
     if (!input.trim() || !user) return;
     
     // If no sessionId yet, try to initialize it first
-    if (!sessionId) {
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
       await initializeSession();
       // Wait a bit for session to be set
-      await new Promise(resolve => setTimeout(resolve, 500));
-      // If still no sessionId, create a temporary one
+      await new Promise(resolve => setTimeout(resolve, 300));
+      // Re-check sessionId after initialization
       if (!sessionId) {
-        const tempSessionId = `temp-${user.id}-${Date.now()}`;
-        setSessionId(tempSessionId);
+        // Create a temporary session ID for this message
+        currentSessionId = `temp-${user.id}-${Date.now()}`;
+        setSessionId(currentSessionId);
+      } else {
+        currentSessionId = sessionId;
       }
     }
 
@@ -154,34 +158,39 @@ export default function CustomerChatPage() {
     // Add user message to UI
     const tempUserMessage = {
       id: `temp-${Date.now()}`,
-      session_id: sessionId,
+      session_id: currentSessionId,
       role: "user",
       content: userMessage,
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, tempUserMessage]);
 
-    // Save user message to database
-    const supabase = getSupabaseClient();
-    const { data: savedMessage, error: saveError } = await supabase
-      .from("customer_chat_messages")
-      .insert({
-        session_id: sessionId,
-        role: "user",
-        content: userMessage,
-      })
-      .select()
-      .single();
+    // Save user message to database (only if not a temp session)
+    let savedMessage = null;
+    if (currentSessionId && !currentSessionId.startsWith('temp-')) {
+      const supabase = getSupabaseClient();
+      const { data: saved, error: saveError } = await supabase
+        .from("customer_chat_messages")
+        .insert({
+          session_id: currentSessionId,
+          role: "user",
+          content: userMessage,
+        })
+        .select()
+        .single();
 
-    if (saveError) {
-      console.error("Error saving message:", saveError);
+      if (saveError) {
+        console.error("Error saving message:", saveError);
+      } else {
+        savedMessage = saved;
+      }
+
+      // Update session timestamp
+      await supabase
+        .from("customer_chat_sessions")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", currentSessionId);
     }
-
-    // Update session timestamp
-    await supabase
-      .from("customer_chat_sessions")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", sessionId);
 
     // Get AI response
     try {
@@ -223,24 +232,37 @@ export default function CustomerChatPage() {
       const data = await response.json();
       const aiMessage = data.response || data.message || "I'm sorry, I couldn't process that request.";
 
-      // Save AI response to database
-      const { data: savedAiMessage } = await supabase
-        .from("customer_chat_messages")
-        .insert({
-          session_id: sessionId,
-          role: "assistant",
-          content: aiMessage,
-        })
-        .select()
-        .single();
+      // Save AI response to database (only if not a temp session)
+      let savedAiMessage = null;
+      if (currentSessionId && !currentSessionId.startsWith('temp-')) {
+        const supabase = getSupabaseClient();
+        const { data: saved } = await supabase
+          .from("customer_chat_messages")
+          .insert({
+            session_id: currentSessionId,
+            role: "assistant",
+            content: aiMessage,
+          })
+          .select()
+          .single();
+        savedAiMessage = saved;
+      }
 
-      // Update messages
+      // Update messages - add AI response
+      const aiResponseMessage = {
+        id: `ai-${Date.now()}`,
+        session_id: currentSessionId,
+        role: "assistant",
+        content: aiMessage,
+        created_at: new Date().toISOString(),
+      };
+      
       setMessages((prev) => {
         const filtered = prev.filter((m) => m.id !== tempUserMessage.id);
         return [
           ...filtered,
-          ...(savedMessage ? [savedMessage] : []),
-          ...(savedAiMessage ? [savedAiMessage] : []),
+          savedMessage || tempUserMessage, // Use saved message or temp message
+          savedAiMessage || aiResponseMessage, // Use saved AI message or temp AI message
         ];
       });
     } catch (error) {
