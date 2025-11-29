@@ -88,8 +88,8 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
 
       if (res.ok) {
         setSuccess(t('myShop.holidayAddedSuccess'));
-        setHolidayReason('');
-        setSelectedDate(null);
+        // Don't clear selectedDate - keep it selected so user can see the change
+        // Don't clear holidayReason - keep it in case user wants to modify
         await fetchHolidays();
       } else {
         const errorData = await res.json();
@@ -119,6 +119,8 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
 
       if (res.ok) {
         setSuccess(t('myShop.holidayRemovedSuccess'));
+        // Clear holiday reason when removing holiday
+        setHolidayReason('');
         await fetchHolidays();
       } else {
         const errorData = await res.json();
@@ -226,29 +228,33 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={handleAddHoliday}
-                    disabled={loading || isHoliday(selectedDate)}
-                    className={`px-4 py-2 text-white rounded-lg transition-colors ${
-                      loading || isHoliday(selectedDate)
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-blue-600 hover:bg-blue-700'
+                    disabled={loading}
+                    className={`px-4 py-2 rounded-lg transition-colors font-medium ${
+                      loading
+                        ? 'bg-gray-400 text-white cursor-not-allowed'
+                        : isHoliday(selectedDate)
+                        ? 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
                     }`}
                   >
-                    {loading && !isHoliday(selectedDate) ? t('myShop.addingHoliday') : t('myShop.markAsClosed')}
+                    {loading ? t('myShop.addingHoliday') : t('myShop.markAsClosed')}
                   </button>
                   <button
                     onClick={() => {
-                      if (selectedDate && isHoliday(selectedDate)) {
+                      if (selectedDate) {
                         handleRemoveHoliday(selectedDate.toISOString().split('T')[0]);
                       }
                     }}
-                    disabled={loading || !isHoliday(selectedDate)}
-                    className={`px-4 py-2 text-white rounded-lg transition-colors ${
-                      loading || !isHoliday(selectedDate)
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-green-600 hover:bg-green-700'
+                    disabled={loading}
+                    className={`px-4 py-2 rounded-lg transition-colors font-medium ${
+                      loading
+                        ? 'bg-gray-400 text-white cursor-not-allowed'
+                        : !isHoliday(selectedDate)
+                        ? 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        : 'bg-green-600 text-white hover:bg-green-700'
                     }`}
                   >
-                    {loading && isHoliday(selectedDate) ? t('myShop.removingHoliday') : t('myShop.markAsOpen')}
+                    {loading ? t('myShop.removingHoliday') : t('myShop.markAsOpen')}
                   </button>
                 </div>
               </div>
