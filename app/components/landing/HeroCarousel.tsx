@@ -104,6 +104,7 @@ export default function HeroCarousel({ onSlideChange }: HeroCarouselProps) {
           priority={currentIndex < 3}
           className="object-cover transition-opacity duration-1000"
           sizes="100vw"
+          unoptimized={true}
           onError={(e) => {
             // Fallback to hair salon image if image fails
             (e.target as HTMLImageElement).src = 'https://i.imgur.com/1QZYzj7.jpeg';

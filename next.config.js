@@ -7,6 +7,21 @@ const nextConfig = {
   // Ensure proper port configuration
   // Port is set via command line: next start -p 3001
   
+  // Allow external images from imgur and other sources
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'i.imgur.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'imgur.com',
+      },
+    ],
+    unoptimized: false,
+  },
+  
   // Exclude API and other apps directories from Next.js compilation
   webpack: (config, { isServer }) => {
     // Exclude apps/api, apps/dashboard, yoyakuyo-api, and yoyakuyo-dashboard from compilation

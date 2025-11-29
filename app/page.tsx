@@ -14,6 +14,7 @@ import { apiUrl } from '@/lib/apiClient';
 import { authApi } from '@/lib/api';
 import { LandingHeader } from './components/LandingHeader';
 import HeroCarousel from './components/landing/HeroCarousel';
+import CategoryGrid from './components/landing/CategoryGrid';
 import { BrowseAIAssistant } from './browse/components/BrowseAIAssistant';
 import { BrowseAIProvider } from './components/BrowseAIContext';
 
@@ -356,6 +357,9 @@ function HomeContent() {
 
         {/* Hero Carousel */}
         <HeroCarousel />
+
+        {/* Category Grid */}
+        <CategoryGrid />
 
       {/* Search & Quick Actions */}
       <section className="py-12 bg-card-bg border-t border-border-soft">
