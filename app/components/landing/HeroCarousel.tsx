@@ -115,24 +115,28 @@ export default function HeroCarousel({ onSlideChange }: HeroCarouselProps) {
       {/* Light overlay for text readability - much lighter */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-black/10 to-transparent" />
 
-      {/* Caption Card - Desktop: Left or Right, Mobile: Bottom */}
-      <div className={`
-        absolute z-20
-        md:absolute md:top-1/2 md:-translate-y-1/2
-        ${isLeftCaption ? 'md:left-8 lg:left-16' : 'md:right-8 lg:right-16'}
-        bottom-8 left-4 right-4
-        md:max-w-lg lg:max-w-xl
-        bg-white/95 backdrop-blur-sm
-        border border-gray-200
-        rounded-theme
-        p-6 md:p-8 lg:p-10
-        transition-all duration-500
-        shadow-xl
-      `}>
-        <h2 className="font-heading font-bold text-3xl md:text-4xl lg:text-5xl text-gray-900 mb-3 md:mb-4">
+      {/* Caption Card - Desktop: Left or Right, Mobile: Bottom-Left */}
+      <div 
+        className={`
+          absolute z-20
+          inline-block
+          ${isLeftCaption ? 'md:left-8 lg:left-16' : 'md:right-8 lg:right-16'}
+          md:top-1/2 md:-translate-y-1/2
+          bottom-4 left-4
+          max-w-[320px]
+          bg-white/85 backdrop-blur-sm
+          border border-gray-200/50
+          rounded-xl
+          px-4 py-3
+          transition-all duration-500
+          shadow-lg
+        `}
+        style={{ backgroundColor: 'rgba(255, 255, 255, 0.85)' }}
+      >
+        <h2 className="font-heading font-bold text-2xl md:text-3xl lg:text-4xl text-gray-900 mb-2">
           {title}
         </h2>
-        <p className="font-body text-gray-700 text-base md:text-lg leading-relaxed">
+        <p className="font-body text-gray-700 text-sm md:text-base leading-relaxed">
           {subtitle}
         </p>
       </div>
