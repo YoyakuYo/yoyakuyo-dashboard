@@ -29,6 +29,29 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Convert date to YYYY-MM-DD in Japanese timezone (JST, UTC+9)
+  const toJSTDateString = (date: Date): string => {
+    // Convert to JST by getting the date string in Asia/Tokyo timezone
+    // Format: YYYY-MM-DD
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    return formatter.format(date);
+  };
+
+  // Format date for display in Japanese locale
+  const formatDateForDisplay = (date: Date): string => {
+    return date.toLocaleDateString('ja-JP', { 
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   // Fetch holidays
   const fetchHolidays = async () => {
     try {
@@ -71,7 +94,7 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
     setSuccess(null);
 
     try {
-      const dateStr = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      const dateStr = toJSTDateString(selectedDate); // YYYY-MM-DD in JST
 
       const res = await fetch(`${apiUrl}/holidays`, {
         method: 'POST',
@@ -136,13 +159,13 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
 
   // Check if date is a holiday
   const isHoliday = (date: Date): boolean => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = toJSTDateString(date);
     return holidays.some(h => h.holiday_date === dateStr);
   };
 
   // Get holiday reason for a date
   const getHolidayReason = (date: Date): string | null => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = toJSTDateString(date);
     const holiday = holidays.find(h => h.holiday_date === dateStr);
     return holiday?.reason || null;
   };
@@ -204,7 +227,7 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
           {selectedDate && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
               <p className="text-sm font-medium text-gray-700 mb-2">
-                {t('myShop.selectedDate')}: {selectedDate.toLocaleDateString()}
+                {t('myShop.selectedDate')}: {formatDateForDisplay(selectedDate)}
               </p>
               {isHoliday(selectedDate) ? (
                 <p className="text-sm text-red-600 mb-2">
@@ -242,7 +265,7 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
                   <button
                     onClick={() => {
                       if (selectedDate) {
-                        handleRemoveHoliday(selectedDate.toISOString().split('T')[0]);
+                        handleRemoveHoliday(toJSTDateString(selectedDate));
                       }
                     }}
                     disabled={loading}
@@ -276,7 +299,12 @@ export default function ShopCalendar({ shopId, userId }: ShopCalendarProps) {
                 >
                   <div>
                     <p className="font-medium text-gray-900">
-                      {new Date(holiday.holiday_date).toLocaleDateString()}
+                      {new Date(holiday.holiday_date + 'T00:00:00+09:00').toLocaleDateString('ja-JP', {
+                        timeZone: 'Asia/Tokyo',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
                     </p>
                     {holiday.reason && (
                       <p className="text-sm text-gray-600">{holiday.reason}</p>
