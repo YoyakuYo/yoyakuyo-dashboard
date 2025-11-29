@@ -8,7 +8,6 @@ import { useAuth } from './useAuth';
 import { getSupabaseClient } from './supabaseClient';
 import { useBookingNotifications } from '@/app/components/BookingNotificationContext';
 import { apiUrl } from './apiClient';
-import { getSupabaseClient as getSupabase } from './supabaseClient';
 
 export function useBookingNotificationsHook() {
   const { user } = useAuth();
