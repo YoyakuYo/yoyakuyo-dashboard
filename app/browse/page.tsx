@@ -112,6 +112,12 @@ function BrowsePageContent() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Check if we're in "category-only" mode (category selected, no other filters)
+  const isCategoryOnlyMode = selectedCategoryId !== null && 
+                             selectedPrefectures.length === 0 && 
+                             selectedCities.length === 0 && 
+                             !debouncedSearch;
+
   // Debug: Log API URL
   useEffect(() => {
     console.log('🔧 API URL configured:', apiUrl || '❌ NOT SET - Check NEXT_PUBLIC_API_URL env var');
@@ -254,10 +260,12 @@ function BrowsePageContent() {
   }, [loadingMore, hasMore, currentPage, fetchShops]);
 
   // Auto-select prefecture with most shops on first load (if no filters selected)
+  // DISABLED when category is selected - we want category-only mode
   useEffect(() => {
     const hasFilters = selectedPrefectures.length > 0 || selectedCities.length > 0 || selectedCategoryId || debouncedSearch;
     
-    if (!hasFilters && !hasAutoSelected && shops.length === 0 && !loading) {
+    // Only auto-select if NO category is selected
+    if (!hasFilters && !hasAutoSelected && shops.length === 0 && !loading && !selectedCategoryId) {
       // Fetch top prefecture and auto-select it
       fetch(`${apiUrl}/shops/top-prefecture`)
         .then(res => res.json())
@@ -381,7 +389,10 @@ function BrowsePageContent() {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">
-              {t('shops.shops')}
+              {selectedCategoryId 
+                ? `${t('shops.shops')} - ${getCategoryName(categories.find(c => c.id === selectedCategoryId)?.name || '')}`
+                : t('shops.shops')
+              }
             </h1>
           </div>
         </div>
@@ -415,29 +426,31 @@ function BrowsePageContent() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Left Sidebar - Navigation */}
-            <aside className="lg:col-span-1">
-              <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-24">
-                <CategoryNavigation
-                  categoryTree={categoryTree}
-                  categories={categories}
-                  selectedCategoryId={selectedCategoryId}
-                  selectedPrefectures={selectedPrefectures}
-                  selectedCities={selectedCities}
-                  onSelectCategory={setSelectedCategoryId}
-                  onTogglePrefecture={togglePrefecture}
-                  onToggleCity={toggleCity}
-                  getCategoryName={getCategoryName}
-                  getPrefectureName={getPrefectureName}
-                  getCityName={getCityName}
-                  t={t}
-                />
-              </div>
-            </aside>
+          <div className={`grid grid-cols-1 ${isCategoryOnlyMode ? 'lg:grid-cols-1' : 'lg:grid-cols-4'} gap-6`}>
+            {/* Left Sidebar - Navigation - ONLY show when NOT in category-only mode */}
+            {!isCategoryOnlyMode && (
+              <aside className="lg:col-span-1">
+                <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-24">
+                  <CategoryNavigation
+                    categoryTree={categoryTree}
+                    categories={categories}
+                    selectedCategoryId={selectedCategoryId}
+                    selectedPrefectures={selectedPrefectures}
+                    selectedCities={selectedCities}
+                    onSelectCategory={setSelectedCategoryId}
+                    onTogglePrefecture={togglePrefecture}
+                    onToggleCity={toggleCity}
+                    getCategoryName={getCategoryName}
+                    getPrefectureName={getPrefectureName}
+                    getCityName={getCityName}
+                    t={t}
+                  />
+                </div>
+              </aside>
+            )}
 
             {/* Main Content - Shop List */}
-            <div className="lg:col-span-3">
+            <div className={isCategoryOnlyMode ? 'lg:col-span-1' : 'lg:col-span-3'}>
               {displayShops.length === 0 ? (
                 <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
                   <div className="text-6xl mb-4">🏪</div>
