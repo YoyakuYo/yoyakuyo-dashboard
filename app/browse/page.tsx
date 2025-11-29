@@ -26,15 +26,15 @@ export const dynamic = 'force-dynamic';
 // Component to update browse context
 function UpdateBrowseContext({
   shops,
-  selectedPrefecture,
-  selectedCity,
+  selectedPrefectures,
+  selectedCities,
   selectedCategoryId,
   searchQuery,
   setBrowseContext,
 }: {
   shops: Shop[];
-  selectedPrefecture: string | null;
-  selectedCity: string | null;
+  selectedPrefectures: string[];
+  selectedCities: string[];
   selectedCategoryId: string | null;
   searchQuery: string;
   setBrowseContext: (context: any) => void;
@@ -42,12 +42,14 @@ function UpdateBrowseContext({
   useEffect(() => {
     setBrowseContext({
       shops,
-      selectedPrefecture,
-      selectedCity,
+      selectedPrefecture: selectedPrefectures.length > 0 ? selectedPrefectures[0] : null, // For backward compatibility
+      selectedCity: selectedCities.length > 0 ? selectedCities[0] : null, // For backward compatibility
+      selectedPrefectures, // New array format
+      selectedCities, // New array format
       selectedCategoryId,
       searchQuery,
     });
-  }, [shops, selectedPrefecture, selectedCity, selectedCategoryId, searchQuery, setBrowseContext]);
+  }, [shops, selectedPrefectures, selectedCities, selectedCategoryId, searchQuery, setBrowseContext]);
   return null;
 }
 
