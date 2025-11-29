@@ -7,6 +7,7 @@ import { apiUrl } from "@/lib/apiClient";
 import { useTranslations } from "next-intl";
 import { useBookingNotifications } from "@/app/components/BookingNotificationContext";
 import NotificationDot from "@/app/components/NotificationDot";
+import PaymentDetailsModal from "@/app/components/payments/PaymentDetailsModal";
 // Format date helper
 const formatDate = (dateString: string) => {
   try {
@@ -21,6 +22,16 @@ const formatDate = (dateString: string) => {
   }
 };
 
+interface Payment {
+  id: string;
+  payment_method: 'stripe' | 'linepay' | 'paypay';
+  amount: number;
+  currency: string;
+  status: 'pending' | 'completed' | 'failed' | 'refunded' | 'cancelled';
+  transaction_id?: string | null;
+  created_at: string;
+}
+
 interface Booking {
   id: string;
   shop_id: string;
@@ -34,10 +45,12 @@ interface Booking {
   start_time?: string | null;
   end_time?: string | null;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'awaiting_confirmation' | 'reschedule_requested';
+  payment_status?: 'unpaid' | 'pending' | 'paid' | 'refunded' | 'failed' | null;
   notes?: string | null;
   created_at: string;
   shops?: { id: string; name: string } | null;
-  services?: { id: string; name: string } | null;
+  services?: { id: string; name: string; price?: number } | null;
+  payments?: Payment[] | null;
 }
 
 export default function BookingsPage() {
@@ -48,6 +61,7 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
+  const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -180,6 +194,9 @@ export default function BookingsPage() {
                   {t('common.status')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Payment
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t('common.actions')}
                 </th>
               </tr>
@@ -217,6 +234,77 @@ export default function BookingsPage() {
                       {t(`status.${booking.status}`)}
                     </span>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {(() => {
+                      const latestPayment = booking.payments && booking.payments.length > 0 
+                        ? booking.payments[0] 
+                        : null;
+                      const paymentStatus = booking.payment_status || (latestPayment ? latestPayment.status : 'unpaid');
+                      const paymentAmount = latestPayment?.amount || booking.services?.price || 0;
+                      const paymentMethod = latestPayment?.payment_method;
+
+                      if (paymentStatus === 'paid' || paymentStatus === 'completed') {
+                        return (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Paid
+                            </span>
+                            <div className="text-xs text-gray-600">
+                              ¥{Math.round(paymentAmount).toLocaleString()}
+                            </div>
+                            {paymentMethod && (
+                              <div className="text-xs text-gray-500 capitalize">
+                                {paymentMethod === 'linepay' ? 'LINE Pay' : paymentMethod === 'paypay' ? 'PayPay' : 'Card'}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      } else if (paymentStatus === 'pending') {
+                        return (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                              Pending
+                            </span>
+                            <div className="text-xs text-gray-600">
+                              ¥{Math.round(paymentAmount).toLocaleString()}
+                            </div>
+                          </div>
+                        );
+                      } else if (paymentStatus === 'failed') {
+                        return (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              Failed
+                            </span>
+                            <div className="text-xs text-gray-600">
+                              ¥{Math.round(paymentAmount).toLocaleString()}
+                            </div>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              Unpaid
+                            </span>
+                            {booking.services?.price && (
+                              <div className="text-xs text-gray-600">
+                                ¥{Math.round(booking.services.price).toLocaleString()}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                    })()}
+                    {(booking.payments && booking.payments.length > 0) && (
+                      <button
+                        onClick={() => setSelectedBookingForPayment(booking.id)}
+                        className="mt-2 text-xs text-blue-600 hover:text-blue-700 underline"
+                      >
+                        View Details
+                      </button>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     {booking.status === 'pending' && (
                       <>
@@ -248,6 +336,15 @@ export default function BookingsPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Payment Details Modal */}
+      {selectedBookingForPayment && (
+        <PaymentDetailsModal
+          bookingId={selectedBookingForPayment}
+          isOpen={!!selectedBookingForPayment}
+          onClose={() => setSelectedBookingForPayment(null)}
+        />
       )}
     </div>
   );
