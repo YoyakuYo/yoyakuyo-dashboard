@@ -1132,23 +1132,57 @@ const MyShopPage = () => {
     }
 
     try {
-      // Create FormData
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('shop_id', shop.id); // Use shop_id instead of shopId
-      formData.append('type', type);
-
-      // Ensure API URL is set correctly
-      const uploadUrl = `${apiUrl}/photos/upload`;
+      // First, upload file to Supabase Storage to get the URL
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
-      // Upload to API using multipart/form-data
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Supabase configuration missing');
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      const bucket = 'shop_photos';
+      const timestamp = Date.now();
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `${shop.id}/${type}/${timestamp}_${sanitizedFileName}`;
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(`Failed to upload file: ${uploadError.message}`);
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath);
+
+      const photoUrl = urlData.publicUrl;
+
+      if (!photoUrl) {
+        throw new Error('Failed to get photo URL');
+      }
+
+      // Now send shop_id, type, and url to the backend API
+      const uploadUrl = `${apiUrl}/photos/upload`;
       const res = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'x-user-id': user.id,
-          // Don't set Content-Type - browser will set it with boundary
         },
-        body: formData,
+        body: JSON.stringify({
+          shop_id: shop.id,
+          type: type,
+          url: photoUrl,
+        }),
       });
 
       // Validate response is JSON before parsing
