@@ -1133,15 +1133,16 @@ const MyShopPage = () => {
 
     try {
       // First, upload file to Supabase Storage to get the URL
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      // Use getSupabaseClient() to get authenticated client with user session
+      const { getSupabaseClient } = await import('@/lib/supabaseClient');
+      const supabase = getSupabaseClient();
       
-      if (!supabaseUrl || !supabaseAnonKey) {
-        throw new Error('Supabase configuration missing');
+      // Ensure user has a valid session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error('You must be logged in to upload photos. Please refresh the page and try again.');
       }
-
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      
       const bucket = 'shop_photos';
       const timestamp = Date.now();
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -1156,6 +1157,7 @@ const MyShopPage = () => {
         });
 
       if (uploadError) {
+        console.error('Upload error details:', uploadError);
         throw new Error(`Failed to upload file: ${uploadError.message}`);
       }
 
