@@ -3,12 +3,14 @@
 
 "use client";
 
-import React, { useState, Suspense, useRef } from 'react';
+import React, { useState, Suspense, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import CategoryGrid from './components/landing/CategoryGrid';
 import OwnerModals from './components/OwnerModals';
+import { getSupabaseClient } from '@/lib/supabaseClient';
+import { apiUrl } from '@/lib/apiClient';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -70,6 +72,8 @@ function HomeContent() {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const categorySectionRef = useRef<HTMLDivElement>(null);
   const howItWorksRef = useRef<HTMLDivElement>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   // Listen for events from header
   React.useEffect(() => {
