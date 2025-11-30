@@ -15,6 +15,8 @@ import { useBookingNotificationsHook } from "@/lib/useBookingNotifications";
 import BookingNotificationBar from "./BookingNotificationBar";
 import { useBookingNotifications } from "./BookingNotificationContext";
 import { useRouter } from "next/navigation";
+import { MessagesPanel } from "./owner/MessagesPanel";
+import { useState, useEffect } from "react";
 
 // Routes that should NOT have dashboard layout (Header, Sidebar, AuthGuard)
 const authRoutes: string[] = [];
@@ -89,9 +91,49 @@ export default function DashboardLayout({
             {children}
           </main>
           <OwnerAIChat />
+          <MessagesPanelWrapper />
         </BookingNotificationsWrapper>
       </OwnerAIChatProvider>
     </AuthGuard>
+  );
+}
+
+// MessagesPanelWrapper component to manage panel state
+function MessagesPanelWrapper() {
+  const [isMessagesOpen, setIsMessagesOpen] = useState(false);
+  const [initialBookingId, setInitialBookingId] = useState<string | null>(null);
+  const pathname = usePathname();
+
+  // Listen for custom event to open messages panel
+  useEffect(() => {
+    const handleOpenMessages = (e: CustomEvent<{ bookingId?: string }>) => {
+      setInitialBookingId(e.detail?.bookingId || null);
+      setIsMessagesOpen(true);
+    };
+
+    window.addEventListener('openMessagesPanel', handleOpenMessages as EventListener);
+    return () => {
+      window.removeEventListener('openMessagesPanel', handleOpenMessages as EventListener);
+    };
+  }, []);
+
+  // Close panel when navigating away from messages route (if it was open via route)
+  useEffect(() => {
+    if (pathname !== '/messages' && isMessagesOpen) {
+      // Only auto-close if we're not explicitly opening via event
+      // This allows the panel to stay open when navigating between other pages
+    }
+  }, [pathname, isMessagesOpen]);
+
+  return (
+    <MessagesPanel
+      isOpen={isMessagesOpen}
+      onClose={() => {
+        setIsMessagesOpen(false);
+        setInitialBookingId(null);
+      }}
+      initialBookingId={initialBookingId}
+    />
   );
 }
 
