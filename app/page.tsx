@@ -56,26 +56,8 @@ function HomeContent() {
               {tHome('heroTitle') || "Japan's Premier Booking Platform"}
             </h1>
             <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
-              {tHome('heroSubtitle') || "Book salons, clinics, hotels, and more — instantly."}
+              {tHome('heroSubtitle') || "Book salons, clinics, hotels, and more across Japan."}
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('openLoginJoinModal', { detail: { mode: 'login' } }));
-                }}
-                className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors text-lg"
-              >
-                {t('nav.login') || 'Login'}
-              </button>
-              <button
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('openLoginJoinModal', { detail: { mode: 'join' } }));
-                }}
-                className="px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors text-lg border-2 border-white"
-              >
-                {t('nav.join') || 'Join'}
-              </button>
-            </div>
           </div>
         </div>
       </section>
@@ -232,25 +214,6 @@ function HomeContent() {
                 </li>
               </ul>
             </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('openLoginJoinModal', { detail: { mode: 'login' } }));
-              }}
-              className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {t('nav.login') || 'Login'}
-            </button>
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('openLoginJoinModal', { detail: { mode: 'join' } }));
-              }}
-              className="px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors border-2 border-blue-600"
-            >
-              {t('nav.join') || 'Join'}
-            </button>
           </div>
         </div>
       </section>

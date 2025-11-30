@@ -177,13 +177,31 @@
     "aiAssistanceBullet1": "日本語・英語で顧客メッセージに自動対応",
     "aiAssistanceBullet2": "予約変更とキャンセルを自動処理",
     "aiAssistanceBullet3": "24時間365日サポート",
-    "trendingPageTitle": "トレンド中の店舗",
-    "trendingPageSubtitle": "お客様が最も閲覧・予約している店舗。",
+    "heroTitle": "日本初のAI予約プラットフォーム",
+    "heroSubtitle": "全国のサロン・クリニック・ホテルなどをかんたん予約。",
+    "pageTitle": "Yoyaku Yo",
+    "pageSubtitle": "日本中の人気サロン・クリニック・ホテルを発見。",
+    "categoryPreviewTitle": "カテゴリから探す",
+    "categoryPreviewSubtitle": "人気カテゴリをチェック。",
+    "categoryPageSubtitle": "気になるカテゴリを選んで店舗をチェック。",
+    "featuredPageTitle": "おすすめ店舗",
+    "featuredPageSubtitle": "Yoyaku Yoが厳選した人気店舗。",
+    "trendingPageTitle": "トレンド店舗",
+    "trendingPageSubtitle": "今もっとも見られている・予約されている店舗。",
     "thisWeek": "今週",
     "thisMonth": "今月",
     "allTime": "全期間",
-    "featuredPageTitle": "おすすめ店舗",
-    "featuredPageSubtitle": "日本全国の厳選されたサロン、クリニック、ホテルなど。",
+    "highlightsTitle": "注目の店舗",
+    "featuredCardTitle": "おすすめ",
+    "featuredCardText": "評価が高くおすすめの店舗をピックアップ。",
+    "trendingCardTitle": "トレンド",
+    "trendingCardText": "いま予約が集まっている店舗です。",
+    "feature1Title": "日本全国から検索",
+    "feature1Text": "カテゴリ・地域・市区町村で探せます。",
+    "feature2Title": "AIがおすすめを提案",
+    "feature2Text": "AIアシスタントがあなたに合う店舗を紹介します。",
+    "feature3Title": "その場でオンライン予約",
+    "feature3Text": "数秒で予約して、マイページで管理できます。",
     "featured": "おすすめ",
     "trending": "トレンド"
   },
@@ -828,6 +846,25 @@
     "whyBenefit3": "数秒で予約し、即座に確認を受け取ります。",
     "whyBenefit4": "お気に入りの店舗を保存し、いつでも再訪問できます。",
     "ctaBannerTitle": "YoyakuYoに参加して、日本最高の美容、ウェルネス、ホスピタリティを発見しましょう。",
-    "ctaBannerButton": "始める"
+    "ctaBannerButton": "始める",
+    "regions": {
+      "pageTitle": "エリアから探す",
+      "pageSubtitle": "地域・都道府県・市区町村から店舗を検索。",
+      "searchPlaceholder": "市区町村・エリア名で検索",
+      "filterByRegion": "地域でフィルター",
+      "shopsFound": "{{count}}件の店舗が見つかりました",
+      "clearFilters": "フィルターをクリア"
+    },
+    "service": {
+      "pageTitle": "Yoyaku Yoのサービス",
+      "pageSubtitle": "お客様と店舗のためのシンプルで強力なプラットフォーム。"
+    },
+    "footer": {
+      "about": "Yoyaku Yoについて",
+      "privacy": "プライバシーポリシー",
+      "terms": "利用規約",
+      "contact": "お問い合わせ",
+      "rights": "全著作権所有。"
+    }
   }
 }

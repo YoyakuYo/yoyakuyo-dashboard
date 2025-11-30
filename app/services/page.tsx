@@ -24,10 +24,10 @@ function ServicesPageContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            {tService('pageTitle') || 'Services'}
+            {tService('pageTitle') || 'What Yoyaku Yo Offers'}
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            {tService('pageSubtitle') || 'Discover services offered by Yoyaku Yo.'}
+            {tService('pageSubtitle') || 'A simple, powerful platform for customers and shop owners.'}
           </p>
         </div>
 
