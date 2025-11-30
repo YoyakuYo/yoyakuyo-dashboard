@@ -929,6 +929,26 @@
     "footerPrivacy": "Privacy Policy",
     "footerTerms": "Terms",
     "footerContact": "Contact",
-    "footerRights": "All rights reserved."
+    "footerRights": "All rights reserved.",
+    "trustedBy": "Trusted by thousands of customers across Japan",
+    "featuresTitle": "Our Amazing Features Helpful for Your Business",
+    "featuresSubtitle": "Everything you need to discover and book the best services in Japan",
+    "collectReviewsTitle": "Collect Reviews from Your Existing Clients",
+    "collectReviewsDesc": "Build trust and grow your business with authentic customer reviews and ratings.",
+    "feature1Title": "Top Rated Freelancer",
+    "feature1Desc": "Get discovered by customers looking for the best services",
+    "feature2Title": "Find Out Project",
+    "feature2Desc": "Browse thousands of available bookings and opportunities",
+    "feature3Title": "Create Portfolio",
+    "feature3Desc": "Showcase your work and attract more customers",
+    "marketplaceSubtitle": "Discover services across 15+ categories",
+    "statsCTATitle": "Hire Our Top Rated Freelancer",
+    "statsCTADesc": "Join thousands of customers who trust Yoyaku Yo for their booking needs",
+    "findProfile": "Find Profile",
+    "testimonialsTitle": "Check Out Recent Reviews",
+    "testimonialsSubtitle": "See what our customers are saying",
+    "review1Text": "\"Amazing experience! Found the perfect salon in minutes. The AI assistant was incredibly helpful.\"",
+    "review2Text": "\"Booking was so easy! The platform helped me discover new places I never knew existed.\"",
+    "review3Text": "\"As a shop owner, the AI messaging feature has saved me so much time. Highly recommended!\""
   }
 }
