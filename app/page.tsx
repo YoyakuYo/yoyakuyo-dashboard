@@ -149,7 +149,7 @@ function HomeContent() {
             <div className="relative hidden md:block">
               <div className="relative">
                 <Image
-                  src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&q=80"
+                  src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80"
                   alt="Yoyaku Yo - Japan's Premier Booking Platform"
                   width={600}
                   height={600}
@@ -248,7 +248,7 @@ function HomeContent() {
             <div className="relative">
               <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/30 rounded-full blur-3xl"></div>
               <Image
-                src="https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&q=80"
+                src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80"
                 alt="Yoyaku Yo Features"
                 width={600}
                 height={500}
