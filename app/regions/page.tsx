@@ -29,12 +29,15 @@ interface Shop {
 
 function RegionsPageContent() {
   let t: ReturnType<typeof useTranslations>;
+  let tRegions: ReturnType<typeof useTranslations>;
   const locale = useLocale();
   const isJapanese = locale === 'ja';
   try {
     t = useTranslations();
+    tRegions = useTranslations('regions');
   } catch {
     t = ((key: string) => key) as ReturnType<typeof useTranslations>;
+    tRegions = ((key: string) => key) as ReturnType<typeof useTranslations>;
   }
 
   const [shops, setShops] = useState<Shop[]>([]);
@@ -217,10 +220,10 @@ function RegionsPageContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            {t('regions.pageTitle') || 'Search by Region'}
+            {tRegions('pageTitle') || 'Search by Region'}
           </h1>
           <p className="text-lg text-gray-600">
-            {t('regions.pageSubtitle') || 'Explore shops by area, prefecture, or city.'}
+            {tRegions('pageSubtitle') || 'Choose a region, prefecture, or city to explore available shops.'}
           </p>
         </div>
 
@@ -230,7 +233,7 @@ function RegionsPageContent() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('regions.searchPlaceholder') || 'Search city or area name...'}
+            placeholder={tRegions('searchPlaceholder') || 'Search city or area…'}
             className="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
@@ -239,7 +242,7 @@ function RegionsPageContent() {
           {/* Left: Filters */}
           <div className="md:col-span-1">
             <h2 className="text-xl font-bold text-gray-900 mb-4">
-              {t('regions.filterByRegion') || 'Filter by Region'}
+              {tRegions('filterByRegion') || 'Filter by Region'}
             </h2>
 
             <div className="space-y-4">
@@ -333,7 +336,7 @@ function RegionsPageContent() {
           <div className="md:col-span-3">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900">
-                {t('regions.shopsFound', { count: filteredShops.length }) || `${filteredShops.length} shops found`}
+                {tRegions('shopsFound', { count: filteredShops.length }) || `${filteredShops.length} shops found`}
               </h2>
               {(selectedPrefectures.length > 0 || selectedCities.length > 0) && (
                 <button
@@ -343,7 +346,7 @@ function RegionsPageContent() {
                   }}
                   className="text-sm text-blue-600 hover:text-blue-700"
                 >
-                  {t('regions.clearFilters') || 'Clear filters'}
+                  {tRegions('clearFilters') || 'Clear filters'}
                 </button>
               )}
             </div>

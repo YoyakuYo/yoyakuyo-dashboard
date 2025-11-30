@@ -11,10 +11,13 @@ export const dynamic = 'force-dynamic';
 
 function CategoriesPageContent() {
   let t: ReturnType<typeof useTranslations>;
+  let tHome: ReturnType<typeof useTranslations>;
   try {
     t = useTranslations();
+    tHome = useTranslations('home');
   } catch {
     t = ((key: string) => key) as ReturnType<typeof useTranslations>;
+    tHome = ((key: string) => key) as ReturnType<typeof useTranslations>;
   }
 
   return (
@@ -22,10 +25,10 @@ function CategoriesPageContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            {t('home.categoryPreviewTitle') || 'Browse by Category'}
+            {tHome('categoryPreviewTitle') || 'Browse by Category'}
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            {t('home.categoryPageSubtitle') || 'Select a category to find shops in Japan.'}
+            {tHome('categoryPageSubtitle') || 'Select a category to find shops in Japan.'}
           </p>
         </div>
         <CategoryGrid />

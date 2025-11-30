@@ -29,10 +29,13 @@ interface Shop {
 
 function FeaturedPageContent() {
   let t: ReturnType<typeof useTranslations>;
+  let tHome: ReturnType<typeof useTranslations>;
   try {
     t = useTranslations();
+    tHome = useTranslations('home');
   } catch {
     t = ((key: string) => key) as ReturnType<typeof useTranslations>;
+    tHome = ((key: string) => key) as ReturnType<typeof useTranslations>;
   }
 
   const [shops, setShops] = useState<Shop[]>([]);
@@ -106,10 +109,10 @@ function FeaturedPageContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-8">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            {t('home.featuredPageTitle') || 'Featured Shops'}
+            {tHome('featuredPageTitle') || 'Featured Shops'}
           </h1>
           <p className="text-xl text-gray-300">
-            {t('home.featuredPageSubtitle') || 'Curated salons, clinics, hotels and more across Japan.'}
+            {tHome('featuredPageSubtitle') || 'Hand-picked shops recommended by Yoyaku Yo.'}
           </p>
         </div>
 
