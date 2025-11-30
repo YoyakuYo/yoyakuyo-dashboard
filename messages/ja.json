@@ -446,6 +446,15 @@
   },
   "browse": {
     "subcategories": "サブカテゴリー",
+    "byArea": "エリア別",
+    "byCategory": "カテゴリー別",
+    "prefecture": "都道府県",
+    "category": "カテゴリー",
+    "city": "市区町村",
+    "filterByPrefecture": "都道府県で絞り込む",
+    "filterByLocation": "場所で絞り込む",
+    "searchPlaceholder": "市区町村名または店舗名で検索..."
+    "subcategories": "サブカテゴリー",
     "citiesInPrefecture": "{prefecture}の市区町村",
     "byArea": "エリアで探す",
     "byCategory": "カテゴリーで探す",
@@ -737,8 +746,9 @@
     }
   },
   "landing": {
-    "heroTitle": "予約よ",
-    "heroSubtitle": "日本最高の予約プラットフォーム",
+    "heroTitle": "美容・ウェルネス・ホスピタリティを瞬時に見つける",
+    "heroSubtitle": "AIアシスタントで日本全国のサロン、クリニック、ホテルなどを予約",
+    "browseCategories": "カテゴリーを閲覧",
     "heroLogin": "ログイン",
     "heroJoin": "参加",
     "accessModalTitle": "始める",

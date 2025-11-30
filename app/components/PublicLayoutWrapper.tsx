@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BrowseAIAssistant } from "../browse/components/BrowseAIAssistant";
 import { BrowseAIProvider, useBrowseAIContext } from "./BrowseAIContext";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useAuth } from "@/lib/useAuth";
 
@@ -17,6 +17,13 @@ function PublicLayoutContent({ children }: { children: React.ReactNode }) {
   const browseContext = useBrowseAIContext();
   const router = useRouter();
   const { user } = useAuth();
+  
+  let tAuth: ReturnType<typeof useTranslations>;
+  try {
+    tAuth = useTranslations('auth');
+  } catch {
+    tAuth = ((key: string) => key) as ReturnType<typeof useTranslations>;
+  }
 
   const handleLogoClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -67,13 +74,27 @@ function PublicLayoutContent({ children }: { children: React.ReactNode }) {
             <a 
               href={user ? (window.location.pathname.startsWith('/customer') ? '/customer/home' : '/owner/dashboard') : '/'}
               onClick={handleLogoClick}
-              className="text-3xl font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
+              className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-amber-600 bg-clip-text text-transparent hover:from-pink-700 hover:to-amber-700 cursor-pointer transition-all"
             >
               Yoyaku Yo
             </a>
-            {/* Language Switcher */}
-            <div className="flex items-center">
+            {/* Right: Language Switcher + Login Buttons */}
+            <div className="flex items-center gap-4">
               <LanguageSwitcher />
+              <Link
+                href="/customer-login"
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                {tAuth('customerLogin') || 'Customer Login'}
+              </Link>
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('openLoginModal'));
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                {tAuth('ownerLogin') || 'Owner Login'}
+              </button>
             </div>
           </div>
         </div>

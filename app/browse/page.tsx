@@ -16,6 +16,7 @@ import { CATEGORIES } from '@/lib/categories';
 import { PREFECTURES } from '@/lib/prefectures';
 import { CategoryNavigation } from './components/CategoryNavigation';
 import { ShopCard } from './components/ShopCard';
+import { RegionPrefectureCityFilter } from './components/RegionPrefectureCityFilter';
 import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
 
 // Force dynamic rendering to avoid prerendering errors
@@ -400,34 +401,30 @@ function BrowsePageContent() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Prefecture Filters - Show when category is selected */}
-        {selectedCategoryId && (
-          <div className="mb-6 bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              {t('browse.filterByPrefecture') || 'Filter by Prefecture'}
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {PREFECTURES.map((pref) => {
-                const isChecked = selectedPrefectures.includes(pref.key);
-                return (
-                  <label
-                    key={pref.key}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => togglePrefecture(pref.key)}
-                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">
-                      {locale === 'ja' ? pref.nameJa : pref.name}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
+        {/* Search Bar - Always visible */}
+        <div className="mb-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('browse.searchPlaceholder') || 'Search by city name or shop name...'}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-lg"
+            />
           </div>
+        </div>
+
+        {/* Region → Prefecture → City Filter - Show when category is selected */}
+        {selectedCategoryId && (
+          <RegionPrefectureCityFilter
+            selectedCategoryId={selectedCategoryId}
+            selectedPrefectures={selectedPrefectures}
+            selectedCities={selectedCities}
+            onTogglePrefecture={togglePrefecture}
+            onToggleCity={toggleCity}
+            shops={shops}
+            apiUrl={apiUrl}
+          />
         )}
 
 
