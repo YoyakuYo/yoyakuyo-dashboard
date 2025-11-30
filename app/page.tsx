@@ -270,10 +270,10 @@ function HomeContent() {
             {/* Right: Features List */}
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                {tLanding('collectReviewsTitle') || 'Collect Reviews from Your Existing Clients'}
+                {tLanding('collectReviewsTitle') || 'Why Choose Yoyaku Yo?'}
               </h2>
               <p className="text-lg text-gray-600 mb-8">
-                {tLanding('collectReviewsDesc') || 'Build trust and grow your business with authentic customer reviews and ratings.'}
+                {tLanding('collectReviewsDesc') || 'Experience the best booking platform in Japan with AI-powered assistance and thousands of verified shops.'}
               </p>
               
               <div className="space-y-6">
@@ -284,8 +284,8 @@ function HomeContent() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">{tLanding('feature1Title') || 'Top Rated Freelancer'}</h3>
-                    <p className="text-gray-600">{tLanding('feature1Desc') || 'Get discovered by customers looking for the best services'}</p>
+                    <h3 className="font-semibold text-gray-900 mb-1">{tLanding('feature1Title') || 'Top Rated Shops'}</h3>
+                    <p className="text-gray-600">{tLanding('feature1Desc') || 'Discover the highest-rated salons, clinics, and services across Japan'}</p>
                   </div>
                 </div>
 
@@ -296,20 +296,20 @@ function HomeContent() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">{tLanding('feature2Title') || 'Find Out Project'}</h3>
-                    <p className="text-gray-600">{tLanding('feature2Desc') || 'Browse thousands of available bookings and opportunities'}</p>
+                    <h3 className="font-semibold text-gray-900 mb-1">{tLanding('feature2Title') || 'Instant Booking'}</h3>
+                    <p className="text-gray-600">{tLanding('feature2Desc') || 'Book your favorite services instantly with real-time availability'}</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">{tLanding('feature3Title') || 'Create Portfolio'}</h3>
-                    <p className="text-gray-600">{tLanding('feature3Desc') || 'Showcase your work and attract more customers'}</p>
+                    <h3 className="font-semibold text-gray-900 mb-1">{tLanding('feature3Title') || 'Save Favorites'}</h3>
+                    <p className="text-gray-600">{tLanding('feature3Desc') || 'Save your favorite shops and access them anytime for quick booking'}</p>
                   </div>
                 </div>
               </div>
@@ -346,7 +346,7 @@ function HomeContent() {
               <span className="text-5xl md:text-6xl font-bold text-white">15K+</span>
             </div>
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              {tLanding('statsCTATitle') || 'Hire Our Top Rated Freelancer'}
+              {tLanding('statsCTATitle') || 'Book Japan\'s Best Services'}
             </h2>
             <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
               {tLanding('statsCTADesc') || 'Join thousands of customers who trust Yoyaku Yo for their booking needs'}
@@ -355,7 +355,7 @@ function HomeContent() {
               onClick={() => setShowJoinModal(true)}
               className="px-8 py-4 bg-white text-blue-600 font-bold rounded-lg shadow-xl hover:bg-gray-100 transition-all text-lg"
             >
-              {tLanding('findProfile') || 'Find Profile'}
+              {tLanding('findProfile') || 'Get Started'}
             </button>
           </div>
         </div>
