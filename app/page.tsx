@@ -105,6 +105,7 @@ function HomeContent() {
         const supabase = getSupabaseClient();
         
         // Fetch latest published reviews with shop and customer info
+        // Note: reviews.customer_id references customers table, but we'll get customer name from bookings or use anonymous
         const { data: reviewsData, error } = await supabase
           .from('reviews')
           .select(`
@@ -112,15 +113,16 @@ function HomeContent() {
             rating,
             comment,
             created_at,
+            customer_id,
             shops (
               id,
               name,
               prefecture,
               city
             ),
-            customer_profiles (
-              id,
-              name
+            bookings (
+              customer_name,
+              customer_email
             )
           `)
           .eq('status', 'published')
