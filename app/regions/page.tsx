@@ -151,7 +151,7 @@ function RegionsPageContent() {
         return selectedPrefectures.some(prefKey => {
           const pref = PREFECTURES.find(p => p.key === prefKey);
           if (!pref) return false;
-          const shopPref = shop.prefecture.toLowerCase();
+          const shopPref = shop.prefecture?.toLowerCase() || '';
           return shopPref.includes(pref.name.toLowerCase()) || 
                  shopPref.includes(pref.nameJa) ||
                  shop.address?.includes(pref.nameJa);
