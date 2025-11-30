@@ -63,7 +63,10 @@
     "customerLogin": "Customer Login",
     "signUpAsCustomer": "Sign Up as Customer",
     "ownerLogin": "Owner Login",
-    "joinAsOwner": "Join as Owner"
+    "joinAsOwner": "Join as Owner",
+    "loginAsCustomer": "Login as Customer",
+    "loginAsOwner": "Login as Owner",
+    "joinAsCustomer": "Join as Customer"
   },
   "nav": {
     "shops": "Shops",
@@ -451,6 +454,7 @@
     "category": "Category",
     "city": "City",
     "filterByPrefecture": "Filter by Prefecture",
+    "filterByRegion": "Filter by Region",
     "filterByLocation": "Filter by Location",
     "searchPlaceholder": "Search by city name or shop name..."
   },
@@ -819,8 +823,8 @@
     "browseShops": "Browse shops to start messaging"
   },
   "landing": {
-    "heroTitle": "Find Beauty, Wellness & Hospitality — Instantly.",
-    "heroSubtitle": "Book salons, clinics, hotels & more across Japan with AI assistance.",
+    "heroTitle": "Book beauty, wellness & hospitality across Japan",
+    "heroSubtitle": "Find salons, clinics, hotels and more — with AI helping you book in your language.",
     "browseCategories": "Browse Categories",
     "heroLogin": "Login",
     "heroJoin": "Join",
@@ -892,6 +896,39 @@
     "aiAssistanceTitle": "AI Assistance",
     "aiAssistanceBullet1": "AI chats with customers in Japanese, English, Spanish, Chinese, Portuguese",
     "aiAssistanceBullet2": "AI handles scheduling, rescheduling, cancellations",
-    "aiAssistanceBullet3": "Works 24/7 without delays"
+    "aiAssistanceBullet3": "Works 24/7 without delays",
+    "heroTitle": "Book beauty, wellness & hospitality across Japan",
+    "heroSubtitle": "Find salons, clinics, hotels and more — with AI helping you book in your language.",
+    "browseCategories": "Browse Categories",
+    "howItWorks": "How it works",
+    "marketingCard1Title": "Search the best salons, clinics & experiences in Japan",
+    "marketingCard1Text": "Discover thousands of verified businesses across multiple categories and regions.",
+    "marketingCard2Title": "AI-powered booking assistance",
+    "marketingCard2Text": "Our AI helps you find available times, answers questions, and handles bookings in multiple languages.",
+    "marketingCard3Title": "Save time, book instantly",
+    "marketingCard3Text": "No more phone calls. Compare shops, save favorites, and manage bookings in one place.",
+    "howItWorksTitle": "How It Works",
+    "howItWorksCustomersTitle": "For Customers",
+    "howItWorksCustomersBullet1": "Search shops by category or location",
+    "howItWorksCustomersBullet2": "Book instantly with AI assistance",
+    "howItWorksCustomersBullet3": "Save favorites and view booking history",
+    "howItWorksOwnersTitle": "For Owners",
+    "howItWorksOwnersBullet1": "Manage bookings & availability",
+    "howItWorksOwnersBullet2": "Handle customer messages automatically with AI",
+    "howItWorksOwnersBullet3": "View performance with a simple dashboard",
+    "howItWorksAITitle": "AI Assistance",
+    "howItWorksAIBullet1": "Chats with customers in Japanese, English, Spanish, Chinese, Portuguese",
+    "howItWorksAIBullet2": "Handles scheduling, rescheduling, and cancellations",
+    "howItWorksAIBullet3": "Available 24/7",
+    "ctaCustomersTitle": "For Customers",
+    "ctaCustomersDesc": "Join thousands of customers who book faster with AI assistance",
+    "ctaOwnersTitle": "For Owners",
+    "ctaOwnersDesc": "Automate customer messages and grow your business effortlessly",
+    "createAccountTitle": "Create an account",
+    "footerAbout": "About",
+    "footerPrivacy": "Privacy Policy",
+    "footerTerms": "Terms",
+    "footerContact": "Contact",
+    "footerRights": "All rights reserved."
   }
 }

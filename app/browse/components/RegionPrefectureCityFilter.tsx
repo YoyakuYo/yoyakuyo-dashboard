@@ -149,7 +149,7 @@ export function RegionPrefectureCityFilter({
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
       <h2 className="text-xl font-bold text-gray-900 mb-4">
-        {t('browse.filterByLocation') || 'Filter by Location'}
+        {t('browse.filterByRegion') || 'Filter by Region'}
       </h2>
 
       {/* Search Bar */}
