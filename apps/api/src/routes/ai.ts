@@ -14,26 +14,61 @@ const router = Router();
 const dbClient = supabaseAdmin || supabase;
 
 // POST /ai/chat - AI chat endpoint (legacy - uses shop_messages table)
+// Supports both legacy format (source, message, shopId) and unified format (role, messages)
 router.post("/chat", async (req: Request, res: Response) => {
     try {
-        const { shopId, bookingId, message, source } = req.body;
+        // Check if this is unified format (role + messages array)
+        const { role, messages: messagesArray, shopId, bookingId, message, source } = req.body;
+        
+        // Handle unified format (role + messages array)
+        if (role && messagesArray && Array.isArray(messagesArray) && messagesArray.length > 0) {
+            // Get the last user message from the messages array
+            const lastUserMessage = messagesArray.filter((m: any) => m.role === "user").pop();
+            if (!lastUserMessage || !lastUserMessage.content?.trim()) {
+                return res.status(400).json({ error: "Last message must be from user with content" });
+            }
+            
+            const actualMessage = lastUserMessage.content.trim();
+            const actualSource = role === 'customer' ? 'customer' : role === 'owner' ? 'owner' : source || 'customer';
+            const actualShopId = shopId || req.body.shopContext?.shopId || null;
+            
+            // For customer chat without shopId, use a default shop or handle differently
+            // For general customer chat (like /customer/chat), we'll use a placeholder shopId
+            // This allows the chat to work but won't create shop-specific threads
+            if (!actualShopId && actualSource === 'customer') {
+                // Use a placeholder shopId for general customer chat
+                // The chat will work but won't be linked to a specific shop
+                actualShopId = '00000000-0000-0000-0000-000000000000'; // Placeholder UUID
+                console.log('[AI] Customer chat without shopId - using placeholder');
+            }
+            
+            // Use the unified format but convert to legacy format for processing
+            req.body.shopId = actualShopId;
+            req.body.message = actualMessage;
+            req.body.source = actualSource;
+        }
+        
+        // Now process with legacy format
+        const finalShopId = req.body.shopId;
+        const finalMessage = req.body.message;
+        const finalSource = req.body.source;
 
-        if (!shopId || !message) {
+        if (!finalShopId || !finalMessage) {
             return res.status(400).json({ error: "shopId and message are required" });
         }
 
-        const isCustomer = source === 'customer';
+        const isCustomer = finalSource === 'customer';
 
         // Find or create a thread for this shop/booking
         let threadId: string | null = null;
         
-        if (bookingId) {
+        if (req.body.bookingId) {
             // Try to find existing thread by bookingId
             const { data: existingThreads, error: findError } = await dbClient
                 .from("shop_threads")
                 .select("id")
-                .eq("shop_id", shopId)
-                .eq("booking_id", bookingId)
+                .eq("shop_id", finalShopId)
+                .eq("booking_id", req.body.bookingId)
                 .limit(1);
             
             if (!findError && existingThreads && existingThreads.length > 0) {
@@ -46,7 +81,7 @@ router.post("/chat", async (req: Request, res: Response) => {
             const { data: shopThreads, error: findError } = await dbClient
                 .from("shop_threads")
                 .select("id")
-                .eq("shop_id", shopId)
+                .eq("shop_id", finalShopId)
                 .limit(1);
             
             if (!findError && shopThreads && shopThreads.length > 0) {
@@ -56,8 +91,8 @@ router.post("/chat", async (req: Request, res: Response) => {
                 const { data: newThread, error: threadError } = await dbClient
                     .from("shop_threads")
                     .insert([{
-                        shop_id: shopId,
-                        booking_id: bookingId || null,
+                        shop_id: finalShopId,
+                        booking_id: req.body.bookingId || null,
                         customer_email: null,
                     }])
                     .select()
@@ -85,8 +120,8 @@ router.post("/chat", async (req: Request, res: Response) => {
         }
 
         // Detect language using language detection service
-        let languageCode = await detectLanguage(message);
-        console.log(`[AI] Detected language: ${languageCode} for message: "${message.substring(0, 50)}..."`);
+        let languageCode = await detectLanguage(finalMessage);
+        console.log(`[AI] Detected language: ${languageCode} for message: "${finalMessage.substring(0, 50)}..."`);
 
         // For customers: use saved preferred language, or detect from message
         if (isCustomer && threadId) {
@@ -100,7 +135,7 @@ router.post("/chat", async (req: Request, res: Response) => {
                 languageCode = await getCustomerLanguage(
                     threadData.customer_email,
                     undefined,
-                    message
+                    finalMessage
                 );
                 
                 // Update customer language if not set
@@ -115,7 +150,7 @@ router.post("/chat", async (req: Request, res: Response) => {
                 {
                     thread_id: threadId,
                     sender_type: 'customer',
-                    content: message,
+                    content: finalMessage,
                 }
             ])
             .select()
@@ -133,9 +168,9 @@ router.post("/chat", async (req: Request, res: Response) => {
                 .insert([
                     {
                         customer_id: customerId,
-                        shop_id: shopId,
+                        shop_id: finalShopId,
                         role: 'user',
-                        message: message,
+                        message: finalMessage,
                     }
                 ]);
         } catch (customerMsgError) {
@@ -171,7 +206,7 @@ router.post("/chat", async (req: Request, res: Response) => {
                     .insert([
                         {
                             customer_id: customerId,
-                            shop_id: shopId,
+                            shop_id: finalShopId,
                             role: 'assistant',
                             message: stubResponse,
                         }
@@ -195,7 +230,7 @@ router.post("/chat", async (req: Request, res: Response) => {
         // Add current message
         conversationHistory.push({
             role: 'user',
-            content: message,
+            content: finalMessage,
         });
 
         // Get language name for the prompt
@@ -208,7 +243,7 @@ router.post("/chat", async (req: Request, res: Response) => {
         const detectedLanguageName = languageNames[languageCode] || 'English';
 
         // Fetch shop details for context (legacy /ai/chat route)
-        const shop = await getShopDetails(shopId);
+        const shop = await getShopDetails(finalShopId);
         const shopName = shop?.name || 'our shop';
         const shopCategory = shop?.category || 'business';
         const shopDescription = shop?.description || '';
@@ -323,7 +358,7 @@ You MUST NOT suggest prices, change prices, or show revenue. You MUST NOT discus
                     .insert([
                         {
                             customer_id: customerId,
-                            shop_id: shopId,
+                            shop_id: finalShopId,
                             role: 'assistant',
                             message: aiResponse,
                         }
@@ -335,7 +370,7 @@ You MUST NOT suggest prices, change prices, or show revenue. You MUST NOT discus
             // Check if AI wants to cancel or reschedule a booking
             // Simple keyword detection (can be enhanced)
             const lowerResponse = aiResponse.toLowerCase();
-            const lowerMessage = message.toLowerCase();
+            const lowerMessage = finalMessage.toLowerCase();
             
             // Multilingual cancellation keyword detection
             const cancelKeywords = ['cancel', 'cancellation', 'キャンセル', '取消', '取消し', 'annuler', 'stornieren', 'cancelar'];
@@ -710,7 +745,7 @@ router.post("/chat-thread", async (req: Request, res: Response) => {
         // Add current message
         conversationHistory.push({
             role: 'user',
-            content: message,
+            content: finalMessage,
         });
 
         // Check conversation history to see if name was already collected
