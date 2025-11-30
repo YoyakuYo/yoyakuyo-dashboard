@@ -18,7 +18,18 @@ export const categoryMarketing: Record<string, CategoryMarketing> = {
   
   // Hotels & Ryokan
   'hotel': {
-    images: [],
+    images: [
+      '/categories/hotel-1.jpg', // Luxurious lounge/bar with Tokyo Tower view
+      '/categories/hotel-2.jpg', // L7 Hotels exterior at night
+      '/categories/hotel-3.jpg', // Hotel room with two beds and city view
+      '/categories/hotel-4.jpg', // Hotel room with one bed
+      '/categories/hotel-5.jpg', // Rooftop pool at night
+      '/categories/hotel-6.jpg', // Indoor swimming pool with wave-like ceiling
+      '/categories/hotel-7.jpg', // Rooftop terrace with Tokyo Skytree view
+      '/categories/hotel-8.jpg', // Modern hotel room with city view
+      '/categories/hotel-9.jpg', // Hotel room with panoramic city view
+      '/categories/hotel-10.jpg', // Corner suite with twin beds and cityscape
+    ],
     description: 'Experience traditional Japanese hospitality at ryokan inns or enjoy modern comfort at luxury hotels. From hot spring resorts to city center hotels, find your perfect accommodation.',
     descriptionJa: '旅館で伝統的な日本のおもてなしを体験するか、高級ホテルでモダンな快適さをお楽しみください。温泉リゾートから都心のホテルまで、最適な宿泊施設を見つけましょう。',
   },
