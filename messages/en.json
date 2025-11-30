@@ -823,6 +823,17 @@
     "browseShops": "Browse shops to start messaging"
   },
   "landing": {
+    "heroMainTitle": "YOYAKU YO",
+    "heroSubtitle": "JAPAN'S PREMIER BOOKING PLATFORM",
+    "moreButton": "MORE",
+    "feature1Title": "Smart Analytics",
+    "feature1Desc": "Track your bookings and discover the best services with our intelligent analytics system.",
+    "feature2Title": "Multi-Platform",
+    "feature2Desc": "Access Yoyaku Yo from any device - desktop, tablet, or mobile. Book anywhere, anytime.",
+    "feature3Title": "AI Chat Support",
+    "feature3Desc": "Get instant help with our AI-powered chat support available in multiple languages 24/7.",
+    "feature4Title": "Verified Shops",
+    "feature4Desc": "All shops are verified and reviewed. Book with confidence knowing you're getting quality service.",
     "heroTitle": "Travel, enjoy and book your perfect service",
     "heroSubtitleLabel": "BEST SERVICES AROUND JAPAN",
     "heroDescription": "Discover thousands of verified salons, clinics, hotels and more across Japan. Book instantly with AI assistance in your language.",
