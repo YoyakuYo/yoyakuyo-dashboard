@@ -7,9 +7,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCustomerNotifications } from "../components/CustomerNotificationContext";
 import { apiUrl } from "@/lib/apiClient";
+import { useTranslations } from "next-intl";
 
 function CustomerBookingsPageContent() {
   const { user } = useCustomAuth();
+  const t = useTranslations();
   const searchParams = useSearchParams();
   const filter = searchParams.get("filter") || "all";
   const [bookings, setBookings] = useState<any[]>([]);
@@ -47,7 +49,7 @@ function CustomerBookingsPageContent() {
               event: "*",
               schema: "public",
               table: "bookings",
-              filter: `customer_profile_id=eq.${profile.id}`,
+              filter: `or(customer_profile_id.eq.${profile.id},customer_id.eq.${profile.id})`,
             },
             () => {
               loadBookings();
@@ -83,6 +85,7 @@ function CustomerBookingsPageContent() {
       return;
     }
 
+    // Try customer_profile_id first, then fallback to customer_id
     let query = supabase
       .from("bookings")
       .select(`
@@ -99,7 +102,7 @@ function CustomerBookingsPageContent() {
           price
         )
       `)
-      .eq("customer_profile_id", profile.id)
+      .or(`customer_profile_id.eq.${profile.id},customer_id.eq.${profile.id}`)
       .order("created_at", { ascending: false });
 
     if (filter !== "all") {
@@ -153,7 +156,7 @@ function CustomerBookingsPageContent() {
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">My Bookings</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('customer.nav.myBookings')}</h1>
       </div>
 
       {/* Filter Tabs */}
@@ -168,7 +171,7 @@ function CustomerBookingsPageContent() {
                 : "border-transparent text-gray-600 hover:text-gray-900"
             }`}
           >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
+            {t(`bookings.${f}`) || f.charAt(0).toUpperCase() + f.slice(1)}
           </Link>
         ))}
       </div>
@@ -176,12 +179,12 @@ function CustomerBookingsPageContent() {
       {/* Bookings List */}
       {bookings.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-12 text-center">
-          <p className="text-gray-500 mb-4">No bookings found.</p>
+          <p className="text-gray-500 mb-4">{t('booking.noBookingsFound')}</p>
           <Link
             href="/customer/shops"
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
-            Browse shops to make a booking →
+            {t('shops.browseShops')} →
           </Link>
         </div>
       ) : (
@@ -202,30 +205,39 @@ function CustomerBookingsPageContent() {
                         booking.status
                       )}`}
                     >
-                      {booking.status}
+                      {t(`status.${booking.status}`) || booking.status}
                     </span>
                   </div>
                   <div className="text-sm text-gray-600 space-y-1">
                     <p>
-                      <strong>Date:</strong>{" "}
-                      {new Date(booking.booking_date).toLocaleDateString()}
+                      <strong>{t('common.date')}:</strong>{" "}
+                      {booking.start_time 
+                        ? new Date(booking.start_time).toLocaleDateString()
+                        : booking.date 
+                        ? new Date(booking.date).toLocaleDateString()
+                        : booking.booking_date 
+                        ? new Date(booking.booking_date).toLocaleDateString()
+                        : 'N/A'}
                     </p>
                     <p>
-                      <strong>Time:</strong> {booking.booking_time}
+                      <strong>{t('common.time')}:</strong>{" "}
+                      {booking.start_time 
+                        ? new Date(booking.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                        : booking.time_slot || booking.booking_time || 'N/A'}
                     </p>
                     {booking.shops?.address && (
                       <p>
-                        <strong>Location:</strong> {booking.shops.address}
+                        <strong>{t('common.address')}:</strong> {booking.shops.address}
                       </p>
                     )}
                     {booking.customer_name && (
                       <p>
-                        <strong>Name:</strong> {booking.customer_name}
+                        <strong>{t('common.name')}:</strong> {booking.customer_name}
                       </p>
                     )}
                     {booking.customer_phone && (
                       <p>
-                        <strong>Phone:</strong> {booking.customer_phone}
+                        <strong>{t('common.phone')}:</strong> {booking.customer_phone}
                       </p>
                     )}
                   </div>
@@ -244,14 +256,14 @@ function CustomerBookingsPageContent() {
                       href={`/customer/messages?bookingId=${booking.id}`}
                       className="px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors text-center"
                     >
-                      💬 Message Shop
+                      {t('messages.title')}
                     </Link>
                   )}
                   <Link
                     href={`/customer/bookings/${booking.id}`}
                     className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
                   >
-                    View Details
+                    {t('common.viewDetails') || 'View Details'}
                   </Link>
                 </div>
               </div>

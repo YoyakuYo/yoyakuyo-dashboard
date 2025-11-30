@@ -137,6 +137,7 @@
   },
   "bookings": {
     "all": "Todas",
+    "upcoming": "Próximas",
     "pending": "Pendente",
     "confirmed": "Confirmado",
     "completed": "Concluído",
@@ -147,6 +148,7 @@
     "cancel": "Cancelar",
     "edit": "Editar",
     "delete": "Excluir",
+    "viewDetails": "Ver detalhes",
     "create": "Criar",
     "update": "Atualizar",
     "submit": "Enviar",
@@ -171,6 +173,7 @@
     "myShop": "Minha Loja",
     "aiAssistant": "Assistente IA",
     "bookings": "Reservas",
+    "messages": "Mensagens",
     "logout": "Sair",
     "dashboard": "Painel Yoyaku Yo"
   },

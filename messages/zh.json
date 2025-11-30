@@ -137,6 +137,7 @@
   },
   "bookings": {
     "all": "全部",
+    "upcoming": "即将到来",
     "pending": "待处理",
     "confirmed": "已确认",
     "completed": "已完成",
@@ -147,6 +148,7 @@
     "cancel": "取消",
     "edit": "编辑",
     "delete": "删除",
+    "viewDetails": "查看详情",
     "create": "创建",
     "update": "更新",
     "submit": "提交",
@@ -171,6 +173,7 @@
     "myShop": "我的店铺",
     "aiAssistant": "AI助手",
     "bookings": "预约",
+    "messages": "消息",
     "logout": "登出",
     "dashboard": "Yoyaku Yo仪表板"
   },

@@ -137,6 +137,7 @@
   },
   "bookings": {
     "all": "Todas",
+    "upcoming": "Próximas",
     "pending": "Pendiente",
     "confirmed": "Confirmado",
     "completed": "Completado",
@@ -147,6 +148,7 @@
     "cancel": "Cancelar",
     "edit": "Editar",
     "delete": "Eliminar",
+    "viewDetails": "Ver detalles",
     "create": "Crear",
     "update": "Actualizar",
     "submit": "Enviar",
@@ -171,6 +173,7 @@
     "myShop": "Mi Tienda",
     "aiAssistant": "Asistente IA",
     "bookings": "Reservas",
+    "messages": "Mensajes",
     "logout": "Cerrar Sesión",
     "dashboard": "Panel de Yoyaku Yo"
   },

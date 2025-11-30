@@ -43,7 +43,8 @@
     "time": "Time",
     "optional": "Optional",
     "required": "Required",
-    "characters": "characters"
+    "characters": "characters",
+    "viewDetails": "View Details"
   },
   "auth": {
     "signInToShop": "Sign in to your shop",
@@ -66,6 +67,7 @@
     "myShop": "My Shop",
     "aiAssistant": "AI Assistant",
     "bookings": "Bookings",
+    "messages": "Messages",
     "logout": "Logout",
     "dashboard": "Yoyaku Yo Dashboard"
   },
@@ -211,6 +213,7 @@
   },
   "bookings": {
     "all": "All",
+    "upcoming": "Upcoming",
     "pending": "Pending",
     "confirmed": "Confirmed",
     "completed": "Completed",

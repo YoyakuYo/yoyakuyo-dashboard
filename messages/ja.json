@@ -44,7 +44,8 @@
     "optional": "任意",
     "required": "必須",
     "characters": "文字",
-    "selectAll": "すべて選択"
+    "selectAll": "すべて選択",
+    "viewDetails": "詳細を見る"
   },
   "auth": {
     "signInToShop": "店舗にサインイン",
@@ -67,6 +68,7 @@
     "myShop": "マイショップ",
     "aiAssistant": "AIアシスタント",
     "bookings": "予約",
+    "messages": "メッセージ",
     "logout": "ログアウト",
     "dashboard": "Yoyaku Yoダッシュボード"
   },
@@ -213,6 +215,7 @@
   },
   "bookings": {
     "all": "すべて",
+    "upcoming": "今後の予約",
     "pending": "保留中",
     "confirmed": "確認済み",
     "completed": "完了",

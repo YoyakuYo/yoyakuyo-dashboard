@@ -150,6 +150,7 @@ function CustomerMessagesPageContent() {
       if (!customerProfile) return;
 
       // Get threads for this customer
+      // Note: customer_id in shop_threads stores customer_profile.id
       const { data: threadsData } = await supabase
         .from("shop_threads")
         .select(`

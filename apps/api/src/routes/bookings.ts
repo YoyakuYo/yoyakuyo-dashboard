@@ -1,5 +1,6 @@
 import express, { Request, Response, Router } from 'express';
 import { supabase } from '../lib/supabase';
+import { createCustomerNotification, createOwnerNotification, getCustomerProfileId } from '../services/notificationService';
 
 const router = Router();
 
@@ -11,7 +12,7 @@ router.get('/', async (req: Request, res: Response) => {
         
         let query = supabase
             .from('bookings')
-            .select('id, shop_id, service_id, staff_id, customer_id, start_time, end_time, notes, status, customer_name, customer_email, customer_phone, shops(name), services(name), staff(first_name, last_name)');
+            .select('id, shop_id, service_id, staff_id, customer_id, customer_profile_id, start_time, end_time, notes, status, customer_name, customer_email, customer_phone, shops(name), services(name), staff(first_name, last_name)');
         
         // If user_id provided, filter by shops owned by user
         if (userId) {
@@ -136,14 +137,85 @@ router.post('/', async (req: Request, res: Response) => {
         const { data: newBooking, error } = await supabase
             .from('bookings')
             .insert([bookingData])
-            .select('*');
+            .select('*, shops(name, owner_user_id), services(name), customer_profile_id, customer_id')
+            .single();
 
         if (error) {
             console.error('Error creating booking:', error);
             return res.status(500).json({ error: error.message });
         }
 
-        return res.status(201).json(newBooking?.[0] ?? { message: 'Booking created' });
+        // Create notification for owner when customer creates booking
+        if (newBooking?.shop_id) {
+            const shop = newBooking.shops as any;
+            const service = newBooking.services as any;
+            
+            if (shop?.owner_user_id) {
+                const shopName = shop.name || 'your shop';
+                const serviceName = service?.name || 'a service';
+                const bookingDate = newBooking.start_time 
+                    ? new Date(newBooking.start_time).toLocaleDateString()
+                    : 'N/A';
+                const bookingTime = newBooking.start_time 
+                    ? new Date(newBooking.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                    : 'N/A';
+                
+                await createOwnerNotification(
+                    shop.owner_user_id,
+                    'new_booking',
+                    'New Booking Request',
+                    `New booking request for ${serviceName} on ${bookingDate} at ${bookingTime} from ${newBooking.customer_name || 'a customer'}`,
+                    {
+                        booking_id: newBooking.id,
+                        shop_id: newBooking.shop_id,
+                        customer_name: newBooking.customer_name,
+                        service_name: serviceName,
+                        date: bookingDate,
+                        time: bookingTime
+                    }
+                );
+            }
+        }
+
+        // Create chat thread automatically for this booking
+        if (newBooking?.id && newBooking?.shop_id) {
+            try {
+                // Check if thread already exists
+                const { data: existingThread } = await supabase
+                    .from('shop_threads')
+                    .select('id')
+                    .eq('booking_id', newBooking.id)
+                    .eq('shop_id', newBooking.shop_id)
+                    .maybeSingle();
+
+                if (!existingThread) {
+                    // Get customer_profile_id if customer_id exists
+                    let customerProfileId = newBooking.customer_profile_id;
+                    if (!customerProfileId && newBooking.customer_id) {
+                        customerProfileId = await getCustomerProfileId(newBooking.customer_id);
+                    }
+
+                    // Use customer_profile_id as customer_id in shop_threads
+                    // (customer_id in shop_threads stores customer_profile.id)
+                    const threadCustomerId = customerProfileId || newBooking.customer_id || null;
+
+                    // Create new thread for this booking
+                    await supabase
+                        .from('shop_threads')
+                        .insert({
+                            shop_id: newBooking.shop_id,
+                            booking_id: newBooking.id,
+                            customer_id: threadCustomerId,
+                            customer_email: newBooking.customer_email || null,
+                        });
+                }
+            } catch (threadError) {
+                console.error('Error creating chat thread:', threadError);
+                // Don't fail booking creation if thread creation fails
+            }
+        }
+
+        return res.status(201).json(newBooking ?? { message: 'Booking created' });
     } catch (error: any) {
         console.error('Error during booking creation:', error);
         return res.status(500).json({ error: error.message });
@@ -212,6 +284,22 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
             }
         }
 
+        // Get booking details before updating (for notification)
+        const { data: bookingBeforeUpdate } = await supabase
+            .from('bookings')
+            .select(`
+                customer_profile_id,
+                customer_id,
+                customer_name,
+                start_time,
+                date,
+                time_slot,
+                services:service_id (name),
+                shops:shop_id (name)
+            `)
+            .eq('id', bookingId)
+            .single();
+
         // Update the booking status
         const { data: updatedBooking, error: updateError } = await supabase
             .from('bookings')
@@ -223,6 +311,50 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
         if (updateError) {
             console.error('Error updating booking status:', updateError);
             return res.status(500).json({ error: updateError.message });
+        }
+
+        // Create notification for customer when owner confirms/rejects/cancels
+        if (bookingBeforeUpdate && (status === 'confirmed' || status === 'rejected' || status === 'cancelled')) {
+            const shopName = (bookingBeforeUpdate.shops as any)?.name || 'the shop';
+            const serviceName = (bookingBeforeUpdate.services as any)?.name || 'service';
+            const date = bookingBeforeUpdate.date || (bookingBeforeUpdate.start_time 
+                ? new Date(bookingBeforeUpdate.start_time).toLocaleDateString()
+                : 'N/A');
+            const time = bookingBeforeUpdate.start_time 
+                ? new Date(bookingBeforeUpdate.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                : bookingBeforeUpdate.time_slot || 'N/A';
+
+            // Get customer_profile_id (support both customer_profile_id and customer_id)
+            let customerProfileId = bookingBeforeUpdate.customer_profile_id;
+            if (!customerProfileId && bookingBeforeUpdate.customer_id) {
+                customerProfileId = await getCustomerProfileId(bookingBeforeUpdate.customer_id);
+            }
+
+            if (customerProfileId) {
+                let title = '';
+                let body = '';
+
+                if (status === 'confirmed') {
+                    title = 'Booking Confirmed';
+                    body = `Your booking for ${serviceName} at ${shopName} on ${date} at ${time} has been confirmed!`;
+                } else if (status === 'cancelled') {
+                    title = 'Booking Cancelled';
+                    body = `Your booking for ${serviceName} at ${shopName} on ${date} has been cancelled.`;
+                } else if (status === 'rejected') {
+                    title = 'Booking Rejected';
+                    body = `Your booking request for ${serviceName} at ${shopName} on ${date} has been rejected.`;
+                }
+
+                if (title && body) {
+                    await createCustomerNotification(
+                        customerProfileId,
+                        'booking_update',
+                        title,
+                        body,
+                        { booking_id: bookingId, status: status, shop_name: shopName, service_name: serviceName, date: date, time: time }
+                    );
+                }
+            }
         }
 
         return res.json(updatedBooking);
@@ -276,6 +408,22 @@ router.post('/:id/cancel', async (req: Request, res: Response) => {
             return res.status(403).json({ error: 'You do not own this shop' });
         }
 
+        // Get booking details before updating (for notification)
+        const { data: bookingBeforeUpdate } = await supabase
+            .from('bookings')
+            .select(`
+                customer_profile_id,
+                customer_id,
+                customer_name,
+                start_time,
+                date,
+                time_slot,
+                services:service_id (name),
+                shops:shop_id (name)
+            `)
+            .eq('id', bookingId)
+            .single();
+
         // Update the booking status to cancelled
         const { error: updateError } = await supabase
             .from('bookings')
@@ -285,6 +433,34 @@ router.post('/:id/cancel', async (req: Request, res: Response) => {
         if (updateError) {
             console.error('Error cancelling booking:', updateError);
             return res.status(500).json({ error: updateError.message });
+        }
+
+        // Create notification for customer
+        if (bookingBeforeUpdate) {
+            const shopName = (bookingBeforeUpdate.shops as any)?.name || 'the shop';
+            const serviceName = (bookingBeforeUpdate.services as any)?.name || 'service';
+            const date = bookingBeforeUpdate.date || (bookingBeforeUpdate.start_time 
+                ? new Date(bookingBeforeUpdate.start_time).toLocaleDateString()
+                : 'N/A');
+            const time = bookingBeforeUpdate.start_time 
+                ? new Date(bookingBeforeUpdate.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                : bookingBeforeUpdate.time_slot || 'N/A';
+
+            // Get customer_profile_id
+            let customerProfileId = bookingBeforeUpdate.customer_profile_id;
+            if (!customerProfileId && bookingBeforeUpdate.customer_id) {
+                customerProfileId = await getCustomerProfileId(bookingBeforeUpdate.customer_id);
+            }
+
+            if (customerProfileId) {
+                await createCustomerNotification(
+                    customerProfileId,
+                    'booking_update',
+                    'Booking Cancelled',
+                    `Your booking for ${serviceName} at ${shopName} on ${date} has been cancelled.`,
+                    { booking_id: bookingId, status: 'cancelled', shop_name: shopName, service_name: serviceName, date: date, time: time }
+                );
+            }
         }
 
         // Send instant message to customer about cancellation (multilingual)
@@ -406,6 +582,19 @@ router.post('/:id/reschedule', async (req: Request, res: Response) => {
             endTime = new Date(newDateTime.getTime() + 60 * 60000);
         }
 
+        // Get booking details before updating (for notification)
+        const { data: bookingBeforeUpdate } = await supabase
+            .from('bookings')
+            .select(`
+                customer_profile_id,
+                customer_id,
+                customer_name,
+                services:service_id (name),
+                shops:shop_id (name)
+            `)
+            .eq('id', bookingId)
+            .single();
+
         // Update the booking start_time and end_time
         const { error: updateError } = await supabase
             .from('bookings')
@@ -418,6 +607,30 @@ router.post('/:id/reschedule', async (req: Request, res: Response) => {
         if (updateError) {
             console.error('Error rescheduling booking:', updateError);
             return res.status(500).json({ error: updateError.message });
+        }
+
+        // Create notification for customer
+        if (bookingBeforeUpdate) {
+            const shopName = (bookingBeforeUpdate.shops as any)?.name || 'the shop';
+            const serviceName = (bookingBeforeUpdate.services as any)?.name || 'service';
+            const newDate = newDateTime.toLocaleDateString();
+            const newTime = newDateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+            // Get customer_profile_id
+            let customerProfileId = bookingBeforeUpdate.customer_profile_id;
+            if (!customerProfileId && bookingBeforeUpdate.customer_id) {
+                customerProfileId = await getCustomerProfileId(bookingBeforeUpdate.customer_id);
+            }
+
+            if (customerProfileId) {
+                await createCustomerNotification(
+                    customerProfileId,
+                    'booking_update',
+                    'Booking Rescheduled',
+                    `Your booking for ${serviceName} at ${shopName} has been rescheduled to ${newDate} at ${newTime}.`,
+                    { booking_id: bookingId, status: 'rescheduled', shop_name: shopName, service_name: serviceName, date: newDate, time: newTime }
+                );
+            }
         }
 
         return res.json({ success: true });
@@ -496,6 +709,26 @@ router.patch('/:id', async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'No valid fields to update' });
         }
 
+        // Get booking details before updating (for notification if status changed)
+        let bookingBeforeUpdate: any = null;
+        if (status !== undefined) {
+            const { data } = await supabase
+                .from('bookings')
+                .select(`
+                    customer_profile_id,
+                    customer_id,
+                    customer_name,
+                    start_time,
+                    date,
+                    time_slot,
+                    services:service_id (name),
+                    shops:shop_id (name)
+                `)
+                .eq('id', bookingId)
+                .single();
+            bookingBeforeUpdate = data;
+        }
+
         // Update the booking
         const { data: updatedBooking, error: updateError } = await supabase
             .from('bookings')
@@ -507,6 +740,50 @@ router.patch('/:id', async (req: Request, res: Response) => {
         if (updateError) {
             console.error('Error updating booking:', updateError);
             return res.status(500).json({ error: updateError.message });
+        }
+
+        // Create notification for customer when status changes
+        if (status !== undefined && bookingBeforeUpdate && (status === 'confirmed' || status === 'rejected' || status === 'cancelled')) {
+            const shopName = (bookingBeforeUpdate.shops as any)?.name || 'the shop';
+            const serviceName = (bookingBeforeUpdate.services as any)?.name || 'service';
+            const date = bookingBeforeUpdate.date || (bookingBeforeUpdate.start_time 
+                ? new Date(bookingBeforeUpdate.start_time).toLocaleDateString()
+                : 'N/A');
+            const time = bookingBeforeUpdate.start_time 
+                ? new Date(bookingBeforeUpdate.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                : bookingBeforeUpdate.time_slot || 'N/A';
+
+            // Get customer_profile_id
+            let customerProfileId = bookingBeforeUpdate.customer_profile_id;
+            if (!customerProfileId && bookingBeforeUpdate.customer_id) {
+                customerProfileId = await getCustomerProfileId(bookingBeforeUpdate.customer_id);
+            }
+
+            if (customerProfileId) {
+                let title = '';
+                let body = '';
+
+                if (status === 'confirmed') {
+                    title = 'Booking Confirmed';
+                    body = `Your booking for ${serviceName} at ${shopName} on ${date} at ${time} has been confirmed!`;
+                } else if (status === 'cancelled') {
+                    title = 'Booking Cancelled';
+                    body = `Your booking for ${serviceName} at ${shopName} on ${date} has been cancelled.`;
+                } else if (status === 'rejected') {
+                    title = 'Booking Rejected';
+                    body = `Your booking request for ${serviceName} at ${shopName} on ${date} has been rejected.`;
+                }
+
+                if (title && body) {
+                    await createCustomerNotification(
+                        customerProfileId,
+                        'booking_update',
+                        title,
+                        body,
+                        { booking_id: bookingId, status: status, shop_name: shopName, service_name: serviceName, date: date, time: time }
+                    );
+                }
+            }
         }
 
         return res.json(updatedBooking);
