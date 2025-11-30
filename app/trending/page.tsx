@@ -102,7 +102,7 @@ function TrendingPageContent() {
             {t('home.trendingPageTitle') || 'Trending Shops'}
           </h1>
           <p className="text-xl text-gray-300">
-            {t('home.trendingPageSubtitle') || 'Shops customers are viewing and booking the most.'}
+            {t('home.trendingPageSubtitle') || 'Most popular shops this week, month, and all-time.'}
           </p>
         </div>
 

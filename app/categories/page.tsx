@@ -25,7 +25,7 @@ function CategoriesPageContent() {
             {t('home.categoryPreviewTitle') || 'Browse by Category'}
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            {t('home.categoryPageSubtitle') || 'Explore all categories available on Yoyaku Yo.'}
+            {t('home.categoryPageSubtitle') || 'Select a category to find shops in Japan.'}
           </p>
         </div>
         <CategoryGrid />

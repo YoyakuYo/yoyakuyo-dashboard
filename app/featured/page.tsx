@@ -155,6 +155,53 @@ function FeaturedPageContent() {
           </select>
         </div>
 
+        {/* Marketing Features Table */}
+        <div className="mb-12 bg-slate-800 rounded-xl p-8 border border-slate-700">
+          <h2 className="text-2xl font-bold text-white mb-8 text-center">
+            Why Choose Yoyaku Yo
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Row 1 */}
+            <div className="bg-slate-900 rounded-lg p-6 border border-slate-700">
+              <h3 className="text-lg font-semibold text-white mb-2">AI-Powered Booking</h3>
+              <p className="text-gray-300 text-sm">
+                Find shops, get recommendations, and book instantly using our AI assistant.
+              </p>
+            </div>
+            <div className="bg-slate-900 rounded-lg p-6 border border-slate-700">
+              <h3 className="text-lg font-semibold text-white mb-2">Trusted Shops</h3>
+              <p className="text-gray-300 text-sm">
+                We list verified salons, clinics, and hotels across Japan.
+              </p>
+            </div>
+            <div className="bg-slate-900 rounded-lg p-6 border border-slate-700">
+              <h3 className="text-lg font-semibold text-white mb-2">Real-Time Availability</h3>
+              <p className="text-gray-300 text-sm">
+                See open times and reserve instantly.
+              </p>
+            </div>
+            {/* Row 2 */}
+            <div className="bg-slate-900 rounded-lg p-6 border border-slate-700">
+              <h3 className="text-lg font-semibold text-white mb-2">Save Favorites</h3>
+              <p className="text-gray-300 text-sm">
+                Bookmark shops you love and access them anytime.
+              </p>
+            </div>
+            <div className="bg-slate-900 rounded-lg p-6 border border-slate-700">
+              <h3 className="text-lg font-semibold text-white mb-2">Easy Cancellations</h3>
+              <p className="text-gray-300 text-sm">
+                Manage your bookings directly from your dashboard.
+              </p>
+            </div>
+            <div className="bg-slate-900 rounded-lg p-6 border border-slate-700">
+              <h3 className="text-lg font-semibold text-white mb-2">Multilingual Support</h3>
+              <p className="text-gray-300 text-sm">
+                English, Japanese, French, Spanish (more coming).
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Shop Grid */}
         {loading ? (
           <div className="text-center py-12">

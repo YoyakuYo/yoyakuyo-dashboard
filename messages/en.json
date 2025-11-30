@@ -84,6 +84,7 @@
     "featured": "Featured",
     "trending": "Trending",
     "regions": "Regions",
+    "services": "Services",
     "login": "Login",
     "join": "Join"
   },
@@ -1027,11 +1028,15 @@
     "footerRights": "All rights reserved.",
     "regions": {
       "pageTitle": "Search by Region",
-      "pageSubtitle": "Filter shops by region, prefecture, and city.",
-      "searchPlaceholder": "Search city or area name...",
+      "pageSubtitle": "Choose a region, prefecture, or city to explore available shops.",
+      "searchPlaceholder": "Search city or area…",
       "filterByRegion": "Filter by Region",
       "shopsFound": "{{count}} shops found",
       "clearFilters": "Clear filters"
+    },
+    "service": {
+      "pageTitle": "Services",
+      "pageSubtitle": "Discover services offered by Yoyaku Yo."
     },
     "footer": {
       "about": "About",

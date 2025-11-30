@@ -220,7 +220,7 @@ function RegionsPageContent() {
             {t('regions.pageTitle') || 'Search by Region'}
           </h1>
           <p className="text-lg text-gray-600">
-            {t('regions.pageSubtitle') || 'Filter shops by region, prefecture, and city.'}
+            {t('regions.pageSubtitle') || 'Explore shops by area, prefecture, or city.'}
           </p>
         </div>
 

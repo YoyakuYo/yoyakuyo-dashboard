@@ -53,10 +53,10 @@ function HomeContent() {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
           <div className="max-w-3xl">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-              {tHome('heroTitle') || "Beauty, Wellness & Hospitality in Japan, Booked Instantly"}
+              {tHome('heroTitle') || "Japan's Premier Booking Platform"}
             </h1>
             <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
-              {tHome('heroSubtitle') || "Discover salons, clinics, and hotels across Japan and let AI handle the booking for you."}
+              {tHome('heroSubtitle') || "Book salons, clinics, hotels, and more — instantly."}
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <button
@@ -92,7 +92,7 @@ function HomeContent() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                {tHome('feature1Title') || 'Search everywhere in Japan'}
+                {tHome('feature1Title') || 'Search Anywhere in Japan'}
               </h3>
               <p className="text-gray-600">
                 {tHome('feature1Text') || 'Browse verified salons, clinics, hotels, and more in every major region.'}
@@ -107,7 +107,7 @@ function HomeContent() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                {tHome('feature2Title') || 'AI-powered booking'}
+                {tHome('feature2Title') || 'AI Recommends the Best Match'}
               </h3>
               <p className="text-gray-600">
                 {tHome('feature2Text') || 'Ask in your language and let AI find times, suggest shops, and handle bookings.'}
@@ -122,7 +122,7 @@ function HomeContent() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">
-                {tHome('feature3Title') || 'Save time and avoid calls'}
+                {tHome('feature3Title') || 'Instant Online Booking'}
               </h3>
               <p className="text-gray-600">
                 {tHome('feature3Text') || 'No phone calls or long forms—book in a few messages and track everything online.'}
@@ -140,7 +140,7 @@ function HomeContent() {
               {tHome('categoryPreviewTitle') || 'Browse by Category'}
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              {tHome('categoryPreviewSubtitle') || 'Choose a category to see top locations and shops across Japan.'}
+              {tHome('categoryPreviewSubtitle') || 'Explore popular categories.'}
             </p>
           </div>
 
@@ -259,7 +259,7 @@ function HomeContent() {
       <section className="py-16 md:py-24 bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-8 text-center">
-            {tHome('highlightsTitle') || 'Discover top-rated shops'}
+            {tHome('highlightsTitle') || 'Discover Top Shops'}
           </h2>
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -269,7 +269,7 @@ function HomeContent() {
                 {tHome('featuredCardTitle') || 'Featured Shops'}
               </h3>
               <p className="text-gray-300 mb-6">
-                {tHome('featuredCardText') || 'Hand-picked shops with great photos and reviews.'}
+                {tHome('featuredCardText') || 'Our most recommended and highly-rated partners.'}
               </p>
               <Link
                 href="/featured"
@@ -282,10 +282,10 @@ function HomeContent() {
             {/* Trending Card */}
             <div className="bg-slate-800 rounded-xl p-8 border border-slate-700 hover:border-cyan-500 transition-colors">
               <h3 className="text-2xl font-bold text-white mb-4">
-                {tHome('trendingCardTitle') || 'Trending in Japan'}
+                {tHome('trendingCardTitle') || 'Trending Now'}
               </h3>
               <p className="text-gray-300 mb-6">
-                {tHome('trendingCardText') || 'Popular places customers are booking right now.'}
+                {tHome('trendingCardText') || 'Shops people are booking most.'}
               </p>
               <Link
                 href="/trending"

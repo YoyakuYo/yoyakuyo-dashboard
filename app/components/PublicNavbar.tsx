@@ -116,6 +116,16 @@ export default function PublicNavbar() {
             >
               {t('nav.regions') || 'Regions'}
             </Link>
+            <Link 
+              href="/services" 
+              className={`text-sm font-medium transition-colors ${
+                isActive('/services') 
+                  ? 'text-blue-600' 
+                  : 'text-gray-700 hover:text-blue-600'
+              }`}
+            >
+              {t('nav.services') || 'Services'}
+            </Link>
           </nav>
 
           {/* Right: Language + Login/Join */}
