@@ -35,21 +35,16 @@ export function LandingHeader({ onOpenLogin, onOpenSignup }: LandingHeaderProps)
   }, [user]);
   
   return (
-    <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
+    <div className="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Left: Logo */}
-          <Link href="/" className="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors">
-            Yoyaku Yo
-          </Link>
-
+        <div className="flex items-center justify-end h-16">
           {/* Right: Language Switcher Only */}
           <div className="flex items-center">
             <LanguageSwitcher />
           </div>
         </div>
       </div>
-    </header>
+    </div>
   );
 }
 

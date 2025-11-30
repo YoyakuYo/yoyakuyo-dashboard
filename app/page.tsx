@@ -12,7 +12,6 @@ import { useAuth } from '@/lib/useAuth';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { authApi } from '@/lib/api';
-import { LandingHeader } from './components/LandingHeader';
 import CommercialHero from './components/landing/CommercialHero';
 import CommercialBlocks from './components/landing/CommercialBlocks';
 import CategoryBanners from './components/landing/CategoryBanners';
@@ -325,11 +324,7 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header - Only Language Selector */}
-      <LandingHeader 
-        onOpenLogin={() => setShowLoginModal(true)}
-        onOpenSignup={() => setShowSignupModal(true)}
-      />
+      {/* Header is provided by PublicLayoutWrapper - no need for LandingHeader */}
 
       {/* Hero Section - Clean, Minimal */}
       <CommercialHero />

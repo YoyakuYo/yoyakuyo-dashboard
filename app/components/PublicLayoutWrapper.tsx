@@ -8,6 +8,7 @@ import Link from "next/link";
 import { BrowseAIAssistant } from "../browse/components/BrowseAIAssistant";
 import { BrowseAIProvider, useBrowseAIContext } from "./BrowseAIContext";
 import { useLocale } from "next-intl";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 function PublicLayoutContent({ children }: { children: React.ReactNode }) {
   const locale = useLocale();
@@ -22,6 +23,10 @@ function PublicLayoutContent({ children }: { children: React.ReactNode }) {
             <Link href="/" className="text-3xl font-bold text-blue-600 hover:text-blue-700">
               Yoyaku Yo
             </Link>
+            {/* Language Switcher */}
+            <div className="flex items-center">
+              <LanguageSwitcher />
+            </div>
           </div>
         </div>
       </header>
