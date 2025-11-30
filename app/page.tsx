@@ -150,7 +150,7 @@ function HomeContent() {
               <div className="relative">
                 <Image
                   src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&q=80"
-                  alt="Yoyaku Yo"
+                  alt="Yoyaku Yo - Japan's Premier Booking Platform"
                   width={600}
                   height={600}
                   className="rounded-2xl shadow-2xl object-cover"
@@ -259,7 +259,7 @@ function HomeContent() {
               <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/30 rounded-full blur-3xl"></div>
               <Image
                 src="https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&q=80"
-                alt="Features"
+                alt="Yoyaku Yo Features"
                 width={600}
                 height={500}
                 className="rounded-2xl shadow-xl relative z-10"
