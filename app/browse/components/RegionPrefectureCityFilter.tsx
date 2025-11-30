@@ -15,7 +15,7 @@ interface RegionPrefectureCityFilterProps {
   onTogglePrefecture: (pref: string) => void;
   onToggleCity: (city: string) => void;
   shops: any[]; // Shops array to compute counts
-  apiUrl: string | undefined;
+  apiUrl?: string;
 }
 
 export function RegionPrefectureCityFilter({
