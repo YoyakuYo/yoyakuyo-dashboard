@@ -14,6 +14,7 @@ interface Shop {
   image_url?: string;
   cover_photo_url?: string;
   logo_url?: string;
+  claim_status?: string;
   categories?: {
     id: string;
     name: string;
