@@ -15,7 +15,7 @@ interface RegionPrefectureCityFilterProps {
   onTogglePrefecture: (pref: string) => void;
   onToggleCity: (city: string) => void;
   shops: any[]; // Shops array to compute counts
-  apiUrl: string;
+  apiUrl: string | undefined;
 }
 
 export function RegionPrefectureCityFilter({
@@ -122,6 +122,7 @@ export function RegionPrefectureCityFilter({
       })
       .catch(err => {
         console.error('Error fetching prefecture counts:', err);
+        // Silently fail - we'll use shop counts from loaded shops instead
       })
       .finally(() => {
         setLoading(false);
