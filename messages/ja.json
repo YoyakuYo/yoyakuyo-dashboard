@@ -202,6 +202,8 @@
     "feature2Text": "AIアシスタントがあなたに合う店舗を紹介します。",
     "feature3Title": "その場でオンライン予約",
     "feature3Text": "数秒で予約して、マイページで管理できます。",
+    "viewFeatured": "おすすめを見る",
+    "viewTrending": "トレンドを見る",
     "featured": "おすすめ",
     "trending": "トレンド"
   },
