@@ -1297,19 +1297,26 @@ DO NOT wait for additional confirmation - if customer says yes or agrees in ANY 
                             } else {
                                 // Get customer_profile_id if user is authenticated (logged-in customer)
                                 let customerProfileId: string | null = null;
-                                const userId = req.body.userId || req.body.user_id || req.headers['x-user-id'] || null;
-                                
-                                if (userId && isCustomer) {
-                                    // Get customer_profile_id from customer_auth_id
-                                    const { data: customerProfile } = await dbClient
-                                        .from("customer_profiles")
-                                        .select("id")
-                                        .eq("customer_auth_id", userId)
-                                        .maybeSingle();
+                                try {
+                                    const userId = req.body.userId || req.body.user_id || req.headers['x-user-id'] || null;
                                     
-                                    if (customerProfile) {
-                                        customerProfileId = customerProfile.id;
+                                    if (userId && isCustomer) {
+                                        // Get customer_profile_id from customer_auth_id
+                                        const { data: customerProfile, error: profileError } = await dbClient
+                                            .from("customer_profiles")
+                                            .select("id")
+                                            .eq("customer_auth_id", userId)
+                                            .maybeSingle();
+                                        
+                                        if (profileError) {
+                                            console.error("Error fetching customer profile:", profileError);
+                                        } else if (customerProfile) {
+                                            customerProfileId = customerProfile.id;
+                                        }
                                     }
+                                } catch (profileErr) {
+                                    console.error("Error getting customer_profile_id (non-blocking):", profileErr);
+                                    // Continue without customer_profile_id if lookup fails
                                 }
                                 
                                 // All required fields present, availability confirmed, and customer confirmed - create booking
