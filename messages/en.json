@@ -1013,6 +1013,21 @@
     "footerTerms": "Terms",
     "footerContact": "Contact",
     "footerRights": "All rights reserved.",
+    "regions": {
+      "pageTitle": "Search by Region",
+      "pageSubtitle": "Filter shops by region, prefecture, and city.",
+      "searchPlaceholder": "Search city or area name...",
+      "filterByRegion": "Filter by Region",
+      "shopsFound": "{{count}} shops found",
+      "clearFilters": "Clear filters"
+    },
+    "footer": {
+      "about": "About",
+      "privacy": "Privacy Policy",
+      "terms": "Terms",
+      "contact": "Contact",
+      "rights": "All rights reserved."
+    },
     "trustedBy": "Trusted by thousands of customers across Japan",
     "featuresTitle": "Our Amazing Features Helpful for Your Business",
     "featuresSubtitle": "Everything you need to discover and book the best services in Japan",
