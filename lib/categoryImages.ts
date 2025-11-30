@@ -19,16 +19,18 @@ export const categoryMarketing: Record<string, CategoryMarketing> = {
   // Hotels & Ryokan
   'hotel': {
     images: [
-      '/categories/hotel-1.jpg', // Luxurious lounge/bar with Tokyo Tower view
-      '/categories/hotel-2.jpg', // L7 Hotels exterior at night
-      '/categories/hotel-3.jpg', // Hotel room with two beds and city view
-      '/categories/hotel-4.jpg', // Hotel room with one bed
-      '/categories/hotel-5.jpg', // Rooftop pool at night
-      '/categories/hotel-6.jpg', // Indoor swimming pool with wave-like ceiling
-      '/categories/hotel-7.jpg', // Rooftop terrace with Tokyo Skytree view
-      '/categories/hotel-8.jpg', // Modern hotel room with city view
-      '/categories/hotel-9.jpg', // Hotel room with panoramic city view
-      '/categories/hotel-10.jpg', // Corner suite with twin beds and cityscape
+      // Note: Replace these placeholder URLs with your actual images in public/categories/
+      // For now using high-quality hotel images from Unsplash that match the descriptions
+      'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920&q=80', // Luxurious hotel lounge/bar
+      'https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=1920&q=80', // Modern hotel exterior at night
+      'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1920&q=80', // Hotel room with city view
+      'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=1920&q=80', // Modern hotel room
+      'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=1920&q=80', // Rooftop pool
+      'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1920&q=80', // Indoor pool
+      'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=1920&q=80', // Rooftop terrace
+      'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=1920&q=80', // Hotel room with panoramic view
+      'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=1920&q=80', // Luxury hotel room
+      'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1920&q=80', // Corner suite with cityscape
     ],
     description: 'Experience traditional Japanese hospitality at ryokan inns or enjoy modern comfort at luxury hotels. From hot spring resorts to city center hotels, find your perfect accommodation.',
     descriptionJa: '旅館で伝統的な日本のおもてなしを体験するか、高級ホテルでモダンな快適さをお楽しみください。温泉リゾートから都心のホテルまで、最適な宿泊施設を見つけましょう。',
