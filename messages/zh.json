@@ -99,7 +99,8 @@
     "byCategory": "按类别",
     "prefecture": "都道府县",
     "category": "类别",
-    "city": "城市"
+    "city": "城市",
+    "filterByPrefecture": "按都道府县筛选"
   },
   "shops": {
     "search": "按店铺名称、地区或服务搜索",

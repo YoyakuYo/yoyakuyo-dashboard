@@ -449,7 +449,8 @@
     "byCategory": "By Category",
     "prefecture": "Prefecture",
     "category": "Category",
-    "city": "City"
+    "city": "City",
+    "filterByPrefecture": "Filter by Prefecture"
   },
   "shops": {
     "search": "Search by shop name, area or service",

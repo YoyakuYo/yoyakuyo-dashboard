@@ -451,7 +451,8 @@
     "byCategory": "カテゴリーで探す",
     "prefecture": "都道府県",
     "category": "カテゴリー",
-    "city": "市区町村"
+    "city": "市区町村",
+    "filterByPrefecture": "都道府県で絞り込む"
   },
   "shops": {
     "search": "店舗名、エリア、サービスで検索",

@@ -99,7 +99,8 @@
     "byCategory": "Por Categoría",
     "prefecture": "Prefectura",
     "category": "Categoría",
-    "city": "Ciudad"
+    "city": "Ciudad",
+    "filterByPrefecture": "Filtrar por Prefectura"
   },
   "shops": {
     "search": "Buscar por nombre de tienda, área o servicio",
