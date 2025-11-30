@@ -4,8 +4,8 @@
 
 "use client";
 
-import React, { useMemo } from "react";
-import { usePathname } from "next/navigation";
+import React, { useMemo, useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import AuthGuard from "./AuthGuard";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
@@ -14,9 +14,7 @@ import { OwnerAIChatProvider, OwnerAIChat } from "./OwnerAIChat";
 import { useBookingNotificationsHook } from "@/lib/useBookingNotifications";
 import BookingNotificationBar from "./BookingNotificationBar";
 import { useBookingNotifications } from "./BookingNotificationContext";
-import { useRouter } from "next/navigation";
 import { MessagesPanel } from "./owner/MessagesPanel";
-import { useState, useEffect } from "react";
 
 // Routes that should NOT have dashboard layout (Header, Sidebar, AuthGuard)
 const authRoutes: string[] = [];
