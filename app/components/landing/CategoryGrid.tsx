@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { CATEGORIES, getTopLevelCategories, getSubcategories, hasSubcategories } from '@/lib/categories';
-import { getCategoryImages } from '@/lib/categoryImages';
+import { getCategoryImages, getCategoryMarketing } from '@/lib/categoryImages';
 
 export default function CategoryGrid() {
   const locale = useLocale();
@@ -37,9 +37,11 @@ export default function CategoryGrid() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {topLevelCategories.map((category) => {
             const images = getCategoryImages(category.imageKey);
+            const marketing = getCategoryMarketing(category.imageKey);
             const currentIndex = currentImageIndex[category.id] || 0;
             const currentImage = images[currentIndex];
             const categoryName = isJapanese ? category.nameJa : category.name;
+            const categoryDescription = marketing ? (isJapanese ? marketing.descriptionJa : marketing.description) : '';
             const subcategories = getSubcategories(category.id);
             const hasSubs = hasSubcategories(category.id);
             const isExpanded = expandedCategory === category.id;
@@ -115,13 +117,18 @@ export default function CategoryGrid() {
                       )}
                     </div>
                     
-                    {/* Category name - Clean, no overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+                    {/* Category name and description - Clean, no overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 via-black/50 to-transparent">
                       <h3 className="text-lg md:text-xl font-heading font-bold text-white drop-shadow-lg mb-1">
                         {categoryName}
                       </h3>
+                      {categoryDescription && (
+                        <p className="text-xs md:text-sm text-white/90 drop-shadow-md line-clamp-2 mb-1">
+                          {categoryDescription}
+                        </p>
+                      )}
                       {hasSubs && (
-                        <p className="text-xs text-white/80">
+                        <p className="text-xs text-white/70">
                           {subcategories.length} {isJapanese ? 'サブカテゴリー' : 'subcategories'}
                         </p>
                       )}
