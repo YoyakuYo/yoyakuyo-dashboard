@@ -60,62 +60,66 @@ export default function CategoryGrid() {
                   className="relative overflow-hidden rounded-theme bg-white border-2 border-gray-200 hover:border-accent-pink transition-all duration-300 shadow-lg hover:shadow-xl block"
                 >
                   <div className="relative aspect-[4/3] w-full">
-                    {/* Image carousel */}
-                    <div className="relative w-full h-full">
-                      <Image
-                        src={currentImage}
-                        alt={categoryName}
-                        fill
-                        className="object-cover transition-opacity duration-300"
-                        sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                        unoptimized={true}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80';
-                        }}
-                      />
+                    {/* Image carousel - Only show if images exist */}
+                    {images.length > 0 && currentImage && (
+                      <div className="relative w-full h-full">
+                        <Image
+                          src={currentImage}
+                          alt={categoryName}
+                          fill
+                          className="object-cover transition-opacity duration-300"
+                          sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                          unoptimized={true}
+                        />
                       
-                      {/* Image navigation arrows (show on hover) */}
-                      {images.length > 1 && isExpanded && (
-                        <>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleImageChange(category.id, 'prev');
-                            }}
-                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 z-10 transition-all"
-                            aria-label="Previous image"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleImageChange(category.id, 'next');
-                            }}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 z-10 transition-all"
-                            aria-label="Next image"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </button>
-                          
-                          {/* Image indicators */}
-                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-                            {images.map((_, idx) => (
-                              <div
-                                key={idx}
-                                className={`w-1.5 h-1.5 rounded-full transition-all ${
-                                  idx === currentIndex ? 'bg-white' : 'bg-white/50'
-                                }`}
-                              />
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
+                        {/* Image navigation arrows (show on hover) */}
+                        {images.length > 1 && isExpanded && (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleImageChange(category.id, 'prev');
+                              }}
+                              className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 z-10 transition-all"
+                              aria-label="Previous image"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleImageChange(category.id, 'next');
+                              }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 z-10 transition-all"
+                              aria-label="Next image"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </button>
+                            
+                            {/* Image indicators */}
+                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+                              {images.map((_, idx) => (
+                                <div
+                                  key={idx}
+                                  className={`w-1.5 h-1.5 rounded-full transition-all ${
+                                    idx === currentIndex ? 'bg-white' : 'bg-white/50'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Background color when no image */}
+                    {images.length === 0 && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200"></div>
+                    )}
                     
                     {/* Category name and description - Clean, no overlay */}
                     <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 via-black/50 to-transparent">
