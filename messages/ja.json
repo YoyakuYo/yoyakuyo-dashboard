@@ -780,6 +780,9 @@
     "aiAssistanceTitle": "AIアシスタント",
     "aiAssistanceBullet1": "AIが日本語、英語、スペイン語、中国語、ポルトガル語で顧客とチャット",
     "aiAssistanceBullet2": "AIがスケジュール、再スケジュール、キャンセルを処理",
-    "aiAssistanceBullet3": "遅延なく24時間365日稼働"
+    "aiAssistanceBullet3": "遅延なく24時間365日稼働",
+    "featuredShops": "おすすめ店舗",
+    "viewAllShops": "すべての店舗を見る →",
+    "browseAllShops": "すべての店舗を閲覧"
   }
 }

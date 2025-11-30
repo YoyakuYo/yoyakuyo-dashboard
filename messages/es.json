@@ -440,7 +440,10 @@
     "aiAssistanceTitle": "Asistencia con IA",
     "aiAssistanceBullet1": "La IA chatea con clientes en japonés, inglés, español, chino, portugués",
     "aiAssistanceBullet2": "La IA maneja programación, reprogramación, cancelaciones",
-    "aiAssistanceBullet3": "Funciona 24/7 sin retrasos"
+    "aiAssistanceBullet3": "Funciona 24/7 sin retrasos",
+    "featuredShops": "Tiendas Destacadas",
+    "viewAllShops": "Ver Todas las Tiendas →",
+    "browseAllShops": "Explorar Todas las Tiendas"
   },
   "assistant": {
     "title": "Asistente IA",

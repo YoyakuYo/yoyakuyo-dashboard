@@ -440,7 +440,10 @@
     "aiAssistanceTitle": "Assistência com IA",
     "aiAssistanceBullet1": "A IA conversa com clientes em japonês, inglês, espanhol, chinês, português",
     "aiAssistanceBullet2": "A IA gerencia agendamento, reagendamento, cancelamentos",
-    "aiAssistanceBullet3": "Funciona 24/7 sem atrasos"
+    "aiAssistanceBullet3": "Funciona 24/7 sem atrasos",
+    "featuredShops": "Lojas em Destaque",
+    "viewAllShops": "Ver Todas as Lojas →",
+    "browseAllShops": "Explorar Todas as Lojas"
   },
   "assistant": {
     "title": "Assistente IA",

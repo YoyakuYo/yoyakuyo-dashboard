@@ -18,6 +18,7 @@ import CommercialBlocks from './components/landing/CommercialBlocks';
 import CategoryBanners from './components/landing/CategoryBanners';
 import CTABlocks from './components/landing/CTABlocks';
 import CategoryGrid from './components/landing/CategoryGrid';
+import FeaturedShops from './components/landing/FeaturedShops';
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
@@ -471,6 +472,9 @@ function HomeContent() {
 
       {/* Category Grid Section */}
       <CategoryGrid />
+
+      {/* Featured Shops Section */}
+      <FeaturedShops />
 
       {/* Login Modal */}
       <Modal isOpen={showLoginModal} onClose={handleCloseLoginModal}>

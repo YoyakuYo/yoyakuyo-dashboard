@@ -440,7 +440,10 @@
     "aiAssistanceTitle": "AI协助",
     "aiAssistanceBullet1": "AI用日语、英语、西班牙语、中文、葡萄牙语与客户聊天",
     "aiAssistanceBullet2": "AI处理安排、重新安排、取消",
-    "aiAssistanceBullet3": "24/7不间断工作"
+    "aiAssistanceBullet3": "24/7不间断工作",
+    "featuredShops": "精选店铺",
+    "viewAllShops": "查看所有店铺 →",
+    "browseAllShops": "浏览所有店铺"
   },
   "assistant": {
     "title": "AI助手",
