@@ -19,18 +19,12 @@ export const categoryMarketing: Record<string, CategoryMarketing> = {
   // Hotels & Ryokan
   'hotel': {
     images: [
-      // Note: Replace these placeholder URLs with your actual images in public/categories/
-      // For now using high-quality hotel images from Unsplash that match the descriptions
-      'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920&q=80', // Luxurious hotel lounge/bar
-      'https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=1920&q=80', // Modern hotel exterior at night
-      'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=1920&q=80', // Hotel room with city view
-      'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=1920&q=80', // Modern hotel room
-      'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=1920&q=80', // Rooftop pool
-      'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1920&q=80', // Indoor pool
-      'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=1920&q=80', // Rooftop terrace
-      'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=1920&q=80', // Hotel room with panoramic view
-      'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=1920&q=80', // Luxury hotel room
-      'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1920&q=80', // Corner suite with cityscape
+      'https://besthotelshome.com/wp-content/uploads/2020/02/Conrad-Tokyo-Best-Luxury-Hotels-in-Tokyo.jpg',
+      'https://66.media.tumblr.com/1096a312af4ac78a80f5ab50e89a0516/tumblr_n33buxuBih1r2doe0o1_1280.jpg',
+      'https://misstourist.com/wp-content/uploads/2022/06/4-1-Coolest-hotels-in-Tokyo-with-a-view.jpg',
+      'https://urbanpixxels.com/wp-content/uploads/14-11376-post/Koyoto-Ryokan-Hiiragiya-Traditional-Wing.jpg',
+      'https://assets.vogue.com/photos/5a31647948b79a4f01f38a11/master/pass/luxury-ryokan-onsen-japan-promo.jpg',
+      'https://www.hotelsinheaven.com/wp-content/uploads/2019/01/mandarin-oriental-tokyo-facade-hotel-mobile-scaled.jpg',
     ],
     description: 'Experience traditional Japanese hospitality at ryokan inns or enjoy modern comfort at luxury hotels. From hot spring resorts to city center hotels, find your perfect accommodation.',
     descriptionJa: '旅館で伝統的な日本のおもてなしを体験するか、高級ホテルでモダンな快適さをお楽しみください。温泉リゾートから都心のホテルまで、最適な宿泊施設を見つけましょう。',
