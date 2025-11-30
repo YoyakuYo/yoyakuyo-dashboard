@@ -765,6 +765,18 @@
       "none": "未処理の予約はありません"
     }
   },
+  "regions": {
+    "pageTitle": "エリアから探す",
+    "pageSubtitle": "地域・都道府県・市区町村から店舗を検索。",
+    "searchPlaceholder": "市区町村・エリア名で検索",
+    "filterByRegion": "地域でフィルター",
+    "shopsFound": "{{count}}件の店舗が見つかりました",
+    "clearFilters": "フィルターをクリア"
+  },
+  "service": {
+    "pageTitle": "Yoyaku Yoのサービス",
+    "pageSubtitle": "お客様と店舗のためのシンプルで強力なプラットフォーム。"
+  },
   "customer": {
     "nav": {
       "home": "ホーム",
@@ -856,18 +868,6 @@
     "whyBenefit4": "お気に入りの店舗を保存し、いつでも再訪問できます。",
     "ctaBannerTitle": "YoyakuYoに参加して、日本最高の美容、ウェルネス、ホスピタリティを発見しましょう。",
     "ctaBannerButton": "始める",
-    "regions": {
-      "pageTitle": "エリアから探す",
-      "pageSubtitle": "地域・都道府県・市区町村から店舗を検索。",
-      "searchPlaceholder": "市区町村・エリア名で検索",
-      "filterByRegion": "地域でフィルター",
-      "shopsFound": "{{count}}件の店舗が見つかりました",
-      "clearFilters": "フィルターをクリア"
-    },
-    "service": {
-      "pageTitle": "Yoyaku Yoのサービス",
-      "pageSubtitle": "お客様と店舗のためのシンプルで強力なプラットフォーム。"
-    },
     "footer": {
       "about": "Yoyaku Yoについて",
       "privacy": "プライバシーポリシー",

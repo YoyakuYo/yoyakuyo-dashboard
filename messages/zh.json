@@ -403,6 +403,18 @@
       "none": "没有待处理的预约"
     }
   },
+  "regions": {
+    "pageTitle": "按地区搜索",
+    "pageSubtitle": "按地区、都道府县或城市浏览店铺。",
+    "searchPlaceholder": "搜索城市或区域...",
+    "filterByRegion": "按地区筛选",
+    "shopsFound": "找到 {{count}} 家店铺",
+    "clearFilters": "清除筛选"
+  },
+  "service": {
+    "pageTitle": "Yoyaku Yo 提供什么",
+    "pageSubtitle": "为客户和店铺所有者提供的简单而强大的平台。"
+  },
   "customer": {
     "nav": {
       "home": "首页",

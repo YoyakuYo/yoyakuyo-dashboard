@@ -403,6 +403,18 @@
       "none": "No hay reservas pendientes"
     }
   },
+  "regions": {
+    "pageTitle": "Buscar por Región",
+    "pageSubtitle": "Explora tiendas por región, prefectura o ciudad.",
+    "searchPlaceholder": "Buscar ciudad o área...",
+    "filterByRegion": "Filtrar por Región",
+    "shopsFound": "{{count}} tiendas encontradas",
+    "clearFilters": "Limpiar filtros"
+  },
+  "service": {
+    "pageTitle": "Qué Ofrece Yoyaku Yo",
+    "pageSubtitle": "Una plataforma simple y poderosa para clientes y propietarios de tiendas."
+  },
   "customer": {
     "nav": {
       "home": "Inicio",

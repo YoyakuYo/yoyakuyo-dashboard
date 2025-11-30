@@ -985,18 +985,6 @@
     "footerTerms": "Terms",
     "footerContact": "Contact",
     "footerRights": "All rights reserved.",
-    "regions": {
-      "pageTitle": "Search by Region",
-      "pageSubtitle": "Explore shops by region, prefecture, or city.",
-      "searchPlaceholder": "Search city or area...",
-      "filterByRegion": "Filter by Region",
-      "shopsFound": "{{count}} shops found",
-      "clearFilters": "Clear filters"
-    },
-    "service": {
-      "pageTitle": "What Yoyaku Yo Offers",
-      "pageSubtitle": "A simple, powerful platform for customers and shop owners."
-    },
     "footer": {
       "about": "About",
       "privacy": "Privacy Policy",
