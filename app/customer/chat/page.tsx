@@ -273,9 +273,46 @@ export default function CustomerChatPage() {
     }
   };
 
+  const startNewChat = async () => {
+    if (!user) return;
+    
+    const supabase = getSupabaseClient();
+    
+    // Get customer profile
+    const { data: profile } = await supabase
+      .from("customer_profiles")
+      .select("id")
+      .eq("customer_auth_id", user.id)
+      .maybeSingle();
+    
+    if (profile) {
+      // Create new session
+      const { data: newSession, error } = await supabase
+        .from("customer_chat_sessions")
+        .insert({ customer_id: profile.id })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("Error creating new chat session:", error);
+      } else if (newSession) {
+        setSessionId(newSession.id);
+        setMessages([]);
+      }
+    }
+  };
+
   return (
     <div className="p-8 h-[calc(100vh-4rem)] flex flex-col">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">AI Assistant</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">AI Assistant</h1>
+        <button
+          onClick={startNewChat}
+          className="px-4 py-2 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+        >
+          Start New Chat
+        </button>
+      </div>
 
       <div className="flex-1 bg-white rounded-lg shadow flex flex-col overflow-hidden">
         {/* Messages */}

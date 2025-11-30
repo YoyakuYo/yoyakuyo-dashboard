@@ -64,13 +64,16 @@ function HomeContent() {
   const { user, loading: authLoading } = useAuth();
   
   let t: ReturnType<typeof useTranslations>;
+  let tAuth: ReturnType<typeof useTranslations>;
   let tLanding: ReturnType<typeof useTranslations>;
   try {
     t = useTranslations('home');
+    tAuth = useTranslations('auth');
     tLanding = useTranslations('landing');
   } catch (error) {
     console.warn("🔥 useTranslations not ready, using fallback:", error);
     t = ((key: string) => key) as ReturnType<typeof useTranslations>;
+    tAuth = ((key: string) => key) as ReturnType<typeof useTranslations>;
     tLanding = ((key: string) => key) as ReturnType<typeof useTranslations>;
   }
 
@@ -488,7 +491,7 @@ function HomeContent() {
       {/* Signup Modal */}
       <Modal isOpen={showSignupModal} onClose={handleCloseSignupModal}>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          {t('auth.createOwnerAccount')}
+          {tAuth('createOwnerAccount')}
         </h2>
 
         {signupError && (
@@ -504,7 +507,7 @@ function HomeContent() {
         >
           <div>
             <label htmlFor="signup-name" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('auth.ownerName')} <span className="text-red-500">*</span>
+              {tAuth('ownerName')} <span className="text-red-500">*</span>
             </label>
             <input
               id="signup-name"
@@ -514,7 +517,7 @@ function HomeContent() {
               required
               autoComplete="name"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder={t('auth.ownerName')}
+              placeholder={tAuth('ownerName')}
             />
           </div>
 
@@ -536,7 +539,7 @@ function HomeContent() {
 
           <div>
             <label htmlFor="signup-password" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('auth.password')} <span className="text-red-500">*</span>
+              {tAuth('password')} <span className="text-red-500">*</span>
             </label>
             <input
               id="signup-password"
@@ -571,12 +574,12 @@ function HomeContent() {
             disabled={signupLoading}
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {signupLoading ? t('auth.creatingAccount') : t('auth.signUp')}
+            {signupLoading ? tAuth('creatingAccount') : tAuth('signUp')}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-600">
-          {t('auth.alreadyHaveAccount')}{' '}
+          {tAuth('alreadyHaveAccount')}{' '}
           <button
             onClick={() => {
               setShowSignupModal(false);
@@ -584,7 +587,7 @@ function HomeContent() {
             }}
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
-            {t('auth.signIn')}
+            {tAuth('signIn')}
           </button>
         </p>
       </Modal>
