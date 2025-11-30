@@ -77,7 +77,25 @@ export default function GuestBookingDetailPage() {
           console.error('Error loading booking:', fetchError);
           setError(t('booking.bookingNotFound') || 'Booking not found');
         } else if (data) {
-          setBooking(data as Booking);
+          // Transform the data to match the Booking interface
+          // Supabase returns shops and services as arrays, but we expect single objects
+          const bookingData: Booking = {
+            id: data.id,
+            customer_name: data.customer_name,
+            customer_email: data.customer_email,
+            customer_phone: data.customer_phone,
+            start_time: data.start_time,
+            end_time: data.end_time,
+            status: data.status,
+            notes: data.notes,
+            shops: Array.isArray(data.shops) && data.shops.length > 0 
+              ? data.shops[0] 
+              : (data.shops || undefined),
+            services: Array.isArray(data.services) && data.services.length > 0 
+              ? data.services[0] 
+              : (data.services || undefined),
+          };
+          setBooking(bookingData);
         } else {
           setError(t('booking.bookingNotFound') || 'Booking not found');
         }
