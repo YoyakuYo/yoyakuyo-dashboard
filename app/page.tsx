@@ -156,16 +156,6 @@ function HomeContent() {
                   className="rounded-2xl shadow-2xl object-cover"
                   unoptimized={true}
                 />
-                {/* Floating badge */}
-                <div className="absolute -top-4 -right-4 bg-white rounded-full px-6 py-3 shadow-xl">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">⭐</span>
-                    <div>
-                      <div className="text-sm font-bold text-gray-900">4.9 Rating</div>
-                      <div className="text-xs text-gray-600">From 5K+ reviews</div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
