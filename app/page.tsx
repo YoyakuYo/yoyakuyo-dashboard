@@ -109,28 +109,54 @@ function HomeContent() {
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 drop-shadow-lg">
               Yoyaku Yo
             </h1>
-            <p className="text-xl md:text-2xl lg:text-3xl text-white/95 drop-shadow-md mb-8">
+            <p className="text-xl md:text-2xl lg:text-3xl text-white/95 drop-shadow-md">
               Japan's Premier Booking Platform
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={() => setShowLoginModal(true)}
-                className="px-8 py-4 bg-white text-blue-600 font-bold rounded-lg shadow-lg hover:bg-gray-100 transition-all text-lg"
-              >
-                Login
-              </button>
-              <button
-                onClick={() => setShowJoinModal(true)}
-                className="px-8 py-4 bg-blue-600 text-white font-bold rounded-lg shadow-lg hover:bg-blue-700 transition-all text-lg"
-              >
-                Join
-              </button>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 2 — MARKETING BOXES */}
+      <section className="py-16 md:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Box 1 */}
+            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
+              <div className="text-5xl mb-4 text-center">🔍</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3 text-center">
+                Search the best salons, clinics & experiences in Japan
+              </h3>
+              <p className="text-gray-600 text-center">
+                Discover thousands of verified businesses across 15+ categories — find exactly what you're looking for.
+              </p>
+            </div>
+
+            {/* Box 2 */}
+            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
+              <div className="text-5xl mb-4 text-center">🤖</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3 text-center">
+                AI-powered booking assistance
+              </h3>
+              <p className="text-gray-600 text-center">
+                Our smart AI helps you instantly find availability, answer questions, and handle bookings in multiple languages — 24/7.
+              </p>
+            </div>
+
+            {/* Box 3 */}
+            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
+              <div className="text-5xl mb-4 text-center">⚡</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3 text-center">
+                Save time, book instantly
+              </h3>
+              <p className="text-gray-600 text-center">
+                No more phone calls or waiting. Book your services in seconds and access your booking history anytime.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* SECTION 2 — BROWSE BY CATEGORY GRID */}
+      {/* SECTION 3 — BROWSE BY CATEGORY GRID */}
       <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
