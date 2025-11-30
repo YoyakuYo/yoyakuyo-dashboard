@@ -66,7 +66,10 @@
     "joinAsOwner": "Join as Owner",
     "loginAsCustomer": "Login as Customer",
     "loginAsOwner": "Login as Owner",
-    "joinAsCustomer": "Join as Customer"
+    "joinAsCustomer": "Join as Customer",
+    "getStarted": "Get Started",
+    "forCustomers": "For Customers",
+    "forOwners": "For Owners"
   },
   "nav": {
     "shops": "Shops",
@@ -76,7 +79,13 @@
     "bookings": "Bookings",
     "messages": "Messages",
     "logout": "Logout",
-    "dashboard": "Yoyaku Yo Dashboard"
+    "dashboard": "Yoyaku Yo Dashboard",
+    "browse": "Browse",
+    "featured": "Featured",
+    "trending": "Trending",
+    "regions": "Regions",
+    "login": "Login",
+    "join": "Join"
   },
   "home": {
     "welcomeTitle": "Welcome to Yoyaku Yo",
