@@ -17,6 +17,7 @@ import CommercialHero from './components/landing/CommercialHero';
 import CommercialBlocks from './components/landing/CommercialBlocks';
 import CategoryBanners from './components/landing/CategoryBanners';
 import CTABlocks from './components/landing/CTABlocks';
+import CategoryGrid from './components/landing/CategoryGrid';
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
@@ -347,7 +348,7 @@ function HomeContent() {
           <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
             {tLanding('howItWorksTitle')}
           </h2>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
             {/* For Customers Card */}
             <div className="bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
               <div className="text-5xl mb-4">👥</div>
@@ -414,8 +415,62 @@ function HomeContent() {
               </ul>
             </div>
           </div>
+
+          {/* Login & Signup Cards */}
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            {/* For Customers Access Card */}
+            <div className="bg-white border-2 border-pink-200 rounded-xl p-8 shadow-lg">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+                {tLanding('forCustomersTitle')}
+              </h3>
+              <div className="space-y-4">
+                <Link
+                  href="/customer-login"
+                  className="block w-full bg-pink-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-pink-700 transition-colors text-center"
+                >
+                  {tAuth('customerLogin') || 'Customer Login'}
+                </Link>
+                <Link
+                  href="/customer-signup"
+                  className="block w-full bg-pink-100 text-pink-700 py-3 px-6 rounded-lg font-semibold hover:bg-pink-200 transition-colors text-center border-2 border-pink-300"
+                >
+                  {tAuth('signUpAsCustomer') || 'Sign Up as Customer'}
+                </Link>
+                <Link
+                  href="/guest-booking"
+                  className="block w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors text-center border-2 border-gray-300"
+                >
+                  {t('booking.bookAsGuest') || 'Book as Guest'}
+                </Link>
+              </div>
+            </div>
+
+            {/* For Owners Access Card */}
+            <div className="bg-white border-2 border-blue-200 rounded-xl p-8 shadow-lg">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+                {tLanding('forOwnersTitle')}
+              </h3>
+              <div className="space-y-4">
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="block w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center"
+                >
+                  {tAuth('ownerLogin') || 'Owner Login'}
+                </button>
+                <button
+                  onClick={() => setShowSignupModal(true)}
+                  className="block w-full bg-blue-100 text-blue-700 py-3 px-6 rounded-lg font-semibold hover:bg-blue-200 transition-colors text-center border-2 border-blue-300"
+                >
+                  {tAuth('joinAsOwner') || 'Join as Owner'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* Category Grid Section */}
+      <CategoryGrid />
 
       {/* Login Modal */}
       <Modal isOpen={showLoginModal} onClose={handleCloseLoginModal}>

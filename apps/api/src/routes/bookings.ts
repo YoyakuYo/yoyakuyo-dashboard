@@ -118,8 +118,8 @@ router.post('/', async (req: Request, res: Response) => {
         }
 
         // Create the booking - use customer_name directly
-        // customer_id is optional (can be null for public bookings)
-        // NO email or phone - only name + permanent ID system
+        // customer_id is optional (can be null for public/guest bookings)
+        // customer_email and customer_phone are required for guest bookings
         const bookingData: any = {
             service_id,
             staff_id: staff_id || null,
@@ -127,10 +127,10 @@ router.post('/', async (req: Request, res: Response) => {
             end_time,
             notes: notes || null,
             shop_id,
-            customer_id: customer_id || null,  // Optional
+            customer_id: customer_id || null,  // Optional - null for guest bookings
             customer_name: finalCustomerName,
-            customer_email: null,  // Removed - not required
-            customer_phone: null,  // Removed - not required
+            customer_email: customer_email || email || null,  // Required for guest bookings
+            customer_phone: customer_phone || phone || null,  // Optional but recommended for guest bookings
             status: 'pending',
         };
 
