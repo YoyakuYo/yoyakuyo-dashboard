@@ -3,11 +3,13 @@
 
 "use client";
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { apiUrl } from '@/lib/apiClient';
+import { useAuth } from '@/lib/useAuth';
+import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
 import ReviewCard from '../../components/ReviewCard';
 import ReviewStats from '../../components/ReviewStats';
 import ReviewForm from '../../components/ReviewForm';
@@ -117,7 +119,11 @@ function formatOpeningHours(openingHours: any): string {
 
 export default function PublicShopDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const shopId = params?.id as string;
+  const { user } = useAuth();
+  const browseContext = useBrowseAIContext();
+  const [showLoginModal, setShowLoginModal] = useState(false);
   
   // Safe translation function with fallback
   let t: ReturnType<typeof useTranslations>;
@@ -191,6 +197,20 @@ export default function PublicShopDetailPage() {
         const shopData = await shopRes.json();
         setShop(shopData);
 
+        // Update AI context with shop information
+        if (browseContext) {
+          browseContext.setBrowseContext({
+            shopContext: {
+              shopId: shopData.id,
+              shopName: shopData.name,
+              category: shopData.categories?.name || null,
+              prefecture: shopData.prefecture || null,
+              address: shopData.address || null,
+              ownerId: shopData.owner_id || null,
+            },
+          });
+        }
+
         // Fetch services (only active)
         const servicesRes = await fetch(`${apiUrl}/shops/${shopId}/services`);
         if (servicesRes.ok) {
@@ -199,6 +219,25 @@ export default function PublicShopDetailPage() {
             ? servicesData.filter((s: Service) => s.is_active !== false)
             : [];
           setServices(activeServices);
+          
+          // Update AI context with services
+          if (browseContext) {
+            browseContext.setBrowseContext({
+              shopContext: {
+                shopId: shopData.id,
+                shopName: shopData.name,
+                category: shopData.categories?.name || null,
+                prefecture: shopData.prefecture || null,
+                address: shopData.address || null,
+                ownerId: shopData.owner_id || null,
+                services: activeServices.map((s: Service) => ({
+                  id: s.id,
+                  name: s.name,
+                  price: s.price,
+                })),
+              },
+            });
+          }
         }
 
         // Fetch staff
@@ -293,8 +332,15 @@ export default function PublicShopDetailPage() {
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!shopId || !bookingServiceId || !customerName) {
-      setBookingError('Please fill in all required fields');
+    
+    // Check if user is logged in
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    
+    if (!shopId || !bookingServiceId) {
+      setBookingError(t('booking.fillRequiredFields') || 'Please fill in all required fields');
       return;
     }
 
@@ -320,7 +366,6 @@ export default function PublicShopDetailPage() {
           staff_id: bookingStaffId || null,
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
-          customer_name: customerName,
           status: 'pending',
         }),
       });
@@ -332,7 +377,6 @@ export default function PublicShopDetailPage() {
         setBookingStaffId('');
         setBookingDate('');
         setBookingTime('');
-        setCustomerName('');
       } else {
         const errorData = await res.json();
         setBookingError(errorData.error || t('booking.failedToCreate'));
@@ -658,18 +702,6 @@ export default function PublicShopDetailPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('booking.yourName')} <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-              </div>
 
 
               {bookingError && (
@@ -691,6 +723,43 @@ export default function PublicShopDetailPage() {
 
       </div>
     </div>
+
+    {/* Login Modal */}
+    {showLoginModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50" onClick={() => setShowLoginModal(false)}>
+        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 relative" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => setShowLoginModal(false)}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl leading-none"
+          >
+            ×
+          </button>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            {t('auth.loginRequired') || 'Login Required'}
+          </h2>
+          <p className="text-gray-600 mb-6">
+            {t('auth.loginToBook') || 'Please log in or sign up to make a booking.'}
+          </p>
+          <div className="space-y-3">
+            <Link
+              href="/customer-login"
+              className="block w-full bg-pink-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-pink-700 transition-colors text-center"
+              onClick={() => setShowLoginModal(false)}
+            >
+              {t('auth.customerLogin') || 'Customer Login'}
+            </Link>
+            <Link
+              href="/customer-signup"
+              className="block w-full bg-pink-100 text-pink-700 py-3 px-6 rounded-lg font-semibold hover:bg-pink-200 transition-colors text-center border-2 border-pink-300"
+              onClick={() => setShowLoginModal(false)}
+            >
+              {t('auth.signUpAsCustomer') || 'Sign Up as Customer'}
+            </Link>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }

@@ -6,6 +6,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
+import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
 
 interface Message {
   id: string;
@@ -43,6 +44,8 @@ export function BrowseAIAssistant({
   locale = 'en',
 }: BrowseAIAssistantProps) {
   const t = useTranslations();
+  const browseContext = useBrowseAIContext();
+  const shopContext = browseContext?.shopContext;
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -54,6 +57,8 @@ export function BrowseAIAssistant({
   const [rememberedLocation, setRememberedLocation] = useState<string | null>(null);
   // Session ID for persistent conversation history
   const [sessionId, setSessionId] = useState<string | null>(null);
+  // Track if we've sent the initial shop greeting
+  const [hasSentShopGreeting, setHasSentShopGreeting] = useState(false);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -104,6 +109,26 @@ export function BrowseAIAssistant({
       return () => clearInterval(interval);
     }
   }, [isOpen, sessionId, shops.length]);
+
+  // Auto-greet with shop name when shop context is available and chat opens
+  useEffect(() => {
+    if (isOpen && shopContext?.shopId && shopContext?.shopName && !hasSentShopGreeting) {
+      // Only show greeting if there are no messages yet
+      if (messages.length === 0) {
+        const greetingMessage: Message = {
+          id: `assistant-greeting-${Date.now()}`,
+          role: 'assistant',
+          content: `Welcome to **${shopContext.shopName}**${shopContext.prefecture ? ` in ${shopContext.prefecture}` : ''}${shopContext.category ? ` - ${shopContext.category}` : ''}.\n\nHow can I help you with booking, services, or schedule availability today?`,
+          timestamp: new Date(),
+        };
+        setMessages([greetingMessage]);
+        setHasSentShopGreeting(true);
+      }
+    } else if (!shopContext?.shopId) {
+      // Reset greeting flag when shop context is cleared
+      setHasSentShopGreeting(false);
+    }
+  }, [isOpen, shopContext?.shopId, shopContext?.shopName, shopContext?.prefecture, shopContext?.category, hasSentShopGreeting, messages.length]);
 
   const loadConversationHistory = async () => {
     if (!sessionId || shops.length === 0) return;
@@ -195,30 +220,45 @@ export function BrowseAIAssistant({
         { role: 'user' as const, content: userMessage.content },
       ];
 
+      const requestBody: any = {
+        role: 'customer',
+        messages: messagesForAPI,
+        locale: locale,
+        prefecture: selectedPrefecture || null,
+        category: selectedCategoryId || null,
+        searchQuery: searchQuery || null,
+        customerId: sessionId, // Send session ID for persistent storage
+        shops: shops.map(s => ({
+          id: s.id,
+          name: s.name,
+          address: s.address,
+          prefecture: s.prefecture,
+          normalized_city: s.normalized_city,
+          city: s.city || null,
+          category_id: s.category_id,
+          description: s.description,
+        })),
+      };
+
+      // Add shop context if available
+      if (shopContext?.shopId) {
+        requestBody.shopContext = {
+          shopId: shopContext.shopId,
+          shopName: shopContext.shopName,
+          category: shopContext.category,
+          prefecture: shopContext.prefecture,
+          address: shopContext.address,
+          ownerId: shopContext.ownerId,
+          services: shopContext.services,
+        };
+      }
+
       const response = await fetch(`${apiUrl}/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          role: 'customer',
-          messages: messagesForAPI,
-          locale: locale,
-          prefecture: selectedPrefecture || null,
-          category: selectedCategoryId || null,
-          searchQuery: searchQuery || null,
-          customerId: sessionId, // Send session ID for persistent storage
-          shops: shops.map(s => ({
-            id: s.id,
-            name: s.name,
-            address: s.address,
-            prefecture: s.prefecture,
-            normalized_city: s.normalized_city,
-            city: s.city || null,
-            category_id: s.category_id,
-            description: s.description,
-          })),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {

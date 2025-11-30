@@ -15,18 +15,30 @@ interface Shop {
   description?: string | null;
 }
 
+interface ShopContext {
+  shopId?: string | null;
+  shopName?: string | null;
+  category?: string | null;
+  prefecture?: string | null;
+  address?: string | null;
+  ownerId?: string | null;
+  services?: Array<{ id: string; name: string; price?: number }> | null;
+}
+
 interface BrowseAIContextType {
   shops: Shop[];
   selectedPrefecture: string | null;
   selectedCity: string | null;
   selectedCategoryId: string | null;
   searchQuery: string | null;
+  shopContext: ShopContext | null;
   setBrowseContext: (context: {
     shops?: Shop[];
     selectedPrefecture?: string | null;
     selectedCity?: string | null;
     selectedCategoryId?: string | null;
     searchQuery?: string | null;
+    shopContext?: ShopContext | null;
   }) => void;
 }
 
@@ -38,6 +50,7 @@ export function BrowseAIProvider({ children }: { children: ReactNode }) {
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string | null>(null);
+  const [shopContext, setShopContext] = useState<ShopContext | null>(null);
 
   const setBrowseContext = (context: {
     shops?: Shop[];
@@ -45,12 +58,14 @@ export function BrowseAIProvider({ children }: { children: ReactNode }) {
     selectedCity?: string | null;
     selectedCategoryId?: string | null;
     searchQuery?: string | null;
+    shopContext?: ShopContext | null;
   }) => {
     if (context.shops !== undefined) setShops(context.shops);
     if (context.selectedPrefecture !== undefined) setSelectedPrefecture(context.selectedPrefecture);
     if (context.selectedCity !== undefined) setSelectedCity(context.selectedCity);
     if (context.selectedCategoryId !== undefined) setSelectedCategoryId(context.selectedCategoryId);
     if (context.searchQuery !== undefined) setSearchQuery(context.searchQuery);
+    if (context.shopContext !== undefined) setShopContext(context.shopContext);
   };
 
   return (
@@ -60,6 +75,7 @@ export function BrowseAIProvider({ children }: { children: ReactNode }) {
       selectedCity,
       selectedCategoryId,
       searchQuery,
+      shopContext,
       setBrowseContext,
     }}>
       {children}
