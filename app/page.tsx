@@ -97,6 +97,53 @@ function HomeContent() {
     howItWorksRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Fetch recent reviews from database
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        setLoadingReviews(true);
+        const supabase = getSupabaseClient();
+        
+        // Fetch latest published reviews with shop and customer info
+        const { data: reviewsData, error } = await supabase
+          .from('reviews')
+          .select(`
+            id,
+            rating,
+            comment,
+            created_at,
+            shops (
+              id,
+              name,
+              prefecture,
+              city
+            ),
+            customer_profiles (
+              id,
+              name
+            )
+          `)
+          .eq('status', 'published')
+          .order('created_at', { ascending: false })
+          .limit(6);
+
+        if (error) {
+          console.error('Error fetching reviews:', error);
+          setReviews([]);
+        } else {
+          setReviews(reviewsData || []);
+        }
+      } catch (error) {
+        console.error('Error fetching reviews:', error);
+        setReviews([]);
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+
+    fetchReviews();
+  }, []);
+
   return (
     <div className="min-h-screen bg-white">
       {/* SECTION 1 — ENHANCED HERO (Split-Screen) */}
@@ -356,83 +403,72 @@ function HomeContent() {
       </section>
 
       {/* SECTION 7 — TESTIMONIALS */}
-      <section className="py-16 md:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              {tLanding('testimonialsTitle') || 'Check Out Recent Reviews'}
-            </h2>
-            <p className="text-lg text-gray-600">
-              {tLanding('testimonialsSubtitle') || 'See what our customers are saying'}
-            </p>
+      {reviews.length > 0 && (
+        <section className="py-16 md:py-24 bg-white">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                {tLanding('testimonialsTitle') || 'Check Out Recent Reviews'}
+              </h2>
+              <p className="text-lg text-gray-600">
+                {tLanding('testimonialsSubtitle') || 'See what our customers are saying'}
+              </p>
+            </div>
+
+            {loadingReviews ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="mt-4 text-gray-600">{t('common.loading') || 'Loading reviews...'}</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-3 gap-8">
+                {reviews.slice(0, 3).map((review, index) => {
+                  const shop = review.shops as any;
+                  const customer = review.customer_profiles as any;
+                  const customerName = customer?.name || 'Anonymous';
+                  const location = shop?.prefecture || shop?.city || 'Japan';
+                  const shopName = shop?.name || '';
+                  const colors = ['bg-blue-100', 'bg-purple-100', 'bg-teal-100'];
+                  
+                  return (
+                    <div key={review.id} className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className={`w-12 h-12 ${colors[index % colors.length]} rounded-full flex items-center justify-center`}>
+                          <span className="text-xl">👤</span>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-900">
+                            {customerName}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {location}
+                            {shopName && ` • ${shopName}`}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 mb-3">
+                        {[...Array(5)].map((_, i) => (
+                          <span 
+                            key={i} 
+                            className={i < review.rating ? 'text-yellow-400' : 'text-gray-300'}
+                          >
+                            ⭐
+                          </span>
+                        ))}
+                      </div>
+                      {review.comment && (
+                        <p className="text-gray-700">
+                          "{review.comment}"
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Review 1 */}
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-xl">👤</span>
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">Sarah M.</div>
-                  <div className="text-sm text-gray-600">Tokyo, Japan</div>
-                </div>
-              </div>
-              <div className="flex gap-1 mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-yellow-400">⭐</span>
-                ))}
-              </div>
-              <p className="text-gray-700">
-                {tLanding('review1Text') || '"Amazing experience! Found the perfect salon in minutes. The AI assistant was incredibly helpful."'}
-              </p>
-            </div>
-
-            {/* Review 2 */}
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                  <span className="text-xl">👤</span>
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">Kenji T.</div>
-                  <div className="text-sm text-gray-600">Osaka, Japan</div>
-                </div>
-              </div>
-              <div className="flex gap-1 mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-yellow-400">⭐</span>
-                ))}
-              </div>
-              <p className="text-gray-700">
-                {tLanding('review2Text') || '"Booking was so easy! The platform helped me discover new places I never knew existed."'}
-              </p>
-            </div>
-
-            {/* Review 3 */}
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
-                  <span className="text-xl">👤</span>
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">Maria L.</div>
-                  <div className="text-sm text-gray-600">Kyoto, Japan</div>
-                </div>
-              </div>
-              <div className="flex gap-1 mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-yellow-400">⭐</span>
-                ))}
-              </div>
-              <p className="text-gray-700">
-                {tLanding('review3Text') || '"As a shop owner, the AI messaging feature has saved me so much time. Highly recommended!"'}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* SECTION 8 — HOW IT WORKS */}
       <section ref={howItWorksRef} className="py-16 md:py-24 bg-gray-50">
