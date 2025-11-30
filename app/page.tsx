@@ -426,8 +426,9 @@ function HomeContent() {
               <div className="grid md:grid-cols-3 gap-8">
                 {reviews.slice(0, 3).map((review, index) => {
                   const shop = review.shops as any;
-                  const customer = review.customer_profiles as any;
-                  const customerName = customer?.name || 'Anonymous';
+                  const booking = review.bookings as any;
+                  // Get customer name from booking if available, otherwise use anonymous
+                  const customerName = booking?.customer_name || 'Anonymous';
                   const location = shop?.prefecture || shop?.city || 'Japan';
                   const shopName = shop?.name || '';
                   const colors = ['bg-blue-100', 'bg-purple-100', 'bg-teal-100'];
