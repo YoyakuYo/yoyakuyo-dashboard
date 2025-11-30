@@ -12,10 +12,13 @@ export default function PublicFooter() {
   const isDarkPage = pathname === '/featured' || pathname === '/trending';
 
   let t: ReturnType<typeof useTranslations>;
+  let tFooter: ReturnType<typeof useTranslations>;
   try {
     t = useTranslations();
+    tFooter = useTranslations('footer');
   } catch {
     t = ((key: string) => key) as ReturnType<typeof useTranslations>;
+    tFooter = ((key: string) => key) as ReturnType<typeof useTranslations>;
   }
 
   return (
@@ -30,30 +33,30 @@ export default function PublicFooter() {
               href="/about" 
               className={`${isDarkPage ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
             >
-              {t('footer.about') || 'About'}
+              {tFooter('about') || 'About'}
             </Link>
             <Link 
               href="/privacy" 
               className={`${isDarkPage ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
             >
-              {t('footer.privacy') || 'Privacy Policy'}
+              {tFooter('privacy') || 'Privacy Policy'}
             </Link>
             <Link 
               href="/terms" 
               className={`${isDarkPage ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
             >
-              {t('footer.terms') || 'Terms'}
+              {tFooter('terms') || 'Terms'}
             </Link>
             <Link 
               href="/contact" 
               className={`${isDarkPage ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
             >
-              {t('footer.contact') || 'Contact'}
+              {tFooter('contact') || 'Contact'}
             </Link>
           </div>
         </div>
         <div className={`mt-8 text-center text-sm ${isDarkPage ? 'text-gray-400' : 'text-gray-500'}`}>
-          © {new Date().getFullYear()} Yoyaku Yo. {t('footer.rights') || 'All rights reserved.'}
+          © {new Date().getFullYear()} Yoyaku Yo. {tFooter('rights') || 'All rights reserved.'}
         </div>
       </div>
     </footer>
