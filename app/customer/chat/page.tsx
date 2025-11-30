@@ -4,9 +4,12 @@ import { useEffect, useState, useRef } from "react";
 import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { apiUrl } from "@/lib/apiClient";
+import { useBrowseAIContext } from "@/app/components/BrowseAIContext";
 
 export default function CustomerChatPage() {
   const { user, session } = useCustomAuth();
+  const browseContext = useBrowseAIContext();
+  const shopContext = browseContext?.shopContext;
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -81,12 +84,16 @@ export default function CustomerChatPage() {
       return;
     }
     
-    // Get or create session
+    // Get or create ai_chat_session (use ai_chat_sessions table)
+    // Use shopId from shop context if available, otherwise use placeholder
+    const shopIdForSession = shopContext?.shopId || '00000000-0000-0000-0000-000000000000';
+    
     const { data: existingSession } = await supabase
-      .from("customer_chat_sessions")
+      .from("ai_chat_sessions")
       .select("id")
-      .eq("customer_id", profileId)
-      .order("updated_at", { ascending: false })
+      .eq("customerId", profileId)
+      .eq("shopId", shopIdForSession)
+      .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -95,17 +102,17 @@ export default function CustomerChatPage() {
     } else {
       // Create new session
       const { data: newSession, error } = await supabase
-        .from("customer_chat_sessions")
+        .from("ai_chat_sessions")
         .insert({
-          customer_id: profileId,
+          customerId: profileId,
+          shopId: shopIdForSession,
         })
-        .select()
+        .select("id")
         .single();
 
       if (error) {
-        console.error("Error creating chat session:", error);
+        console.error("Error creating ai_chat_session:", error);
         // Even if session creation fails, allow chat to work with a temporary session
-        // This prevents the input from being permanently disabled
         const tempSessionId = `temp-${user.id}-${Date.now()}`;
         setSessionId(tempSessionId);
       } else if (newSession) {
@@ -115,19 +122,27 @@ export default function CustomerChatPage() {
   };
 
   const loadHistory = async () => {
-    if (!sessionId) return;
+    if (!sessionId || sessionId.startsWith('temp-')) return;
 
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
-      .from("customer_chat_messages")
+      .from("ai_messages")
       .select("*")
-      .eq("session_id", sessionId)
+      .eq("sessionId", sessionId)
       .order("created_at", { ascending: true });
 
     if (error) {
-      console.error("Error loading chat history:", error);
+      console.error("Error loading chat history from ai_messages:", error);
     } else if (data) {
-      setMessages(data);
+      // Convert ai_messages format to expected format
+      const convertedMessages = data.map((msg: any) => ({
+        id: msg.id,
+        session_id: msg.sessionId,
+        role: msg.sender === 'user' ? 'user' : 'assistant',
+        content: msg.message,
+        created_at: msg.created_at,
+      }));
+      setMessages(convertedMessages);
     }
   };
 
@@ -170,26 +185,27 @@ export default function CustomerChatPage() {
     if (currentSessionId && !currentSessionId.startsWith('temp-')) {
       const supabase = getSupabaseClient();
       const { data: saved, error: saveError } = await supabase
-        .from("customer_chat_messages")
+        .from("ai_messages")
         .insert({
-          session_id: currentSessionId,
-          role: "user",
-          content: userMessage,
+          sessionId: currentSessionId,
+          sender: "user",
+          message: userMessage,
         })
         .select()
         .single();
 
       if (saveError) {
-        console.error("Error saving message:", saveError);
+        console.error("Error saving message to ai_messages:", saveError);
       } else {
-        savedMessage = saved;
+        // Convert to expected format
+        savedMessage = {
+          id: saved.id,
+          session_id: saved.sessionId,
+          role: "user",
+          content: saved.message,
+          created_at: saved.created_at,
+        };
       }
-
-      // Update session timestamp
-      await supabase
-        .from("customer_chat_sessions")
-        .update({ updated_at: new Date().toISOString() })
-        .eq("id", currentSessionId);
     }
 
     // Get AI response
@@ -214,6 +230,14 @@ export default function CustomerChatPage() {
         headers["Authorization"] = `Bearer ${session.token}`;
       }
 
+      // Get customer profile to pass to AI
+      const supabaseForProfile = getSupabaseClient();
+      const { data: customerProfile } = await supabaseForProfile
+        .from("customer_profiles")
+        .select("id, name, email, preferred_language")
+        .eq("customer_auth_id", user.id)
+        .maybeSingle();
+
       const response = await fetch(`${apiUrl}/ai/chat`, {
         method: "POST",
         headers,
@@ -221,7 +245,15 @@ export default function CustomerChatPage() {
           role: "customer",
           messages: apiMessages,
           userId: user.id,
-          customerId: user.id,
+          customerId: customerProfile?.id || user.id,
+          shopContext: shopContext?.shopId ? {
+            shopId: shopContext.shopId,
+            shopName: shopContext.shopName,
+            category: shopContext.category,
+            prefecture: shopContext.prefecture,
+            address: shopContext.address,
+            ownerId: shopContext.ownerId,
+          } : null,
         }),
       });
 
@@ -237,15 +269,25 @@ export default function CustomerChatPage() {
       if (currentSessionId && !currentSessionId.startsWith('temp-')) {
         const supabase = getSupabaseClient();
         const { data: saved } = await supabase
-          .from("customer_chat_messages")
+          .from("ai_messages")
           .insert({
-            session_id: currentSessionId,
-            role: "assistant",
-            content: aiMessage,
+            sessionId: currentSessionId,
+            sender: "ai",
+            message: aiMessage,
           })
           .select()
           .single();
-        savedAiMessage = saved;
+        
+        if (saved) {
+          // Convert to expected format
+          savedAiMessage = {
+            id: saved.id,
+            session_id: saved.sessionId,
+            role: "assistant",
+            content: saved.message,
+            created_at: saved.created_at,
+          };
+        }
       }
 
       // Update messages - add AI response
@@ -286,10 +328,14 @@ export default function CustomerChatPage() {
       .maybeSingle();
     
     if (profile) {
-      // Create new session
+      // Create new session in ai_chat_sessions
+      const shopIdForSession = shopContext?.shopId || '00000000-0000-0000-0000-000000000000';
       const { data: newSession, error } = await supabase
-        .from("customer_chat_sessions")
-        .insert({ customer_id: profile.id })
+        .from("ai_chat_sessions")
+        .insert({ 
+          customerId: profile.id,
+          shopId: shopIdForSession,
+        })
         .select()
         .single();
       
