@@ -22,16 +22,45 @@ export default function CustomerSettingsPage() {
   }, [user]);
 
   const loadProfile = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     const supabase = getSupabaseClient();
-    const { data, error } = await supabase
+    
+    // Try to find existing profile by customer_auth_id
+    let { data, error } = await supabase
       .from("customer_profiles")
       .select("*")
-      .eq("id", user?.id)
-      .single();
+      .eq("customer_auth_id", user.id)
+      .maybeSingle();
 
-    if (error) {
-      console.error("Error loading profile:", error);
-    } else if (data) {
+    // If no profile exists, create one
+    if (error || !data) {
+      console.log("Profile not found, creating new profile...");
+      const { data: newProfile, error: createError } = await supabase
+        .from("customer_profiles")
+        .insert({
+          customer_auth_id: user.id,
+          email: user.email || "",
+          name: "",
+          phone: "",
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error("Error creating profile:", createError);
+        setMessage(`Error: ${createError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      data = newProfile;
+    }
+
+    if (data) {
       setProfile({
         name: data.name || "",
         email: data.email || "",
@@ -45,6 +74,12 @@ export default function CustomerSettingsPage() {
     e.preventDefault();
     if (!user) return;
 
+    // Validate name is not empty
+    if (!profile.name.trim()) {
+      setMessage("Error: Name is required");
+      return;
+    }
+
     setSaving(true);
     setMessage("");
 
@@ -52,16 +87,18 @@ export default function CustomerSettingsPage() {
     const { error } = await supabase
       .from("customer_profiles")
       .update({
-        name: profile.name,
-        phone: profile.phone,
+        name: profile.name.trim(),
+        phone: profile.phone.trim() || null,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", user.id);
+      .eq("customer_auth_id", user.id);
 
     if (error) {
       setMessage(`Error: ${error.message}`);
     } else {
       setMessage("Profile updated successfully!");
+      // Clear message after 3 seconds
+      setTimeout(() => setMessage(""), 3000);
     }
     setSaving(false);
   };

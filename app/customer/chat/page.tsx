@@ -246,6 +246,12 @@ export default function CustomerChatPage() {
           messages: apiMessages,
           userId: user.id,
           customerId: customerProfile?.id || user.id,
+          customerProfile: customerProfile ? {
+            customerId: customerProfile.id,
+            customerName: customerProfile.name || null,
+            customerEmail: customerProfile.email || null,
+            preferredLanguage: customerProfile.preferred_language || 'en',
+          } : null,
           shopContext: shopContext?.shopId ? {
             shopId: shopContext.shopId,
             shopName: shopContext.shopName,
