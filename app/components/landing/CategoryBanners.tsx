@@ -19,7 +19,7 @@ interface Category {
 const categories: Category[] = [
   {
     id: 'hotels_ryokan',
-    image: 'https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=1920&q=80',
+    image: 'https://besthotelshome.com/wp-content/uploads/2020/02/Conrad-Tokyo-Best-Luxury-Hotels-in-Tokyo.jpg',
     nameKey: 'hotelsRyokan',
     descKey: 'hotelsRyokanDesc',
     modalTitleKey: 'hotelsRyokanModalTitle',
