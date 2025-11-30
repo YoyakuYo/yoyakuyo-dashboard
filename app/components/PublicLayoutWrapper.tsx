@@ -74,26 +74,28 @@ function PublicLayoutContent({ children }: { children: React.ReactNode }) {
             <a 
               href={user ? (window.location.pathname.startsWith('/customer') ? '/customer/home' : '/owner/dashboard') : '/'}
               onClick={handleLogoClick}
-              className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-amber-600 bg-clip-text text-transparent hover:from-pink-700 hover:to-amber-700 cursor-pointer transition-all"
+              className="text-3xl font-bold text-blue-600 hover:text-blue-700 cursor-pointer transition-all"
             >
               Yoyaku Yo
             </a>
-            {/* Right: Language Switcher + Login Buttons */}
+            {/* Right: Language Switcher + Login/Join Buttons */}
             <div className="flex items-center gap-4">
               <LanguageSwitcher />
-              <Link
-                href="/customer-login"
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                {tAuth('customerLogin') || 'Customer Login'}
-              </Link>
               <button
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent('openLoginModal'));
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                {tAuth('ownerLogin') || 'Owner Login'}
+                Login
+              </button>
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('openJoinModal'));
+                }}
+                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                Join
               </button>
             </div>
           </div>
