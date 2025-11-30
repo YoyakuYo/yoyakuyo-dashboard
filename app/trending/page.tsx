@@ -23,6 +23,7 @@ interface Shop {
   cover_photo_url?: string;
   image_url?: string;
   logo_url?: string;
+  claim_status?: string;
   // Add popularity metrics if available
   view_count?: number;
   booking_count?: number;

@@ -24,6 +24,7 @@ interface Shop {
   cover_photo_url?: string;
   image_url?: string;
   logo_url?: string;
+  claim_status?: string;
 }
 
 function RegionsPageContent() {
