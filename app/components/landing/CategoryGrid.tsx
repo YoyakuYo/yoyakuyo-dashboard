@@ -115,34 +115,15 @@ export default function CategoryGrid() {
                       )}
                     </div>
                     
-                    {/* Gradient overlay for text readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                    
-                    {/* Category name */}
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <h3 className="text-lg md:text-xl font-heading font-bold text-white drop-shadow-lg">
+                    {/* Category name - Clean, no overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+                      <h3 className="text-lg md:text-xl font-heading font-bold text-white drop-shadow-lg mb-1">
                         {categoryName}
                       </h3>
                       {hasSubs && (
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {subcategories.slice(0, 3).map((subcat) => (
-                            <span
-                              key={subcat.id}
-                              className="text-xs bg-white/20 backdrop-blur-sm text-white px-2 py-0.5 rounded"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                window.location.href = `/browse?category=${subcat.id}`;
-                              }}
-                            >
-                              {isJapanese ? subcat.nameJa : subcat.name}
-                            </span>
-                          ))}
-                          {subcategories.length > 3 && (
-                            <span className="text-xs bg-white/20 backdrop-blur-sm text-white px-2 py-0.5 rounded">
-                              +{subcategories.length - 3}
-                            </span>
-                          )}
-                        </div>
+                        <p className="text-xs text-white/80">
+                          {subcategories.length} {isJapanese ? 'サブカテゴリー' : 'subcategories'}
+                        </p>
                       )}
                     </div>
                   </div>

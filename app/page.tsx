@@ -1,25 +1,17 @@
 // apps/dashboard/app/page.tsx
-// Commercial Marketing Landing Page - No shop browsing (moved to customer dashboard)
+// Completely Rebuilt Public Landing Page
 
 "use client";
 
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getSupabaseClient } from '@/lib/supabaseClient';
-import { AuthError } from '@supabase/supabase-js';
-import { useAuth } from '@/lib/useAuth';
 import { useTranslations } from 'next-intl';
-import { apiUrl } from '@/lib/apiClient';
-import { authApi } from '@/lib/api';
-import CommercialHero from './components/landing/CommercialHero';
-import CommercialBlocks from './components/landing/CommercialBlocks';
-import CategoryBanners from './components/landing/CategoryBanners';
-import CTABlocks from './components/landing/CTABlocks';
+import Image from 'next/image';
 import CategoryGrid from './components/landing/CategoryGrid';
-import FeaturedShops from './components/landing/FeaturedShops';
+import OwnerModals from './components/OwnerModals';
 
-// Force dynamic rendering to avoid prerendering errors
+// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
 // Modal component
@@ -37,7 +29,7 @@ const Modal = React.memo(({ isOpen, onClose, children }: { isOpen: boolean; onCl
       }}
     >
       <div 
-        className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 relative max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-8 relative max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -62,13 +54,12 @@ Modal.displayName = 'Modal';
 
 function HomeContent() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
   
   let t: ReturnType<typeof useTranslations>;
   let tAuth: ReturnType<typeof useTranslations>;
   let tLanding: ReturnType<typeof useTranslations>;
   try {
-    t = useTranslations('home');
+    t = useTranslations();
     tAuth = useTranslations('auth');
     tLanding = useTranslations('landing');
   } catch (error) {
@@ -78,573 +69,210 @@ function HomeContent() {
     tLanding = ((key: string) => key) as ReturnType<typeof useTranslations>;
   }
 
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showSignupModal, setShowSignupModal] = useState(false);
-  
-  // Login form state
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const [loginLoading, setLoginLoading] = useState(false);
-  
-  // Signup form state
-  const [signupName, setSignupName] = useState('');
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
-  const [signupShopName, setSignupShopName] = useState('');
-  const [signupError, setSignupError] = useState<string | null>(null);
-  const [signupLoading, setSignupLoading] = useState(false);
-
-  useEffect(() => {
-    const handleOpenLoginModal = () => {
-      setShowLoginModal(true);
-    };
-    const handleOpenSignupModal = () => {
-      setShowSignupModal(true);
-    };
-    if (typeof window !== 'undefined') {
-      window.addEventListener('openLoginModal', handleOpenLoginModal);
-      window.addEventListener('openSignupModal', handleOpenSignupModal);
-    }
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('openLoginModal', handleOpenLoginModal);
-        window.removeEventListener('openSignupModal', handleOpenSignupModal);
-      }
-    };
-  }, []);
-
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (!authLoading && user) {
-      router.push('/owner/dashboard');
-    }
-  }, [user, authLoading, router]);
-
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError(null);
-    setLoginLoading(true);
-
-    try {
-      const supabase = getSupabaseClient();
-      let authData: any = null;
-      let signInError: any = null;
-
-      try {
-        const result = await supabase.auth.signInWithPassword({
-          email: loginEmail,
-          password: loginPassword,
-        });
-        authData = result.data;
-        signInError = result.error;
-      } catch (directError: any) {
-        const isCorsError = directError?.message?.includes('CORS') || 
-                           directError?.message?.includes('Failed to fetch') ||
-                           directError?.name === 'TypeError';
-        
-        if (isCorsError) {
-          try {
-            const backendResponse = await authApi.login(loginEmail, loginPassword);
-            
-            if (backendResponse.success && backendResponse.session) {
-              const { error: setSessionError } = await supabase.auth.setSession({
-                access_token: backendResponse.session.access_token,
-                refresh_token: backendResponse.session.refresh_token,
-              });
-
-              if (setSessionError) {
-                setLoginError(setSessionError.message || 'Failed to set session');
-                setLoginLoading(false);
-                return;
-              }
-
-              const { data: { user } } = await supabase.auth.getUser();
-              authData = { user, session: backendResponse.session };
-              signInError = null;
-            } else {
-              signInError = { message: backendResponse.error || 'Login failed' };
-            }
-          } catch (backendError: any) {
-            signInError = { message: backendError.message || 'Login failed' };
-          }
-        } else {
-          signInError = directError;
-        }
-      }
-
-      if (signInError) {
-        setLoginError(signInError.message || 'Invalid login credentials');
-        setLoginLoading(false);
-        return;
-      }
-
-      if (!authData?.user) {
-        setLoginError('Login failed: No user data returned');
-        setLoginLoading(false);
-        return;
-      }
-
-      try {
-        await authApi.syncUser(
-          authData.user.id,
-          authData.user.email || loginEmail,
-          authData.user.user_metadata?.name
-        );
-      } catch (syncError) {
-        console.warn('Failed to sync user to users (non-blocking):', syncError);
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      const { data: { session: verifySession } } = await supabase.auth.getSession();
-      if (!verifySession && authData.session) {
-        await supabase.auth.setSession({
-          access_token: authData.session.access_token,
-          refresh_token: authData.session.refresh_token,
-        });
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      
-      setShowLoginModal(false);
-      setTimeout(() => {
-        router.push('/owner/dashboard');
-        router.refresh();
-      }, 300);
-    } catch (err) {
-      console.error('Login error:', err);
-      const authError = err as AuthError;
-      setLoginError(authError.message || 'An unexpected error occurred during login');
-      setLoginLoading(false);
-    }
-  };
-
-  const handleSignupSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    setSignupError(null);
-    setSignupLoading(true);
-
-    try {
-      if (!signupName || !signupEmail || !signupPassword) {
-        setSignupError(t('auth.fillRequiredFields'));
-        setSignupLoading(false);
-        return;
-      }
-
-      const supabase = getSupabaseClient();
-
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: signupEmail,
-        password: signupPassword,
-        options: {
-          data: {
-            name: signupName,
-          },
-        },
-      });
-
-      if (signUpError) {
-        setSignupError(signUpError.message);
-        setSignupLoading(false);
-        return;
-      }
-
-      if (!authData.user) {
-        setSignupError('Failed to create user account');
-        setSignupLoading(false);
-        return;
-      }
-
-      const userId = authData.user.id;
-
-      const setupRes = await fetch(`${apiUrl}/auth/signup-owner`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          name: signupName,
-          email: signupEmail,
-          shop_name: signupShopName || null,
-        }),
-      });
-
-      if (!setupRes.ok) {
-        const errorData = await setupRes.json().catch(() => ({ error: 'Failed to setup account' }));
-        setSignupError(errorData.error || t('auth.failedToSetupAccount'));
-        setSignupLoading(false);
-        return;
-      }
-
-      const setupData = await setupRes.json();
-      let session = authData.session;
-      
-      if (!session) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        session = sessionData.session;
-      }
-      
-      if (!session) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: signupEmail,
-          password: signupPassword,
-        });
-
-        if (signInError) {
-          setSignupError(`Account created successfully! Please sign in manually with your email and password. If you received a confirmation email, please confirm it first.`);
-          setSignupLoading(false);
-          setShowSignupModal(false);
-          setTimeout(() => {
-            setShowLoginModal(true);
-          }, 500);
-          return;
-        }
-        
-        session = signInData.session;
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setShowSignupModal(false);
-      router.push('/owner/dashboard');
-      router.refresh();
-    } catch (err) {
-      console.error('Unexpected error during signup:', err);
-      const errorMessage = err instanceof Error ? err.message : t('auth.unexpectedError');
-      setSignupError(errorMessage);
-      setSignupLoading(false);
-    }
-  };
-
-  const handleCloseLoginModal = useCallback(() => setShowLoginModal(false), []);
-  const handleCloseSignupModal = useCallback(() => setShowSignupModal(false), []);
+  const [showAccessModal, setShowAccessModal] = useState(false);
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header is provided by PublicLayoutWrapper - no need for LandingHeader */}
+      {/* SECTION 1 — HERO */}
+      <section className="relative h-[600px] md:h-[700px] overflow-hidden">
+        {/* Hero Background Image */}
+        <div className="absolute inset-0">
+          <Image
+            src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1920&q=80"
+            alt="Yoyaku Yo"
+            fill
+            priority
+            className="object-cover"
+            sizes="100vw"
+            unoptimized={true}
+          />
+        </div>
 
-      {/* Hero Section - Clean, Minimal */}
-      <CommercialHero />
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/40" />
 
-      {/* Commercial Blocks */}
-      <CommercialBlocks />
-
-      {/* Category Banners - Stacked Full-Width */}
-      <CategoryBanners />
-
-      {/* CTA Blocks */}
-      <CTABlocks />
-
-      {/* How It Works Section */}
-      <section className="py-16 md:py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
-            {tLanding('howItWorksTitle')}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {/* For Customers Card */}
-            <div className="bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-              <div className="text-5xl mb-4">👥</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {tLanding('forCustomersTitle')}
-              </h3>
-              <ul className="space-y-3 text-gray-700 mb-6">
-                <li className="flex items-start gap-2">
-                  <span className="text-pink-600 mt-1">✓</span>
-                  <span>{tLanding('forCustomersBullet1')}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-pink-600 mt-1">✓</span>
-                  <span>{tLanding('forCustomersBullet2')}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-pink-600 mt-1">✓</span>
-                  <span>{tLanding('forCustomersBullet3')}</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* For Owners Card */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-              <div className="text-5xl mb-4">💼</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {tLanding('forOwnersTitle')}
-              </h3>
-              <ul className="space-y-3 text-gray-700 mb-6">
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span>{tLanding('forOwnersBullet1')}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span>{tLanding('forOwnersBullet2')}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span>{tLanding('forOwnersBullet3')}</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* AI Assistance Card */}
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-              <div className="text-5xl mb-4">🤖</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {tLanding('aiAssistanceTitle')}
-              </h3>
-              <ul className="space-y-3 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">✓</span>
-                  <span>{tLanding('aiAssistanceBullet1')}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">✓</span>
-                  <span>{tLanding('aiAssistanceBullet2')}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-600 mt-1">✓</span>
-                  <span>{tLanding('aiAssistanceBullet3')}</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Login & Signup Cards */}
-          <div className="grid md:grid-cols-2 gap-8 mb-12">
-            {/* For Customers Access Card */}
-            <div className="bg-white border-2 border-pink-200 rounded-xl p-8 shadow-lg">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-                {tLanding('forCustomersTitle')}
-              </h3>
-              <div className="space-y-4">
-                <Link
-                  href="/customer-login"
-                  className="block w-full bg-pink-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-pink-700 transition-colors text-center"
-                >
-                  {tAuth('customerLogin') || 'Customer Login'}
-                </Link>
-                <Link
-                  href="/customer-signup"
-                  className="block w-full bg-pink-100 text-pink-700 py-3 px-6 rounded-lg font-semibold hover:bg-pink-200 transition-colors text-center border-2 border-pink-300"
-                >
-                  {tAuth('signUpAsCustomer') || 'Sign Up as Customer'}
-                </Link>
-                <Link
-                  href="/guest-booking"
-                  className="block w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors text-center border-2 border-gray-300"
-                >
-                  {t('booking.bookAsGuest') || 'Book as Guest'}
-                </Link>
-              </div>
-            </div>
-
-            {/* For Owners Access Card */}
-            <div className="bg-white border-2 border-blue-200 rounded-xl p-8 shadow-lg">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-                {tLanding('forOwnersTitle')}
-              </h3>
-              <div className="space-y-4">
-                <button
-                  onClick={() => setShowLoginModal(true)}
-                  className="block w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center"
-                >
-                  {tAuth('ownerLogin') || 'Owner Login'}
-                </button>
-                <button
-                  onClick={() => setShowSignupModal(true)}
-                  className="block w-full bg-blue-100 text-blue-700 py-3 px-6 rounded-lg font-semibold hover:bg-blue-200 transition-colors text-center border-2 border-blue-300"
-                >
-                  {tAuth('joinAsOwner') || 'Join as Owner'}
-                </button>
-              </div>
+        {/* Hero Content */}
+        <div className="relative z-10 h-full flex items-center justify-center">
+          <div className="text-center px-4 max-w-4xl mx-auto">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 drop-shadow-lg">
+              {tLanding('heroTitle') || 'Yoyaku Yo'}
+            </h1>
+            <p className="text-xl md:text-2xl lg:text-3xl text-white/95 drop-shadow-md mb-8">
+              {tLanding('heroSubtitle') || "Japan's Premier Booking Platform"}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => setShowAccessModal(true)}
+                className="px-8 py-4 bg-white text-blue-600 font-bold rounded-lg shadow-lg hover:bg-gray-100 transition-all text-lg"
+              >
+                {tLanding('heroLogin') || 'Login'}
+              </button>
+              <button
+                onClick={() => setShowAccessModal(true)}
+                className="px-8 py-4 bg-blue-600 text-white font-bold rounded-lg shadow-lg hover:bg-blue-700 transition-all text-lg"
+              >
+                {tLanding('heroJoin') || 'Join'}
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Category Grid Section */}
+      {/* SECTION 2 — CATEGORY GRID */}
       <CategoryGrid />
 
-      {/* Featured Shops Section */}
-      <FeaturedShops />
+      {/* SECTION 3 — HOW IT WORKS */}
+      <section className="py-16 md:py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
+            {tLanding('howItWorksTitle') || 'How It Works'}
+          </h2>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12">
+            {/* Step 1 */}
+            <div className="flex-1 max-w-xs text-center">
+              <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                1
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {tLanding('step1Title') || 'Search by category or location'}
+              </h3>
+              <p className="text-gray-600">
+                {tLanding('step1Desc') || 'Browse through our extensive list of categories and find the perfect service near you.'}
+              </p>
+            </div>
 
-      {/* Login Modal */}
-      <Modal isOpen={showLoginModal} onClose={handleCloseLoginModal}>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          {t('auth.signInToShop')}
+            {/* Arrow */}
+            <div className="hidden md:block text-blue-600 text-4xl">→</div>
+
+            {/* Step 2 */}
+            <div className="flex-1 max-w-xs text-center">
+              <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                2
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {tLanding('step2Title') || 'Book instantly or chat with AI'}
+              </h3>
+              <p className="text-gray-600">
+                {tLanding('step2Desc') || 'Make a booking in seconds or use our AI assistant to help you find the best option.'}
+              </p>
+            </div>
+
+            {/* Arrow */}
+            <div className="hidden md:block text-blue-600 text-4xl">→</div>
+
+            {/* Step 3 */}
+            <div className="flex-1 max-w-xs text-center">
+              <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                3
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {tLanding('step3Title') || 'Get confirmation instantly'}
+              </h3>
+              <p className="text-gray-600">
+                {tLanding('step3Desc') || 'Receive instant confirmation and manage your bookings all in one place.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 4 — FOOTER */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="text-2xl font-bold">
+              {tLanding('heroTitle') || 'Yoyaku Yo'}
+            </div>
+            <div className="flex flex-wrap justify-center gap-6 md:gap-8">
+              <Link href="/about" className="text-gray-300 hover:text-white transition-colors">
+                {tLanding('footerAbout') || 'About'}
+              </Link>
+              <Link href="/privacy" className="text-gray-300 hover:text-white transition-colors">
+                {tLanding('footerPrivacy') || 'Privacy Policy'}
+              </Link>
+              <Link href="/terms" className="text-gray-300 hover:text-white transition-colors">
+                {tLanding('footerTerms') || 'Terms'}
+              </Link>
+              <Link href="/contact" className="text-gray-300 hover:text-white transition-colors">
+                {tLanding('footerContact') || 'Contact'}
+              </Link>
+            </div>
+          </div>
+          <div className="mt-8 text-center text-gray-400 text-sm">
+            © {new Date().getFullYear()} Yoyaku Yo. {tLanding('footerRights') || 'All rights reserved.'}
+          </div>
+        </div>
+      </footer>
+
+      {/* ACCESS MODAL */}
+      <Modal isOpen={showAccessModal} onClose={() => setShowAccessModal(false)}>
+        <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+          {tLanding('accessModalTitle') || 'Get Started'}
         </h2>
-
-        {loginError && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            {loginError}
-          </div>
-        )}
-
-        <form onSubmit={handleLoginSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 mb-2">
-              {t('common.email')}
-            </label>
-            <input
-              id="login-email"
-              type="email"
-              value={loginEmail}
-              onChange={(e) => setLoginEmail(e.target.value)}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-              placeholder="your@email.com"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 mb-2">
-              {t('auth.password')}
-            </label>
-            <input
-              id="login-password"
-              type="password"
-              value={loginPassword}
-              onChange={(e) => setLoginPassword(e.target.value)}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-              placeholder="••••••••"
-            />
-            <div className="mt-2 text-right">
-              <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
-                Forgot your password?
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* COLUMN A — CUSTOMERS */}
+          <div className="border-2 border-pink-200 rounded-xl p-6">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+              {tLanding('forCustomersTitle') || 'For Customers'}
+            </h3>
+            <div className="space-y-4">
+              <Link
+                href="/customer-login"
+                className="block w-full bg-pink-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-pink-700 transition-colors text-center"
+                onClick={() => setShowAccessModal(false)}
+              >
+                {tAuth('customerLogin') || 'Customer Login'}
+              </Link>
+              <Link
+                href="/customer-signup"
+                className="block w-full bg-pink-100 text-pink-700 py-3 px-6 rounded-lg font-semibold hover:bg-pink-200 transition-colors text-center border-2 border-pink-300"
+                onClick={() => setShowAccessModal(false)}
+              >
+                {tAuth('signUpAsCustomer') || 'Sign Up as Customer'}
+              </Link>
+              <Link
+                href="/guest-booking"
+                className="block w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors text-center border-2 border-gray-300"
+                onClick={() => setShowAccessModal(false)}
+              >
+                {tLanding('guestBooking') || 'Book as Guest'}
               </Link>
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loginLoading}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {loginLoading ? t('auth.signingIn') : t('auth.signIn')}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-gray-600">
-          {t('auth.dontHaveAccount')}{' '}
-          <button
-            onClick={() => {
-              setShowLoginModal(false);
-              setShowSignupModal(true);
-            }}
-            className="text-blue-600 hover:text-blue-700 font-medium"
-          >
-            {t('joinAsOwner')}
-          </button>
-        </p>
+          {/* COLUMN B — OWNERS */}
+          <div className="border-2 border-blue-200 rounded-xl p-6">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+              {tLanding('forOwnersTitle') || 'For Owners'}
+            </h3>
+            <div className="space-y-4">
+              <button
+                onClick={() => {
+                  setShowAccessModal(false);
+                  // Trigger owner login modal via event (existing system)
+                  window.dispatchEvent(new CustomEvent('openLoginModal'));
+                }}
+                className="block w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center"
+              >
+                {tAuth('ownerLogin') || 'Owner Login'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowAccessModal(false);
+                  // Trigger owner signup modal via event (existing system)
+                  window.dispatchEvent(new CustomEvent('openSignupModal'));
+                }}
+                className="block w-full bg-blue-100 text-blue-700 py-3 px-6 rounded-lg font-semibold hover:bg-blue-200 transition-colors text-center border-2 border-blue-300"
+              >
+                {tAuth('joinAsOwner') || 'Join as Owner'}
+              </button>
+            </div>
+          </div>
+        </div>
       </Modal>
 
-      {/* Signup Modal */}
-      <Modal isOpen={showSignupModal} onClose={handleCloseSignupModal}>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          {tAuth('createOwnerAccount')}
-        </h2>
-
-        {signupError && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            {signupError}
-          </div>
-        )}
-
-        <form 
-          onSubmit={handleSignupSubmit} 
-          className="space-y-4"
-          noValidate
-        >
-          <div>
-            <label htmlFor="signup-name" className="block text-sm font-medium text-gray-700 mb-1">
-              {tAuth('ownerName')} <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="signup-name"
-              type="text"
-              value={signupName}
-              onChange={(e) => setSignupName(e.target.value)}
-              required
-              autoComplete="name"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder={tAuth('ownerName')}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="signup-email" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('common.email')} <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="signup-email"
-              type="email"
-              value={signupEmail}
-              onChange={(e) => setSignupEmail(e.target.value)}
-              required
-              autoComplete="email"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="your@email.com"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="signup-password" className="block text-sm font-medium text-gray-700 mb-1">
-              {tAuth('password')} <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="signup-password"
-              type="password"
-              value={signupPassword}
-              onChange={(e) => setSignupPassword(e.target.value)}
-              required
-              minLength={6}
-              autoComplete="new-password"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="signup-shop-name" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('myShop.shopName')} <span className="text-gray-400 text-xs">({t('common.optional')})</span>
-            </label>
-            <input
-              id="signup-shop-name"
-              type="text"
-              value={signupShopName}
-              onChange={(e) => setSignupShopName(e.target.value)}
-              autoComplete="organization"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder={t('myShop.shopName')}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={signupLoading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {signupLoading ? tAuth('creatingAccount') : tAuth('signUp')}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-gray-600">
-          {tAuth('alreadyHaveAccount')}{' '}
-          <button
-            onClick={() => {
-              setShowSignupModal(false);
-              setShowLoginModal(true);
-            }}
-            className="text-blue-600 hover:text-blue-700 font-medium"
-          >
-            {tAuth('signIn')}
-          </button>
-        </p>
-      </Modal>
+      {/* Owner Login/Signup Modals */}
+      <OwnerModals />
     </div>
   );
 }
