@@ -78,7 +78,10 @@ export default function GuestBookingDetailPage() {
           setError(t('booking.bookingNotFound') || 'Booking not found');
         } else if (data) {
           // Transform the data to match the Booking interface
-          // Supabase returns shops and services as arrays, but we expect single objects
+          // Supabase returns shops and services as objects (not arrays) when using .single()
+          const shopsData = data.shops as any;
+          const servicesData = data.services as any;
+          
           const bookingData: Booking = {
             id: data.id,
             customer_name: data.customer_name,
@@ -88,12 +91,12 @@ export default function GuestBookingDetailPage() {
             end_time: data.end_time,
             status: data.status,
             notes: data.notes,
-            shops: Array.isArray(data.shops) && data.shops.length > 0 
-              ? data.shops[0] 
-              : (data.shops || undefined),
-            services: Array.isArray(data.services) && data.services.length > 0 
-              ? data.services[0] 
-              : (data.services || undefined),
+            shops: Array.isArray(shopsData) && shopsData.length > 0 
+              ? shopsData[0] 
+              : (shopsData || undefined),
+            services: Array.isArray(servicesData) && servicesData.length > 0 
+              ? servicesData[0] 
+              : (servicesData || undefined),
           };
           setBooking(bookingData);
         } else {
