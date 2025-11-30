@@ -74,7 +74,14 @@
     "bookings": "予約",
     "messages": "メッセージ",
     "logout": "ログアウト",
-    "dashboard": "Yoyaku Yoダッシュボード"
+    "dashboard": "Yoyaku Yoダッシュボード",
+    "browse": "閲覧",
+    "featured": "おすすめ",
+    "trending": "トレンド",
+    "regions": "地域",
+    "services": "サービス",
+    "login": "ログイン",
+    "join": "参加"
   },
   "home": {
     "welcomeTitle": "Yoyaku Yoへようこそ",

@@ -226,7 +226,14 @@
     "bookings": "Reservas",
     "messages": "Mensajes",
     "logout": "Cerrar Sesión",
-    "dashboard": "Panel de Yoyaku Yo"
+    "dashboard": "Panel de Yoyaku Yo",
+    "browse": "Explorar",
+    "featured": "Destacados",
+    "trending": "Tendencias",
+    "regions": "Regiones",
+    "services": "Servicios",
+    "login": "Iniciar Sesión",
+    "join": "Unirse"
   },
   "myShop": {
     "title": "Mi Tienda",
