@@ -446,22 +446,15 @@
   },
   "browse": {
     "subcategories": "サブカテゴリー",
-    "byArea": "エリア別",
-    "byCategory": "カテゴリー別",
-    "prefecture": "都道府県",
-    "category": "カテゴリー",
-    "city": "市区町村",
-    "filterByPrefecture": "都道府県で絞り込む",
-    "filterByLocation": "場所で絞り込む",
-    "searchPlaceholder": "市区町村名または店舗名で検索..."
-    "subcategories": "サブカテゴリー",
     "citiesInPrefecture": "{prefecture}の市区町村",
     "byArea": "エリアで探す",
     "byCategory": "カテゴリーで探す",
     "prefecture": "都道府県",
     "category": "カテゴリー",
     "city": "市区町村",
-    "filterByPrefecture": "都道府県で絞り込む"
+    "filterByPrefecture": "都道府県で絞り込む",
+    "filterByLocation": "場所で絞り込む",
+    "searchPlaceholder": "市区町村名または店舗名で検索..."
   },
   "shops": {
     "search": "店舗名、エリア、サービスで検索",
@@ -809,6 +802,20 @@
     "aiAssistanceBullet3": "遅延なく24時間365日稼働",
     "featuredShops": "おすすめ店舗",
     "viewAllShops": "すべての店舗を見る →",
-    "browseAllShops": "すべての店舗を閲覧"
+    "browseAllShops": "すべての店舗を閲覧",
+    "featureCard1Title": "スマートAI予約",
+    "featureCard1Text": "AIが最適な店舗を見つけて予約を完了します。",
+    "featureCard2Title": "数千の店舗",
+    "featureCard2Text": "ネイル、ヘア、クリニック、ホテル、レストラン—すべての都道府県で。",
+    "featureCard3Title": "高速でシンプル",
+    "featureCard3Text": "電話をスキップ。数秒で予約。",
+    "browseByCategoryTitle": "カテゴリーで閲覧",
+    "whyYoyakuYoTitle": "なぜYoyakuYo",
+    "whyBenefit1": "AIがより速く検索し、オプションを比較します。",
+    "whyBenefit2": "近くまたは日本全国の場所を見つけます。",
+    "whyBenefit3": "数秒で予約し、即座に確認を受け取ります。",
+    "whyBenefit4": "お気に入りの店舗を保存し、いつでも再訪問できます。",
+    "ctaBannerTitle": "YoyakuYoに参加して、日本最高の美容、ウェルネス、ホスピタリティを発見しましょう。",
+    "ctaBannerButton": "始める"
   }
 }
