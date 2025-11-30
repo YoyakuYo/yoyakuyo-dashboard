@@ -186,7 +186,16 @@
     "aiAssistanceTitle": "AI Assistance",
     "aiAssistanceBullet1": "Automatically respond to customer messages in Japanese/English",
     "aiAssistanceBullet2": "Handle reschedules and cancellations automatically",
-    "aiAssistanceBullet3": "24/7 support"
+    "aiAssistanceBullet3": "24/7 support",
+    "trendingPageTitle": "Trending Shops",
+    "trendingPageSubtitle": "Shops customers are viewing and booking the most.",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "allTime": "All Time",
+    "featuredPageTitle": "Featured Shops",
+    "featuredPageSubtitle": "Curated salons, clinics, hotels and more across Japan.",
+    "featured": "Featured",
+    "trending": "Trending"
   },
   "booking": {
     "title": "Book an appointment",
@@ -465,7 +474,10 @@
     "filterByPrefecture": "Filter by Prefecture",
     "filterByRegion": "Filter by Region",
     "filterByLocation": "Filter by Location",
-    "searchPlaceholder": "Search by city name or shop name..."
+    "searchPlaceholder": "Search by city name or shop name...",
+    "allCategories": "All Categories",
+    "allRegions": "All Regions",
+    "allPrefectures": "All Prefectures"
   },
   "shops": {
     "search": "Search by shop name, area or service",

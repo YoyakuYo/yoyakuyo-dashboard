@@ -90,7 +90,16 @@
     "aiAssistanceTitle": "Assistência IA",
     "aiAssistanceBullet1": "Responder automaticamente a mensagens em japonês/português",
     "aiAssistanceBullet2": "Gerenciar reagendamentos e cancelamentos automaticamente",
-    "aiAssistanceBullet3": "Suporte 24/7"
+    "aiAssistanceBullet3": "Suporte 24/7",
+    "trendingPageTitle": "Lojas em Tendência",
+    "trendingPageSubtitle": "Lojas que os clientes estão visualizando e reservando mais.",
+    "thisWeek": "Esta Semana",
+    "thisMonth": "Este Mês",
+    "allTime": "Todo o Tempo",
+    "featuredPageTitle": "Lojas em Destaque",
+    "featuredPageSubtitle": "Salões, clínicas, hotéis e mais selecionados em todo o Japão.",
+    "featured": "Destaque",
+    "trending": "Tendência"
   },
   "browse": {
     "subcategories": "Subcategorias",
@@ -100,7 +109,10 @@
     "prefecture": "Prefeitura",
     "category": "Categoria",
     "city": "Cidade",
-    "filterByPrefecture": "Filtrar por Prefeitura"
+    "filterByPrefecture": "Filtrar por Prefeitura",
+    "allCategories": "Todas as Categorias",
+    "allRegions": "Todas as Regiões",
+    "allPrefectures": "Todas as Prefeituras"
   },
   "shops": {
     "search": "Pesquisar por nome da loja, área ou serviço",

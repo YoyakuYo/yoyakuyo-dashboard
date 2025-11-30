@@ -90,7 +90,16 @@
     "aiAssistanceTitle": "AI助手",
     "aiAssistanceBullet1": "自动处理日语/英语客户消息",
     "aiAssistanceBullet2": "自动处理预约变更和取消",
-    "aiAssistanceBullet3": "24/7支持"
+    "aiAssistanceBullet3": "24/7支持",
+    "trendingPageTitle": "热门店铺",
+    "trendingPageSubtitle": "客户正在查看和预订最多的店铺。",
+    "thisWeek": "本周",
+    "thisMonth": "本月",
+    "allTime": "全部时间",
+    "featuredPageTitle": "精选店铺",
+    "featuredPageSubtitle": "日本各地精选的沙龙、诊所、酒店等。",
+    "featured": "精选",
+    "trending": "热门"
   },
   "browse": {
     "subcategories": "子类别",
@@ -100,7 +109,10 @@
     "prefecture": "都道府县",
     "category": "类别",
     "city": "城市",
-    "filterByPrefecture": "按都道府县筛选"
+    "filterByPrefecture": "按都道府县筛选",
+    "allCategories": "所有类别",
+    "allRegions": "所有地区",
+    "allPrefectures": "所有都道府县"
   },
   "shops": {
     "search": "按店铺名称、地区或服务搜索",

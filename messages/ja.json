@@ -176,7 +176,16 @@
     "aiAssistanceTitle": "AIアシスタント",
     "aiAssistanceBullet1": "日本語・英語で顧客メッセージに自動対応",
     "aiAssistanceBullet2": "予約変更とキャンセルを自動処理",
-    "aiAssistanceBullet3": "24時間365日サポート"
+    "aiAssistanceBullet3": "24時間365日サポート",
+    "trendingPageTitle": "トレンド中の店舗",
+    "trendingPageSubtitle": "お客様が最も閲覧・予約している店舗。",
+    "thisWeek": "今週",
+    "thisMonth": "今月",
+    "allTime": "全期間",
+    "featuredPageTitle": "おすすめ店舗",
+    "featuredPageSubtitle": "日本全国の厳選されたサロン、クリニック、ホテルなど。",
+    "featured": "おすすめ",
+    "trending": "トレンド"
   },
   "booking": {
     "title": "予約する",
