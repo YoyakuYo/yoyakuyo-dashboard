@@ -2,7 +2,7 @@
 // Supports customer, owner, and guest conversations
 
 import { useState, useEffect, useCallback } from 'react';
-import { getSupabaseClient } from './supabaseClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 
 export interface ConversationMessage {
   role: 'user' | 'assistant' | 'system';
