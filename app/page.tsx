@@ -1,5 +1,5 @@
 // apps/dashboard/app/page.tsx
-// Enhanced Clean White/Blue Public Landing Page
+// Redesigned Landing Page - Two-Column Layout Based on Travel Website Design
 
 "use client";
 
@@ -71,9 +71,11 @@ function HomeContent() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const categorySectionRef = useRef<HTMLDivElement>(null);
-  const howItWorksRef = useRef<HTMLDivElement>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
+  const [featuredShops, setFeaturedShops] = useState<any[]>([]);
+  const [loadingShops, setLoadingShops] = useState(true);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
 
   // Listen for events from header
   React.useEffect(() => {
@@ -93,10 +95,6 @@ function HomeContent() {
     categorySectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const scrollToHowItWorks = () => {
-    howItWorksRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   // Fetch recent reviews from database
   useEffect(() => {
     const fetchReviews = async () => {
@@ -104,8 +102,6 @@ function HomeContent() {
         setLoadingReviews(true);
         const supabase = getSupabaseClient();
         
-        // Fetch latest published reviews with shop and customer info
-        // Note: reviews.customer_id references customers table, but we'll get customer name from bookings or use anonymous
         const { data: reviewsData, error } = await supabase
           .from('reviews')
           .select(`
@@ -146,55 +142,77 @@ function HomeContent() {
     fetchReviews();
   }, []);
 
+  // Fetch featured shops
+  useEffect(() => {
+    const fetchFeaturedShops = async () => {
+      try {
+        setLoadingShops(true);
+        const res = await fetch(`${apiUrl}/shops?page=1&limit=3`);
+        if (res.ok) {
+          const data = await res.json();
+          const shopsArray = Array.isArray(data) 
+            ? data 
+            : (data.data && Array.isArray(data.data) 
+              ? data.data 
+              : (data.shops || []));
+          
+          const visibleShops = shopsArray.filter((shop: any) => 
+            !shop.claim_status || shop.claim_status !== 'hidden'
+          );
+          
+          setFeaturedShops(visibleShops.slice(0, 3));
+        }
+      } catch (error) {
+        console.error('Error loading featured shops:', error);
+        setFeaturedShops([]);
+      } finally {
+        setLoadingShops(false);
+      }
+    };
+
+    fetchFeaturedShops();
+  }, []);
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // TODO: Implement newsletter subscription
+    alert('Thank you for subscribing!');
+    setNewsletterEmail('');
+  };
+
   return (
     <div className="min-h-screen bg-white">
-      {/* SECTION 1 — ENHANCED HERO (Split-Screen) */}
-      <section className="relative min-h-[600px] md:min-h-[700px] overflow-hidden bg-gradient-to-br from-blue-600 via-blue-500 to-teal-500">
-        <div className="absolute inset-0">
-          {/* Decorative shapes */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-teal-400/20 rounded-full blur-3xl"></div>
-        </div>
-
+      {/* SECTION 1 — HERO (Split-Screen) */}
+      <section className="relative min-h-[600px] md:min-h-[700px] overflow-hidden bg-white">
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Left: Content */}
-            <div className="text-white">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                {tLanding('heroTitle') || "Book beauty, wellness & hospitality across Japan"}
-              </h1>
-              <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
-                {tLanding('heroSubtitle') || "Find salons, clinics, hotels and more — with AI helping you book in your language."}
+            <div>
+              <p className="text-orange-500 font-semibold text-sm uppercase tracking-wide mb-4">
+                {tLanding('heroSubtitleLabel') || 'BEST SERVICES AROUND JAPAN'}
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+                {tLanding('heroTitle') || "Travel, enjoy and book your perfect service"}
+              </h1>
+              <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed">
+                {tLanding('heroDescription') || "Discover thousands of verified salons, clinics, hotels and more across Japan. Book instantly with AI assistance in your language."}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 mb-8">
                 <button
                   onClick={scrollToCategories}
-                  className="px-8 py-4 bg-white text-blue-600 font-bold rounded-lg shadow-xl hover:bg-gray-100 transition-all text-lg"
+                  className="px-8 py-4 bg-yellow-400 text-gray-900 font-bold rounded-lg shadow-lg hover:bg-yellow-500 transition-all text-lg"
                 >
-                  {tLanding('browseCategories') || 'Browse Categories'}
+                  {tLanding('findOutMore') || 'Find out more'}
                 </button>
                 <button
-                  onClick={scrollToHowItWorks}
-                  className="px-8 py-4 bg-transparent text-white font-bold rounded-lg shadow-xl hover:bg-white/10 transition-all text-lg border-2 border-white"
+                  onClick={() => setShowLoginModal(true)}
+                  className="px-8 py-4 bg-red-500 text-white font-bold rounded-lg shadow-lg hover:bg-red-600 transition-all text-lg flex items-center gap-2"
                 >
-                  {tLanding('howItWorks') || 'How it works'}
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                  </svg>
+                  {tLanding('playDemo') || 'Play Demo'}
                 </button>
-              </div>
-              
-              {/* Stats badges */}
-              <div className="mt-8 flex flex-wrap gap-4">
-                <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2">
-                  <span className="text-2xl font-bold">10K+</span>
-                  <span className="text-sm">Shops</span>
-                </div>
-                <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2">
-                  <span className="text-2xl font-bold">47</span>
-                  <span className="text-sm">Prefectures</span>
-                </div>
-                <div className="bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2">
-                  <span className="text-2xl font-bold">24/7</span>
-                  <span className="text-sm">AI Support</span>
-                </div>
               </div>
             </div>
 
@@ -209,151 +227,248 @@ function HomeContent() {
                   className="rounded-2xl shadow-2xl object-cover"
                   unoptimized={true}
                 />
+                {/* Decorative airplane shapes */}
+                <div className="absolute -top-10 -right-10 w-20 h-20 opacity-30">
+                  <svg viewBox="0 0 100 100" className="w-full h-full text-blue-400">
+                    <path d="M50 10 L60 30 L80 25 L70 45 L90 50 L70 55 L80 75 L60 70 L50 90 L40 70 L20 75 L30 55 L10 50 L30 45 L20 25 L40 30 Z" fill="currentColor" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* SECTION 2 — SOCIAL PROOF */}
-      <section className="py-8 bg-gray-50 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4">
-          <p className="text-center text-gray-600 text-sm mb-4">
-            {tLanding('trustedBy') || 'Trusted by thousands of customers across Japan'}
-          </p>
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 opacity-60">
-            {/* Partner logos - using text for now, can be replaced with actual logos */}
-            <div className="text-gray-400 font-semibold text-lg">Tokyo</div>
-            <div className="text-gray-400 font-semibold text-lg">Osaka</div>
-            <div className="text-gray-400 font-semibold text-lg">Kyoto</div>
-            <div className="text-gray-400 font-semibold text-lg">Yokohama</div>
-            <div className="text-gray-400 font-semibold text-lg">Sapporo</div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 3 — ENHANCED MARKETING BOXES */}
+      {/* SECTION 2 — SERVICES/CATEGORY (4 Cards) */}
       <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              {tLanding('featuresTitle') || 'Our Amazing Features Helpful for Your Business'}
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              {tLanding('featuresSubtitle') || 'Everything you need to discover and book the best services in Japan'}
+          <div className="mb-12">
+            <p className="text-gray-500 font-semibold text-sm uppercase tracking-wide mb-2">
+              {tLanding('categoryLabel') || 'CATEGORY'}
             </p>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+              {tLanding('weOfferBestServices') || 'We Offer Best Services'}
+            </h2>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Box 1 */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-6 mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+            {/* Decorative plus signs */}
+            <div className="absolute top-0 right-0 w-32 h-32 text-gray-200 text-6xl font-light opacity-30">+</div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 text-gray-200 text-4xl font-light opacity-30">+</div>
+            
+            {/* Service Card 1 */}
+            <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 hover:shadow-lg transition-all">
+              <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
                 <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3 text-center">
-                {tLanding('marketingCard1Title') || 'Search the best salons, clinics & experiences in Japan'}
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                {tLanding('calculatedWeather') || 'Smart Search'}
               </h3>
-              <p className="text-gray-600 text-center">
-                {tLanding('marketingCard1Text') || 'Discover thousands of verified businesses across multiple categories and regions.'}
+              <p className="text-gray-600 text-sm">
+                {tLanding('calculatedWeatherDesc') || 'Find the perfect salon, clinic, or service based on location, category, and availability.'}
               </p>
             </div>
 
-            {/* Box 2 */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-6 mx-auto">
-                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            {/* Service Card 2 */}
+            <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 hover:shadow-lg transition-all">
+              <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3 text-center">
-                {tLanding('marketingCard2Title') || 'AI-powered booking assistance'}
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                {tLanding('bestFlights') || 'Best Booking'}
               </h3>
-              <p className="text-gray-600 text-center">
-                {tLanding('marketingCard2Text') || 'Our AI helps you find available times, answers questions, and handles bookings in multiple languages.'}
+              <p className="text-gray-600 text-sm">
+                {tLanding('bestFlightsDesc') || 'Book instantly with real-time availability. No phone calls needed.'}
               </p>
             </div>
 
-            {/* Box 3 */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mb-6 mx-auto">
-                <svg className="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            {/* Service Card 3 */}
+            <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 hover:shadow-lg transition-all">
+              <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3 text-center">
-                {tLanding('marketingCard3Title') || 'Save time, book instantly'}
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                {tLanding('localEvents') || 'Local Events'}
               </h3>
-              <p className="text-gray-600 text-center">
-                {tLanding('marketingCard3Text') || 'No more phone calls. Compare shops, save favorites, and manage bookings in one place.'}
+              <p className="text-gray-600 text-sm">
+                {tLanding('localEventsDesc') || 'Discover special promotions, events, and seasonal offers from top-rated shops.'}
+              </p>
+            </div>
+
+            {/* Service Card 4 */}
+            <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 hover:shadow-lg transition-all">
+              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                {tLanding('customization') || 'Customization'}
+              </h3>
+              <p className="text-gray-600 text-sm">
+                {tLanding('customizationDesc') || 'Personalize your booking experience with AI assistance in multiple languages.'}
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* SECTION 4 — TWO-COLUMN FEATURES */}
-      <section className="py-16 md:py-24 bg-gray-50">
+      {/* SECTION 3 — TOP SHOPS (Like Top Destinations) */}
+      <section className="py-16 md:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="mb-12">
+            <p className="text-gray-500 font-semibold text-sm uppercase tracking-wide mb-2">
+              {tLanding('topSelling') || 'TOP SELLING'}
+            </p>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+              {tLanding('topShops') || 'Top Shops'}
+            </h2>
+          </div>
+
+          {loadingShops ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">{t('common.loading') || 'Loading shops...'}</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-8">
+              {featuredShops.map((shop, index) => {
+                const imageUrl = shop.cover_photo_url || shop.image_url || shop.logo_url;
+                return (
+                  <Link
+                    key={shop.id}
+                    href={`/browse?shop=${shop.id}`}
+                    className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all group"
+                  >
+                    <div className="relative h-64">
+                      {imageUrl ? (
+                        <Image
+                          src={imageUrl}
+                          alt={shop.name}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          unoptimized={true}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <span className="text-gray-400">No Image</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-6">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">{shop.name}</h3>
+                      <p className="text-gray-600 text-sm mb-4">{shop.prefecture || shop.city || 'Japan'}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-blue-600 font-bold">
+                          {tLanding('viewDetails') || 'View Details'}
+                        </span>
+                        <span className="text-gray-500 text-sm">
+                          {tLanding('bookNow') || 'Book Now →'}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* SECTION 4 — BOOKING STEPS (3 Easy Steps) */}
+      <section className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Left: Image */}
-            <div className="relative">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-purple-200/30 rounded-full blur-3xl"></div>
-              <Image
-                src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80"
-                alt="Yoyaku Yo Features"
-                width={600}
-                height={500}
-                className="rounded-2xl shadow-xl relative z-10"
-                unoptimized={true}
-              />
-            </div>
-
-            {/* Right: Features List */}
+            {/* Left: Steps */}
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                {tLanding('collectReviewsTitle') || 'Why Choose Yoyaku Yo?'}
-              </h2>
-              <p className="text-lg text-gray-600 mb-8">
-                {tLanding('collectReviewsDesc') || 'Experience the best booking platform in Japan with AI-powered assistance and thousands of verified shops.'}
+              <p className="text-gray-500 font-semibold text-sm uppercase tracking-wide mb-2">
+                {tLanding('easyAndFast') || 'EASY AND FAST'}
               </p>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">
+                {tLanding('bookNextTrip') || 'Book Your Next Service In 3 Easy Steps'}
+              </h2>
               
               <div className="space-y-6">
+                {/* Step 1 */}
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                  <div className="w-12 h-12 bg-yellow-400 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-2xl font-bold text-gray-900">1</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">{tLanding('feature1Title') || 'Top Rated Shops'}</h3>
-                    <p className="text-gray-600">{tLanding('feature1Desc') || 'Discover the highest-rated salons, clinics, and services across Japan'}</p>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      {tLanding('chooseDestination') || 'Choose Service'}
+                    </h3>
+                    <p className="text-gray-600">
+                      {tLanding('chooseDestinationDesc') || 'Browse by category or location. Find the perfect salon, clinic, or service for your needs.'}
+                    </p>
                   </div>
                 </div>
 
+                {/* Step 2 */}
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+                  <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-2xl font-bold text-white">2</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">{tLanding('feature2Title') || 'Instant Booking'}</h3>
-                    <p className="text-gray-600">{tLanding('feature2Desc') || 'Book your favorite services instantly with real-time availability'}</p>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      {tLanding('makePayment') || 'Make Payment'}
+                    </h3>
+                    <p className="text-gray-600">
+                      {tLanding('makePaymentDesc') || 'Select your preferred date and time. Complete booking with secure payment or pay at the shop.'}
+                    </p>
                   </div>
                 </div>
 
+                {/* Step 3 */}
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
+                  <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-2xl font-bold text-white">3</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">{tLanding('feature3Title') || 'Save Favorites'}</h3>
-                    <p className="text-gray-600">{tLanding('feature3Desc') || 'Save your favorite shops and access them anytime for quick booking'}</p>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      {tLanding('reachAirport') || 'Get Confirmation'}
+                    </h3>
+                    <p className="text-gray-600">
+                      {tLanding('reachAirportDesc') || 'Receive instant confirmation via email. Show up at the selected date and time for your service.'}
+                    </p>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Booking Card */}
+            <div className="relative">
+              <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
+                <div className="relative h-48 mb-4 rounded-lg overflow-hidden">
+                  <Image
+                    src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=400&q=80"
+                    alt="Booking Example"
+                    fill
+                    className="object-cover"
+                    unoptimized={true}
+                  />
+                </div>
+                <h4 className="text-lg font-bold text-gray-900 mb-2">
+                  {tLanding('tripToGreece') || 'Hair Salon Booking'}
+                </h4>
+                <p className="text-gray-600 text-sm mb-4">
+                  {tLanding('bookingDates') || '14-29 June'}
+                </p>
+                <div className="flex items-center justify-between text-sm text-gray-600">
+                  <span>{tLanding('byOwner') || 'by shop owner'}</span>
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                    </svg>
+                    {tLanding('peopleGoing') || '24 people going'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -361,60 +476,17 @@ function HomeContent() {
         </div>
       </section>
 
-      {/* SECTION 5 — BROWSE BY CATEGORY GRID */}
-      <section ref={categorySectionRef} className="py-16 md:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              {tLanding('browseByCategoryTitle') || 'Explore the Marketplace'}
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              {tLanding('marketplaceSubtitle') || 'Discover services across 15+ categories'}
-            </p>
-          </div>
-          <CategoryGrid />
-        </div>
-      </section>
-
-      {/* SECTION 6 — STATS CTA */}
-      <section className="py-16 md:py-24 bg-gradient-to-br from-blue-600 via-blue-500 to-teal-500 relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-teal-400/20 rounded-full blur-3xl"></div>
-        </div>
-        
-        <div className="relative z-10 max-w-7xl mx-auto px-4 text-center">
-          <div className="mb-8">
-            <div className="inline-block bg-white/20 backdrop-blur-sm rounded-full px-8 py-4 mb-6">
-              <span className="text-5xl md:text-6xl font-bold text-white">15K+</span>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              {tLanding('statsCTATitle') || 'Book Japan\'s Best Services'}
-            </h2>
-            <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-              {tLanding('statsCTADesc') || 'Join thousands of customers who trust Yoyaku Yo for their booking needs'}
-            </p>
-            <button
-              onClick={() => setShowJoinModal(true)}
-              className="px-8 py-4 bg-white text-blue-600 font-bold rounded-lg shadow-xl hover:bg-gray-100 transition-all text-lg"
-            >
-              {tLanding('findProfile') || 'Get Started'}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 7 — TESTIMONIALS */}
+      {/* SECTION 5 — TESTIMONIALS */}
       {reviews.length > 0 && (
         <section className="py-16 md:py-24 bg-white">
           <div className="max-w-7xl mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                {tLanding('testimonialsTitle') || 'Check Out Recent Reviews'}
-              </h2>
-              <p className="text-lg text-gray-600">
-                {tLanding('testimonialsSubtitle') || 'See what our customers are saying'}
+            <div className="mb-12">
+              <p className="text-gray-500 font-semibold text-sm uppercase tracking-wide mb-2">
+                {tLanding('testimonialsLabel') || 'TESTIMONIALS'}
               </p>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+                {tLanding('whatPeopleSay') || 'What People Say About Us'}
+              </h2>
             </div>
 
             {loadingReviews ? (
@@ -427,43 +499,23 @@ function HomeContent() {
                 {reviews.slice(0, 3).map((review, index) => {
                   const shop = review.shops as any;
                   const booking = review.bookings as any;
-                  // Get customer name from booking if available, otherwise use anonymous
                   const customerName = booking?.customer_name || 'Anonymous';
                   const location = shop?.prefecture || shop?.city || 'Japan';
-                  const shopName = shop?.name || '';
-                  const colors = ['bg-blue-100', 'bg-purple-100', 'bg-teal-100'];
                   
                   return (
-                    <div key={review.id} className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className={`w-12 h-12 ${colors[index % colors.length]} rounded-full flex items-center justify-center`}>
+                    <div key={review.id} className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 relative">
+                      <p className="text-gray-700 mb-6 italic">
+                        "{review.comment}"
+                      </p>
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                           <span className="text-xl">👤</span>
                         </div>
                         <div>
-                          <div className="font-semibold text-gray-900">
-                            {customerName}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {location}
-                            {shopName && ` • ${shopName}`}
-                          </div>
+                          <div className="font-semibold text-gray-900">{customerName}</div>
+                          <div className="text-sm text-gray-600">{location}</div>
                         </div>
                       </div>
-                      <div className="flex gap-1 mb-3">
-                        {[...Array(5)].map((_, i) => (
-                          <span 
-                            key={i} 
-                            className={i < review.rating ? 'text-yellow-400' : 'text-gray-300'}
-                          >
-                            ⭐
-                          </span>
-                        ))}
-                      </div>
-                      {review.comment && (
-                        <p className="text-gray-700">
-                          "{review.comment}"
-                        </p>
-                      )}
                     </div>
                   );
                 })}
@@ -473,162 +525,92 @@ function HomeContent() {
         </section>
       )}
 
-      {/* SECTION 8 — HOW IT WORKS */}
-      <section ref={howItWorksRef} className="py-16 md:py-24 bg-gray-50">
+      {/* SECTION 6 — PARTNER LOGOS */}
+      <section className="py-12 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-12">
-            {tLanding('howItWorksTitle') || t('home.howItWorks') || 'How It Works'}
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 opacity-60">
+            <div className="text-gray-400 font-semibold text-lg">Tokyo</div>
+            <div className="text-gray-400 font-semibold text-lg">Osaka</div>
+            <div className="text-gray-400 font-semibold text-lg">Kyoto</div>
+            <div className="text-gray-400 font-semibold text-lg">Yokohama</div>
+            <div className="text-gray-400 font-semibold text-lg">Sapporo</div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 7 — NEWSLETTER */}
+      <section className="py-16 md:py-24 bg-purple-50">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+            {tLanding('subscribeTitle') || 'Subscribe to get information, latest news and other interesting offers about Yoyaku Yo'}
           </h2>
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            {/* Card A - For Customers */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
-              <div className="text-5xl mb-4 text-center">👥</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4 text-center">
-                {tLanding('howItWorksCustomersTitle') || 'For Customers'}
-              </h3>
-              <ul className="space-y-3 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span>{tLanding('howItWorksCustomersBullet1') || 'Search shops by category or location'}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span>{tLanding('howItWorksCustomersBullet2') || 'Book instantly with AI assistance'}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span>{tLanding('howItWorksCustomersBullet3') || 'Save favorites and view booking history'}</span>
-                </li>
-              </ul>
-            </div>
+          <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+            <input
+              type="email"
+              value={newsletterEmail}
+              onChange={(e) => setNewsletterEmail(e.target.value)}
+              placeholder={tLanding('yourEmail') || 'Your email'}
+              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+            <button
+              type="submit"
+              className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              {tLanding('subscribe') || 'Subscribe'}
+            </button>
+          </form>
+        </div>
+      </section>
 
-            {/* Card B - For Owners */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
-              <div className="text-5xl mb-4 text-center">💼</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4 text-center">
-                {tLanding('howItWorksOwnersTitle') || 'For Owners'}
-              </h3>
-              <ul className="space-y-3 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span>{tLanding('howItWorksOwnersBullet1') || 'Manage bookings & availability'}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span>{tLanding('howItWorksOwnersBullet2') || 'Handle customer messages automatically with AI'}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span>{tLanding('howItWorksOwnersBullet3') || 'View performance with a simple dashboard'}</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Card C - AI Assistance */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
-              <div className="text-5xl mb-4 text-center">🤖</div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4 text-center">
-                {tLanding('howItWorksAITitle') || 'AI Assistance'}
-              </h3>
-              <ul className="space-y-3 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span>{tLanding('howItWorksAIBullet1') || 'Chats with customers in Japanese, English, Spanish, Chinese, Portuguese'}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span>{tLanding('howItWorksAIBullet2') || 'Handles scheduling, rescheduling, and cancellations'}</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-600 mt-1">✓</span>
-                  <span>{tLanding('howItWorksAIBullet3') || 'Available 24/7'}</span>
-                </li>
-              </ul>
-            </div>
+      {/* SECTION 8 — BROWSE BY CATEGORY GRID */}
+      <section ref={categorySectionRef} className="py-16 md:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              {tLanding('browseByCategoryTitle') || 'Browse by Category'}
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              {tLanding('marketplaceSubtitle') || 'Discover services across 15+ categories'}
+            </p>
           </div>
-
-          {/* CTAs */}
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* For Customers CTA */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100 text-center">
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {tLanding('ctaCustomersTitle') || 'For Customers'}
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {tLanding('ctaCustomersDesc') || 'Join thousands of customers who book faster with AI assistance'}
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button
-                  onClick={() => setShowLoginModal(true)}
-                  className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  {tAuth('signIn') || 'Login'}
-                </button>
-                <button
-                  onClick={() => setShowJoinModal(true)}
-                  className="px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors border-2 border-blue-600"
-                >
-                  {tAuth('signUp') || 'Join'}
-                </button>
-              </div>
-            </div>
-
-            {/* For Owners CTA */}
-            <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100 text-center">
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {tLanding('ctaOwnersTitle') || 'For Owners'}
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {tLanding('ctaOwnersDesc') || 'Automate customer messages and grow your business effortlessly'}
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button
-                  onClick={() => {
-                    setShowLoginModal(false);
-                    window.dispatchEvent(new CustomEvent('openLoginModal'));
-                  }}
-                  className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  {tAuth('signIn') || 'Login'}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowJoinModal(false);
-                    window.dispatchEvent(new CustomEvent('openSignupModal'));
-                  }}
-                  className="px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors border-2 border-blue-600"
-                >
-                  {tAuth('signUp') || 'Join'}
-                </button>
-              </div>
-            </div>
-          </div>
+          <CategoryGrid />
         </div>
       </section>
 
       {/* SECTION 9 — FOOTER */}
       <footer className="bg-gray-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="text-2xl font-bold">
-              Yoyaku Yo
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h3 className="text-2xl font-bold mb-4">Yoyaku Yo</h3>
             </div>
-            <div className="flex flex-wrap justify-center gap-6 md:gap-8">
-              <Link href="/about" className="text-gray-300 hover:text-white transition-colors">
-                {tLanding('footerAbout') || 'About'}
-              </Link>
-              <Link href="/privacy" className="text-gray-300 hover:text-white transition-colors">
-                {tLanding('footerPrivacy') || 'Privacy Policy'}
-              </Link>
-              <Link href="/terms" className="text-gray-300 hover:text-white transition-colors">
-                {tLanding('footerTerms') || 'Terms'}
-              </Link>
-              <Link href="/contact" className="text-gray-300 hover:text-white transition-colors">
-                {tLanding('footerContact') || 'Contact'}
-              </Link>
+            <div>
+              <h4 className="font-semibold mb-4">{tLanding('company') || 'Company'}</h4>
+              <ul className="space-y-2 text-gray-300">
+                <li><Link href="/about" className="hover:text-white">{tLanding('footerAbout') || 'About'}</Link></li>
+                <li><Link href="/careers" className="hover:text-white">{tLanding('careers') || 'Careers'}</Link></li>
+                <li><Link href="/mobile" className="hover:text-white">{tLanding('mobile') || 'Mobile'}</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">{tLanding('contact') || 'Contact'}</h4>
+              <ul className="space-y-2 text-gray-300">
+                <li><Link href="/help" className="hover:text-white">{tLanding('helpFAQ') || 'Help/FAQ'}</Link></li>
+                <li><Link href="/press" className="hover:text-white">{tLanding('press') || 'Press'}</Link></li>
+                <li><Link href="/affiliates" className="hover:text-white">{tLanding('affiliates') || 'Affiliates'}</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">{tLanding('more') || 'More'}</h4>
+              <ul className="space-y-2 text-gray-300">
+                <li><Link href="/privacy" className="hover:text-white">{tLanding('footerPrivacy') || 'Privacy Policy'}</Link></li>
+                <li><Link href="/terms" className="hover:text-white">{tLanding('footerTerms') || 'Terms'}</Link></li>
+                <li><Link href="/contact" className="hover:text-white">{tLanding('footerContact') || 'Contact'}</Link></li>
+              </ul>
             </div>
           </div>
-          <div className="mt-8 text-center text-gray-400 text-sm">
+          <div className="text-center text-gray-400 text-sm">
             © {new Date().getFullYear()} Yoyaku Yo. {tLanding('footerRights') || 'All rights reserved.'}
           </div>
         </div>
