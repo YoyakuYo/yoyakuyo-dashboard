@@ -25,10 +25,10 @@ export default function AnimatedLogo() {
       className="flex items-center gap-2 transition-opacity duration-500"
       style={{ opacity: isVisible ? 1 : 0 }}
     >
-      <div className="w-12 h-12 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg transform transition-all duration-300 hover:scale-110">
+      <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg transform transition-all duration-300 hover:scale-110">
         Y
       </div>
-      <span className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+      <span className="text-2xl font-bold text-blue-600">
         Yoyaku Yo
       </span>
     </Link>

@@ -37,8 +37,8 @@ function HomeContent() {
           <div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
               {t('heroTitle') || (isJapanese 
-                ? '日本全国のビューティー・ウェルネスサービスを予約'
-                : 'Find and book beauty and wellness services across Japan')}
+                ? '旅して、楽しんで、完璧なサービスを予約'
+                : 'Travel, enjoy and book your perfect service')}
             </h1>
             
             {/* Search Interface */}
@@ -47,37 +47,48 @@ function HomeContent() {
                 <input
                   type="text"
                   placeholder={t('searchServicePlaceholder') || (isJapanese ? 'サービス名・サロン名' : 'Service / Salon Name')}
-                  className="w-full px-4 py-4 pl-12 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-pink-500 transition-colors"
+                  className="w-full px-4 py-4 pl-12 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-600 transition-colors"
                 />
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">🔍</span>
               </div>
               <div className="relative">
-                <select className="w-full px-4 py-4 pl-12 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-pink-500 appearance-none bg-white">
+                <select className="w-full px-4 py-4 pl-12 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-600 appearance-none bg-white">
                   <option>{t('selectArea') || (isJapanese ? 'エリアを選択' : 'Select Area')}</option>
                 </select>
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">📍</span>
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">▼</span>
               </div>
-              <button className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-4 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
+              <button className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2">
                 <span>🔍</span>
                 <span>{t('search') || (isJapanese ? '検索' : 'Search')}</span>
               </button>
             </div>
 
-            {/* App Download QR */}
-            <div className="flex items-center gap-4 mt-8">
-              <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                <span className="text-4xl">📱</span>
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">{t('downloadApp') || (isJapanese ? 'アプリをダウンロード' : 'Download The App Now')}</p>
-                <p className="text-sm text-gray-600">{t('downloadAppSubtext') || (isJapanese ? '今すぐダウンロード' : 'Get it now')}</p>
+            {/* YoyakuYo Marketing Box */}
+            <div className="mt-8 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl p-6 text-white shadow-lg">
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-3xl font-bold">Y</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold mb-2">Yoyaku Yo</h3>
+                  <p className="text-sm opacity-90 mb-3">
+                    {t('marketingBoxDesc') || (isJapanese 
+                      ? '日本最大級の予約プラットフォーム。AIアシスタントが24時間365日サポートします。'
+                      : "Japan's largest booking platform. AI assistant supports you 24/7.")}
+                  </p>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="bg-white/20 px-3 py-1 rounded-full">✓ 24/7 Support</span>
+                    <span className="bg-white/20 px-3 py-1 rounded-full">✓ AI Powered</span>
+                    <span className="bg-white/20 px-3 py-1 rounded-full">✓ Secure Booking</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Right: Large Image Placeholder */}
-          <div className="relative h-[500px] rounded-2xl overflow-hidden bg-gradient-to-br from-pink-100 via-purple-100 to-pink-200 flex items-center justify-center">
+          <div className="relative h-[500px] rounded-2xl overflow-hidden bg-gradient-to-br from-blue-50 via-gray-100 to-blue-100 flex items-center justify-center">
             <div className="text-center text-gray-400">
               <div className="text-6xl mb-4">📸</div>
               <p className="text-lg">{t('imagePlaceholder') || (isJapanese ? '画像を追加' : 'Image Placeholder')}</p>
@@ -100,7 +111,7 @@ function HomeContent() {
             </div>
             <Link
               href="/featured"
-              className="text-pink-600 font-semibold hover:text-pink-700 hover:underline transition-colors"
+              className="text-blue-600 font-semibold hover:text-blue-700 hover:underline transition-colors"
             >
               {t('viewAllDeals') || (isJapanese ? 'すべて見る' : 'View All Deals')} →
             </Link>
@@ -109,7 +120,7 @@ function HomeContent() {
           <div className="grid md:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
               <div key={i} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="relative h-48 bg-gradient-to-br from-pink-100 via-purple-100 to-pink-200 flex items-center justify-center">
+                <div className="relative h-48 bg-gradient-to-br from-blue-50 via-gray-100 to-blue-100 flex items-center justify-center">
                   <div className="text-center text-gray-400">
                     <div className="text-4xl mb-2">🖼️</div>
                     <p className="text-sm">{t('dealImage') || 'Deal Image'}</p>
@@ -123,12 +134,12 @@ function HomeContent() {
                     {t(`deal${i}Location`) || (isJapanese ? 'サロン名、所在地' : 'Salon Name, Location')}
                   </p>
                   <div className="flex items-center gap-2 mb-4">
-                    <span className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                    <span className="text-2xl font-bold text-blue-600">
                       ¥2,980
                     </span>
                     <span className="text-gray-400 line-through">¥5,000</span>
                   </div>
-                  <button className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all">
+                  <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all">
                     {t('bookNow') || (isJapanese ? '今すぐ予約' : 'Book Now')}
                   </button>
                 </div>
@@ -164,10 +175,10 @@ function HomeContent() {
                 href={`/categories?service=${service.name.toLowerCase().replace(' ', '-')}`}
                 className="flex flex-col items-center gap-2 cursor-pointer hover:scale-110 transition-transform group"
               >
-                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-3xl group-hover:bg-gradient-to-br group-hover:from-pink-100 group-hover:to-purple-100 transition-all">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-3xl group-hover:bg-blue-100 transition-all">
                   {service.icon}
                 </div>
-                <span className="text-sm font-medium text-gray-700 group-hover:text-pink-600 transition-colors">{service.name}</span>
+                <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">{service.name}</span>
               </Link>
             ))}
           </div>
@@ -192,7 +203,7 @@ function HomeContent() {
                 href="/featured"
                 className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all group"
               >
-                <div className="relative h-48 bg-gradient-to-br from-pink-100 via-purple-100 to-pink-200 flex items-center justify-center">
+                <div className="relative h-48 bg-gradient-to-br from-blue-50 via-gray-100 to-blue-100 flex items-center justify-center">
                   <div className="text-center text-gray-400">
                     <div className="text-4xl mb-2">🏪</div>
                     <p className="text-sm">{t('salonImage') || 'Salon Image'}</p>
@@ -230,10 +241,10 @@ function HomeContent() {
                 href="/featured"
                 className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all group relative"
               >
-                <div className="absolute top-2 right-2 bg-pink-500 text-white text-xs px-2 py-1 rounded-full font-semibold z-10">
+                <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-semibold z-10">
                   {t('new') || (isJapanese ? '新規' : 'New')}
                 </div>
-                <div className="relative h-48 bg-gradient-to-br from-purple-100 via-pink-100 to-purple-200 flex items-center justify-center">
+                <div className="relative h-48 bg-gradient-to-br from-blue-50 via-gray-100 to-blue-100 flex items-center justify-center">
                   <div className="text-center text-gray-400">
                     <div className="text-4xl mb-2">🆕</div>
                     <p className="text-sm">{t('salonImage') || 'Salon Image'}</p>
@@ -254,7 +265,7 @@ function HomeContent() {
       </section>
 
       {/* DOWNLOAD APP CTA */}
-      <section className="py-16 md:py-20 bg-gradient-to-r from-pink-500 via-purple-600 to-pink-600 text-white">
+      <section className="py-16 md:py-20 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
@@ -267,11 +278,11 @@ function HomeContent() {
                   : 'Book more conveniently with our app')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <button className="bg-white text-pink-600 px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
+                <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
                   <span>🍎</span>
                   <span>{t('appStore') || (isJapanese ? 'App Store' : 'App Store')}</span>
                 </button>
-                <button className="bg-white text-pink-600 px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
+                <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
                   <span>🤖</span>
                   <span>{t('googlePlay') || (isJapanese ? 'Google Play' : 'Google Play')}</span>
                 </button>
@@ -304,7 +315,7 @@ function HomeContent() {
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent('openLoginJoinModal', { detail: { mode: 'join', type: 'owner' } }));
                 }}
-                className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-8 py-4 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
+                className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl"
               >
                 {t('joinForFree') || (isJapanese ? '無料で登録' : 'Join Us For Free')}
               </button>

@@ -22,7 +22,7 @@ export default function ModernLandingHeader() {
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs py-2 px-4 text-center">
+      <div className="bg-blue-600 text-white text-xs py-2 px-4 text-center">
         {t('topBanner') || (isJapanese 
           ? '国内最大級の予約サイト - 24時間ネット予約対応'
           : "Japan's Largest Booking Site - 24/7 Online Booking")}
@@ -41,7 +41,7 @@ export default function ModernLandingHeader() {
                 <Link
                   key={cat.key}
                   href={cat.href}
-                  className="text-sm font-medium text-gray-700 hover:text-pink-600 transition-colors flex items-center gap-1"
+                  className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors flex items-center gap-1"
                 >
                   <span>{cat.icon}</span>
                   <span>{t(`category.${cat.key}`) || cat.key}</span>
@@ -61,7 +61,7 @@ export default function ModernLandingHeader() {
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('openLoginJoinModal', { detail: { mode: 'login' } }));
               }}
-              className="px-6 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-full text-sm font-medium hover:from-pink-600 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
+              className="px-6 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-all shadow-md hover:shadow-lg"
             >
               {t('signInUp') || (isJapanese ? 'ログイン / 登録' : 'Sign In / Sign Up')}
             </button>
@@ -75,10 +75,10 @@ export default function ModernLandingHeader() {
               <input
                 type="text"
                 placeholder={t('searchPlaceholder') || (isJapanese ? 'サービス名・サロン名で検索' : 'Search services or salon name')}
-                className="w-full px-4 py-3 pl-12 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-pink-500 transition-colors"
+                className="w-full px-4 py-3 pl-12 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-600 transition-colors"
               />
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-              <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-pink-600 hover:to-purple-700 transition-all">
+              <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all">
                 {t('search') || (isJapanese ? '検索' : 'Search')}
               </button>
             </div>
