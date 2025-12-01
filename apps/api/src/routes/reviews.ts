@@ -277,5 +277,47 @@ router.get('/shop/:shopId/stats', async (req: Request, res: Response) => {
   }
 });
 
+// GET /reviews/featured - Get featured/recent reviews across all shops (for landing page)
+router.get('/featured', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 6;
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    // Get recent published reviews with shop and customer info
+    const { data: reviews, error } = await supabase
+      .from('reviews')
+      .select(
+        'id, shop_id, rating, comment, photos, is_verified, created_at, shops(id, name, category), customers(id)'
+      )
+      .eq('status', 'published')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      console.error('Error fetching featured reviews:', error);
+      return res.status(500).json({ error: 'Failed to fetch reviews' });
+    }
+
+    // Sanitize customer info (only show if verified)
+    const sanitizedReviews = (reviews || []).map((review: any) => ({
+      id: review.id,
+      shop_id: review.shop_id,
+      shop_name: review.shops?.name || 'Unknown Shop',
+      shop_category: review.shops?.category || null,
+      rating: review.rating,
+      comment: review.comment,
+      photos: review.photos,
+      is_verified: review.is_verified,
+      created_at: review.created_at,
+      customer_id: review.is_verified ? review.customer_id : null,
+    }));
+
+    return res.status(200).json(sanitizedReviews);
+  } catch (error: any) {
+    console.error('Error in GET /reviews/featured:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;
 

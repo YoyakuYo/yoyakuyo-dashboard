@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { getTopLevelCategories } from '@/lib/categories';
 import { getCategoryImages, getCategoryMarketing } from '@/lib/categoryImages';
 import OwnerModals from './components/OwnerModals';
+import FeaturedReviews from './components/FeaturedReviews';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -61,14 +62,14 @@ function HomeContent() {
   
   // Hero image carousel state
   const [currentHeroImage, setCurrentHeroImage] = useState(0);
-  
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentHeroImage((prev) => (prev + 1) % heroImages.length);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
-  
+
   const scrollToCategories = () => {
     categoryPreviewRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -107,39 +108,67 @@ function HomeContent() {
         {/* Hero Content (Left-aligned, Japanese style) */}
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
           <div className="max-w-2xl">
-            {/* Bilingual Title (Japanese primary) */}
-            <h1 className={`text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight font-bilingual`}>
+            {/* Bilingual Title (Japanese primary) - More Exciting */}
+            <h1 className={`text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight font-bilingual animate-fade-in`}>
               {isJapanese ? (
                 <>
-                  <span className="block">日本で予約</span>
-                  <span className="block text-2xl md:text-3xl lg:text-4xl font-normal mt-2 text-white/90">
+                  <span className="block drop-shadow-2xl">日本で予約</span>
+                  <span className="block text-3xl md:text-4xl lg:text-5xl font-normal mt-3 text-white/95 drop-shadow-lg">
                     {tHome('heroTitle') || "Japan's Premier Booking Platform"}
                   </span>
                 </>
               ) : (
-                tHome('heroTitle') || "Japan's Premier Booking Platform"
+                <span className="drop-shadow-2xl">{tHome('heroTitle') || "Japan's Premier Booking Platform"}</span>
               )}
             </h1>
-            <p className={`text-lg md:text-xl lg:text-2xl text-white/90 mb-8 leading-relaxed ${isJapanese ? 'font-japanese' : ''}`} style={isJapanese ? { lineHeight: '1.8' } : {}}>
+            <p className={`text-xl md:text-2xl lg:text-3xl text-white/95 mb-10 leading-relaxed ${isJapanese ? 'font-japanese' : ''} drop-shadow-md`} style={isJapanese ? { lineHeight: '1.8' } : {}}>
               {isJapanese 
-                ? "全国のサロン・クリニック・ホテルを簡単予約。多言語対応のAIアシスタントが24時間サポートします。"
-                : tHome('heroSubtitle') || "Book salons, clinics, hotels, and more across Japan. AI assistant supports you in multiple languages 24/7."}
+                ? "✨ 全国のサロン・クリニック・ホテルを簡単予約 ✨\n多言語対応のAIアシスタントが24時間サポートします。"
+                : "✨ Book salons, clinics, hotels, and more across Japan ✨\nAI assistant supports you in multiple languages 24/7."}
             </p>
             
-            {/* CTA Buttons (Large, 48px height) */}
+            {/* CTA Buttons (Large, 48px height) - More Prominent */}
             <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={scrollToCategories}
-                className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-xl text-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl min-h-[48px]"
+                className="px-10 py-5 bg-blue-600 text-white font-bold rounded-xl text-xl hover:bg-blue-700 transition-all shadow-2xl hover:shadow-blue-500/50 hover:scale-105 min-h-[56px] transform"
               >
-                {isJapanese ? 'カテゴリーを見る' : (tHome('browseCategories') || 'Browse Categories')}
+                {isJapanese ? '🚀 カテゴリーを見る' : `🚀 ${tHome('browseCategories') || 'Browse Categories'}`}
               </button>
               <button
                 onClick={scrollToHowItWorks}
-                className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl text-lg border-2 border-white/30 hover:bg-white/20 hover:border-white/50 transition-all min-h-[48px]"
+                className="px-10 py-5 bg-white/20 backdrop-blur-md text-white font-bold rounded-xl text-xl border-2 border-white/40 hover:bg-white/30 hover:border-white/60 transition-all min-h-[56px] shadow-xl hover:shadow-white/20 hover:scale-105 transform"
               >
-                {isJapanese ? '使い方を見る' : (tHome('howItWorks') || 'How It Works')}
+                {isJapanese ? '📖 使い方を見る' : `📖 ${tHome('howItWorks') || 'How It Works'}`}
               </button>
+            </div>
+            
+            {/* Trust Badge */}
+            <div className="mt-8 flex items-center gap-4 text-white/90">
+              <div className="flex items-center gap-2">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className={`text-sm font-semibold ${isJapanese ? 'font-japanese' : ''}`}>
+                  {isJapanese ? '無料で始められる' : 'Free to Start'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className={`text-sm font-semibold ${isJapanese ? 'font-japanese' : ''}`}>
+                  {isJapanese ? '24時間対応' : '24/7 Support'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className={`text-sm font-semibold ${isJapanese ? 'font-japanese' : ''}`}>
+                  {isJapanese ? '安全・安心' : 'Secure & Safe'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -407,81 +436,8 @@ function HomeContent() {
         </div>
       </section>
 
-      {/* SECTION 4 — TESTIMONIALS (New) */}
-      <section className="py-16 md:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className={`text-3xl md:text-4xl font-bold text-gray-900 mb-4 ${isJapanese ? 'font-japanese' : ''}`}>
-              {isJapanese ? 'お客様の声' : 'Customer Reviews'}
-            </h2>
-            <p className={`text-lg text-gray-600 max-w-2xl mx-auto ${isJapanese ? 'font-japanese' : ''}`}>
-              {isJapanese ? '実際にご利用いただいたお客様からの声' : 'What our customers say'}
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Testimonial 1 */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-blue-600 font-bold text-lg">田</span>
-                </div>
-                <div>
-                  <div className={`font-semibold text-gray-900 ${isJapanese ? 'font-japanese' : ''}`}>
-                    {isJapanese ? '田中様' : 'Tanaka-san'}
-                  </div>
-                  <div className="flex text-yellow-400 text-sm">⭐⭐⭐⭐⭐</div>
-                </div>
-              </div>
-              <p className={`text-gray-600 ${isJapanese ? 'font-japanese' : ''}`} style={isJapanese ? { lineHeight: '1.8' } : {}}>
-                {isJapanese 
-                  ? 'AIアシスタントがとても親切で、予約が簡単でした。多言語対応も素晴らしいです。'
-                  : 'The AI assistant was very helpful and booking was easy. The multilingual support is excellent.'}
-              </p>
-            </div>
-
-            {/* Testimonial 2 */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-purple-600 font-bold text-lg">佐</span>
-                </div>
-                <div>
-                  <div className={`font-semibold text-gray-900 ${isJapanese ? 'font-japanese' : ''}`}>
-                    {isJapanese ? '佐藤様' : 'Sato-san'}
-                  </div>
-                  <div className="flex text-yellow-400 text-sm">⭐⭐⭐⭐⭐</div>
-                </div>
-              </div>
-              <p className={`text-gray-600 ${isJapanese ? 'font-japanese' : ''}`} style={isJapanese ? { lineHeight: '1.8' } : {}}>
-                {isJapanese 
-                  ? '全国の店舗が検索できて便利。特に美容サロンの予約が簡単になりました。'
-                  : 'It\'s convenient to search shops nationwide. Booking beauty salons has become much easier.'}
-              </p>
-            </div>
-
-            {/* Testimonial 3 */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-teal-600 font-bold text-lg">鈴</span>
-                </div>
-                <div>
-                  <div className={`font-semibold text-gray-900 ${isJapanese ? 'font-japanese' : ''}`}>
-                    {isJapanese ? '鈴木様' : 'Suzuki-san'}
-                  </div>
-                  <div className="flex text-yellow-400 text-sm">⭐⭐⭐⭐⭐</div>
-                </div>
-              </div>
-              <p className={`text-gray-600 ${isJapanese ? 'font-japanese' : ''}`} style={isJapanese ? { lineHeight: '1.8' } : {}}>
-                {isJapanese 
-                  ? '24時間いつでも予約できて、確認もすぐに来るので安心です。'
-                  : 'I can book anytime 24/7, and confirmations come immediately, which is reassuring.'}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* SECTION 4 — REAL REVIEWS FROM DATABASE */}
+      <FeaturedReviews />
 
       {/* SECTION 4.5 — OWNER/CUSTOMER MARKETING STRIP */}
       <section className="py-16 md:py-24 bg-gradient-to-b from-white to-gray-50">
@@ -544,40 +500,156 @@ function HomeContent() {
         </div>
       </section>
 
-      {/* SECTION 5 — CTA SECTION (Enhanced) */}
-      <section className="py-16 md:py-24 bg-gradient-to-br from-pink-50 via-white to-blue-50">
+      {/* SECTION 5 — CUSTOMER CTA SECTION (Enhanced) */}
+      <section className="py-16 md:py-24 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className={`text-3xl md:text-4xl font-bold text-gray-900 mb-4 ${isJapanese ? 'font-japanese' : ''}`}>
-            {isJapanese ? '今すぐ予約を始めましょう' : 'Start Booking Now'}
-          </h2>
-          <p className={`text-lg text-gray-600 mb-8 ${isJapanese ? 'font-japanese' : ''}`}>
-            {isJapanese ? '無料で簡単、すぐに始められます' : 'Free and easy to get started'}
+          <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${isJapanese ? 'font-japanese' : ''} drop-shadow-2xl`}>
+            {isJapanese ? '🎉 今すぐ予約を始めましょう！' : '🎉 Start Booking Now!'}
+        </h2>
+          <p className={`text-xl md:text-2xl mb-10 text-white/95 ${isJapanese ? 'font-japanese' : ''} drop-shadow-md`}>
+            {isJapanese 
+              ? '無料でアカウントを作成して、日本中の素晴らしい店舗を発見しましょう。'
+              : 'Create a free account and discover amazing shops across Japan.'}
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('openLoginJoinModal', { detail: { mode: 'login' } }));
-              }}
-              className="px-8 py-4 bg-blue-600 text-white font-semibold rounded-xl text-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl min-h-[48px]"
-            >
-              {t('nav.login') || 'Login'}
-            </button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
             <button
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('openLoginJoinModal', { detail: { mode: 'join' } }));
               }}
-              className="px-8 py-4 bg-white text-blue-600 font-semibold rounded-xl text-lg border-2 border-blue-600 hover:bg-blue-50 transition-all min-h-[48px]"
+              className="px-10 py-5 bg-white text-blue-600 font-bold rounded-xl text-xl hover:bg-gray-100 transition-all shadow-2xl hover:shadow-white/50 hover:scale-105 min-h-[56px] transform"
             >
-              {t('nav.join') || 'Join'}
+              {isJapanese ? '✨ 無料で登録' : '✨ Sign Up Free'}
+            </button>
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('openLoginJoinModal', { detail: { mode: 'login' } }));
+              }}
+              className="px-10 py-5 bg-white/10 backdrop-blur-md text-white font-bold rounded-xl text-xl border-2 border-white/40 hover:bg-white/20 hover:border-white/60 transition-all shadow-xl hover:shadow-white/20 hover:scale-105 min-h-[56px] transform"
+            >
+              {isJapanese ? '🔐 ログイン' : '🔐 Login'}
             </button>
           </div>
-          
+
           {/* Trust Indicators */}
-          <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-600">
-            <span className={isJapanese ? 'font-japanese' : ''}>✓ {isJapanese ? '無料' : 'Free'}</span>
-            <span className={isJapanese ? 'font-japanese' : ''}>✓ {isJapanese ? '簡単' : 'Easy'}</span>
-            <span className={isJapanese ? 'font-japanese' : ''}>✓ {isJapanese ? '安全' : 'Secure'}</span>
+          <div className="flex flex-wrap justify-center gap-6 text-base font-semibold text-white/90">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className={isJapanese ? 'font-japanese' : ''}>{isJapanese ? '無料' : 'Free'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className={isJapanese ? 'font-japanese' : ''}>{isJapanese ? '簡単' : 'Easy'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className={isJapanese ? 'font-japanese' : ''}>{isJapanese ? '安全' : 'Secure'}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 5.5 — OWNER CTA SECTION (New) */}
+      <section className="py-16 md:py-24 bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 text-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${isJapanese ? 'font-japanese' : ''}`}>
+                {isJapanese ? '🏪 店舗オーナーの方へ' : '🏪 For Shop Owners'}
+              </h2>
+              <p className={`text-xl mb-6 text-white/90 ${isJapanese ? 'font-japanese' : ''}`} style={isJapanese ? { lineHeight: '1.8' } : {}}>
+                {isJapanese 
+                  ? 'Yoyaku Yoでビジネスを成長させましょう。AIが顧客対応を自動化し、予約を増やします。'
+                  : 'Grow your business with Yoyaku Yo. AI automates customer service and increases bookings.'}
+              </p>
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-start gap-3">
+                  <span className="text-2xl">🤖</span>
+                  <div>
+                    <div className={`font-semibold text-lg mb-1 ${isJapanese ? 'font-japanese' : ''}`}>
+                      {isJapanese ? 'AI顧客対応' : 'AI Customer Service'}
+                    </div>
+                    <div className={`text-white/80 ${isJapanese ? 'font-japanese' : ''}`}>
+                      {isJapanese ? '24時間365日、自動で顧客の質問に回答' : '24/7 automated customer support'}
+                    </div>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-2xl">📈</span>
+                  <div>
+                    <div className={`font-semibold text-lg mb-1 ${isJapanese ? 'font-japanese' : ''}`}>
+                      {isJapanese ? '予約の増加' : 'More Bookings'}
+                    </div>
+                    <div className={`text-white/80 ${isJapanese ? 'font-japanese' : ''}`}>
+                      {isJapanese ? 'オンライン予約で顧客を逃さない' : 'Never miss a customer with online bookings'}
+                    </div>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-2xl">💰</span>
+                  <div>
+                    <div className={`font-semibold text-lg mb-1 ${isJapanese ? 'font-japanese' : ''}`}>
+                      {isJapanese ? '柔軟な料金プラン' : 'Flexible Pricing'}
+                    </div>
+                    <div className={`text-white/80 ${isJapanese ? 'font-japanese' : ''}`}>
+                      {isJapanese ? '月額5,000円から始められます' : 'Start from ¥5,000/month'}
+                    </div>
+                  </div>
+                </li>
+              </ul>
+              <div className="flex flex-col sm:flex-row gap-4">
+          <button
+            onClick={() => {
+                    window.dispatchEvent(new CustomEvent('openSignupModal'));
+            }}
+                  className="px-8 py-4 bg-white text-purple-900 font-bold rounded-xl text-lg hover:bg-gray-100 transition-all shadow-2xl hover:shadow-white/50 hover:scale-105"
+          >
+                  {isJapanese ? '🚀 オーナー登録' : '🚀 Join as Owner'}
+          </button>
+                <Link
+                  href="/services"
+                  className="px-8 py-4 bg-white/10 backdrop-blur-md text-white font-bold rounded-xl text-lg border-2 border-white/30 hover:bg-white/20 transition-all hover:scale-105 text-center"
+                >
+                  {isJapanese ? '📋 サービスを見る' : '📋 View Services'}
+                </Link>
+              </div>
+            </div>
+            <div className="relative">
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="text-center">
+                    <div className="text-5xl font-bold mb-2">10K+</div>
+                    <div className={`text-sm text-white/80 ${isJapanese ? 'font-japanese' : ''}`}>
+                      {isJapanese ? '店舗' : 'Shops'}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-5xl font-bold mb-2">50K+</div>
+                    <div className={`text-sm text-white/80 ${isJapanese ? 'font-japanese' : ''}`}>
+                      {isJapanese ? '予約/月' : 'Bookings/Month'}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-5xl font-bold mb-2">4.8★</div>
+                    <div className={`text-sm text-white/80 ${isJapanese ? 'font-japanese' : ''}`}>
+                      {isJapanese ? '評価' : 'Rating'}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-5xl font-bold mb-2">47</div>
+                    <div className={`text-sm text-white/80 ${isJapanese ? 'font-japanese' : ''}`}>
+                      {isJapanese ? '都道府県' : 'Prefectures'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -604,7 +676,7 @@ function HomeContent() {
               >
                 {isJapanese ? 'おすすめを見る →' : (tHome('viewFeatured') || 'View Featured →')}
               </Link>
-            </div>
+          </div>
 
             {/* Trending Card */}
             <div className="bg-slate-800 rounded-xl p-8 border border-slate-700 hover:border-cyan-500 transition-colors">
@@ -620,9 +692,9 @@ function HomeContent() {
               >
                 {isJapanese ? 'トレンドを見る →' : (tHome('viewTrending') || 'View Trending →')}
               </Link>
-            </div>
           </div>
-        </div>
+          </div>
+          </div>
       </section>
 
       {/* Owner Login/Signup Modals */}
