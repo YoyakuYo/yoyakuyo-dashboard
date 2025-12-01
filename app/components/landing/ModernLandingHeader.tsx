@@ -10,14 +10,6 @@ export default function ModernLandingHeader() {
   const locale = useLocale();
   const isJapanese = locale === 'ja';
 
-  const mainCategories = [
-    { key: 'hairSalon', href: '/categories?category=hair-salon', icon: '✂️' },
-    { key: 'nailSalon', href: '/categories?category=nail-salon', icon: '💅' },
-    { key: 'spa', href: '/categories?category=spa', icon: '🧖' },
-    { key: 'hotel', href: '/categories?category=hotel', icon: '🏨' },
-    { key: 'restaurant', href: '/categories?category=restaurant', icon: '🍱' },
-    { key: 'clinic', href: '/categories?category=clinic', icon: '🏥' },
-  ];
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
@@ -34,28 +26,10 @@ export default function ModernLandingHeader() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-6">
             <AnimatedLogo />
-
-            {/* Category Navigation */}
-            <nav className="hidden lg:flex items-center gap-4">
-              {mainCategories.map((cat) => (
-                <Link
-                  key={cat.key}
-                  href={cat.href}
-                  className="text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors flex items-center gap-1"
-                >
-                  <span>{cat.icon}</span>
-                  <span>{t(`category.${cat.key}`) || cat.key}</span>
-                </Link>
-              ))}
-            </nav>
           </div>
 
-          {/* Right Side: Location + Auth */}
+          {/* Right Side: Auth */}
           <div className="flex items-center gap-4">
-            <button className="px-4 py-2 bg-gray-100 rounded-full text-sm flex items-center gap-2 hover:bg-gray-200 transition-colors">
-              <span>📍</span>
-              <span>{t('yourLocation') || (isJapanese ? '現在地' : 'Your Location')}</span>
-            </button>
             <LanguageSwitcher />
             <button
               onClick={() => {
