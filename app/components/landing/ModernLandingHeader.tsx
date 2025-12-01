@@ -3,7 +3,6 @@
 import { useTranslations, useLocale } from 'next-intl';
 import { LanguageSwitcher } from '../LanguageSwitcher';
 import AnimatedLogo from './AnimatedLogo';
-import Link from 'next/link';
 
 export default function ModernLandingHeader() {
   const t = useTranslations('landing');
