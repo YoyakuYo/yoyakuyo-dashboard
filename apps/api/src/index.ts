@@ -20,6 +20,7 @@ import reviews from "./routes/reviews";
 import analytics from "./routes/analytics";
 import line from "./routes/line";
 import qr from "./routes/qr";
+import subscriptions from "./routes/subscriptions";
 import path from "path";
 
 // Only load .env file if it exists (for local development)
@@ -67,6 +68,7 @@ app.use("/reviews", reviews);
 app.use("/analytics", analytics);
 app.use("/line", line);
 app.use("/qr", qr);
+app.use("/subscriptions", subscriptions);
 // Also mount LINE routes under /api/line for production/ngrok compatibility
 app.use("/api/line", line);
 
