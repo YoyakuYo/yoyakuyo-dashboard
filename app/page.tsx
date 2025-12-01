@@ -351,75 +351,10 @@ function HomeContent() {
       {/* CUSTOMER REVIEWS */}
       <FeaturedReviews />
 
-      {/* CTA SECTION */}
-      <section className="py-16 md:py-24 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            {t('ctaTitle') || (isJapanese ? '今すぐ始めましょう' : 'Get Started Today')}
-          </h2>
-          <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-            {t('ctaDesc') || (isJapanese 
-              ? 'Yoyaku Yoで日本全国のサービスを簡単に予約'
-              : 'Book services across Japan easily with Yoyaku Yo')}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('openLoginJoinModal', { detail: { mode: 'join' } }));
-              }}
-              className="px-8 py-4 bg-white text-blue-600 font-bold rounded-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl"
-            >
-              {t('ctaJoin') || (isJapanese ? '無料で登録' : 'Join Free')}
-            </button>
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('openLoginJoinModal', { detail: { mode: 'login' } }));
-              }}
-              className="px-8 py-4 bg-blue-700 text-white font-bold rounded-lg hover:bg-blue-600 transition-all border-2 border-white/30"
-            >
-              {t('ctaLogin') || (isJapanese ? 'ログイン' : 'Login')}
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* FOOTER */}
-      <footer className="bg-gray-900 text-white py-12">
+      {/* SIMPLE FOOTER */}
+      <footer className="bg-gray-900 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <h3 className="font-bold text-lg mb-4">Yoyaku Yo</h3>
-              <p className="text-gray-400 text-sm">
-                {t('footerAboutDesc') || (isJapanese 
-                  ? '日本最大級の予約プラットフォーム'
-                  : "Japan's largest booking platform")}
-              </p>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-4">{t('footerLinks') || (isJapanese ? 'リンク' : 'Links')}</h3>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="/categories" className="text-gray-400 hover:text-white transition-colors">{t('browse') || (isJapanese ? '閲覧' : 'Browse')}</Link></li>
-                <li><Link href="/featured" className="text-gray-400 hover:text-white transition-colors">{t('featured') || (isJapanese ? 'おすすめ' : 'Featured')}</Link></li>
-                <li><Link href="/trending" className="text-gray-400 hover:text-white transition-colors">{t('trending') || (isJapanese ? 'トレンド' : 'Trending')}</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-4">{t('footerContact') || (isJapanese ? 'お問い合わせ' : 'Contact')}</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>{t('footerSupport') || (isJapanese ? 'サポート' : 'Support')}</li>
-                <li>{t('footerHelp') || (isJapanese ? 'ヘルプ' : 'Help Center')}</li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-4">{t('footerFollow') || (isJapanese ? 'フォロー' : 'Follow Us')}</h3>
-              <div className="flex gap-4">
-                <span className="text-2xl cursor-pointer hover:scale-110 transition-transform">📘</span>
-                <span className="text-2xl cursor-pointer hover:scale-110 transition-transform">📷</span>
-                <span className="text-2xl cursor-pointer hover:scale-110 transition-transform">🐦</span>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 pt-8 text-center text-gray-400 text-sm">
+          <div className="text-center text-gray-400 text-sm">
             © {new Date().getFullYear()} Yoyaku Yo. {t('allRightsReserved') || (isJapanese ? '全著作権所有' : 'All Rights Reserved')}.
           </div>
         </div>
