@@ -69,7 +69,7 @@ export default function PublicNavbar() {
           <a 
             href={user ? (pathname?.startsWith('/customer') ? '/customer/home' : '/owner/dashboard') : '/'}
             onClick={handleLogoClick}
-            className="text-3xl font-bold text-blue-600 hover:text-blue-700 cursor-pointer transition-all"
+            className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent hover:from-pink-700 hover:to-purple-700 cursor-pointer transition-all"
           >
             Yoyaku Yo
           </a>
@@ -80,8 +80,8 @@ export default function PublicNavbar() {
               href="/categories" 
               className={`text-sm font-medium transition-colors ${
                 isActive('/categories') 
-                  ? 'text-blue-600' 
-                  : 'text-gray-700 hover:text-blue-600'
+                  ? 'text-pink-600' 
+                  : 'text-gray-700 hover:text-pink-600'
               }`}
             >
               {t('nav.browse') || 'Browse'}
@@ -90,8 +90,8 @@ export default function PublicNavbar() {
               href="/featured" 
               className={`text-sm font-medium transition-colors ${
                 isActive('/featured') 
-                  ? 'text-blue-600' 
-                  : 'text-gray-700 hover:text-blue-600'
+                  ? 'text-pink-600' 
+                  : 'text-gray-700 hover:text-pink-600'
               }`}
             >
               {t('nav.featured') || 'Featured'}
@@ -100,8 +100,8 @@ export default function PublicNavbar() {
               href="/trending" 
               className={`text-sm font-medium transition-colors ${
                 isActive('/trending') 
-                  ? 'text-blue-600' 
-                  : 'text-gray-700 hover:text-blue-600'
+                  ? 'text-pink-600' 
+                  : 'text-gray-700 hover:text-pink-600'
               }`}
             >
               {t('nav.trending') || 'Trending'}
@@ -110,8 +110,8 @@ export default function PublicNavbar() {
               href="/regions" 
               className={`text-sm font-medium transition-colors ${
                 isActive('/regions') 
-                  ? 'text-blue-600' 
-                  : 'text-gray-700 hover:text-blue-600'
+                  ? 'text-pink-600' 
+                  : 'text-gray-700 hover:text-pink-600'
               }`}
             >
               {t('nav.regions') || 'Regions'}
@@ -120,8 +120,8 @@ export default function PublicNavbar() {
               href="/services" 
               className={`text-sm font-medium transition-colors ${
                 isActive('/services') 
-                  ? 'text-blue-600' 
-                  : 'text-gray-700 hover:text-blue-600'
+                  ? 'text-pink-600' 
+                  : 'text-gray-700 hover:text-pink-600'
               }`}
             >
               {t('nav.services') || 'Services'}
@@ -143,7 +143,7 @@ export default function PublicNavbar() {
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('openLoginJoinModal', { detail: { mode: 'join' } }));
               }}
-              className="px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-medium bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700 rounded-lg transition-all shadow-md hover:shadow-lg"
             >
               {t('nav.join') || 'Join'}
             </button>
