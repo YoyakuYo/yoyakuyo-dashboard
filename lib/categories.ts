@@ -1,5 +1,6 @@
 // Category definitions for Yoyaku Yo landing page
 // 13 main categories with Japanese names and Unsplash image mappings
+// Each category has 5 different image variations
 
 export interface Category {
   id: string;
@@ -9,12 +10,13 @@ export interface Category {
   namePt?: string;
   nameZh?: string;
   imageKey: string;
-  unsplashSearch: string; // Unsplash search term for the image
+  unsplashSearch: string; // Primary Unsplash search term
+  imageVariations: string[]; // 5 different search terms for variety
   parentId?: string; // For backward compatibility
   isSubcategory?: boolean; // For backward compatibility
 }
 
-// 13 main categories for the landing page
+// 13 main categories for the landing page with 5 image variations each
 export const CATEGORIES: Category[] = [
   {
     id: 'hair_salon',
@@ -25,6 +27,13 @@ export const CATEGORIES: Category[] = [
     nameZh: '美发沙龙',
     imageKey: 'hair-salon',
     unsplashSearch: 'japanese modern hair salon',
+    imageVariations: [
+      'japanese modern hair salon',
+      'tokyo hair salon interior',
+      'japanese beauty salon styling',
+      'japanese hair salon chair mirror',
+      'modern japanese hair salon design',
+    ],
   },
   {
     id: 'nail_salon',
@@ -35,6 +44,13 @@ export const CATEGORIES: Category[] = [
     nameZh: '美甲沙龙',
     imageKey: 'nail-salon',
     unsplashSearch: 'japanese nail salon interior',
+    imageVariations: [
+      'japanese nail salon interior',
+      'tokyo nail art salon',
+      'japanese manicure station',
+      'modern nail salon japan',
+      'japanese nail design studio',
+    ],
   },
   {
     id: 'spa_massage',
@@ -45,6 +61,13 @@ export const CATEGORIES: Category[] = [
     nameZh: '水疗和按摩',
     imageKey: 'spa-massage',
     unsplashSearch: 'luxury japanese spa massage',
+    imageVariations: [
+      'luxury japanese spa massage',
+      'japanese relaxation spa room',
+      'tokyo spa treatment room',
+      'japanese hot stone massage',
+      'modern japanese spa interior',
+    ],
   },
   {
     id: 'onsen_ryokan',
@@ -55,6 +78,13 @@ export const CATEGORIES: Category[] = [
     nameZh: '温泉和旅馆',
     imageKey: 'onsen-ryokan',
     unsplashSearch: 'japanese onsen outdoor',
+    imageVariations: [
+      'japanese onsen outdoor',
+      'traditional japanese ryokan room',
+      'japanese hot spring mountain',
+      'ryokan tatami room japan',
+      'japanese onsen bath view',
+    ],
   },
   {
     id: 'restaurant',
@@ -65,6 +95,13 @@ export const CATEGORIES: Category[] = [
     nameZh: '餐厅',
     imageKey: 'restaurant',
     unsplashSearch: 'tokyo fine dining restaurant',
+    imageVariations: [
+      'tokyo fine dining restaurant',
+      'japanese restaurant interior modern',
+      'osaka sushi restaurant counter',
+      'japanese izakaya restaurant',
+      'tokyo ramen shop interior',
+    ],
   },
   {
     id: 'izakaya_bar',
@@ -75,6 +112,13 @@ export const CATEGORIES: Category[] = [
     nameZh: '居酒屋和酒吧',
     imageKey: 'izakaya-bar',
     unsplashSearch: 'osaka izakaya counter',
+    imageVariations: [
+      'osaka izakaya counter',
+      'tokyo izakaya interior',
+      'japanese bar counter night',
+      'traditional izakaya japan',
+      'modern japanese bar tokyo',
+    ],
   },
   {
     id: 'hotel',
@@ -85,6 +129,13 @@ export const CATEGORIES: Category[] = [
     nameZh: '酒店',
     imageKey: 'hotel',
     unsplashSearch: 'ryokan tatami room',
+    imageVariations: [
+      'ryokan tatami room',
+      'japanese hotel room modern',
+      'tokyo luxury hotel lobby',
+      'japanese ryokan bedroom',
+      'modern japanese hotel interior',
+    ],
   },
   {
     id: 'barber_shop',
@@ -95,6 +146,13 @@ export const CATEGORIES: Category[] = [
     nameZh: '理发店',
     imageKey: 'barber-shop',
     unsplashSearch: 'japanese barber shop',
+    imageVariations: [
+      'japanese barber shop',
+      'tokyo barbershop interior',
+      'modern japanese barber chair',
+      'traditional japanese barbershop',
+      'japanese mens salon tokyo',
+    ],
   },
   {
     id: 'aesthetic_clinic',
@@ -105,6 +163,13 @@ export const CATEGORIES: Category[] = [
     nameZh: '美容诊所',
     imageKey: 'aesthetic-clinic',
     unsplashSearch: 'japanese aesthetic clinic',
+    imageVariations: [
+      'japanese aesthetic clinic',
+      'tokyo beauty clinic interior',
+      'modern japanese medical spa',
+      'japanese cosmetic clinic',
+      'tokyo aesthetic treatment room',
+    ],
   },
   {
     id: 'golf',
@@ -115,6 +180,13 @@ export const CATEGORIES: Category[] = [
     nameZh: '高尔夫',
     imageKey: 'golf',
     unsplashSearch: 'japan golf course morning',
+    imageVariations: [
+      'japan golf course morning',
+      'japanese golf course green',
+      'tokyo golf driving range',
+      'japanese golf course mountain',
+      'modern japanese golf club',
+    ],
   },
   {
     id: 'dental_clinic',
@@ -125,6 +197,13 @@ export const CATEGORIES: Category[] = [
     nameZh: '牙科诊所',
     imageKey: 'dental-clinic',
     unsplashSearch: 'modern japanese dental clinic',
+    imageVariations: [
+      'modern japanese dental clinic',
+      'tokyo dental office interior',
+      'japanese dental treatment room',
+      'modern dental clinic japan',
+      'japanese dentist office design',
+    ],
   },
   {
     id: 'womens_clinic',
@@ -135,6 +214,13 @@ export const CATEGORIES: Category[] = [
     nameZh: '妇科诊所',
     imageKey: 'womens-clinic',
     unsplashSearch: 'japanese womens clinic',
+    imageVariations: [
+      'japanese womens clinic',
+      'tokyo womens health clinic',
+      'modern japanese medical clinic',
+      'japanese gynecology clinic',
+      'tokyo womens clinic interior',
+    ],
   },
   {
     id: 'eyelash_eyebrow',
@@ -145,6 +231,13 @@ export const CATEGORIES: Category[] = [
     nameZh: '睫毛和眉毛沙龙',
     imageKey: 'eyelash-eyebrow',
     unsplashSearch: 'japanese eyelash salon',
+    imageVariations: [
+      'japanese eyelash salon',
+      'tokyo eyelash extension salon',
+      'japanese eyebrow salon interior',
+      'modern japanese beauty salon',
+      'tokyo lash salon treatment room',
+    ],
   },
 ];
 
@@ -179,6 +272,24 @@ export function getUnsplashImageUrl(searchTerm: string, width: number = 800, hei
   // Using Unsplash Source API for dynamic images
   const encodedSearch = encodeURIComponent(searchTerm);
   return `https://source.unsplash.com/${width}x${height}/?${encodedSearch}`;
+}
+
+// Get a specific image variation for a category (0-4)
+export function getCategoryImageUrl(category: Category, variationIndex: number = 0, width: number = 800, height: number = 600): string {
+  const index = Math.max(0, Math.min(4, variationIndex)); // Clamp between 0-4
+  const searchTerm = category.imageVariations[index] || category.imageVariations[0];
+  return getUnsplashImageUrl(searchTerm, width, height);
+}
+
+// Get all 5 image URLs for a category
+export function getAllCategoryImageUrls(category: Category, width: number = 800, height: number = 600): string[] {
+  return category.imageVariations.map(searchTerm => getUnsplashImageUrl(searchTerm, width, height));
+}
+
+// Get a random image URL for a category
+export function getRandomCategoryImageUrl(category: Category, width: number = 800, height: number = 600): string {
+  const randomIndex = Math.floor(Math.random() * category.imageVariations.length);
+  return getCategoryImageUrl(category, randomIndex, width, height);
 }
 
 // Legacy helper functions for backward compatibility

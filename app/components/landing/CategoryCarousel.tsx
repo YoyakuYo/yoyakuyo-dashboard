@@ -1,21 +1,32 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getAllCategories, getCategoryName, getUnsplashImageUrl } from '@/lib/categories';
+import { getAllCategories, getCategoryName, getRandomCategoryImageUrl } from '@/lib/categories';
 
 export default function CategoryCarousel() {
   const locale = useLocale();
   const categories = getAllCategories();
+  const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+
+  // Initialize random images for each category on mount
+  useEffect(() => {
+    const urls: Record<string, string> = {};
+    categories.forEach((category) => {
+      urls[category.id] = getRandomCategoryImageUrl(category, 400, 300);
+    });
+    setImageUrls(urls);
+  }, [categories]);
 
   return (
     <div className="w-full overflow-x-auto pb-4 scrollbar-hide">
       <div className="flex gap-4 px-4 md:px-8">
         {categories.map((category) => {
           const categoryName = getCategoryName(category, locale);
-          const imageUrl = getUnsplashImageUrl(category.unsplashSearch, 400, 300);
+          // Use the random image URL for this category, or fallback to first variation
+          const imageUrl = imageUrls[category.id] || getRandomCategoryImageUrl(category, 400, 300);
 
           return (
             <Link
@@ -52,4 +63,3 @@ export default function CategoryCarousel() {
     </div>
   );
 }
-
