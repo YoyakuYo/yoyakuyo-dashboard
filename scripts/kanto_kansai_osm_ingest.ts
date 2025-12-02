@@ -571,8 +571,10 @@ async function ingestPrefecture(
 
     console.log(`  ✅ Found ${nodes.length} OSM nodes`);
 
+    let processedInCategory = 0;
     for (const node of nodes) {
       stats.totalQueried++;
+      processedInCategory++;
 
       // Parse node
       const parsed = parseOSMNode(node);
@@ -603,6 +605,11 @@ async function ingestPrefecture(
           process.stdout.write('.');
         }
         continue;
+      }
+
+      // Progress update every 100 shops
+      if (processedInCategory % 100 === 0) {
+        console.log(`\n    📊 Progress: ${processedInCategory}/${nodes.length} processed, ${stats.totalInserted} inserted, ${stats.totalSkipped} skipped`);
       }
 
       // Get category IDs
@@ -644,12 +651,18 @@ async function ingestPrefecture(
         process.stdout.write('+');
       }
 
-      // Reduced rate limiting - only 10ms delay
+      // Reduced rate limiting - only 10ms delay every 10 inserts
       if (stats.totalInserted % 10 === 0) {
         await new Promise((resolve) => setTimeout(resolve, 10));
       }
     }
+    
+    // Summary for this category
+    console.log(`\n    ✅ ${categoryMapping.subcategory} complete: ${stats.totalInserted} inserted, ${stats.totalSkipped} skipped`);
   }
+  
+  // Summary for this prefecture
+  console.log(`\n✅ ${prefecture.name} complete: ${stats.byPrefecture[prefecture.name]?.inserted || 0} shops inserted`);
 }
 
 // ============================================================================
