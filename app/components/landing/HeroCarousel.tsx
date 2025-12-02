@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 // Japanese night scene images for the carousel
 const heroImages = [
@@ -14,6 +15,7 @@ const heroImages = [
 ];
 
 export default function HeroCarousel() {
+  const t = useTranslations('landing');
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -52,13 +54,13 @@ export default function HeroCarousel() {
       <div className="absolute inset-0 flex items-center justify-center z-10">
         <div className="text-center px-4 max-w-4xl">
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 tracking-tight">
-            Yoyaku Yo
+            {t('heroMainTitle')}
           </h1>
           <p className="text-xl md:text-2xl lg:text-3xl text-white mb-4 font-light">
-            Book 30,000+ real shops across Japan
+            {t('heroMainSubtitle')}
           </p>
           <p className="text-base md:text-lg lg:text-xl text-white/80 font-light">
-            A simple, multilingual booking experience for everyone.
+            {t('heroTagline')}
           </p>
         </div>
       </div>

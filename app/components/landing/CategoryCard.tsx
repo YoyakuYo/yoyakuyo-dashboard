@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 interface CategoryCardProps {
   title: string;
@@ -21,6 +22,7 @@ export default function CategoryCard({
   imageSearchTerms,
   categoryId,
 }: CategoryCardProps) {
+  const t = useTranslations('landing');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [imagesLoaded, setImagesLoaded] = useState<boolean[]>([]);
@@ -127,7 +129,7 @@ export default function CategoryCard({
             href="/browse"
             className="inline-block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all shadow-md hover:shadow-lg"
           >
-            View Shops
+            {t('viewShops')}
           </Link>
         </div>
       </div>

@@ -1,19 +1,22 @@
 "use client";
 
+import { useTranslations } from 'next-intl';
 import CategoryCard from './CategoryCard';
 
 export default function CategorySection() {
+  const t = useTranslations('landing');
+  
   const categories = [
     {
       id: 'beauty_services',
-      title: 'Beauty Services',
-      titleJa: '美容サービス',
-      description: 'Discover beauty services across Japan — trusted salons with clear pricing and real availability.',
+      title: t('categoryBeautyTitle'),
+      titleJa: t('categoryBeautyTitleJa'),
+      description: t('categoryBeautyDesc'),
       sellingPoints: [
-        'Popular salons nationwide',
-        'Easy booking',
-        'Verified shops',
-        'Real-time schedules',
+        t('categoryBeautyPoint1'),
+        t('categoryBeautyPoint2'),
+        t('categoryBeautyPoint3'),
+        t('categoryBeautyPoint4'),
       ],
       imageSearchTerms: [
         'japanese modern hair salon interior tokyo',
@@ -26,14 +29,14 @@ export default function CategorySection() {
     },
     {
       id: 'spa_onsen',
-      title: 'Spa, Onsen & Relaxation',
-      titleJa: 'スパ・温泉・リラクゼーション',
-      description: 'Enjoy traditional Japanese onsen, spas, and relaxation services for all visitors and residents.',
+      title: t('categorySpaTitle'),
+      titleJa: t('categorySpaTitleJa'),
+      description: t('categorySpaDesc'),
       sellingPoints: [
-        'Private & public options',
-        'Premium relaxation',
-        'Nighttime onsen views',
-        'Instant booking',
+        t('categorySpaPoint1'),
+        t('categorySpaPoint2'),
+        t('categorySpaPoint3'),
+        t('categorySpaPoint4'),
       ],
       imageSearchTerms: [
         'japanese onsen outdoor hot spring night',
@@ -46,14 +49,14 @@ export default function CategorySection() {
     },
     {
       id: 'hotels',
-      title: 'Hotels & Stays',
-      titleJa: 'ホテル・宿泊',
-      description: 'Find comfortable hotels, ryokans, and boutique stays across Japan.',
+      title: t('categoryHotelsTitle'),
+      titleJa: t('categoryHotelsTitleJa'),
+      description: t('categoryHotelsDesc'),
       sellingPoints: [
-        'Ideal for travelers',
-        'Clean & modern stays',
-        'Real availability',
-        'Easy multilingual booking',
+        t('categoryHotelsPoint1'),
+        t('categoryHotelsPoint2'),
+        t('categoryHotelsPoint3'),
+        t('categoryHotelsPoint4'),
       ],
       imageSearchTerms: [
         'https://i.pinimg.com/originals/41/c1/1e/41c11eeca92e8e5e791ca1802d0a8fd0.jpg',
@@ -66,14 +69,14 @@ export default function CategorySection() {
     },
     {
       id: 'dining',
-      title: 'Dining & Izakaya',
-      titleJa: '飲食・居酒屋',
-      description: 'Experience restaurants and izakayas across Japan with simple online booking.',
+      title: t('categoryDiningTitle'),
+      titleJa: t('categoryDiningTitleJa'),
+      description: t('categoryDiningDesc'),
       sellingPoints: [
-        'Authentic dining',
-        'Local favorites',
-        'Clear menus',
-        'Fast reservations',
+        t('categoryDiningPoint1'),
+        t('categoryDiningPoint2'),
+        t('categoryDiningPoint3'),
+        t('categoryDiningPoint4'),
       ],
       imageSearchTerms: [
         'tokyo fine dining restaurant elegant',
@@ -86,14 +89,14 @@ export default function CategorySection() {
     },
     {
       id: 'clinics',
-      title: 'Clinics & Medical Care',
-      titleJa: 'クリニック・医療',
-      description: 'Book medical and wellness services with trusted clinics.',
+      title: t('categoryClinicsTitle'),
+      titleJa: t('categoryClinicsTitleJa'),
+      description: t('categoryClinicsDesc'),
       sellingPoints: [
-        'Licensed clinics',
-        'Aesthetic, dental, women\'s care',
-        'Clean facilities',
-        'Easy appointment booking',
+        t('categoryClinicsPoint1'),
+        t('categoryClinicsPoint2'),
+        t('categoryClinicsPoint3'),
+        t('categoryClinicsPoint4'),
       ],
       imageSearchTerms: [
         'japanese modern clinic interior clean',
@@ -106,14 +109,14 @@ export default function CategorySection() {
     },
     {
       id: 'activities',
-      title: 'Activities & Sports',
-      titleJa: 'アクティビティ・スポーツ',
-      description: 'Enjoy activities and sports anywhere in Japan.',
+      title: t('categoryActivitiesTitle'),
+      titleJa: t('categoryActivitiesTitleJa'),
+      description: t('categoryActivitiesDesc'),
       sellingPoints: [
-        'Golf practice ranges',
-        'Indoor/outdoor facilities',
-        'Beginner friendly',
-        'Instant session booking',
+        t('categoryActivitiesPoint1'),
+        t('categoryActivitiesPoint2'),
+        t('categoryActivitiesPoint3'),
+        t('categoryActivitiesPoint4'),
       ],
       imageSearchTerms: [
         'japanese golf practice range driving',

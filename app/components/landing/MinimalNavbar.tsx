@@ -1,9 +1,11 @@
 "use client";
 
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import WhiteLanguageSwitcher from './WhiteLanguageSwitcher';
 
 export default function MinimalNavbar() {
+  const t = useTranslations('landing');
   const handleLoginClick = () => {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('openLoginModal'));
@@ -30,7 +32,7 @@ export default function MinimalNavbar() {
             href="/browse" 
             className="text-sm font-medium text-white hover:text-blue-300 transition-colors"
           >
-            Categories
+            {t('navCategories')}
           </Link>
 
           {/* Right: Language + Login + Join */}
@@ -40,13 +42,13 @@ export default function MinimalNavbar() {
               onClick={handleLoginClick}
               className="px-4 py-2 text-sm font-medium text-white hover:text-blue-300 transition-colors"
             >
-              Login
+              {t('heroLogin')}
             </button>
             <button
               onClick={handleJoinClick}
               className="px-4 py-2 text-sm font-medium text-white hover:text-blue-300 transition-colors"
             >
-              Join
+              {t('heroJoin')}
             </button>
           </div>
         </div>

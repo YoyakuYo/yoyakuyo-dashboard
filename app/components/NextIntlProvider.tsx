@@ -54,24 +54,31 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
 
   // Listen for locale changes
   useEffect(() => {
-    const handleStorageChange = () => {
-      // Check both cookie and localStorage
-      const cookies = document.cookie.split(';');
-      const langCookie = cookies.find(c => c.trim().startsWith('yoyaku_yo_language='));
+    const handleLanguageChange = (event: Event) => {
+      // Check if event has detail with locale
+      const customEvent = event as CustomEvent<{ locale?: SupportedLocale }>;
       let newLocale: SupportedLocale | null = null;
       
-      if (langCookie) {
-        const value = langCookie.split('=')[1]?.trim() as SupportedLocale;
-        if (value && messageMap[value]) {
-          newLocale = value;
+      if (customEvent.detail?.locale && messageMap[customEvent.detail.locale]) {
+        newLocale = customEvent.detail.locale;
+      } else {
+        // Check both cookie and localStorage
+        const cookies = document.cookie.split(';');
+        const langCookie = cookies.find(c => c.trim().startsWith('yoyaku_yo_language='));
+        
+        if (langCookie) {
+          const value = langCookie.split('=')[1]?.trim() as SupportedLocale;
+          if (value && messageMap[value]) {
+            newLocale = value;
+          }
         }
-      }
-      
-      // Fallback to localStorage if cookie not found
-      if (!newLocale) {
-        const stored = localStorage.getItem('yoyaku_yo_language') as SupportedLocale;
-        if (stored && messageMap[stored]) {
-          newLocale = stored;
+        
+        // Fallback to localStorage if cookie not found
+        if (!newLocale) {
+          const stored = localStorage.getItem('yoyaku_yo_language') as SupportedLocale;
+          if (stored && messageMap[stored]) {
+            newLocale = stored;
+          }
         }
       }
       
@@ -79,7 +86,8 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
         // Use functional update to avoid dependency on locale
         setLocale(prevLocale => {
           if (prevLocale !== newLocale) {
-            setMessages(messageMap[newLocale!] || messageMap['ja']);
+            const newMessages = messageMap[newLocale!] || messageMap['ja'];
+            setMessages(newMessages);
             return newLocale!;
           }
           return prevLocale;
@@ -87,12 +95,16 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
       }
     };
 
+    const handleStorageChange = () => {
+      handleLanguageChange(new Event('storage'));
+    };
+
     // Listen for custom event when language changes
-    window.addEventListener('languageChanged', handleStorageChange);
+    window.addEventListener('languageChanged', handleLanguageChange);
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
-      window.removeEventListener('languageChanged', handleStorageChange);
+      window.removeEventListener('languageChanged', handleLanguageChange);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []); // Empty dependency array - only set up listeners once

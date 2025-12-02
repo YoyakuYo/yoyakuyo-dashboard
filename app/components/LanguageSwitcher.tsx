@@ -44,16 +44,18 @@ export function LanguageSwitcher() {
 
   const changeLanguage = (locale: SupportedLocale) => {
     // Save to both cookie and localStorage
-    document.cookie = `yoyaku_yo_language=${locale}; path=/; max-age=31536000`; // 1 year
+    // Set cookie with proper attributes
+    document.cookie = `yoyaku_yo_language=${locale}; path=/; max-age=31536000; SameSite=Lax`; // 1 year
     localStorage.setItem('yoyaku_yo_language', locale);
     
     setCurrentLocale(locale);
     setIsOpen(false);
     
-    // Dispatch custom event to notify NextIntlProvider
-    window.dispatchEvent(new Event('languageChanged'));
+    // Dispatch custom event to notify NextIntlProvider with locale detail
+    window.dispatchEvent(new CustomEvent('languageChanged', { detail: { locale } }));
     
     // Force a full page reload to ensure all translations are applied
+    // This ensures server-side components also get the new locale
     window.location.reload();
   };
 
