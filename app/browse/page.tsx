@@ -149,11 +149,18 @@ function BrowsePageContent() {
         const stats = await res.json();
         setCategoryStats(stats);
         console.log('✅ Category stats loaded:', stats);
+        console.log('📊 Categories from API:', categories.map(c => ({ id: c.id, name: c.name })));
+        console.log('🔍 Stats keys:', Object.keys(stats));
+        // Log matching
+        categories.forEach(cat => {
+          const count = stats[cat.id];
+          console.log(`Category ${cat.name} (${cat.id}): ${count ?? 'NOT FOUND'} shops`);
+        });
       }
     } catch (error) {
       console.error('Error fetching category stats:', error);
     }
-  }, [apiUrl]);
+  }, [apiUrl, categories]);
 
   // Fetch shops with pagination
   const fetchShops = useCallback(async (page: number = 1, append: boolean = false) => {
