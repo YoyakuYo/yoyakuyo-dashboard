@@ -23,13 +23,15 @@ export default function CategoryCard({
 }: CategoryCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imagesLoaded, setImagesLoaded] = useState<boolean[]>([]);
 
-  // Generate image URLs from search terms
+  // Generate image URLs from search terms with higher quality
   useEffect(() => {
     const urls = imageSearchTerms.map((term) => 
-      `https://source.unsplash.com/800x600/?${encodeURIComponent(term)}`
+      `https://source.unsplash.com/1200x800/?${encodeURIComponent(term)}`
     );
     setImageUrls(urls);
+    setImagesLoaded(new Array(urls.length).fill(false));
   }, [imageSearchTerms]);
 
   // Auto-advance image slider
@@ -63,6 +65,15 @@ export default function CategoryCard({
                     fill
                     className="object-cover"
                     unoptimized
+                    onLoad={() => {
+                      const newLoaded = [...imagesLoaded];
+                      newLoaded[index] = true;
+                      setImagesLoaded(newLoaded);
+                    }}
+                    onError={() => {
+                      // Fallback to a placeholder if image fails to load
+                      console.warn(`Failed to load image ${index + 1} for ${title}`);
+                    }}
                   />
                 </div>
               ))}
