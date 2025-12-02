@@ -119,7 +119,7 @@ WHERE c.name IN (
     'Eyelash & Eyebrow',
     'Aesthetic Clinic',
     'Dental Clinic',
-    "Women's Clinic",
+    'Women''s Clinic',
     'Golf',
     'Unknown'
 )
