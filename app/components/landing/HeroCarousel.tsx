@@ -42,7 +42,7 @@ export default function HeroCarousel() {
   }, []);
 
   return (
-    <div className="relative w-full h-[75vh] min-h-[600px] overflow-hidden">
+    <div className="relative w-full h-[70vh] min-h-[600px] overflow-hidden">
       {/* Background Images with Fade Transition */}
       {heroImages.map((imageUrl, index) => (
         <div
@@ -55,7 +55,7 @@ export default function HeroCarousel() {
             src={imageUrl}
             alt={`Hero background ${index + 1}`}
             fill
-            className="object-cover"
+            className="object-cover object-center"
             priority={index === 0}
             unoptimized
           />

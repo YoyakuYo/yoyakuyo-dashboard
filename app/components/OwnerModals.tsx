@@ -83,12 +83,24 @@ export default function OwnerModals() {
     const handleOpenSignupModal = () => {
       setShowSignupModal(true);
     };
+    const handleOpenOwnerLoginModal = () => {
+      setShowLoginModal(true);
+    };
+    const handleOpenOwnerSignupModal = () => {
+      setShowSignupModal(true);
+    };
     if (typeof window !== 'undefined') {
+      // Listen for owner-specific events (from role selection modal)
+      window.addEventListener('openOwnerLoginModal', handleOpenOwnerLoginModal);
+      window.addEventListener('openOwnerSignupModal', handleOpenOwnerSignupModal);
+      // Keep old events for backward compatibility
       window.addEventListener('openLoginModal', handleOpenLoginModal);
       window.addEventListener('openSignupModal', handleOpenSignupModal);
     }
     return () => {
       if (typeof window !== 'undefined') {
+        window.removeEventListener('openOwnerLoginModal', handleOpenOwnerLoginModal);
+        window.removeEventListener('openOwnerSignupModal', handleOpenOwnerSignupModal);
         window.removeEventListener('openLoginModal', handleOpenLoginModal);
         window.removeEventListener('openSignupModal', handleOpenSignupModal);
       }

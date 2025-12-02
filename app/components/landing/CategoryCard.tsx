@@ -56,7 +56,7 @@ export default function CategoryCard({
     <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-shadow">
       <div className="grid md:grid-cols-2 gap-0">
         {/* Left Side: Image Slider */}
-        <div className="relative h-64 md:h-full min-h-[300px]">
+        <div className="relative h-72 md:h-full min-h-[300px]">
           {imageUrls.length > 0 && (
             <>
               {imageUrls.map((url, index) => (
@@ -70,7 +70,7 @@ export default function CategoryCard({
                     src={url}
                     alt={`${title} ${index + 1}`}
                     fill
-                    className="object-cover"
+                    className="object-cover object-center rounded-xl"
                     unoptimized
                     onLoad={() => {
                       const newLoaded = [...imagesLoaded];

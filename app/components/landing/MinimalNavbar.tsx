@@ -8,12 +8,14 @@ export default function MinimalNavbar() {
   const t = useTranslations('landing');
   const handleLoginClick = () => {
     if (typeof window !== 'undefined') {
+      // Open role selection modal for login
       window.dispatchEvent(new CustomEvent('openLoginModal'));
     }
   };
 
   const handleJoinClick = () => {
     if (typeof window !== 'undefined') {
+      // Open role selection modal for join
       window.dispatchEvent(new CustomEvent('openSignupModal'));
     }
   };
