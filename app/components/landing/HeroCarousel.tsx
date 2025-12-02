@@ -62,19 +62,22 @@ export default function HeroCarousel() {
         </div>
       ))}
 
-      {/* Dark Overlay */}
+      {/* Dark Overlay - Full */}
       <div className="absolute inset-0 bg-black/50" />
 
-      {/* Hero Content - Centered */}
-      <div className="absolute inset-0 flex items-center justify-center z-10">
-        <div className="text-center px-4 max-w-4xl">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 tracking-tight">
+      {/* Left Side Gradient Overlay - Only on left side */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent z-10" />
+
+      {/* Hero Content - Left Aligned */}
+      <div className="absolute inset-0 flex items-center z-20">
+        <div className="text-left pl-10 md:pl-12 lg:pl-16 max-w-4xl">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 tracking-tight drop-shadow-lg">
             {t('heroMainTitle')}
           </h1>
-          <p className="text-xl md:text-2xl lg:text-3xl text-white mb-4 font-light">
+          <p className="text-xl md:text-2xl lg:text-3xl text-white mb-4 font-light drop-shadow-md">
             {t('heroMainSubtitle')}
           </p>
-          <p className="text-base md:text-lg lg:text-xl text-white/80 font-light">
+          <p className="text-base md:text-lg lg:text-xl text-white/90 font-light drop-shadow-md">
             {t('heroTagline')}
           </p>
         </div>

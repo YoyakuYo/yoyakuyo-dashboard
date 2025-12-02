@@ -29,13 +29,22 @@ export default function MinimalNavbar() {
             Yoyaku Yo
           </Link>
 
-          {/* Center: Categories */}
-          <Link 
-            href="/browse" 
-            className="text-sm font-medium text-white hover:text-blue-300 transition-colors"
-          >
-            {t('navCategories')}
-          </Link>
+          {/* Center: Categories | Services */}
+          <div className="flex items-center gap-2">
+            <Link 
+              href="/browse" 
+              className="text-sm font-medium text-white hover:text-blue-300 transition-colors"
+            >
+              {t('navCategories')}
+            </Link>
+            <span className="text-white/50">|</span>
+            <Link 
+              href="/services" 
+              className="text-sm font-medium text-white hover:text-blue-300 transition-colors"
+            >
+              {t('navServices') || 'Services'}
+            </Link>
+          </div>
 
           {/* Right: Language + Login + Join */}
           <div className="flex items-center gap-4">

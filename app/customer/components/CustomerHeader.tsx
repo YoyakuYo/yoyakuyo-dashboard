@@ -99,7 +99,7 @@ export default function CustomerHeader() {
     <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-40 lg:left-64">
       <div className="h-full px-4 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/customer/home" className="text-xl font-bold text-blue-600 hover:text-blue-700">
+        <Link href="/" className="text-xl font-bold text-blue-600 hover:text-blue-700">
           Yoyaku Yo
         </Link>
 
