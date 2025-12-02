@@ -91,7 +91,7 @@ export default function CategorySection() {
       description: 'Book medical and wellness services with trusted clinics.',
       sellingPoints: [
         'Licensed clinics',
-        'Aesthetic, dental, women's care',
+        'Aesthetic, dental, women\'s care',
         'Clean facilities',
         'Easy appointment booking',
       ],
