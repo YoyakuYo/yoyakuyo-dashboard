@@ -119,10 +119,10 @@ WHERE c.name IN (
     'Eyelash & Eyebrow',
     'Aesthetic Clinic',
     'Dental Clinic',
-    'Women''s Clinic',
     'Golf',
     'Unknown'
 )
+OR c.name LIKE '%Women%'
 GROUP BY c.id, c.name
 ORDER BY shop_count DESC;
 
