@@ -17,22 +17,49 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// Load environment variables
-const envPath = path.join(process.cwd(), '.env.local');
-if (fs.existsSync(envPath)) {
-  dotenv.config({ path: envPath });
-} else {
-  dotenv.config();
+// Load environment variables from multiple possible locations
+const possibleEnvPaths = [
+  path.join(process.cwd(), '.env.local'),
+  path.join(process.cwd(), '.env'),
+  path.join(process.cwd(), 'apps', 'api', '.env'),
+];
+
+for (const envPath of possibleEnvPaths) {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath, override: false });
+    console.log(`✅ Loaded environment from: ${envPath}`);
+    break;
+  }
 }
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+// Also try default dotenv loading
+dotenv.config({ override: false });
+
+// Try both NEXT_PUBLIC_SUPABASE_URL and SUPABASE_URL (for compatibility)
+// Also check command line arguments
+const SUPABASE_URL = 
+  process.argv.find(arg => arg.startsWith('--url='))?.split('=')[1] ||
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 
+  process.env.SUPABASE_URL;
+  
+const SUPABASE_SERVICE_ROLE_KEY = 
+  process.argv.find(arg => arg.startsWith('--key='))?.split('=')[1] ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+const OPENAI_API_KEY = 
+  process.argv.find(arg => arg.startsWith('--openai='))?.split('=')[1] ||
+  process.env.OPENAI_API_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error('❌ Missing required environment variables:');
-  console.error('   NEXT_PUBLIC_SUPABASE_URL:', SUPABASE_URL ? '✅' : '❌');
+  console.error('   NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL:', SUPABASE_URL ? '✅' : '❌');
   console.error('   SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? '✅' : '❌');
+  console.error('\n💡 Usage options:');
+  console.error('   1. Create .env.local file with:');
+  console.error('      NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co');
+  console.error('      SUPABASE_SERVICE_ROLE_KEY=your_service_role_key');
+  console.error('   2. Or pass as command line arguments:');
+  console.error('      npm run osm-ingest -- --url=https://... --key=...');
   process.exit(1);
 }
 
@@ -295,6 +322,10 @@ function normalizeText(text: string): string {
     .replace(/[^\w\s\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/g, '');
 }
 
+// Cache for OSM IDs to avoid repeated queries
+const osmIdCache = new Set<string>();
+const duplicateCheckCache = new Map<string, boolean>();
+
 async function checkDuplicate(
   name: string,
   address: string,
@@ -302,48 +333,63 @@ async function checkDuplicate(
   lon: number,
   osmId: number
 ): Promise<boolean> {
-  const normalizedName = normalizeText(name);
-  const normalizedAddress = normalizeText(address);
+  const osmIdStr = osmId.toString();
+  
+  // Quick cache check for OSM ID
+  if (osmIdCache.has(osmIdStr)) {
+    return true; // Already seen this OSM ID
+  }
 
-  // Check by OSM ID
+  const normalizedName = normalizeText(name);
+  const cacheKey = `${normalizedName}_${lat.toFixed(4)}_${lon.toFixed(4)}`;
+  
+  // Check cache first
+  if (duplicateCheckCache.has(cacheKey)) {
+    return duplicateCheckCache.get(cacheKey)!;
+  }
+
+  // Check by OSM ID (fastest check first)
   const { data: osmMatch } = await supabase
     .from('shops')
-    .select('id, name, latitude, longitude')
-    .eq('osm_id', osmId.toString())
-    .limit(1);
+    .select('id')
+    .eq('osm_id', osmIdStr)
+    .limit(1)
+    .single();
 
-  if (osmMatch && osmMatch.length > 0) {
+  if (osmMatch) {
+    osmIdCache.add(osmIdStr);
+    duplicateCheckCache.set(cacheKey, true);
     return true; // Duplicate by OSM ID
   }
 
-  // Check by name and distance
-  const { data: nameMatches } = await supabase
+  // Check by name and approximate location (simplified - only check nearby shops)
+  const { data: nearbyShops } = await supabase
     .from('shops')
     .select('id, name, latitude, longitude, address')
-    .limit(1000); // Get nearby shops to check
+    .gte('latitude', lat - 0.01) // ~1km radius
+    .lte('latitude', lat + 0.01)
+    .gte('longitude', lon - 0.01)
+    .lte('longitude', lon + 0.01)
+    .limit(100); // Reduced from 1000
 
-  if (nameMatches) {
-    for (const shop of nameMatches) {
+  if (nearbyShops) {
+    for (const shop of nearbyShops) {
       if (!shop.latitude || !shop.longitude) continue;
 
       const shopNameNormalized = normalizeText(shop.name || '');
-      const shopAddressNormalized = normalizeText(shop.address || '');
-
-      // Check name match
+      
+      // Check name match and distance
       if (shopNameNormalized === normalizedName) {
         const distance = calculateDistance(lat, lon, shop.latitude, shop.longitude);
         if (distance < 50) {
+          duplicateCheckCache.set(cacheKey, true);
           return true; // Duplicate by name and location
         }
-      }
-
-      // Check address match
-      if (normalizedAddress && shopAddressNormalized && shopAddressNormalized === normalizedAddress) {
-        return true; // Duplicate by address
       }
     }
   }
 
+  duplicateCheckCache.set(cacheKey, false);
   return false; // Not a duplicate
 }
 
@@ -567,13 +613,8 @@ async function ingestPrefecture(
         continue;
       }
 
-      // Generate translations
-      const nameTranslations = await generateTranslations(parsed.name);
-      const addressTranslations = await generateTranslations(parsed.address);
-      const prefectureTranslations = await generateTranslations(prefecture.name);
-
+      // Skip translations for speed - use original text
       // Insert into Supabase
-      // Store translations in JSONB format or use basic fields
       const insertData: any = {
         name: parsed.name, // Primary name (use Japanese if available, else English)
         address: parsed.address,
@@ -587,11 +628,6 @@ async function ingestPrefecture(
         language_code: 'ja', // Default to Japanese
         claim_status: 'unclaimed',
       };
-
-      // Try to add translations as JSONB if description column exists and supports JSONB
-      // Otherwise, just use the primary name and address
-      // Many systems store translations in a separate table or JSONB column
-      // For now, we'll use the primary fields and let the system handle translations
       
       const { error: insertError } = await supabase.from('shops').insert(insertData);
 
@@ -608,8 +644,10 @@ async function ingestPrefecture(
         process.stdout.write('+');
       }
 
-      // Rate limiting
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Reduced rate limiting - only 10ms delay
+      if (stats.totalInserted % 10 === 0) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
     }
   }
 }
