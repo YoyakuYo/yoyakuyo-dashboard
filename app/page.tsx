@@ -2,6 +2,7 @@
 
 import MinimalNavbar from './components/landing/MinimalNavbar';
 import HeroCarousel from './components/landing/HeroCarousel';
+import CategorySection from './components/landing/CategorySection';
 import OwnerModals from './components/OwnerModals';
 
 export default function HomePage() {
@@ -12,6 +13,9 @@ export default function HomePage() {
 
       {/* Hero Section with Image Carousel */}
       <HeroCarousel />
+
+      {/* Category Section */}
+      <CategorySection />
 
       {/* Owner Modals for Login/Join */}
       <OwnerModals />

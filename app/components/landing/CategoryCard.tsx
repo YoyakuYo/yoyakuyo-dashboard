@@ -3,24 +3,21 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getUnsplashImageUrl } from '@/lib/categories';
 
 interface CategoryCardProps {
-  categoryName: string;
-  categoryNameJa: string;
+  title: string;
+  titleJa: string;
   description: string;
   sellingPoints: string[];
-  subcategories: string[];
   imageSearchTerms: string[];
   categoryId: string;
 }
 
 export default function CategoryCard({
-  categoryName,
-  categoryNameJa,
+  title,
+  titleJa,
   description,
   sellingPoints,
-  subcategories,
   imageSearchTerms,
   categoryId,
 }: CategoryCardProps) {
@@ -30,7 +27,7 @@ export default function CategoryCard({
   // Generate image URLs from search terms
   useEffect(() => {
     const urls = imageSearchTerms.map((term) => 
-      getUnsplashImageUrl(term, 800, 600)
+      `https://source.unsplash.com/800x600/?${encodeURIComponent(term)}`
     );
     setImageUrls(urls);
   }, [imageSearchTerms]);
@@ -47,19 +44,28 @@ export default function CategoryCard({
   }, [imageUrls.length]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 hover:shadow-2xl transition-shadow">
+    <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-shadow">
       <div className="grid md:grid-cols-2 gap-0">
         {/* Left Side: Image Slider */}
         <div className="relative h-64 md:h-full min-h-[300px]">
           {imageUrls.length > 0 && (
             <>
-              <Image
-                src={imageUrls[currentImageIndex]}
-                alt={categoryName}
-                fill
-                className="object-cover"
-                unoptimized
-              />
+              {imageUrls.map((url, index) => (
+                <div
+                  key={index}
+                  className={`absolute inset-0 transition-opacity duration-1000 ${
+                    index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+                  }`}
+                >
+                  <Image
+                    src={url}
+                    alt={`${title} ${index + 1}`}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+              ))}
               {/* Image Indicators */}
               {imageUrls.length > 1 && (
                 <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
@@ -69,7 +75,7 @@ export default function CategoryCard({
                       onClick={() => setCurrentImageIndex(index)}
                       className={`h-2 rounded-full transition-all ${
                         index === currentImageIndex
-                          ? 'w-8 bg-white'
+                          ? 'w-8 bg-blue-600'
                           : 'w-2 bg-white/50 hover:bg-white/75'
                       }`}
                       aria-label={`Go to image ${index + 1}`}
@@ -84,32 +90,26 @@ export default function CategoryCard({
         {/* Right Side: Content */}
         <div className="p-6 md:p-8 flex flex-col justify-center">
           <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-            {categoryName}
+            {title}
           </h3>
-          <p className="text-lg text-gray-600 mb-4">{categoryNameJa}</p>
+          <p className="text-sm text-gray-600 mb-4">{titleJa}</p>
           
-          <p className="text-gray-700 mb-6">{description}</p>
+          <p className="text-gray-700 mb-6 leading-relaxed">{description}</p>
 
           {/* Selling Points */}
           <ul className="space-y-2 mb-6">
             {sellingPoints.map((point, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
-                <span className="text-pink-600 mt-1">•</span>
+              <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
+                <span className="text-blue-600 mt-1 font-bold">•</span>
                 <span>{point}</span>
               </li>
             ))}
           </ul>
 
-          {/* Subcategories */}
-          <div className="mb-6">
-            <p className="text-xs text-gray-500 mb-2">Subcategories:</p>
-            <p className="text-sm text-gray-600">{subcategories.join(', ')}</p>
-          </div>
-
           {/* View Shops Button */}
           <Link
             href="/browse"
-            className="inline-block w-full text-center bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all shadow-md hover:shadow-lg"
+            className="inline-block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-all shadow-md hover:shadow-lg"
           >
             View Shops
           </Link>
@@ -118,4 +118,3 @@ export default function CategoryCard({
     </div>
   );
 }
-
