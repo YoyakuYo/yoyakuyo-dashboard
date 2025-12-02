@@ -25,11 +25,16 @@ export default function CategoryCard({
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [imagesLoaded, setImagesLoaded] = useState<boolean[]>([]);
 
-  // Generate image URLs from search terms with higher quality
+  // Generate image URLs from search terms or use direct URLs
   useEffect(() => {
-    const urls = imageSearchTerms.map((term) => 
-      `https://source.unsplash.com/1200x800/?${encodeURIComponent(term)}`
-    );
+    const urls = imageSearchTerms.map((term) => {
+      // If term is already a URL (starts with http), use it directly
+      if (term.startsWith('http://') || term.startsWith('https://')) {
+        return term;
+      }
+      // Otherwise, treat it as a search term and generate Unsplash URL
+      return `https://source.unsplash.com/1200x800/?${encodeURIComponent(term)}`;
+    });
     setImageUrls(urls);
     setImagesLoaded(new Array(urls.length).fill(false));
   }, [imageSearchTerms]);
