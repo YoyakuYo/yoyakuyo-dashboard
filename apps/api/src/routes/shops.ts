@@ -1310,4 +1310,47 @@ router.patch("/:id", async (req: Request, res: Response) => {
     }
 });
 
+// GET /shops/prefecture-counts - Get shop counts per prefecture for a category
+router.get("/prefecture-counts", async (req: Request, res: Response) => {
+    try {
+        const categoryId = req.query.category as string | undefined;
+        
+        if (!categoryId) {
+            return res.status(400).json({ error: "Category parameter is required" });
+        }
+
+        // Validate UUID format
+        if (!isValidUUID(categoryId)) {
+            return res.status(400).json({ error: "Invalid category ID format" });
+        }
+
+        // Get all shops for this category
+        const { data: shops, error } = await dbClient
+            .from("shops")
+            .select("prefecture")
+            .eq("category_id", categoryId)
+            .or("claim_status.is.null,claim_status.neq.hidden");
+
+        if (error) {
+            console.error("Error fetching shops for prefecture counts:", error);
+            return res.status(500).json({ error: "Failed to fetch shops" });
+        }
+
+        // Count shops per prefecture
+        const prefectureCounts: Record<string, number> = {};
+        
+        if (shops) {
+            for (const shop of shops) {
+                const prefecture = shop.prefecture || "Unknown";
+                prefectureCounts[prefecture] = (prefectureCounts[prefecture] || 0) + 1;
+            }
+        }
+
+        return res.json(prefectureCounts);
+    } catch (e: any) {
+        console.error("Error in prefecture-counts endpoint:", e);
+        return res.status(500).json({ error: e.message });
+    }
+});
+
 export default router;
