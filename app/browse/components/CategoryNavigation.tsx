@@ -43,10 +43,11 @@ export function CategoryNavigation({
   t,
 }: CategoryNavigationProps) {
   // Filter to show only top-level categories (not subcategories)
-  // Subcategories will be shown under their parent
+  // Match by database name since database uses UUIDs, not our string IDs
   const topLevelCategories = categories.filter(cat => {
-    const categoryDef = CATEGORIES.find(c => c.id === cat.id);
-    return !categoryDef?.isSubcategory;
+    const categoryDef = CATEGORIES.find(c => c.dbName === cat.name);
+    // Show main categories (not subcategories) OR categories that don't match our definitions
+    return !categoryDef || !categoryDef.isSubcategory;
   });
 
   const sortedCategories = topLevelCategories
@@ -66,9 +67,16 @@ export function CategoryNavigation({
           const categoryData = categoryTree[category.id];
           const shopCount = categoryData?.shopCount || 0;
           const isSelected = selectedCategoryId === category.id;
-          const categoryDef = CATEGORIES.find(c => c.id === category.id);
-          const subcategories = categoryDef ? getSubcategories(category.id) : [];
-          const hasSubs = hasSubcategories(category.id);
+          // Match by database name since database uses UUIDs
+          const categoryDef = CATEGORIES.find(c => c.dbName === category.name);
+          // Get subcategories that belong to this main category
+          const subcategories = categoryDef ? getSubcategories(categoryDef.id) : [];
+          const hasSubs = categoryDef ? hasSubcategories(categoryDef.id) : false;
+          
+          // Find subcategories in the database categories list
+          const dbSubcategories = subcategories
+            .map(subcat => categories.find(dbCat => dbCat.name === subcat.dbName))
+            .filter(Boolean) as Category[];
 
           return (
             <div key={category.id}>
@@ -96,19 +104,18 @@ export function CategoryNavigation({
               </button>
               
               {/* Show subcategories when parent is selected */}
-              {isSelected && hasSubs && subcategories.length > 0 && (
+              {isSelected && hasSubs && dbSubcategories.length > 0 && (
                 <div className="mt-1 ml-4 space-y-1 border-l-2 border-blue-200 pl-3">
-                  {subcategories.map((subcat) => {
-                    const subcatData = categoryTree[subcat.id];
+                  {dbSubcategories.map((subcatCategory) => {
+                    const subcatData = categoryTree[subcatCategory.id];
                     const subcatShopCount = subcatData?.shopCount || 0;
-                    const subcatCategory = categories.find(c => c.id === subcat.id);
-                    if (!subcatCategory) return null;
+                    const subcatDef = CATEGORIES.find(c => c.dbName === subcatCategory.name);
                     
                     return (
                       <button
-                        key={subcat.id}
+                        key={subcatCategory.id}
                         onClick={() => {
-                          onSelectCategory(subcat.id);
+                          onSelectCategory(subcatCategory.id);
                         }}
                         className="w-full text-left px-2 py-1 rounded text-sm text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-between"
                       >
