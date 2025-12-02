@@ -138,13 +138,18 @@ function BrowsePageContent() {
             console.log('✅ Fetched categories from API:', apiCategories.length, 'items');
             
             // Filter to show only main categories (match by dbName from lib/categories.ts)
+            const mainCategoryNames = CATEGORIES.filter(c => !c.isSubcategory).map(c => c.dbName);
             const mainCategories = apiCategories.filter(cat => {
-              const categoryDef = CATEGORIES.find(c => c.dbName === cat.name);
-              return !categoryDef || !categoryDef.isSubcategory;
+              // Include if it matches a main category name OR if it's one of the 6 main categories
+              return mainCategoryNames.includes(cat.name) || 
+                     ['Beauty Services', 'Spa, Onsen & Relaxation', 'Hotels & Stays', 
+                      'Dining & Izakaya', 'Clinics & Medical Care', 'Activities & Sports', 'Unknown'].includes(cat.name);
             });
             
             setCategories(mainCategories);
             console.log('✅ Main categories:', mainCategories.map(c => ({ id: c.id, name: c.name })));
+            console.log('📋 Total categories from API:', apiCategories.length);
+            console.log('📋 Filtered main categories:', mainCategories.length);
           }
         }
       } catch (error: any) {
@@ -175,18 +180,22 @@ function BrowsePageContent() {
         const stats = await res.json();
         setCategoryStats(stats);
         console.log('✅ Category stats loaded:', stats);
-        console.log('📊 Categories from API:', categories.map(c => ({ id: c.id, name: c.name })));
-        console.log('🔍 Stats keys:', Object.keys(stats));
-        // Log matching
-        categories.forEach(cat => {
-          const count = stats[cat.id];
-          console.log(`Category ${cat.name} (${cat.id}): ${count ?? 'NOT FOUND'} shops`);
-        });
+        console.log('📊 Stats keys (category UUIDs):', Object.keys(stats));
+        console.log('📊 Stats values:', Object.values(stats));
+        
+        // Log matching after categories are loaded
+        if (categories.length > 0) {
+          console.log('📊 Categories from state:', categories.map(c => ({ id: c.id, name: c.name })));
+          categories.forEach(cat => {
+            const count = stats[cat.id];
+            console.log(`Category ${cat.name} (${cat.id}): ${count ?? 'NOT FOUND'} shops`);
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching category stats:', error);
     }
-  }, [apiUrl, categories]);
+  }, [apiUrl]);
 
   // Fetch shops with pagination
   const fetchShops = useCallback(async (page: number = 1, append: boolean = false) => {
@@ -276,10 +285,12 @@ function BrowsePageContent() {
     }
   }, [apiUrl, debouncedSearch, selectedPrefectures, selectedCities, selectedCategoryId]);
 
-  // Fetch category stats on mount
+  // Fetch category stats on mount and when categories change
   useEffect(() => {
-    fetchCategoryStats();
-  }, [fetchCategoryStats]);
+    if (categories.length > 0) {
+      fetchCategoryStats();
+    }
+  }, [categories.length, fetchCategoryStats]);
 
   // Fetch shops when filters change
   useEffect(() => {
