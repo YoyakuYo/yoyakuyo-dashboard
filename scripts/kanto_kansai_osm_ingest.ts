@@ -355,22 +355,25 @@ function buildOverpassQuery(prefecture: Prefecture, categoryMapping: CategoryMap
   const [minLat, minLon, maxLat, maxLon] = prefecture.boundingBox;
   const bbox = `${minLat},${minLon},${maxLat},${maxLon}`;
 
-  // Build query for each OSM query type
-  const queries = categoryMapping.osmQueries.map((query) => {
-    const [key, value] = query.split('=');
-    return `["${key}"="${value}"]`;
-  });
+  // Build query parts
+  const queryParts: string[] = [];
+  
+  for (const osmQuery of categoryMapping.osmQueries) {
+    const [key, value] = osmQuery.split('=');
+    
+    // Query nodes
+    queryParts.push(`node["${key}"="${value}"]({{bbox}});`);
+    
+    // Query ways
+    queryParts.push(`way["${key}"="${value}"]({{bbox}});`);
+  }
 
-  // Build name pattern filters
-  const nameFilters = categoryMapping.namePatterns.length > 0
-    ? categoryMapping.namePatterns.map((pattern) => `(if:is_tag("name") && t["name"] ~ "${pattern}")`)
-    : [];
-
+  // If name patterns exist, we'll filter in post-processing
+  // Overpass doesn't support complex regex in the query itself easily
   const query = `
 [out:json][timeout:300];
 (
-  ${queries.map((q) => `node${q}({{bbox}});`).join('\n  ')}
-  ${queries.map((q) => `way${q}({{bbox}});`).join('\n  ')}
+  ${queryParts.join('\n  ')}
 );
 out center meta;
 `.replace(/{{bbox}}/g, bbox);
@@ -405,6 +408,7 @@ async function queryOverpassAPI(query: string): Promise<OSMNode[]> {
 function categorizeOSMNode(node: OSMNode): { subcategory: string; mainCategory: string } | null {
   const name = (node.tags?.name || '').toLowerCase();
   const nameJa = (node.tags?.['name:ja'] || '').toLowerCase();
+  const combinedName = `${name} ${nameJa}`.toLowerCase();
 
   // Check each category mapping
   for (const mapping of CATEGORY_MAPPINGS) {
@@ -414,18 +418,35 @@ function categorizeOSMNode(node: OSMNode): { subcategory: string; mainCategory: 
       return node.tags?.[key] === value;
     });
 
-    // Check name patterns
-    const matchesNamePattern = mapping.namePatterns.length === 0 || 
-      mapping.namePatterns.some((pattern) => 
-        name.includes(pattern.toLowerCase()) || nameJa.includes(pattern.toLowerCase())
-      );
+    if (!matchesOSMTag) continue;
 
-    if (matchesOSMTag && (mapping.namePatterns.length === 0 || matchesNamePattern)) {
-      return {
-        subcategory: mapping.subcategory,
-        mainCategory: mapping.mainCategory,
-      };
+    // Check name patterns (if required)
+    if (mapping.namePatterns.length > 0) {
+      const matchesNamePattern = mapping.namePatterns.some((pattern) => 
+        combinedName.includes(pattern.toLowerCase())
+      );
+      
+      if (!matchesNamePattern) continue;
     }
+
+    // Special handling for Izakaya (must have "居酒屋" in name)
+    if (mapping.subcategory === 'Izakaya') {
+      if (!combinedName.includes('居酒屋') && !combinedName.includes('izakaya')) {
+        continue;
+      }
+    }
+
+    // Special handling for Karaoke (must have "カラオケ" in name)
+    if (mapping.subcategory === 'Karaoke') {
+      if (!combinedName.includes('カラオケ') && !combinedName.includes('karaoke')) {
+        continue;
+      }
+    }
+
+    return {
+      subcategory: mapping.subcategory,
+      mainCategory: mapping.mainCategory,
+    };
   }
 
   return null;
