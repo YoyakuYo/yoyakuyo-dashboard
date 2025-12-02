@@ -125,18 +125,44 @@ function BrowsePageContent() {
     console.log('🔧 API URL configured:', apiUrl || '❌ NOT SET - Check NEXT_PUBLIC_API_URL env var');
   }, []);
 
-  // Use local categories instead of fetching from API
-  // This ensures all categories defined in lib/categories.ts are available
+  // Fetch categories from API to get database UUIDs (needed for stats matching)
   useEffect(() => {
-    // Convert CATEGORIES to the format expected by the component
-    const formattedCategories = CATEGORIES.map(cat => ({
-      id: cat.id,
-      name: cat.name,
-      description: cat.nameJa, // Use Japanese name as description
-    }));
-    console.log('✅ Using local categories:', formattedCategories.length, 'items');
-    setCategories(formattedCategories);
-  }, []);
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/categories`);
+        if (res.ok) {
+          const contentType = res.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await res.json();
+            const apiCategories = Array.isArray(data) ? data : [];
+            console.log('✅ Fetched categories from API:', apiCategories.length, 'items');
+            
+            // Filter to show only main categories (match by dbName from lib/categories.ts)
+            const mainCategories = apiCategories.filter(cat => {
+              const categoryDef = CATEGORIES.find(c => c.dbName === cat.name);
+              return !categoryDef || !categoryDef.isSubcategory;
+            });
+            
+            setCategories(mainCategories);
+            console.log('✅ Main categories:', mainCategories.map(c => ({ id: c.id, name: c.name })));
+          }
+        }
+      } catch (error: any) {
+        console.error('Error fetching categories:', error);
+        // Fallback to local categories if API fails
+        const formattedCategories = CATEGORIES.filter(c => !c.isSubcategory).map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          description: cat.nameJa,
+        }));
+        setCategories(formattedCategories);
+      }
+    };
+    
+    if (apiUrl) {
+      fetchCategories();
+    }
+  }, [apiUrl]);
 
 
   // Fetch category stats (shop counts per category) from backend
