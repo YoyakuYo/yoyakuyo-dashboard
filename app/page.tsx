@@ -1,221 +1,451 @@
-// Yoyaku Yo - Production Landing Page
+// Yoyaku Yo - New Landing Page
 "use client";
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import Image from 'next/image';
 import Link from 'next/link';
-import ModernLandingHeader from './components/landing/ModernLandingHeader';
+import SimpleNavbar from './components/landing/SimpleNavbar';
+import CategoryCard from './components/landing/CategoryCard';
 import OwnerModals from './components/OwnerModals';
-import CategoryCarousel from './components/landing/CategoryCarousel';
-import { getAllCategories, getCategoryName } from '@/lib/categories';
 
 export const dynamic = 'force-dynamic';
 
 function HomeContent() {
   const locale = useLocale();
   const t = useTranslations('landing');
-  const categories = getAllCategories();
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchLocation, setSearchLocation] = useState('');
+  // Category data for the 6 super-categories
+  const categories = [
+    {
+      id: 'beauty_services',
+      name: 'Beauty Services',
+      nameJa: '美容サービス',
+      description: 'Professional beauty and grooming services across Japan',
+      sellingPoints: [
+        'Popular services across Japan',
+        'Trusted local salons',
+        'Clear pricing and availability',
+        'Easy online booking',
+      ],
+      subcategories: ['Hair Salon', 'Nail Salon', 'Eyelashes & Eyebrows', 'Barber Shop'],
+      imageSearchTerms: [
+        'japanese modern hair salon',
+        'tokyo beauty salon interior',
+        'japanese nail salon',
+        'japanese barber shop',
+        'japanese eyelash extension',
+        'modern japanese beauty salon',
+      ],
+    },
+    {
+      id: 'spa_onsen',
+      name: 'Spa, Onsen & Relaxation',
+      nameJa: 'スパ・温泉・リラクゼーション',
+      description: 'Traditional Japanese relaxation and wellness experiences',
+      sellingPoints: [
+        'Traditional Japanese relaxation',
+        'Private & public onsen options',
+        'Spa treatments and body care',
+        'Ideal for rest and recovery',
+      ],
+      subcategories: ['Spa & Massages', 'Onsen & Ryokan'],
+      imageSearchTerms: [
+        'japanese onsen outdoor',
+        'luxury japanese spa massage',
+        'traditional japanese ryokan room',
+        'japanese hot spring mountain',
+        'japanese relaxation spa room',
+        'tokyo spa treatment room',
+      ],
+    },
+    {
+      id: 'hotels',
+      name: 'Hotels & Stays',
+      nameJa: 'ホテル・宿泊',
+      description: 'Convenient accommodation options throughout Japan',
+      sellingPoints: [
+        'Convenient accommodation across Japan',
+        'Easy booking for travelers',
+        'Secure instant reservations',
+        'Wide range of room types',
+      ],
+      subcategories: ['Hotel', 'Boutique', 'Business Hotels'],
+      imageSearchTerms: [
+        'japanese modern hotel lobby',
+        'tokyo hotel room interior',
+        'japanese boutique hotel',
+        'japanese business hotel',
+        'modern japanese hotel design',
+        'japanese hotel room view',
+      ],
+    },
+    {
+      id: 'dining',
+      name: 'Dining & Nightlife',
+      nameJa: '飲食・ナイトライフ',
+      description: 'Authentic Japanese dining and nightlife experiences',
+      sellingPoints: [
+        'Authentic dining experiences',
+        'Reserve tables instantly',
+        'Popular local spots',
+        'Clear menu and availability',
+      ],
+      subcategories: ['Restaurant', 'Izakaya'],
+      imageSearchTerms: [
+        'tokyo fine dining restaurant',
+        'japanese restaurant interior modern',
+        'japanese izakaya bar',
+        'tokyo nightlife restaurant',
+        'japanese traditional restaurant',
+        'modern japanese dining',
+      ],
+    },
+    {
+      id: 'clinics',
+      name: 'Clinics & Medical Care',
+      nameJa: 'クリニック・医療サービス',
+      description: 'Licensed medical and aesthetic services',
+      sellingPoints: [
+        'Licensed and verified clinics',
+        'Nationwide medical services',
+        'Clean, modern facilities',
+        'Simple appointment booking',
+      ],
+      subcategories: ['Aesthetic Clinic', 'Dental Clinic', "Women's Clinic"],
+      imageSearchTerms: [
+        'japanese modern clinic interior',
+        'tokyo medical clinic',
+        'japanese aesthetic clinic',
+        'japanese dental clinic',
+        'modern japanese healthcare',
+        'japanese medical facility',
+      ],
+    },
+    {
+      id: 'activities',
+      name: 'Activities & Sports',
+      nameJa: 'アクティビティ・スポーツ',
+      description: 'Sports and recreational activities across Japan',
+      sellingPoints: [
+        'Sports and activity options across Japan',
+        'Indoor and outdoor facilities',
+        'Instant session booking',
+        'Beginner-friendly',
+      ],
+      subcategories: ['Golf Practice Ranges'],
+      imageSearchTerms: [
+        'japanese golf practice range',
+        'tokyo sports facility',
+        'japanese indoor sports',
+        'japanese recreational activity',
+        'modern japanese sports center',
+        'japanese activity center',
+      ],
+    },
+  ];
 
-  const handleSearch = () => {
-    const params = new URLSearchParams();
-    if (searchQuery) params.set('q', searchQuery);
-    if (searchLocation) params.set('location', searchLocation);
-    window.location.href = `/categories?${params.toString()}`;
+  const handleOwnerSignup = () => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('openSignupModal'));
+    }
   };
 
-  // Popular cities for Japan
-  const popularCities = [
-    { id: 'tokyo', name: 'Tokyo', nameJa: '東京' },
-    { id: 'osaka', name: 'Osaka', nameJa: '大阪' },
-    { id: 'kyoto', name: 'Kyoto', nameJa: '京都' },
-    { id: 'yokohama', name: 'Yokohama', nameJa: '横浜' },
-    { id: 'sapporo', name: 'Sapporo', nameJa: '札幌' },
-    { id: 'fukuoka', name: 'Fukuoka', nameJa: '福岡' },
-  ];
+  const handleCustomerSignup = () => {
+    // Navigate to customer signup page
+    window.location.href = '/customer-signup';
+  };
 
   return (
     <div className="min-h-screen bg-white">
-      <ModernLandingHeader />
+      {/* Navbar */}
+      <SimpleNavbar />
 
-      {/* HERO SECTION - 90vh, full-bleed background */}
-      <section className="relative h-[90vh] min-h-[600px] flex items-center justify-center text-white overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0">
-          <Image
-            src="https://source.unsplash.com/1920x1080/?japanese modern hotel lobby"
-            alt="Yoyaku Yo"
-            fill
-            className="object-cover"
-            priority
-            unoptimized
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70" />
+      {/* 1. TOP — APP FEATURES */}
+      <section className="bg-gray-50 py-8 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mb-3">
+                <span className="text-2xl">🤖</span>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-1">24/7 AI Booking</h3>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mb-3">
+                <span className="text-2xl">🌐</span>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-1">
+                Multilingual: Japanese, English, Spanish, Portuguese, Chinese
+              </h3>
+            </div>
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center mb-3">
+                <span className="text-2xl">🔒</span>
+              </div>
+              <h3 className="font-semibold text-gray-900 mb-1">Secure Payments (Stripe)</h3>
+            </div>
+          </div>
         </div>
+      </section>
 
-        {/* Hero Content */}
-        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="text-center mb-8 md:mb-12">
-            {/* Main Headline - Changes with language */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 md:mb-6 leading-tight drop-shadow-lg">
-              {t('heroHeadline')}
-            </h1>
-            
-            {/* Sub-headline */}
-            <p className="text-lg md:text-xl lg:text-2xl text-white/90 mb-8 md:mb-12 max-w-3xl mx-auto drop-shadow-md">
-              {t('heroSubheadline')}
-            </p>
+      {/* 2. SERVICES OVERVIEW */}
+      <section className="py-12 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-4 mb-6">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-2">
+                <span className="text-3xl">💇</span>
+              </div>
+              <p className="text-xs text-gray-600 mt-1">Beauty</p>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-2">
+                <span className="text-3xl">♨️</span>
+              </div>
+              <p className="text-xs text-gray-600 mt-1">Spa & Onsen</p>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-2">
+                <span className="text-3xl">🏨</span>
+              </div>
+              <p className="text-xs text-gray-600 mt-1">Hotels</p>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-2">
+                <span className="text-3xl">🍱</span>
+              </div>
+              <p className="text-xs text-gray-600 mt-1">Dining</p>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-2">
+                <span className="text-3xl">🏥</span>
+              </div>
+              <p className="text-xs text-gray-600 mt-1">Clinics</p>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-2">
+                <span className="text-3xl">⛳</span>
+              </div>
+              <p className="text-xs text-gray-600 mt-1">Activities</p>
+            </div>
+          </div>
+          <p className="text-center text-gray-600 text-sm md:text-base">
+            Browse shops, clinics, restaurants, spas, hotels and more across Japan.
+          </p>
+        </div>
+      </section>
+
+      {/* 3. MAIN SECTION — 6 ULTRA BIG CATEGORY CARDS */}
+      <section className="py-12 md:py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Row 1: 2 cards */}
+          <div className="grid md:grid-cols-2 gap-6 mb-6">
+            <CategoryCard
+              categoryName={categories[0].name}
+              categoryNameJa={categories[0].nameJa}
+              description={categories[0].description}
+              sellingPoints={categories[0].sellingPoints}
+              subcategories={categories[0].subcategories}
+              imageSearchTerms={categories[0].imageSearchTerms}
+              categoryId={categories[0].id}
+            />
+            <CategoryCard
+              categoryName={categories[1].name}
+              categoryNameJa={categories[1].nameJa}
+              description={categories[1].description}
+              sellingPoints={categories[1].sellingPoints}
+              subcategories={categories[1].subcategories}
+              imageSearchTerms={categories[1].imageSearchTerms}
+              categoryId={categories[1].id}
+            />
           </div>
 
-          {/* Search Bar */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4 md:p-6 max-w-4xl mx-auto">
-            <div className="grid md:grid-cols-3 gap-4">
-              {/* Field 1: Service/Salon Search */}
-              <div className="md:col-span-2">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('searchPlaceholder1')}
-                  className="w-full px-4 py-3 md:py-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-gray-900 text-sm md:text-base"
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                />
-              </div>
+          {/* Row 2: 2 cards */}
+          <div className="grid md:grid-cols-2 gap-6 mb-6">
+            <CategoryCard
+              categoryName={categories[2].name}
+              categoryNameJa={categories[2].nameJa}
+              description={categories[2].description}
+              sellingPoints={categories[2].sellingPoints}
+              subcategories={categories[2].subcategories}
+              imageSearchTerms={categories[2].imageSearchTerms}
+              categoryId={categories[2].id}
+            />
+            <CategoryCard
+              categoryName={categories[3].name}
+              categoryNameJa={categories[3].nameJa}
+              description={categories[3].description}
+              sellingPoints={categories[3].sellingPoints}
+              subcategories={categories[3].subcategories}
+              imageSearchTerms={categories[3].imageSearchTerms}
+              categoryId={categories[3].id}
+            />
+          </div>
 
-              {/* Field 2: Location Search */}
-              <div>
-                <input
-                  type="text"
-                  value={searchLocation}
-                  onChange={(e) => setSearchLocation(e.target.value)}
-                  placeholder={t('searchPlaceholder2')}
-                  className="w-full px-4 py-3 md:py-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-gray-900 text-sm md:text-base"
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                />
-              </div>
-            </div>
+          {/* Row 3: 2 cards (slightly smaller) */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <CategoryCard
+              categoryName={categories[4].name}
+              categoryNameJa={categories[4].nameJa}
+              description={categories[4].description}
+              sellingPoints={categories[4].sellingPoints}
+              subcategories={categories[4].subcategories}
+              imageSearchTerms={categories[4].imageSearchTerms}
+              categoryId={categories[4].id}
+            />
+            <CategoryCard
+              categoryName={categories[5].name}
+              categoryNameJa={categories[5].nameJa}
+              description={categories[5].description}
+              sellingPoints={categories[5].sellingPoints}
+              subcategories={categories[5].subcategories}
+              imageSearchTerms={categories[5].imageSearchTerms}
+              categoryId={categories[5].id}
+            />
+          </div>
+        </div>
+      </section>
 
-            {/* Search Button - Gradient */}
+      {/* 4. CUSTOMER SECTION */}
+      <section className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8 text-center">
+            For Customers (お客様向け)
+          </h2>
+
+          <div className="bg-gray-50 rounded-xl p-6 md:p-8 mb-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">No account required</h3>
+            <ul className="space-y-2 mb-4">
+              <li className="flex items-start gap-2 text-gray-700">
+                <span className="text-pink-600 mt-1">✓</span>
+                <span>Book using AI without signing up</span>
+              </li>
+              <li className="flex items-start gap-2 text-gray-700">
+                <span className="text-pink-600 mt-1">✓</span>
+                <span>AI checks availability and answers questions 24/7</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="bg-pink-50 rounded-xl p-6 md:p-8 mb-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">
+              Create a free account for more features
+            </h3>
+            <ul className="space-y-2 mb-4">
+              <li className="flex items-start gap-2 text-gray-700">
+                <span className="text-pink-600 mt-1">✓</span>
+                <span>Save favorites</span>
+              </li>
+              <li className="flex items-start gap-2 text-gray-700">
+                <span className="text-pink-600 mt-1">✓</span>
+                <span>View past & upcoming bookings</span>
+              </li>
+              <li className="flex items-start gap-2 text-gray-700">
+                <span className="text-pink-600 mt-1">✓</span>
+                <span>Send & receive messages with shops</span>
+              </li>
+              <li className="flex items-start gap-2 text-gray-700">
+                <span className="text-pink-600 mt-1">✓</span>
+                <span>Receive notifications & reminders</span>
+              </li>
+              <li className="flex items-start gap-2 text-gray-700">
+                <span className="text-pink-600 mt-1">✓</span>
+                <span>Write reviews</span>
+              </li>
+              <li className="flex items-start gap-2 text-gray-700">
+                <span className="text-pink-600 mt-1">✓</span>
+                <span>AI assistance in 5 languages (JA, EN, ES, PT, CN)</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="text-center">
             <button
-              onClick={handleSearch}
-              className="w-full mt-4 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white py-3 md:py-4 rounded-lg font-bold text-base md:text-lg transition-all shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+              onClick={handleCustomerSignup}
+              className="inline-block bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-lg transition-all shadow-md hover:shadow-lg"
             >
-              {t('searchButton')}
+              Create Free Account (Optional)
             </button>
           </div>
         </div>
       </section>
 
-      {/* TRUST ROW - Real numbers only */}
-      <section className="bg-white border-b border-gray-200 py-4 md:py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8 text-sm md:text-base text-gray-700">
-            <span className="font-semibold text-gray-900">30,000+ {t('trustShops')}</span>
-            <span className="hidden md:inline">•</span>
-            <span>{t('trustPayment')}</span>
-            <span className="hidden md:inline">•</span>
-            <span>{t('trustLanguages')}</span>
-            <span className="hidden md:inline">•</span>
-            <span>{t('trustSecure')}</span>
-          </div>
-        </div>
-      </section>
-
-      {/* 13-CATEGORY HORIZONTAL SCROLLING CAROUSEL */}
-      <section className="py-8 md:py-12 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8 text-center">
-            {t('categoriesTitle')}
+      {/* 5. OWNER SECTION */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8 text-center">
+            For Shop Owners（オーナー様向け）
           </h2>
-          <CategoryCarousel />
-        </div>
-      </section>
 
-      {/* HOW IT WORKS - 3 Steps */}
-      <section className="py-12 md:py-16 lg:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12 md:mb-16">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-              {t('howItWorksTitle')}
-            </h2>
-          </div>
+          <div className="bg-white rounded-xl p-6 md:p-8 shadow-lg">
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-start gap-3 text-gray-700">
+                <span className="text-pink-600 mt-1 text-xl">✓</span>
+                <span>Claim your shop page for free</span>
+              </li>
+              <li className="flex items-start gap-3 text-gray-700">
+                <span className="text-pink-600 mt-1 text-xl">✓</span>
+                <span>Accept online bookings 24/7</span>
+              </li>
+              <li className="flex items-start gap-3 text-gray-700">
+                <span className="text-pink-600 mt-1 text-xl">✓</span>
+                <span>Add services, pricing, and working hours</span>
+              </li>
+              <li className="flex items-start gap-3 text-gray-700">
+                <span className="text-pink-600 mt-1 text-xl">✓</span>
+                <span>Manage reservations easily</span>
+              </li>
+              <li className="flex items-start gap-3 text-gray-700">
+                <span className="text-pink-600 mt-1 text-xl">✓</span>
+                <span>AI assistant in 5 languages</span>
+              </li>
+              <li className="flex items-start gap-3 text-gray-700">
+                <span className="text-pink-600 mt-1 text-xl">✓</span>
+                <span>Increased visibility to locals & tourists</span>
+              </li>
+              <li className="flex items-start gap-3 text-gray-700">
+                <span className="text-pink-600 mt-1 text-xl">✓</span>
+                <span>One-month free trial</span>
+              </li>
+              <li className="flex items-start gap-3 text-gray-700">
+                <span className="text-pink-600 mt-1 text-xl">✓</span>
+                <span>Continue only if you like the service</span>
+              </li>
+            </ul>
 
-          <div className="grid md:grid-cols-3 gap-8 md:gap-12">
-            {/* Step 1 */}
             <div className="text-center">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-full flex items-center justify-center text-2xl md:text-3xl font-bold mx-auto mb-6 shadow-lg">
-                1
-              </div>
-              <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">
-                {t('step1Title')}
-              </h3>
-              <p className="text-gray-600 text-sm md:text-base">
-                {t('step1Desc')}
-              </p>
-            </div>
-
-            {/* Step 2 */}
-            <div className="text-center">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-full flex items-center justify-center text-2xl md:text-3xl font-bold mx-auto mb-6 shadow-lg">
-                2
-              </div>
-              <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">
-                {t('step2Title')}
-              </h3>
-              <p className="text-gray-600 text-sm md:text-base">
-                {t('step2Desc')}
-              </p>
-            </div>
-
-            {/* Step 3 */}
-            <div className="text-center">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-full flex items-center justify-center text-2xl md:text-3xl font-bold mx-auto mb-6 shadow-lg">
-                3
-              </div>
-              <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">
-                {t('step3Title')}
-              </h3>
-              <p className="text-gray-600 text-sm md:text-base">
-                {t('step3Desc')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* POPULAR CITIES ROW */}
-      <section className="py-12 md:py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8 text-center">
-            {t('popularCitiesTitle')}
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {popularCities.map((city) => (
-              <Link
-                key={city.id}
-                href={`/categories?location=${city.id}`}
-                className="bg-white rounded-lg p-4 md:p-6 text-center shadow-md hover:shadow-xl transition-all hover:scale-105 border-2 border-transparent hover:border-pink-500"
+              <button
+                onClick={handleOwnerSignup}
+                className="inline-block bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold py-3 px-8 rounded-lg transition-all shadow-md hover:shadow-lg"
               >
-                <h3 className="font-bold text-gray-900 text-base md:text-lg mb-1">
-                  {locale === 'ja' ? city.nameJa : city.name}
-                </h3>
-                <p className="text-gray-600 text-xs md:text-sm">
-                  {locale === 'ja' ? city.name : city.nameJa}
-                </p>
-              </Link>
-            ))}
+                Claim My Shop (Free Trial)
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* CLEAN FOOTER */}
+      {/* 6. CLEAN FOOTER */}
       <footer className="bg-gray-900 text-white py-8 md:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center text-gray-400 text-sm md:text-base">
-            © {new Date().getFullYear()} Yoyaku Yo. {t('allRightsReserved')}
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex flex-wrap justify-center gap-4 md:gap-6 text-sm">
+              <Link href="/about" className="hover:text-pink-400 transition-colors">
+                About
+              </Link>
+              <Link href="/contact" className="hover:text-pink-400 transition-colors">
+                Contact
+              </Link>
+              <Link href="/terms" className="hover:text-pink-400 transition-colors">
+                Terms
+              </Link>
+              <Link href="/privacy" className="hover:text-pink-400 transition-colors">
+                Privacy
+              </Link>
+            </div>
+            <div className="text-sm text-gray-400">
+              © {new Date().getFullYear()} Yoyaku Yo
+            </div>
           </div>
         </div>
       </footer>
