@@ -16,8 +16,22 @@ export const categoryMarketing: Record<string, CategoryMarketing> = {
     descriptionJa: '本格的な居酒屋、伝統的なレストラン、モダンなダイニング体験をお探しください。近所の居酒屋から高級レストランまで、次の食事に最適な場所を見つけましょう。',
   },
   
-  // Hotels & Ryokan
+  // Hotels & Ryokan (legacy key)
   'hotel': {
+    images: [
+      'https://besthotelshome.com/wp-content/uploads/2020/02/Conrad-Tokyo-Best-Luxury-Hotels-in-Tokyo.jpg',
+      'https://66.media.tumblr.com/1096a312af4ac78a80f5ab50e89a0516/tumblr_n33buxuBih1r2doe0o1_1280.jpg',
+      'https://misstourist.com/wp-content/uploads/2022/06/4-1-Coolest-hotels-in-Tokyo-with-a-view.jpg',
+      'https://urbanpixxels.com/wp-content/uploads/14-11376-post/Koyoto-Ryokan-Hiiragiya-Traditional-Wing.jpg',
+      'https://assets.vogue.com/photos/5a31647948b79a4f01f38a11/master/pass/luxury-ryokan-onsen-japan-promo.jpg',
+      'https://www.hotelsinheaven.com/wp-content/uploads/2019/01/mandarin-oriental-tokyo-facade-hotel-mobile-scaled.jpg',
+    ],
+    description: 'Experience traditional Japanese hospitality at ryokan inns or enjoy modern comfort at luxury hotels. From hot spring resorts to city center hotels, find your perfect accommodation.',
+    descriptionJa: '旅館で伝統的な日本のおもてなしを体験するか、高級ホテルでモダンな快適さをお楽しみください。温泉リゾートから都心のホテルまで、最適な宿泊施設を見つけましょう。',
+  },
+  
+  // Hotels & Stays (main category - matches imageKey in categories.ts)
+  'hotels-stays': {
     images: [
       'https://besthotelshome.com/wp-content/uploads/2020/02/Conrad-Tokyo-Best-Luxury-Hotels-in-Tokyo.jpg',
       'https://66.media.tumblr.com/1096a312af4ac78a80f5ab50e89a0516/tumblr_n33buxuBih1r2doe0o1_1280.jpg',
