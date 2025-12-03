@@ -102,7 +102,14 @@ export const categoryMarketing: Record<string, CategoryMarketing> = {
   
   // Clinics & Medical Care (main category)
   'clinics-medical-care': {
-    images: [],
+    images: [
+      'https://tse1.explicit.bing.net/th/id/OIP.RXJmd_tAGNF_r98P7iP-OAHaE7?rs=1&pid=ImgDetMain&o=7&rm=3',
+      'https://midcitihospital.com/wp-content/uploads/2020/10/Gynaecology-1-1024x683.jpg',
+      'https://img.freepik.com/premium-vector/gynecology-obstetrics-banner_111409-802.jpg?w=2000',
+      'https://images.pexels.com/photos/6809642/pexels-photo-6809642.jpeg?cs=srgb&dl=pexels-pavel-danilyuk-6809642.jpg&fm=jpg',
+      'https://preview.redd.it/dental-clinic-interior-design-latest-interiors-v0-niaih3ygq4da1.jpg?width=3000&format=pjpg&auto=webp&s=080c992b8d88f4a91f518de53f1533c01f599209',
+      'https://www.liveenhanced.com/wp-content/uploads/2019/09/dental-clinic-21.jpg',
+    ],
     description: 'Professional medical and wellness services including dental care, women\'s health, eye clinics, and aesthetic treatments. Trusted clinics providing comprehensive healthcare.',
     descriptionJa: '歯科治療、女性の健康、眼科、美容治療を含むプロフェッショナルな医療およびウェルネスサービス。総合的なヘルスケアを提供する信頼できるクリニック。',
   },

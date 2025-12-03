@@ -47,6 +47,31 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'stories-editor.hilton.com',
       },
+      // Clinics & Medical Care images
+      {
+        protocol: 'https',
+        hostname: 'tse1.explicit.bing.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'midcitihospital.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.freepik.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.pexels.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'preview.redd.it',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.liveenhanced.com',
+      },
     ],
     unoptimized: false,
   },
