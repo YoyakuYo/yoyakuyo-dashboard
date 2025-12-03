@@ -25,7 +25,7 @@ export default function MinimalNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Left: Logo */}
-          <Link href="/" className="text-xl font-semibold text-white hover:text-japanese-gold transition-colors drop-shadow-lg">
+          <Link href="/" className="text-xl font-semibold text-gray-700 hover:text-japanese-red transition-colors drop-shadow-sm">
             Yoyaku Yo
           </Link>
 
@@ -33,14 +33,14 @@ export default function MinimalNavbar() {
           <div className="flex items-center gap-2">
             <Link 
               href="/browse" 
-              className="text-sm font-medium text-white hover:text-japanese-gold transition-colors drop-shadow-md"
+              className="text-sm font-medium text-gray-700 hover:text-japanese-red transition-colors drop-shadow-sm"
             >
               {t('navCategories')}
             </Link>
-            <span className="text-white/60">|</span>
+            <span className="text-gray-500">|</span>
             <Link 
               href="/services" 
-              className="text-sm font-medium text-white hover:text-japanese-gold transition-colors drop-shadow-md"
+              className="text-sm font-medium text-gray-700 hover:text-japanese-red transition-colors drop-shadow-sm"
             >
               {t('navServices') || 'SERVICES'}
             </Link>
@@ -51,7 +51,7 @@ export default function MinimalNavbar() {
             <WhiteLanguageSwitcher />
             <button
               onClick={handleLoginClick}
-              className="px-4 py-2 text-sm font-medium text-white hover:text-japanese-gold transition-colors drop-shadow-md"
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-japanese-red transition-colors drop-shadow-sm"
             >
               {t('heroLogin')}
             </button>
