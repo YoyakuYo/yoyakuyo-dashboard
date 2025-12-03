@@ -56,7 +56,7 @@ export default function CategoryGrid() {
                 <Link
                   href={isCustomerDashboard 
                     ? `/customer/shops?category=${category.id}` 
-                    : `/browse?category=${category.id}`}
+                    : `/categories/${category.id}`}
                   className="relative overflow-hidden rounded-theme bg-white border-2 border-japanese-sage/30 hover:border-japanese-red/50 transition-all duration-300 shadow-lg hover:shadow-2xl block"
                 >
                   <div className="relative aspect-[4/3] w-full">

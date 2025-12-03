@@ -126,7 +126,7 @@ export default function CategoryCard({
 
           {/* View Shops Button */}
           <Link
-            href="/browse"
+            href={`/categories/${categoryId}`}
             className="inline-block w-full text-center bg-japanese-red hover:bg-japanese-red/90 text-white font-semibold py-3 px-6 rounded-lg transition-all shadow-md hover:shadow-lg hover:scale-[1.02]"
           >
             {t('viewShops')}

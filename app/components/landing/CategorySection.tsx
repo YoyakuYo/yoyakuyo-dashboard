@@ -39,7 +39,7 @@ export default function CategorySection() {
       ],
     },
     {
-      id: 'spa_onsen',
+      id: 'spa_onsen_relaxation',
       title: t('categorySpaTitle'),
       titleJa: t('categorySpaTitleJa'),
       description: t('categorySpaDesc'),
@@ -64,7 +64,7 @@ export default function CategorySection() {
       ],
     },
     {
-      id: 'hotels',
+      id: 'hotels_stays',
       title: t('categoryHotelsTitle'),
       titleJa: t('categoryHotelsTitleJa'),
       description: t('categoryHotelsDesc'),
@@ -77,7 +77,7 @@ export default function CategorySection() {
       imageSearchTerms: getCategoryImages('hotels-stays'),
     },
     {
-      id: 'dining',
+      id: 'dining_izakaya',
       title: t('categoryDiningTitle'),
       titleJa: t('categoryDiningTitleJa'),
       description: t('categoryDiningDesc'),
@@ -100,7 +100,7 @@ export default function CategorySection() {
       ],
     },
     {
-      id: 'clinics',
+      id: 'clinics_medical_care',
       title: t('categoryClinicsTitle'),
       titleJa: t('categoryClinicsTitleJa'),
       description: t('categoryClinicsDesc'),
@@ -113,7 +113,7 @@ export default function CategorySection() {
       imageSearchTerms: getCategoryImages('clinics-medical-care'),
     },
     {
-      id: 'activities',
+      id: 'activities_sports',
       title: t('categoryActivitiesTitle'),
       titleJa: t('categoryActivitiesTitleJa'),
       description: t('categoryActivitiesDesc'),
