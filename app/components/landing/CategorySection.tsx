@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import CategoryCard from './CategoryCard';
+import { getCategoryImages } from '@/lib/categoryImages';
 
 export default function CategorySection() {
   const t = useTranslations('landing');
@@ -73,7 +74,7 @@ export default function CategorySection() {
         t('categoryHotelsPoint3'),
         t('categoryHotelsPoint4'),
       ],
-      imageSearchTerms: [],
+      imageSearchTerms: getCategoryImages('hotels-stays'),
     },
     {
       id: 'dining',
@@ -109,7 +110,7 @@ export default function CategorySection() {
         t('categoryClinicsPoint3'),
         t('categoryClinicsPoint4'),
       ],
-      imageSearchTerms: [],
+      imageSearchTerms: getCategoryImages('clinics-medical-care'),
     },
     {
       id: 'activities',
