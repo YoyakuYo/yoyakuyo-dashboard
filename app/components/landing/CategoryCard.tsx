@@ -53,7 +53,7 @@ export default function CategoryCard({
   }, [imageUrls.length]);
 
   return (
-    <div className="bg-japanese-paper rounded-xl shadow-lg overflow-hidden border-2 border-japanese-sage/20 hover:border-japanese-red/40 hover:shadow-2xl transition-all duration-300">
+    <div className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-japanese-sage/20 hover:border-japanese-red/40 hover:shadow-2xl transition-all duration-300">
       <div className="grid md:grid-cols-2 gap-0">
         {/* Left Side: Image Slider */}
         <div className="relative h-72 md:h-full min-h-[300px]">
@@ -70,7 +70,7 @@ export default function CategoryCard({
                     src={url}
                     alt={`${title} ${index + 1}`}
                     fill
-                    className="object-cover object-center rounded-xl"
+                    className="object-cover object-center rounded-xl brightness-100 contrast-100"
                     unoptimized
                     onLoad={() => {
                       const newLoaded = [...imagesLoaded];
@@ -106,7 +106,7 @@ export default function CategoryCard({
         </div>
 
         {/* Right Side: Content */}
-        <div className="p-6 md:p-8 flex flex-col justify-center bg-japanese-paper">
+        <div className="p-6 md:p-8 flex flex-col justify-center bg-white">
           <h3 className="text-2xl md:text-3xl font-bold text-japanese-charcoal mb-2">
             {title}
           </h3>

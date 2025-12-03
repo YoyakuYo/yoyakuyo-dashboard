@@ -29,7 +29,7 @@ export default function CategoryGrid() {
   };
 
   return (
-    <section className="py-16 md:py-24 bg-japanese-paper">
+    <section className="py-16 md:py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4">
         <h2 className="text-3xl md:text-4xl font-heading font-bold text-center text-japanese-charcoal mb-12">
           {isJapanese ? 'カテゴリーから探す' : 'Browse by Category'}
@@ -57,7 +57,7 @@ export default function CategoryGrid() {
                   href={isCustomerDashboard 
                     ? `/customer/shops?category=${category.id}` 
                     : `/browse?category=${category.id}`}
-                  className="relative overflow-hidden rounded-theme bg-japanese-paper border-2 border-japanese-sage/30 hover:border-japanese-red/50 transition-all duration-300 shadow-lg hover:shadow-2xl block"
+                  className="relative overflow-hidden rounded-theme bg-white border-2 border-japanese-sage/30 hover:border-japanese-red/50 transition-all duration-300 shadow-lg hover:shadow-2xl block"
                 >
                   <div className="relative aspect-[4/3] w-full">
                     {/* Image carousel - Only show if images exist */}
@@ -67,7 +67,7 @@ export default function CategoryGrid() {
                           src={currentImage}
                           alt={categoryName}
                           fill
-                          className="object-cover transition-opacity duration-300"
+                          className="object-cover transition-opacity duration-300 brightness-100 contrast-100"
                           sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                           unoptimized={true}
                         />

@@ -8,7 +8,7 @@ import OwnerModals from './components/OwnerModals';
 
 export default function HomePage() {
   return (
-    <div className="w-full min-h-screen bg-japanese-paper">
+    <div className="w-full min-h-screen bg-white">
       {/* Minimal Navbar */}
       <MinimalNavbar />
 

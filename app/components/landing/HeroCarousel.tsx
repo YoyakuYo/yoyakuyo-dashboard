@@ -55,29 +55,30 @@ export default function HeroCarousel() {
             src={imageUrl}
             alt={`Hero background ${index + 1}`}
             fill
-            className="object-cover object-center"
+            className="object-cover object-center brightness-100 contrast-100"
             priority={index === 0}
             unoptimized
+            quality={100}
           />
         </div>
       ))}
 
-      {/* Soft Overlay - Full */}
-      <div className="absolute inset-0 bg-japanese-charcoal/40" />
+      {/* Minimal Overlay - Only for text readability, very subtle */}
+      <div className="absolute inset-0 bg-black/10" />
 
-      {/* Left Side Gradient Overlay - Japanese aesthetic */}
-      <div className="absolute inset-0 bg-gradient-to-r from-japanese-charcoal/70 via-japanese-charcoal/30 to-transparent z-10" />
+      {/* Left Side Gradient Overlay - Very subtle, only where text is */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-black/5 to-transparent z-10" />
 
       {/* Hero Content - Left Aligned */}
       <div className="absolute inset-0 flex items-center z-20">
         <div className="text-left pl-10 md:pl-12 lg:pl-16 max-w-4xl">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 tracking-tight drop-shadow-lg">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 tracking-tight drop-shadow-2xl [text-shadow:_2px_2px_8px_rgb(0_0_0_/_80%)]">
             {t('heroMainTitle')}
           </h1>
-          <p className="text-xl md:text-2xl lg:text-3xl text-white mb-4 font-light drop-shadow-md">
+          <p className="text-xl md:text-2xl lg:text-3xl text-white mb-4 font-light drop-shadow-xl [text-shadow:_1px_1px_6px_rgb(0_0_0_/_70%)]">
             {t('heroMainSubtitle')}
           </p>
-          <p className="text-base md:text-lg lg:text-xl text-white/90 font-light drop-shadow-md">
+          <p className="text-base md:text-lg lg:text-xl text-white mb-4 font-light drop-shadow-lg [text-shadow:_1px_1px_4px_rgb(0_0_0_/_60%)]">
             {t('heroTagline')}
           </p>
         </div>
