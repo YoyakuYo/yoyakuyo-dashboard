@@ -13,6 +13,7 @@ export function useCustomerNotificationsHook() {
   const { 
     setUnreadNotificationsCount, 
     setUnreadBookingsCount,
+    setUnreadMessagesCount,
     setNewNotification 
   } = useCustomerNotifications();
   const subscriptionRef = useRef<any>(null);
@@ -51,7 +52,27 @@ export function useCustomerNotificationsHook() {
       .in("status", ["pending", "confirmed"]);
     
     setUnreadBookingsCount(bookings?.length || 0);
-  }, [user?.id, setUnreadNotificationsCount, setUnreadBookingsCount]);
+
+    // Load unread messages count (messages from owner not read by customer)
+    const { data: threads } = await supabase
+      .from("shop_threads")
+      .select("id")
+      .eq("customer_id", profile.id);
+    
+    if (threads && threads.length > 0) {
+      const threadIds = threads.map(t => t.id);
+      const { data: unreadMessages } = await supabase
+        .from("shop_messages")
+        .select("id")
+        .in("thread_id", threadIds)
+        .eq("read_by_customer", false)
+        .eq("sender_type", "owner");
+      
+      setUnreadMessagesCount(unreadMessages?.length || 0);
+    } else {
+      setUnreadMessagesCount(0);
+    }
+  }, [user?.id, setUnreadNotificationsCount, setUnreadBookingsCount, setUnreadMessagesCount]);
 
   const subscribeToUpdates = useCallback(() => {
     if (!user?.id) return;
@@ -183,7 +204,36 @@ export function useCustomerNotificationsHook() {
           )
           .subscribe();
 
-        subscriptionRef.current = { notificationsChannel, bookingsChannel };
+        // Subscribe to messages table for unread message updates
+        const messagesChannel = supabase
+          .channel('customer-messages-realtime')
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'shop_messages',
+              filter: `sender_type=eq.owner`,
+            },
+            () => {
+              loadCounts();
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'shop_messages',
+              filter: `read_by_customer=eq.true`,
+            },
+            () => {
+              loadCounts();
+            }
+          )
+          .subscribe();
+
+        subscriptionRef.current = { notificationsChannel, bookingsChannel, messagesChannel };
       });
   }, [user?.id, loadCounts, setNewNotification]);
 
@@ -192,6 +242,7 @@ export function useCustomerNotificationsHook() {
     if (!user?.id) {
       setUnreadNotificationsCount(0);
       setUnreadBookingsCount(0);
+      setUnreadMessagesCount(0);
       return;
     }
 
@@ -207,8 +258,11 @@ export function useCustomerNotificationsHook() {
         if (subscriptionRef.current.bookingsChannel) {
           supabase.removeChannel(subscriptionRef.current.bookingsChannel);
         }
+        if (subscriptionRef.current.messagesChannel) {
+          supabase.removeChannel(subscriptionRef.current.messagesChannel);
+        }
       }
     };
-  }, [user, loadCounts, subscribeToUpdates, setUnreadNotificationsCount, setUnreadBookingsCount]);
+  }, [user, loadCounts, subscribeToUpdates, setUnreadNotificationsCount, setUnreadBookingsCount, setUnreadMessagesCount]);
 }
 

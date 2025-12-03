@@ -18,6 +18,8 @@ interface CustomerNotificationContextType {
   setUnreadNotificationsCount: (count: number) => void;
   unreadBookingsCount: number;
   setUnreadBookingsCount: (count: number) => void;
+  unreadMessagesCount: number;
+  setUnreadMessagesCount: (count: number) => void;
   newNotification: CustomerNotification | null;
   setNewNotification: (notification: CustomerNotification | null) => void;
 }
@@ -27,6 +29,7 @@ const CustomerNotificationContext = createContext<CustomerNotificationContextTyp
 export function CustomerNotificationProvider({ children }: { children: ReactNode }) {
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [unreadBookingsCount, setUnreadBookingsCount] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [newNotification, setNewNotification] = useState<CustomerNotification | null>(null);
 
   return (
@@ -36,6 +39,8 @@ export function CustomerNotificationProvider({ children }: { children: ReactNode
         setUnreadNotificationsCount,
         unreadBookingsCount,
         setUnreadBookingsCount,
+        unreadMessagesCount,
+        setUnreadMessagesCount,
         newNotification,
         setNewNotification,
       }}

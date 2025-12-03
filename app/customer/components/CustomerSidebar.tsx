@@ -9,7 +9,7 @@ import NotificationDot from "@/app/components/NotificationDot";
 export default function CustomerSidebar() {
   const pathname = usePathname();
   const t = useTranslations();
-  const { unreadNotificationsCount, unreadBookingsCount } = useCustomerNotifications();
+  const { unreadNotificationsCount, unreadBookingsCount, unreadMessagesCount } = useCustomerNotifications();
 
   const isActive = (path: string) => {
     if (path === "/customer/home") {
@@ -59,10 +59,19 @@ export default function CustomerSidebar() {
               </svg>
               <span>{t(item.labelKey)}</span>
               {item.href === "/customer/notifications" && unreadNotificationsCount > 0 && (
-                <NotificationDot className="ml-auto" />
+                <span className="ml-auto bg-red-500 text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  {unreadNotificationsCount}
+                </span>
               )}
               {item.href === "/customer/bookings" && unreadBookingsCount > 0 && (
-                <NotificationDot className="ml-auto" />
+                <span className="ml-auto bg-red-500 text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  {unreadBookingsCount}
+                </span>
+              )}
+              {item.href === "/customer/messages" && unreadMessagesCount > 0 && (
+                <span className="ml-auto bg-red-500 text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  {unreadMessagesCount}
+                </span>
               )}
             </Link>
           ))}
