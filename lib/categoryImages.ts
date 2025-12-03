@@ -93,6 +93,24 @@ export const categoryMarketing: Record<string, CategoryMarketing> = {
     descriptionJa: '総合的な女性の健康サービスと婦人科ケア。プロフェッショナルな医療サポートを提供する信頼できるクリニック。',
   },
   
+  // Clinics & Medical Care (Main Category)
+  'clinics-medical-care': {
+    images: [
+      'https://static.vecteezy.com/system/resources/previews/012/043/583/large_2x/gynecology-medicine-concept-women-s-health-doctor-holding-in-hand-the-hologram-of-female-reproductive-system-and-medical-icons-network-connection-on-virtual-screen-illustration-vector.jpg',
+      'https://thumbs.dreamstime.com/z/anatomy-female-reproductive-system-d-illustration-female-gynecology-organs-highlighted-inside-body-anatomy-female-123657563.jpg',
+      'https://c8.alamy.com/comp/2HTXG9X/gynecology-and-obstetrics-icon-set-in-colored-line-style-women-reproductive-health-vector-illustration-2HTXG9X.jpg',
+      'https://www.womensclinicofatlanta.com/wp-content/uploads/2021/10/home-sti-services.jpg',
+      'https://www.rappler.com/tachyon/2022/12/Kindred-Clinic-1.jpg?resize=1279%2C720&zoom=1',
+      'https://img.freepik.com/premium-vector/vector-logo-women-s-health-clinic-elegant_626969-43.jpg?w=2000',
+      'https://treesforhealth.org/wp-content/uploads/2020/04/shutterstock_581411425.jpg',
+      'https://as1.ftcdn.net/v2/jpg/02/95/56/44/1000_F_295564471_QuEZep8kRRwM01Z796dKX5RGgZIyforw.jpg',
+      'https://graziamagazine.com/me/wp-content/uploads/sites/16/2024/09/best-aesthetics-clinic-dubai-kings--1024x683.jpeg',
+      'https://www.aesthetic-clinics.co.uk/wp-content/uploads/2022/10/AestheticClinicsWeb-300x67.png',
+    ],
+    description: 'Professional medical care including dental clinics, women\'s health services, aesthetic treatments, and wellness clinics. Find trusted healthcare providers across Japan.',
+    descriptionJa: '歯科クリニック、女性の健康サービス、美容治療、ウェルネスクリニックを含むプロフェッショナルな医療ケア。日本全国の信頼できる医療提供者を見つけましょう。',
+  },
+  
   // Golf Courses
   'golf': {
     images: [],
