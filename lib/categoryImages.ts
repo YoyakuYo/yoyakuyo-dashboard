@@ -25,10 +25,6 @@ export const categoryMarketing: Record<string, CategoryMarketing> = {
       'https://urbanpixxels.com/wp-content/uploads/14-11376-post/Koyoto-Ryokan-Hiiragiya-Traditional-Wing.jpg',
       'https://assets.vogue.com/photos/5a31647948b79a4f01f38a11/master/pass/luxury-ryokan-onsen-japan-promo.jpg',
       'https://www.hotelsinheaven.com/wp-content/uploads/2019/01/mandarin-oriental-tokyo-facade-hotel-mobile-scaled.jpg',
-      'https://hips.hearstapps.com/hmg-prod.s3.amazonaws.com/images/hoshinoya-kyoto-floating-tearoom-3-1549906559.jpg?resize=768:*',
-      'https://secure.s.forbestravelguide.com/img/properties/Property-AndazTokyoToranomonHills-Hotel-GuestroomSuite-DeluxeAndazLargeKing-HyattCorporation.jpg',
-      'https://twomonkeystravelgroup.com/wp-content/uploads/2016/02/Ultimate-List-of-the-Best-Luxury-Hotels-in-Japan-5.jpg',
-      'https://www.erikastravelventures.com/wp-content/uploads/2024/08/4.jpg',
     ],
     description: 'Experience traditional Japanese hospitality at ryokan inns or enjoy modern comfort at luxury hotels. From hot spring resorts to city center hotels, find your perfect accommodation.',
     descriptionJa: '旅館で伝統的な日本のおもてなしを体験するか、高級ホテルでモダンな快適さをお楽しみください。温泉リゾートから都心のホテルまで、最適な宿泊施設を見つけましょう。',
@@ -97,7 +93,7 @@ export const categoryMarketing: Record<string, CategoryMarketing> = {
     descriptionJa: '総合的な女性の健康サービスと婦人科ケア。プロフェッショナルな医療サポートを提供する信頼できるクリニック。',
   },
   
-  // Clinics & Medical Care (Main Category)
+  // Clinics & Medical Care (main category)
   'clinics-medical-care': {
     images: [
       'https://static.vecteezy.com/system/resources/previews/012/043/583/large_2x/gynecology-medicine-concept-women-s-health-doctor-holding-in-hand-the-hologram-of-female-reproductive-system-and-medical-icons-network-connection-on-virtual-screen-illustration-vector.jpg',
@@ -111,8 +107,8 @@ export const categoryMarketing: Record<string, CategoryMarketing> = {
       'https://graziamagazine.com/me/wp-content/uploads/sites/16/2024/09/best-aesthetics-clinic-dubai-kings--1024x683.jpeg',
       'https://www.aesthetic-clinics.co.uk/wp-content/uploads/2022/10/AestheticClinicsWeb-300x67.png',
     ],
-    description: 'Professional medical care including dental clinics, women\'s health services, aesthetic treatments, and wellness clinics. Find trusted healthcare providers across Japan.',
-    descriptionJa: '歯科クリニック、女性の健康サービス、美容治療、ウェルネスクリニックを含むプロフェッショナルな医療ケア。日本全国の信頼できる医療提供者を見つけましょう。',
+    description: 'Professional medical and wellness services including dental care, women\'s health, eye clinics, and aesthetic treatments. Trusted clinics providing comprehensive healthcare.',
+    descriptionJa: '歯科治療、女性の健康、眼科、美容治療を含むプロフェッショナルな医療およびウェルネスサービス。総合的なヘルスケアを提供する信頼できるクリニック。',
   },
   
   // Golf Courses
