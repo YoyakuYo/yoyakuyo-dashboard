@@ -18,6 +18,15 @@ module.exports = {
         'muted-text': '#9CA3AF',
         'card-bg': '#0B1120',
         'border-soft': '#1F2933',
+        // Japanese color palette
+        'japanese-red': '#C41E3A', // Traditional Japanese red (aka-beni)
+        'japanese-gold': '#D4AF37', // Japanese gold (kin)
+        'japanese-cream': '#FFF8E7', // Soft cream (shiro)
+        'japanese-sage': '#9CAF88', // Sage green (mizu)
+        'japanese-charcoal': '#2C2C2C', // Charcoal (sumi)
+        'japanese-paper': '#F5F1E8', // Paper white (washi)
+        'japanese-coral': '#FF6B6B', // Soft coral (sakura-iro)
+        'japanese-teal': '#4A90A4', // Teal blue (mizu-iro)
       },
       fontFamily: {
         heading: ['Poppins', 'system-ui', 'sans-serif'],

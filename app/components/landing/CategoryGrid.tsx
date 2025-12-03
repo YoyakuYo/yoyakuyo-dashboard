@@ -29,9 +29,9 @@ export default function CategoryGrid() {
   };
 
   return (
-    <section className="py-16 md:py-24 bg-white">
+    <section className="py-16 md:py-24 bg-japanese-paper">
       <div className="max-w-7xl mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-heading font-bold text-center text-gray-900 mb-12">
+        <h2 className="text-3xl md:text-4xl font-heading font-bold text-center text-japanese-charcoal mb-12">
           {isJapanese ? 'カテゴリーから探す' : 'Browse by Category'}
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
@@ -57,7 +57,7 @@ export default function CategoryGrid() {
                   href={isCustomerDashboard 
                     ? `/customer/shops?category=${category.id}` 
                     : `/browse?category=${category.id}`}
-                  className="relative overflow-hidden rounded-theme bg-white border-2 border-gray-200 hover:border-accent-pink transition-all duration-300 shadow-lg hover:shadow-xl block"
+                  className="relative overflow-hidden rounded-theme bg-japanese-paper border-2 border-japanese-sage/30 hover:border-japanese-red/50 transition-all duration-300 shadow-lg hover:shadow-2xl block"
                 >
                   <div className="relative aspect-[4/3] w-full">
                     {/* Image carousel - Only show if images exist */}
@@ -118,7 +118,7 @@ export default function CategoryGrid() {
                     
                     {/* Background color when no image */}
                     {images.length === 0 && (
-                      <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200"></div>
+                      <div className="absolute inset-0 bg-gradient-to-br from-japanese-cream to-japanese-sage/20"></div>
                     )}
                     
                     {/* Category name and description - Clean, no overlay */}

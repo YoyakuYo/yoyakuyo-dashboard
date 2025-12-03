@@ -62,11 +62,11 @@ export default function HeroCarousel() {
         </div>
       ))}
 
-      {/* Dark Overlay - Full */}
-      <div className="absolute inset-0 bg-black/50" />
+      {/* Soft Overlay - Full */}
+      <div className="absolute inset-0 bg-japanese-charcoal/40" />
 
-      {/* Left Side Gradient Overlay - Only on left side */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent z-10" />
+      {/* Left Side Gradient Overlay - Japanese aesthetic */}
+      <div className="absolute inset-0 bg-gradient-to-r from-japanese-charcoal/70 via-japanese-charcoal/30 to-transparent z-10" />
 
       {/* Hero Content - Left Aligned */}
       <div className="absolute inset-0 flex items-center z-20">
