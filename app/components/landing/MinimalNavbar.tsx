@@ -29,7 +29,7 @@ export default function MinimalNavbar() {
             Yoyaku Yo
           </Link>
 
-          {/* Center: Categories | Services */}
+          {/* Center: Categories | SERVICES */}
           <div className="flex items-center gap-2">
             <Link 
               href="/browse" 
@@ -42,7 +42,7 @@ export default function MinimalNavbar() {
               href="/services" 
               className="text-sm font-medium text-white hover:text-japanese-gold transition-colors drop-shadow-md"
             >
-              {t('navServices') || 'Services'}
+              {t('navServices') || 'SERVICES'}
             </Link>
           </div>
 
