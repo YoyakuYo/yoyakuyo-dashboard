@@ -32,14 +32,7 @@ export const categoryMarketing: Record<string, CategoryMarketing> = {
   
   // Hotels & Stays (main category - matches imageKey in categories.ts)
   'hotels-stays': {
-    images: [
-      'https://besthotelshome.com/wp-content/uploads/2020/02/Conrad-Tokyo-Best-Luxury-Hotels-in-Tokyo.jpg',
-      'https://66.media.tumblr.com/1096a312af4ac78a80f5ab50e89a0516/tumblr_n33buxuBih1r2doe0o1_1280.jpg',
-      'https://misstourist.com/wp-content/uploads/2022/06/4-1-Coolest-hotels-in-Tokyo-with-a-view.jpg',
-      'https://urbanpixxels.com/wp-content/uploads/14-11376-post/Koyoto-Ryokan-Hiiragiya-Traditional-Wing.jpg',
-      'https://assets.vogue.com/photos/5a31647948b79a4f01f38a11/master/pass/luxury-ryokan-onsen-japan-promo.jpg',
-      'https://www.hotelsinheaven.com/wp-content/uploads/2019/01/mandarin-oriental-tokyo-facade-hotel-mobile-scaled.jpg',
-    ],
+    images: [],
     description: 'Experience traditional Japanese hospitality at ryokan inns or enjoy modern comfort at luxury hotels. From hot spring resorts to city center hotels, find your perfect accommodation.',
     descriptionJa: '旅館で伝統的な日本のおもてなしを体験するか、高級ホテルでモダンな快適さをお楽しみください。温泉リゾートから都心のホテルまで、最適な宿泊施設を見つけましょう。',
   },
@@ -109,18 +102,7 @@ export const categoryMarketing: Record<string, CategoryMarketing> = {
   
   // Clinics & Medical Care (main category)
   'clinics-medical-care': {
-    images: [
-      'https://static.vecteezy.com/system/resources/previews/012/043/583/large_2x/gynecology-medicine-concept-women-s-health-doctor-holding-in-hand-the-hologram-of-female-reproductive-system-and-medical-icons-network-connection-on-virtual-screen-illustration-vector.jpg',
-      'https://thumbs.dreamstime.com/z/anatomy-female-reproductive-system-d-illustration-female-gynecology-organs-highlighted-inside-body-anatomy-female-123657563.jpg',
-      'https://c8.alamy.com/comp/2HTXG9X/gynecology-and-obstetrics-icon-set-in-colored-line-style-women-reproductive-health-vector-illustration-2HTXG9X.jpg',
-      'https://www.womensclinicofatlanta.com/wp-content/uploads/2021/10/home-sti-services.jpg',
-      'https://www.rappler.com/tachyon/2022/12/Kindred-Clinic-1.jpg?resize=1279%2C720&zoom=1',
-      'https://img.freepik.com/premium-vector/vector-logo-women-s-health-clinic-elegant_626969-43.jpg?w=2000',
-      'https://treesforhealth.org/wp-content/uploads/2020/04/shutterstock_581411425.jpg',
-      'https://as1.ftcdn.net/v2/jpg/02/95/56/44/1000_F_295564471_QuEZep8kRRwM01Z796dKX5RGgZIyforw.jpg',
-      'https://graziamagazine.com/me/wp-content/uploads/sites/16/2024/09/best-aesthetics-clinic-dubai-kings--1024x683.jpeg',
-      'https://www.aesthetic-clinics.co.uk/wp-content/uploads/2022/10/AestheticClinicsWeb-300x67.png',
-    ],
+    images: [],
     description: 'Professional medical and wellness services including dental care, women\'s health, eye clinics, and aesthetic treatments. Trusted clinics providing comprehensive healthcare.',
     descriptionJa: '歯科治療、女性の健康、眼科、美容治療を含むプロフェッショナルな医療およびウェルネスサービス。総合的なヘルスケアを提供する信頼できるクリニック。',
   },
