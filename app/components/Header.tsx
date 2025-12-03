@@ -2,6 +2,7 @@
 
 "use client";
 import React from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
@@ -10,7 +11,12 @@ const Header = React.memo(() => {
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg z-50">
       <div className="h-full flex items-center justify-between px-6">
-        <h1 className="text-2xl font-bold">{t('nav.dashboard')}</h1>
+        <Link 
+          href="/" 
+          className="text-2xl font-bold hover:opacity-80 transition-opacity"
+        >
+          Yoyaku Yo
+        </Link>
         <LanguageSwitcher />
       </div>
     </header>
