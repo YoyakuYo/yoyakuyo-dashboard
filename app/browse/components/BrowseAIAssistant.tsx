@@ -360,7 +360,7 @@ export function BrowseAIAssistant({
               <div className="text-center text-gray-500 text-sm py-8">
                 <div className="text-4xl mb-4">🤖</div>
                 <p className="font-medium mb-2">Hi! I'm your AI assistant.</p>
-                <p className="text-xs mb-4">I can help you find shops by area, category, or preferences.</p>
+                <p className="text-xs mb-4">I can help you find shops by category or preferences.</p>
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-gray-700">Try asking:</p>
                   {suggestedPrompts.slice(0, 3).map((prompt, idx) => (

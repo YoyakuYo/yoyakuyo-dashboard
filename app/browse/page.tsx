@@ -13,10 +13,8 @@ import {
   type CategoryTree,
 } from '@/lib/browse/shopBrowseData';
 import { CATEGORIES } from '@/lib/categories';
-import { PREFECTURES } from '@/lib/prefectures';
 import { CategoryNavigation } from './components/CategoryNavigation';
 import { ShopCard } from './components/ShopCard';
-import { RegionPrefectureCityFilter } from './components/RegionPrefectureCityFilter';
 import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
 
 // Force dynamic rendering to avoid prerendering errors
@@ -41,10 +39,10 @@ function UpdateBrowseContext({
   useEffect(() => {
     setBrowseContext({
       shops,
-      selectedPrefecture: selectedPrefectures.length > 0 ? selectedPrefectures[0] : null, // For backward compatibility
-      selectedCity: selectedCities.length > 0 ? selectedCities[0] : null, // For backward compatibility
-      selectedPrefectures, // New array format
-      selectedCities, // New array format
+      selectedPrefecture: null,
+      selectedCity: null,
+      selectedPrefectures: [],
+      selectedCities: [],
       selectedCategoryId,
       searchQuery,
     });
@@ -74,36 +72,10 @@ function BrowsePageContent() {
   const [categoryStats, setCategoryStats] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   
-  // Navigation state - Changed to arrays for multiple selection
-  const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>(() => {
-    const pref = searchParams.get('prefecture');
-    return pref ? pref.split(',').filter(Boolean) : [];
-  });
-  const [selectedCities, setSelectedCities] = useState<string[]>(() => {
-    const city = searchParams.get('city');
-    return city ? city.split(',').filter(Boolean) : [];
-  });
+  // Navigation state - Category only
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     searchParams.get('category') || null
   );
-  const [hasAutoSelected, setHasAutoSelected] = useState(false);
-  
-  // Toggle functions for checkbox-based selection
-  const togglePrefecture = (pref: string) => {
-    setSelectedPrefectures(prev => 
-      prev.includes(pref) 
-        ? prev.filter(p => p !== pref)
-        : [...prev, pref]
-    );
-  };
-  
-  const toggleCity = (city: string) => {
-    setSelectedCities(prev => 
-      prev.includes(city) 
-        ? prev.filter(c => c !== city)
-        : [...prev, city]
-    );
-  };
 
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
@@ -114,11 +86,8 @@ function BrowsePageContent() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Check if we're in "category-only" mode (category selected, no other filters)
-  const isCategoryOnlyMode = selectedCategoryId !== null && 
-                             selectedPrefectures.length === 0 && 
-                             selectedCities.length === 0 && 
-                             !debouncedSearch;
+  // Always in category-only mode now
+  const isCategoryOnlyMode = selectedCategoryId !== null && !debouncedSearch;
 
   // Debug: Log API URL
   useEffect(() => {
@@ -224,13 +193,6 @@ function BrowsePageContent() {
       if (debouncedSearch.trim()) {
         params.set('search', debouncedSearch.trim());
       }
-      // Support multiple prefectures and cities (comma-separated)
-      if (selectedPrefectures.length > 0) {
-        params.set('prefecture', selectedPrefectures.join(','));
-      }
-      if (selectedCities.length > 0) {
-        params.set('city', selectedCities.join(','));
-      }
       if (selectedCategoryId) {
         params.set('category', selectedCategoryId);
       }
@@ -283,7 +245,7 @@ function BrowsePageContent() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [apiUrl, debouncedSearch, selectedPrefectures, selectedCities, selectedCategoryId]);
+  }, [apiUrl, debouncedSearch, selectedCategoryId]);
 
   // Fetch category stats on mount and when categories change
   useEffect(() => {
@@ -296,7 +258,7 @@ function BrowsePageContent() {
   useEffect(() => {
     fetchShops(1, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, selectedPrefectures, selectedCities, selectedCategoryId]);
+  }, [debouncedSearch, selectedCategoryId]);
 
   // Load more shops
   const loadMoreShops = useCallback(() => {
@@ -305,41 +267,15 @@ function BrowsePageContent() {
     }
   }, [loadingMore, hasMore, currentPage, fetchShops]);
 
-  // Auto-select prefecture with most shops on first load (if no filters selected)
-  // DISABLED when category is selected - we want category-only mode
-  useEffect(() => {
-    const hasFilters = selectedPrefectures.length > 0 || selectedCities.length > 0 || selectedCategoryId || debouncedSearch;
-    
-    // Only auto-select if NO category is selected
-    if (!hasFilters && !hasAutoSelected && shops.length === 0 && !loading && !selectedCategoryId) {
-      // Fetch top prefecture and auto-select it
-      fetch(`${apiUrl}/shops/top-prefecture`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.prefecture && data.shopCount > 0) {
-            setSelectedPrefectures([data.prefecture]);
-            setHasAutoSelected(true);
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching top prefecture:', error);
-          // Fallback to Tokyo if API fails
-          setSelectedPrefectures(['tokyo']);
-          setHasAutoSelected(true);
-        });
-    }
-  }, [shops.length, loading, selectedPrefectures, selectedCities, selectedCategoryId, debouncedSearch, hasAutoSelected, apiUrl]);
 
   // Update URL when filters change
   useEffect(() => {
     const params = new URLSearchParams();
     if (debouncedSearch) params.set('search', debouncedSearch);
-    if (selectedPrefectures.length > 0) params.set('prefecture', selectedPrefectures.join(','));
-    if (selectedCities.length > 0) params.set('city', selectedCities.join(','));
     if (selectedCategoryId) params.set('category', selectedCategoryId);
     const newUrl = `/browse${params.toString() ? `?${params.toString()}` : ''}`;
     router.replace(newUrl, { scroll: false });
-  }, [debouncedSearch, selectedPrefectures, selectedCities, selectedCategoryId, router]);
+  }, [debouncedSearch, selectedCategoryId, router]);
 
   // Filter shops by search (client-side filtering on already-loaded shops)
   const filteredShops = useMemo(() => {
@@ -372,25 +308,6 @@ function BrowsePageContent() {
     return tree;
   }, [filteredShops, categories, categoryStats]);
 
-  // Get translated prefecture name
-  const getPrefectureName = (key: string): string => {
-    try {
-      const translated = t(`prefectures.${key}`);
-      return translated !== `prefectures.${key}` ? translated : key;
-    } catch {
-      return key;
-    }
-  };
-
-  // Get translated city name
-  const getCityName = (key: string): string => {
-    try {
-      const translated = t(`cities.${key}`);
-      return translated !== `cities.${key}` ? translated : key;
-    } catch {
-      return key;
-    }
-  };
 
   // Get translated category name
   const getCategoryName = (categoryName: string): string => {
@@ -458,18 +375,6 @@ function BrowsePageContent() {
           </div>
         </div>
 
-        {/* Region → Prefecture → City Filter - Show when category is selected */}
-        {selectedCategoryId && (
-          <RegionPrefectureCityFilter
-            selectedCategoryId={selectedCategoryId}
-            selectedPrefectures={selectedPrefectures}
-            selectedCities={selectedCities}
-            onTogglePrefecture={togglePrefecture}
-            onToggleCity={toggleCity}
-            shops={shops}
-            apiUrl={apiUrl}
-          />
-        )}
 
 
         {loading && shops.length === 0 ? (
@@ -496,14 +401,8 @@ function BrowsePageContent() {
                     categoryTree={categoryTree}
                     categories={categories}
                     selectedCategoryId={selectedCategoryId}
-                    selectedPrefectures={selectedPrefectures}
-                    selectedCities={selectedCities}
                     onSelectCategory={setSelectedCategoryId}
-                    onTogglePrefecture={togglePrefecture}
-                    onToggleCity={toggleCity}
                     getCategoryName={getCategoryName}
-                    getPrefectureName={getPrefectureName}
-                    getCityName={getCityName}
                     t={t}
                   />
                 </div>
@@ -564,8 +463,8 @@ function BrowsePageContent() {
       {browseContext && (
         <UpdateBrowseContext
           shops={displayShops}
-          selectedPrefectures={selectedPrefectures}
-          selectedCities={selectedCities}
+          selectedPrefectures={[]}
+          selectedCities={[]}
           selectedCategoryId={selectedCategoryId}
           searchQuery={debouncedSearch}
           setBrowseContext={browseContext.setBrowseContext}
