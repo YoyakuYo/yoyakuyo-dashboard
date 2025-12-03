@@ -73,14 +73,7 @@ export default function CategorySection() {
         t('categoryHotelsPoint3'),
         t('categoryHotelsPoint4'),
       ],
-      imageSearchTerms: [
-        'https://i.pinimg.com/originals/41/c1/1e/41c11eeca92e8e5e791ca1802d0a8fd0.jpg',
-        'https://www.princehotels.com/parktower/wp-content/uploads/sites/14/2019/07/res-stellar-platinum.jpg.jpg',
-        'https://familytravelgenie.com/media/wp-uploads/2024/04/Palace-Hotel-Tokyo-Executive-Club-Lounge-Night-Time.jpg',
-        'https://images.adsttc.com/media/images/5839/349a/e58e/cebc/9300/004e/large_jpg/03.jpg?1480144020',
-        'https://cf.bstatic.com/xdata/images/hotel/max1024x768/219186638.jpg?k=2345e338a266b160d19f5adda9137b1761aab25ef558b1d8184da836358cadc1&o=&hp=1',
-        'https://www.royalparkhotels.co.jp/canvas/ginzacorridor/assets/images/home/kv.png',
-      ],
+      imageSearchTerms: [],
     },
     {
       id: 'dining',
@@ -116,14 +109,7 @@ export default function CategorySection() {
         t('categoryClinicsPoint3'),
         t('categoryClinicsPoint4'),
       ],
-      imageSearchTerms: [
-        'japanese modern clinic interior clean',
-        'tokyo medical clinic professional',
-        'japanese aesthetic clinic treatment',
-        'japanese dental clinic modern',
-        'modern japanese healthcare facility',
-        'japanese medical facility sterile',
-      ],
+      imageSearchTerms: [],
     },
     {
       id: 'activities',
