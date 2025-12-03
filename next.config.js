@@ -26,6 +26,27 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'imgur.com',
       },
+      // Hotels & Stays images
+      {
+        protocol: 'https',
+        hostname: 'twomonkeystravelgroup.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.agoda.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'media.cntraveler.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'secure.s.forbestravelguide.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'stories-editor.hilton.com',
+      },
     ],
     unoptimized: false,
   },

@@ -25,7 +25,14 @@ export const categoryMarketing: Record<string, CategoryMarketing> = {
   
   // Hotels & Stays (main category - matches imageKey in categories.ts)
   'hotels-stays': {
-    images: [],
+    images: [
+      'https://twomonkeystravelgroup.com/wp-content/uploads/2016/02/Ultimate-List-of-the-Best-Luxury-Hotels-in-Japan-5.jpg',
+      'https://www.agoda.com/wp-content/uploads/2024/11/Oriental-Hotel.jpeg',
+      'https://media.cntraveler.com/photos/61e11d6518fe5208acfca9a7/16:9/w_2560%2Cc_limit/Suiran%2C-a-Luxury-Collection-Hotel%2C-Kyoto.jpg',
+      'https://secure.s.forbestravelguide.com/img/properties/Property-AndazTokyoToranomonHills-Hotel-GuestroomSuite-DeluxeAndazLargeKing-HyattCorporation.jpg',
+      'https://secure.s.forbestravelguide.com/img/properties/hotel-the-mitsui-kyoto/hotel-the-mitsui-kyoto-garden.jpg',
+      'https://stories-editor.hilton.com/apac/wp-content/uploads/sites/3/2021/09/LXR-ROKU-KYOTO-Hero.jpg?w=1080&h=760&crop=1&q=75',
+    ],
     description: 'Experience traditional Japanese hospitality at ryokan inns or enjoy modern comfort at luxury hotels. From hot spring resorts to city center hotels, find your perfect accommodation.',
     descriptionJa: '旅館で伝統的な日本のおもてなしを体験するか、高級ホテルでモダンな快適さをお楽しみください。温泉リゾートから都心のホテルまで、最適な宿泊施設を見つけましょう。',
   },
