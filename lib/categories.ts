@@ -197,7 +197,7 @@ export const SUBCATEGORIES: Category[] = [
       'traditional japanese barbershop',
       'japanese mens salon tokyo',
     ],
-    dbName: 'Barber Shop',
+    dbName: 'Barbershop', // Database uses "Barbershop" (one word), not "Barber Shop"
   },
   {
     id: 'eyelash_eyebrow',
@@ -217,7 +217,7 @@ export const SUBCATEGORIES: Category[] = [
       'modern japanese beauty salon',
       'tokyo lash salon treatment room',
     ],
-    dbName: 'Eyelash & Eyebrow',
+    dbName: 'Eyelash / Eyebrow', // Database uses forward slash, not ampersand
   },
   
   // Spa, Onsen & Relaxation subcategories
