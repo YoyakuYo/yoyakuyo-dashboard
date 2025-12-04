@@ -36,8 +36,14 @@ export default function CategoryFilters({ categoryId, onFilterChange }: Category
     searchParams.get('prefecture') || 'all'
   );
 
-  // Get all main categories for the first dropdown
-  const allCategories = MAIN_CATEGORIES.filter(c => !c.isSubcategory);
+  // Get the current main category from categoryId
+  const currentMainCategory = MAIN_CATEGORIES.find(c => c.id === categoryId);
+  
+  // Get ONLY subcategories of the current main category
+  const availableSubcategories = useMemo(() => {
+    if (!currentMainCategory) return [];
+    return getSubcategories(currentMainCategory.id);
+  }, [currentMainCategory]);
 
   // Get prefectures based on selected region
   const availablePrefectures = useMemo(() => {
@@ -94,30 +100,30 @@ export default function CategoryFilters({ categoryId, onFilterChange }: Category
       </p>
       
       <div className="flex flex-wrap gap-3">
-        {/* All Categories Dropdown (with subcategories) */}
+        {/* Subcategory Dropdown - Only shows subcategories of current main category */}
         <div className="relative flex-1 min-w-[200px]">
           <select
             value={selectedSubcategory}
             onChange={(e) => setSelectedSubcategory(e.target.value)}
             className="w-full appearance-none bg-gray-700 text-gray-300 px-4 py-2.5 pr-8 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-sm"
           >
-            <option value="all">All Categories</option>
-            {allCategories.map(category => {
-              const categorySubs = getSubcategories(category.id);
-              return (
-                <optgroup key={category.id} label={getCategoryName(category)}>
-                  {categorySubs.length > 0 ? (
-                    categorySubs.map(subcat => (
-                      <option key={subcat.id} value={subcat.id}>
-                        {getCategoryName(subcat)}
-                      </option>
-                    ))
-                  ) : (
-                    <option value={category.id}>{getCategoryName(category)}</option>
-                  )}
-                </optgroup>
-              );
-            })}
+            <option value="all">
+              {isJapanese ? 'すべてのサブカテゴリー' : 'All Subcategories'}
+            </option>
+            {availableSubcategories.length > 0 ? (
+              availableSubcategories.map(subcat => (
+                <option key={subcat.id} value={subcat.id}>
+                  {getCategoryName(subcat)}
+                </option>
+              ))
+            ) : (
+              // If no subcategories, allow selecting the main category itself
+              currentMainCategory && (
+                <option value={currentMainCategory.id}>
+                  {getCategoryName(currentMainCategory)}
+                </option>
+              )
+            )}
           </select>
           <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

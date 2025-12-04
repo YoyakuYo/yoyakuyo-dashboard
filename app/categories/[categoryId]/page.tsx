@@ -59,7 +59,11 @@ function CategoryPageContent() {
   // Fetch shops ONLY if filters are active
   const fetchShops = useCallback(async (page: number = 1, append: boolean = false) => {
     // STRICT RULE: Do not fetch if no filters are selected
-    if (!hasActiveFilter) {
+    const currentHasActiveFilter = filters.subcategory !== 'all' || 
+                                   filters.region !== 'all' || 
+                                   filters.prefecture !== 'all';
+    
+    if (!currentHasActiveFilter) {
       setShops([]);
       setLoading(false);
       return;
@@ -158,8 +162,13 @@ function CategoryPageContent() {
           setShops(visibleShops);
         }
 
-        setHasMore(page < (data.totalPages || 1));
+          // Calculate hasMore based on actual results
+        const totalPages = data.totalPages || Math.ceil((data.total || visibleShops.length) / 30);
+        setHasMore(visibleShops.length === 30 && page < totalPages);
         setCurrentPage(page);
+      } else {
+        console.error('Failed to fetch shops:', res.status, res.statusText);
+        if (!append) setShops([]);
       }
     } catch (error) {
       console.error('Error fetching shops:', error);
@@ -167,16 +176,23 @@ function CategoryPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [hasActiveFilter, filters, category, apiUrl]);
+  }, [filters, category, apiUrl]); // Remove hasActiveFilter from deps, compute it inside
 
-  // Fetch shops when filters change
+  // Fetch shops immediately when filters change - CRITICAL: No delay, no placeholder blocking
   useEffect(() => {
+    // Reset state when filters change
+    setCurrentPage(1);
+    setHasMore(true);
+    
     if (hasActiveFilter) {
+      // Immediately fetch shops when any filter is active
       fetchShops(1, false);
     } else {
       setShops([]);
+      setLoading(false);
     }
-  }, [hasActiveFilter, filters, fetchShops]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.subcategory, filters.region, filters.prefecture, hasActiveFilter]); // Watch filter changes and hasActiveFilter
 
   // Load more shops
   const loadMoreShops = useCallback(() => {
@@ -202,10 +218,10 @@ function CategoryPageContent() {
           onFilterChange={handleFilterChange}
         />
 
-        {/* Category Selling Section */}
-        <CategorySellingSection categoryId={categoryId} />
+        {/* Category Selling Section - Only show when NO filters are active */}
+        {!hasActiveFilter && <CategorySellingSection categoryId={categoryId} />}
 
-        {/* Shop Results - ONLY show if filters are active */}
+        {/* Shop Results - Show immediately when filters are active */}
         {hasActiveFilter && (
           <div className="mt-12">
             {loading && shops.length === 0 ? (
@@ -260,8 +276,16 @@ function CategoryPageContent() {
               </>
             ) : (
               <div className="text-center text-white py-12">
-                <p className="text-lg">No shops found with the selected filters.</p>
-                <p className="text-sm text-white/70 mt-2">Try adjusting your filters.</p>
+                <p className="text-lg">
+                  {locale === 'ja' 
+                    ? '選択されたフィルターに一致する店舗は見つかりませんでした。' 
+                    : 'No shops found for this selection'}
+                </p>
+                <p className="text-sm text-white/70 mt-2">
+                  {locale === 'ja'
+                    ? 'フィルターを調整してお試しください。'
+                    : 'Try adjusting your filters.'}
+                </p>
               </div>
             )}
           </div>
