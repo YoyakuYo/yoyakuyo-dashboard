@@ -28,13 +28,13 @@ export default function CategorySellingSection({ categoryId }: CategorySellingSe
   
   // Value points (same for all categories)
   const valuePoints = isJapanese ? [
-    '30,000以上の実店舗から選択可能',
+    '日本全国の店舗から選択可能',
     'AIアシスタントが24時間サポート',
     '多言語対応（日本語、英語、その他）',
     '完全無料で予約可能',
     '信頼できる店舗のみ掲載'
   ] : [
-    '30,000+ real shops to choose from',
+    'Thousands of shops across Japan',
     'AI assistant available 24/7',
     'Multilingual support (Japanese, English & more)',
     '100% free to book',

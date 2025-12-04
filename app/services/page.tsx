@@ -328,21 +328,18 @@ function ServicesPageContent() {
               </h3>
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="text-center">
-                  <div className="text-5xl font-bold mb-2">10K+</div>
-                  <div className={`text-lg ${isJapanese ? 'font-japanese' : ''}`}>
-                    {isJapanese ? '登録店舗' : 'Registered Shops'}
+                  <div className={`text-lg font-semibold mb-2 ${isJapanese ? 'font-japanese' : ''}`}>
+                    {isJapanese ? '日本全国の店舗' : 'Thousands of shops across Japan'}
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-5xl font-bold mb-2">50K+</div>
-                  <div className={`text-lg ${isJapanese ? 'font-japanese' : ''}`}>
-                    {isJapanese ? '月間予約' : 'Monthly Bookings'}
+                  <div className={`text-lg font-semibold mb-2 ${isJapanese ? 'font-japanese' : ''}`}>
+                    {isJapanese ? '高ボリューム予約に対応' : 'Built for high-volume bookings every month'}
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-5xl font-bold mb-2">4.8★</div>
-                  <div className={`text-lg ${isJapanese ? 'font-japanese' : ''}`}>
-                    {isJapanese ? '平均評価' : 'Average Rating'}
+                  <div className={`text-lg font-semibold mb-2 ${isJapanese ? 'font-japanese' : ''}`}>
+                    {isJapanese ? '品質重視の予約体験' : 'Quality-focused booking experience'}
                   </div>
                 </div>
               </div>
