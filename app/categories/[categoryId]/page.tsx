@@ -93,15 +93,27 @@ function CategoryPageContent() {
             const dbSubcategory = categories.find((c: any) => c.name === subcategory.dbName);
             if (dbSubcategory) {
               params.set('category', dbSubcategory.id); // Use subcategory UUID
+              console.log(`✅ Using subcategory UUID: ${dbSubcategory.id} for "${subcategory.dbName}"`);
+            } else {
+              console.error(`❌ Subcategory not found in database: "${subcategory.dbName}" (ID: ${filters.subcategory})`);
+              console.log('Available categories:', categories.map((c: any) => c.name));
             }
+          } else {
+            console.error(`❌ Subcategory not found in SUBCATEGORIES: ${filters.subcategory}`);
           }
         } else {
           // Use main category UUID
           const dbCategory = categories.find((c: any) => c.name === category.dbName);
           if (dbCategory) {
             params.set('category', dbCategory.id); // Use main category UUID
+            console.log(`✅ Using main category UUID: ${dbCategory.id} for "${category.dbName}"`);
+          } else {
+            console.error(`❌ Main category not found in database: "${category.dbName}"`);
+            console.log('Available categories:', categories.map((c: any) => c.name));
           }
         }
+      } else {
+        console.error('❌ Failed to fetch categories:', categoryRes.status, categoryRes.statusText);
       }
 
       // Add prefecture filter if selected
@@ -110,11 +122,13 @@ function CategoryPageContent() {
       }
 
       const url = `${apiUrl}/shops?${params.toString()}`;
+      console.log(`🔍 Fetching shops from: ${url}`);
       const res = await fetch(url);
 
       if (res.ok) {
         const data = await res.json();
         const shopsArray = data.shops || [];
+        console.log(`📦 Received ${shopsArray.length} shops from API (total: ${data.total || 'unknown'})`);
         
         // Filter by region and prefecture (client-side, as they're not in DB)
         let filteredShops = shopsArray;
@@ -156,18 +170,21 @@ function CategoryPageContent() {
           !shop.claim_status || shop.claim_status !== 'hidden'
         );
 
+        console.log(`✅ Filtered to ${visibleShops.length} visible shops (from ${filteredShops.length} after region/prefecture filter, from ${shopsArray.length} from API)`);
+
         if (append) {
           setShops(prev => [...prev, ...visibleShops]);
         } else {
           setShops(visibleShops);
         }
 
-          // Calculate hasMore based on actual results
+        // Calculate hasMore based on actual results
         const totalPages = data.totalPages || Math.ceil((data.total || visibleShops.length) / 30);
         setHasMore(visibleShops.length === 30 && page < totalPages);
         setCurrentPage(page);
       } else {
-        console.error('Failed to fetch shops:', res.status, res.statusText);
+        const errorText = await res.text().catch(() => 'Unknown error');
+        console.error('❌ Failed to fetch shops:', res.status, res.statusText, errorText);
         if (!append) setShops([]);
       }
     } catch (error) {
