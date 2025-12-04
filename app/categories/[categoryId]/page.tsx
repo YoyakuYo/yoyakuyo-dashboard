@@ -86,6 +86,7 @@ function CategoryPageContent() {
         const categories = await categoryRes.json();
         
         // If subcategory is selected, use subcategory UUID, otherwise use main category UUID
+        let categoryUuidSet = false;
         if (filters.subcategory !== 'all') {
           const subcategory = SUBCATEGORIES.find(c => c.id === filters.subcategory) || 
                              MAIN_CATEGORIES.find(c => c.id === filters.subcategory);
@@ -93,16 +94,19 @@ function CategoryPageContent() {
             const dbSubcategory = categories.find((c: any) => c.name === subcategory.dbName);
             if (dbSubcategory) {
               params.set('category', dbSubcategory.id); // Use subcategory UUID
+              categoryUuidSet = true;
               console.log(`✅ Using subcategory UUID: ${dbSubcategory.id} for "${subcategory.dbName}"`);
             } else {
-              console.error(`❌ Subcategory not found in database: "${subcategory.dbName}" (ID: ${filters.subcategory})`);
+              console.warn(`⚠️ Subcategory "${subcategory.dbName}" not found in database, falling back to main category`);
               console.log('Available categories:', categories.map((c: any) => c.name));
             }
           } else {
-            console.error(`❌ Subcategory not found in SUBCATEGORIES: ${filters.subcategory}`);
+            console.warn(`⚠️ Subcategory ID "${filters.subcategory}" not found, falling back to main category`);
           }
-        } else {
-          // Use main category UUID
+        }
+        
+        // Fallback to main category if subcategory lookup failed or no subcategory selected
+        if (!categoryUuidSet) {
           const dbCategory = categories.find((c: any) => c.name === category.dbName);
           if (dbCategory) {
             params.set('category', dbCategory.id); // Use main category UUID
