@@ -1,33 +1,93 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { apiUrl } from "@/lib/apiClient";
 import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 
 export default function CustomerShopsPage() {
   const { user } = useCustomAuth();
   const t = useTranslations();
+  const searchParams = useSearchParams();
   const [shops, setShops] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [totalShops, setTotalShops] = useState(0);
 
+  // Load categories and favorites on mount
   useEffect(() => {
-    // Get category from URL params
-    const params = new URLSearchParams(window.location.search);
-    const category = params.get('category');
+    loadCategories();
+    if (user) {
+      loadFavorites();
+    }
+  }, [user]);
+
+  // Get category from URL params on mount
+  useEffect(() => {
+    const category = searchParams.get('category');
     if (category) {
       setSelectedCategory(category);
     }
+  }, [searchParams]);
+
+  // Initial load of shops (only once on mount)
+  useEffect(() => {
+    const category = searchParams.get('category');
+    const initialCategory = category || null;
     
-    loadCategories();
-    loadShops();
-    loadFavorites();
+    const loadInitialShops = async () => {
+      if (!apiUrl) {
+        console.error("API URL not configured");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        params.set('page', '1');
+        params.set('limit', '30');
+        
+        if (initialCategory) {
+          params.set('category', initialCategory);
+        }
+
+        const url = `${apiUrl}/shops?${params.toString()}`;
+        const res = await fetch(url);
+
+        if (res.ok) {
+          const data = await res.json();
+          const shopsArray = data.shops || [];
+          const total = data.total || shopsArray.length;
+          
+          const visibleShops = shopsArray.filter((shop: any) => 
+            !shop.claim_status || shop.claim_status !== 'hidden'
+          );
+
+          setShops(visibleShops);
+          setTotalShops(total);
+          setHasMore(visibleShops.length === 30 && visibleShops.length < total);
+          setCurrentPage(1);
+        }
+      } catch (error) {
+        console.error("Error loading shops:", error);
+        setShops([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialShops();
   }, []);
 
   const loadCategories = async () => {
@@ -48,61 +108,113 @@ export default function CustomerShopsPage() {
     }
   };
 
-  const loadShops = async () => {
+  const loadShops = useCallback(async (page: number = 1, append: boolean = false) => {
+    if (!apiUrl) {
+      console.error("API URL not configured");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const supabase = getSupabaseClient();
-      // Load all shops - use pagination for large datasets
-      let allShops: any[] = [];
-      let page = 0;
-      const pageSize = 1000; // Load 1000 at a time
-      let hasMore = true;
-
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from("shops")
-          .select("*")
-          .order("name", { ascending: true })
-          .range(page * pageSize, (page + 1) * pageSize - 1);
-
-        if (error) {
-          console.error("Error loading shops:", error);
-          hasMore = false;
-        } else if (data && data.length > 0) {
-          allShops = [...allShops, ...data];
-          // If we got less than pageSize, we've reached the end
-          if (data.length < pageSize) {
-            hasMore = false;
-          } else {
-            page++;
-          }
-        } else {
-          hasMore = false;
-        }
+      if (!append) {
+        setLoading(true);
+        setShops([]); // Clear existing shops when loading new page
+      } else {
+        setLoadingMore(true);
       }
 
-      setShops(allShops);
-      console.log(`Loaded ${allShops.length} shops`);
+      const params = new URLSearchParams();
+      params.set('page', page.toString());
+      params.set('limit', '30'); // Load 30 shops per page
+      
+      // Add category filter if selected
+      if (selectedCategory) {
+        params.set('category', selectedCategory);
+      }
+      
+      // Add search filter if provided
+      if (searchQuery.trim()) {
+        params.set('search', searchQuery.trim());
+      }
+
+      const url = `${apiUrl}/shops?${params.toString()}`;
+      const res = await fetch(url);
+
+      if (res.ok) {
+        const data = await res.json();
+        const shopsArray = data.shops || [];
+        const total = data.total || shopsArray.length;
+        
+        // Filter out hidden shops
+        const visibleShops = shopsArray.filter((shop: any) => 
+          !shop.claim_status || shop.claim_status !== 'hidden'
+        );
+
+        setTotalShops(total);
+        
+        // Update shops and hasMore
+        if (append) {
+          setShops(prev => {
+            const newShops = [...prev, ...visibleShops];
+            setHasMore(newShops.length < total && visibleShops.length === 30);
+            return newShops;
+          });
+        } else {
+          setShops(visibleShops);
+          setHasMore(visibleShops.length === 30 && visibleShops.length < total);
+        }
+        setCurrentPage(page);
+      } else {
+        console.error("Error loading shops:", res.statusText);
+        if (!append) setShops([]);
+      }
     } catch (error) {
       console.error("Error loading shops:", error);
-      setShops([]);
+      if (!append) setShops([]);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  };
+  }, [apiUrl, selectedCategory, searchQuery]);
 
   const loadFavorites = async () => {
     if (!user) return;
 
-    const supabase = getSupabaseClient();
-    const { data } = await supabase
-      .from("customer_favorites")
-      .select("shop_id")
-      .eq("customer_id", user.id);
+    try {
+      const supabase = getSupabaseClient();
+      const { data } = await supabase
+        .from("customer_favorites")
+        .select("shop_id")
+        .eq("customer_id", user.id);
 
-    if (data) {
-      setFavorites(new Set(data.map((f) => f.shop_id)));
+      if (data) {
+        setFavorites(new Set(data.map((f) => f.shop_id)));
+      }
+    } catch (error) {
+      console.error("Error loading favorites:", error);
     }
   };
+
+  // Load more shops (infinite scroll)
+  const loadMoreShops = useCallback(() => {
+    if (!loadingMore && hasMore) {
+      loadShops(currentPage + 1, true);
+    }
+  }, [loadingMore, hasMore, currentPage, loadShops]);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadShops(1, false);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, loadShops]);
+
+  // Reload shops when category changes
+  useEffect(() => {
+    loadShops(1, false);
+  }, [selectedCategory, loadShops]);
 
   const toggleFavorite = async (shopId: string) => {
     if (!user) {
@@ -136,25 +248,7 @@ export default function CustomerShopsPage() {
     }
   };
 
-  const filteredShops = shops.filter((shop) => {
-    // Filter by category if selected
-    if (selectedCategory && shop.category_id !== selectedCategory && shop.category !== selectedCategory && shop.subcategory !== selectedCategory) {
-      return false;
-    }
-    
-    // Filter by search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        shop.name?.toLowerCase().includes(query) ||
-        shop.address?.toLowerCase().includes(query) ||
-        shop.category?.toLowerCase().includes(query) ||
-        shop.subcategory?.toLowerCase().includes(query)
-      );
-    }
-    
-    return true;
-  });
+  // No need for client-side filtering - backend handles it
 
   if (loading) {
     return (
@@ -219,14 +313,34 @@ export default function CustomerShopsPage() {
         />
       </div>
 
+      {/* Shops Count */}
+      {!loading && shops.length > 0 && (
+        <div className="mb-4 text-sm text-gray-600">
+          {t('shops.shopsFound', { count: totalShops || shops.length })}
+        </div>
+      )}
+
       {/* Shops Grid */}
-      {filteredShops.length === 0 ? (
+      {loading && shops.length === 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-white rounded-lg shadow animate-pulse">
+              <div className="h-48 bg-gray-200"></div>
+              <div className="p-4 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : shops.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-12 text-center">
           <p className="text-gray-500">{t('shops.noShops')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredShops.map((shop) => (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {shops.map((shop) => (
             <div
               key={shop.id}
               className="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden"
@@ -302,7 +416,28 @@ export default function CustomerShopsPage() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+          
+          {/* Load More Button */}
+          {hasMore && (
+            <div className="mt-8 text-center">
+              <button
+                onClick={loadMoreShops}
+                disabled={loadingMore}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loadingMore ? t('shops.loading') || 'Loading...' : t('shops.loadMore') || 'Load More'}
+              </button>
+            </div>
+          )}
+          
+          {/* Loading More Indicator */}
+          {loadingMore && (
+            <div className="mt-4 text-center text-gray-500">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
