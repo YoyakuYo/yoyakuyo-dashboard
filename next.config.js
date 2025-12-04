@@ -72,6 +72,118 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'www.liveenhanced.com',
       },
+      // Beauty Services images
+      {
+        protocol: 'https',
+        hostname: 'i.pinimg.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'barb.pro',
+      },
+      {
+        protocol: 'https',
+        hostname: 'styleyouroccasion.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'comfortel.co.uk',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.squarespace-cdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'thumbs.dreamstime.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'forreslocal.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'blogz.my',
+      },
+      // Spa, Onsen & Relaxation images
+      {
+        protocol: 'https',
+        hostname: 'anaicbeppu.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.onsen.co.nz',
+      },
+      {
+        protocol: 'https',
+        hostname: 'nzhotpools.co.nz',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.ytimg.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'tse2.mm.bing.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'goodspaguide--live.s3.amazonaws.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'static.wixstatic.com',
+      },
+      // Dining & Izakaya images
+      {
+        protocol: 'https',
+        hostname: 'www.willflyforfood.net',
+      },
+      {
+        protocol: 'https',
+        hostname: 'media-cdn.tripadvisor.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'media.timeout.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.hankyu-hotel.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'th.bing.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'a.cdn-hotels.com',
+      },
+      // Activities & Sports images
+      {
+        protocol: 'https',
+        hostname: 'thegolfdome.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.indoorgolfarena.eu',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.theteenmagazine.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'uploads-ssl.webflow.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.bodysmart.com.au',
+      },
+      {
+        protocol: 'https',
+        hostname: 'nfg-sofun.s3.amazonaws.com',
+      },
     ],
     unoptimized: false,
   },

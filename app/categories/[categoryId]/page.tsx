@@ -11,7 +11,6 @@ import CategorySellingSection from '@/app/components/landing/CategorySellingSect
 import { apiUrl } from '@/lib/apiClient';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
-import PublicNavbar from '@/app/components/PublicNavbar';
 
 interface Shop {
   id: string;
@@ -196,8 +195,6 @@ function CategoryPageContent() {
 
   return (
     <div className="min-h-screen bg-gray-900" style={{ background: 'linear-gradient(to bottom, #1a1a2e, #16213e, #0f3460)' }}>
-      <PublicNavbar />
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Category Filters */}
         <CategoryFilters 
