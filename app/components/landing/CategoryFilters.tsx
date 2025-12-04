@@ -42,7 +42,9 @@ export default function CategoryFilters({ categoryId, onFilterChange }: Category
   // Get ONLY subcategories of the current main category
   const availableSubcategories = useMemo(() => {
     if (!currentMainCategory) return [];
-    return getSubcategories(currentMainCategory.id);
+    const subcats = getSubcategories(currentMainCategory.id);
+    console.log('DEBUG CategoryFilters: Main category:', currentMainCategory.id, 'Subcategories found:', subcats.map(s => s.name));
+    return subcats;
   }, [currentMainCategory]);
 
   // Get prefectures based on selected region
