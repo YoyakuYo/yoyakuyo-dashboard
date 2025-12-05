@@ -86,18 +86,18 @@ BEGIN
     RAISE NOTICE '  - % (ID: %, Created: %)', shop_record.name, shop_record.id, shop_record.created_at;
   END LOOP;
 
-  -- Delete related data first
+  -- Delete related data first (order matters due to foreign key constraints)
   RAISE NOTICE 'Deleting related data...';
   
-  -- Delete services
-  DELETE FROM services WHERE shop_id = ANY(shops_to_delete);
-  GET DIAGNOSTICS deleted_count = ROW_COUNT;
-  RAISE NOTICE '  Deleted % services', deleted_count;
-
-  -- Delete bookings
+  -- Delete bookings first (they reference services, so must be deleted before services)
   DELETE FROM bookings WHERE shop_id = ANY(shops_to_delete);
   GET DIAGNOSTICS deleted_count = ROW_COUNT;
   RAISE NOTICE '  Deleted % bookings', deleted_count;
+
+  -- Delete services (now safe since bookings are deleted)
+  DELETE FROM services WHERE shop_id = ANY(shops_to_delete);
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RAISE NOTICE '  Deleted % services', deleted_count;
 
   -- Delete shop settings
   DELETE FROM shop_settings WHERE shop_id = ANY(shops_to_delete);
