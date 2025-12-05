@@ -8,43 +8,58 @@
 
 DO $$
 DECLARE
-  target_email TEXT := 'YOUR_USER_EMAIL@example.com'; -- <<<<<<< REPLACE WITH YOUR EMAIL
-  target_user_id UUID;
+  target_emails TEXT[] := ARRAY['sowoumar45@gmail.com', 'omarsowbarca45@gmail.com'];
+  target_user_ids UUID[];
+  current_email TEXT;
+  current_user_id UUID;
   shops_to_delete UUID[];
   shop_record RECORD;
+  user_count INTEGER := 0;
 BEGIN
   RAISE NOTICE 'Starting shop deletion process...';
-  RAISE NOTICE 'Target email: %', target_email;
+  RAISE NOTICE 'Target emails: %', array_to_string(target_emails, ', ');
 
-  -- Find user ID from email
-  SELECT id INTO target_user_id
-  FROM auth.users
-  WHERE email = target_email
-  LIMIT 1;
-
-  IF target_user_id IS NULL THEN
-    -- Fallback: try public.users
-    SELECT id INTO target_user_id
-    FROM public.users
-    WHERE email = target_email
+  -- Find user IDs for all emails
+  FOREACH current_email IN ARRAY target_emails
+  LOOP
+    -- Find user ID from email
+    SELECT id INTO current_user_id
+    FROM auth.users
+    WHERE email = current_email
     LIMIT 1;
+
+    IF current_user_id IS NULL THEN
+      -- Fallback: try public.users
+      SELECT id INTO current_user_id
+      FROM public.users
+      WHERE email = current_email
+      LIMIT 1;
+    END IF;
+
+    IF current_user_id IS NOT NULL THEN
+      target_user_ids := array_append(target_user_ids, current_user_id);
+      user_count := user_count + 1;
+      RAISE NOTICE 'Found user ID for %: %', current_email, current_user_id;
+    ELSE
+      RAISE WARNING 'User with email % not found. Skipping...', current_email;
+    END IF;
+  END LOOP;
+
+  IF array_length(target_user_ids, 1) IS NULL THEN
+    RAISE EXCEPTION 'No users found for the provided emails. Please check the email addresses.';
   END IF;
 
-  IF target_user_id IS NULL THEN
-    RAISE EXCEPTION 'User with email % not found. Please check the email address.', target_email;
-  END IF;
+  RAISE NOTICE 'Found % user(s) out of % email(s)', user_count, array_length(target_emails, 1);
 
-  RAISE NOTICE 'Found user ID: %', target_user_id;
-
-  -- Find all shops owned by this user (manually created shops)
+  -- Find all shops owned by these users (manually created shops)
   -- These are shops where owner_user_id matches and claim_status is 'approved'
   SELECT ARRAY_AGG(id) INTO shops_to_delete
   FROM shops
-  WHERE owner_user_id = target_user_id
+  WHERE owner_user_id = ANY(target_user_ids)
     AND claim_status = 'approved'
     AND (
-      -- Shops created recently (within last 7 days) are likely manually created
-      created_at > NOW() - INTERVAL '7 days'
+      -- Shops created recently (within last 30 days) are likely manually created
+      created_at > NOW() - INTERVAL '30 days'
       OR
       -- Or shops with claimed_at set (manually claimed/created)
       claimed_at IS NOT NULL
