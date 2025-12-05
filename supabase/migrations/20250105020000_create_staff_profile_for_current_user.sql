@@ -1,8 +1,7 @@
 -- ============================================================================
 -- CREATE STAFF PROFILE FOR CURRENT USER
 -- ============================================================================
--- This migration creates a staff profile for the current authenticated user
--- Run this after logging in to grant yourself staff access
+-- This migration creates a staff profile for a user
 -- 
 -- INSTRUCTIONS:
 -- 1. Get your auth user ID from Supabase Auth dashboard or from your session
@@ -10,37 +9,37 @@
 -- 3. Run this migration
 -- ============================================================================
 
+-- ============================================================================
+-- METHOD 1: Create staff profile for a specific user by email
+-- ============================================================================
+-- Replace 'your-email@example.com' with your actual email address
 DO $$
 DECLARE
+  target_email TEXT := 'your-email@example.com';  -- CHANGE THIS TO YOUR EMAIL
   current_user_id UUID;
   user_email TEXT;
   user_name TEXT;
 BEGIN
-  -- Get the current authenticated user ID
-  -- Note: This will only work if run in a context where auth.uid() is available
-  -- For manual execution, you'll need to replace this with your actual user ID
-  
-  -- Try to get from auth context first
-  BEGIN
-    current_user_id := auth.uid();
-  EXCEPTION WHEN OTHERS THEN
-    -- If auth.uid() is not available, you must manually set the user ID
-    -- Replace 'YOUR_AUTH_USER_ID_HERE' with your actual user ID
-    RAISE NOTICE 'auth.uid() not available. Please manually set current_user_id in the script.';
-    -- Uncomment and set your user ID:
-    -- current_user_id := 'YOUR_AUTH_USER_ID_HERE'::UUID;
-    RETURN;
-  END;
-
-  -- Get user email and name from auth.users
-  SELECT email, COALESCE(raw_user_meta_data->>'name', raw_user_meta_data->>'full_name', email) 
-  INTO user_email, user_name
+  -- Find user by email in auth.users
+  SELECT id, email, COALESCE(raw_user_meta_data->>'name', raw_user_meta_data->>'full_name', email) 
+  INTO current_user_id, user_email, user_name
   FROM auth.users
-  WHERE id = current_user_id
+  WHERE email = target_email
   LIMIT 1;
 
-  IF user_email IS NULL THEN
-    RAISE EXCEPTION 'User not found in auth.users. Please ensure you are logged in and the user ID is correct.';
+  IF current_user_id IS NULL THEN
+    RAISE NOTICE 'User with email % not found in auth.users. Trying public.users...', target_email;
+    
+    -- Try to find in public.users
+    SELECT id, email, name
+    INTO current_user_id, user_email, user_name
+    FROM public.users
+    WHERE email = target_email
+    LIMIT 1;
+    
+    IF current_user_id IS NULL THEN
+      RAISE EXCEPTION 'User with email % not found. Please check your email address or use METHOD 2 below.', target_email;
+    END IF;
   END IF;
 
   -- Check if staff profile already exists
@@ -79,9 +78,9 @@ BEGIN
 END $$;
 
 -- ============================================================================
--- MANUAL INSTRUCTIONS (if auth.uid() doesn't work)
+-- METHOD 2: Create staff profile by user ID (if you know your UUID)
 -- ============================================================================
--- If the above doesn't work, run this SQL manually after replacing YOUR_USER_ID:
+-- Uncomment and replace 'YOUR_USER_ID_HERE' with your actual user ID:
 --
 -- INSERT INTO staff_profiles (auth_user_id, full_name, email, is_super_admin, active)
 -- SELECT 
@@ -91,6 +90,22 @@ END $$;
 --   TRUE as is_super_admin,
 --   TRUE as active
 -- FROM auth.users
+-- WHERE id = 'YOUR_USER_ID_HERE'::UUID
+-- ON CONFLICT (auth_user_id) DO UPDATE SET
+--   is_super_admin = TRUE,
+--   active = TRUE,
+--   updated_at = NOW();
+--
+-- If user is not in auth.users, try public.users:
+--
+-- INSERT INTO staff_profiles (auth_user_id, full_name, email, is_super_admin, active)
+-- SELECT 
+--   id as auth_user_id,
+--   COALESCE(name, email) as full_name,
+--   email,
+--   TRUE as is_super_admin,
+--   TRUE as active
+-- FROM public.users
 -- WHERE id = 'YOUR_USER_ID_HERE'::UUID
 -- ON CONFLICT (auth_user_id) DO UPDATE SET
 --   is_super_admin = TRUE,
