@@ -999,7 +999,7 @@ function ShopControlDetail({
         )}
 
         <div className="space-y-2">
-          {services.map((service) => (
+          {services.map((service: { id: string; name: string; price: number; duration: number; description?: string; category?: string }) => (
             <div key={service.id} className="flex items-center justify-between p-4 border rounded-lg">
               <div>
                 <p className="font-medium">{service.name}</p>
