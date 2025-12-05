@@ -8,7 +8,8 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
-import { PREFECTURES, REGIONS } from '@/lib/regions';
+import { REGIONS } from '@/lib/regions';
+import { PREFECTURES } from '@/lib/prefectures';
 import { extractPrefecture } from '@/lib/browse/shopBrowseData';
 
 interface Shop {
