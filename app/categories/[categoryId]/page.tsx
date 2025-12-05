@@ -156,8 +156,17 @@ function CategoryPageContent() {
           }
           
           // Fallback: extract from address using extractPrefecture function
-          const extractedKey = extractPrefecture(shop);
-          return extractedKey !== 'unknown' ? extractedKey : null;
+          // Ensure address exists before calling extractPrefecture
+          if (shop.address) {
+            // Create a shop object with required address field for extractPrefecture
+            const shopWithAddress = {
+              ...shop,
+              address: shop.address,
+            };
+            const extractedKey = extractPrefecture(shopWithAddress);
+            return extractedKey !== 'unknown' ? extractedKey : null;
+          }
+          return null;
         };
         
         if (filters.region !== 'all') {
