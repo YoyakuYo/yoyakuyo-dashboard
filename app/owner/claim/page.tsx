@@ -3,11 +3,13 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
+import { PREFECTURES, REGIONS } from '@/lib/browse/shopBrowseData';
+import { extractPrefecture } from '@/lib/browse/shopBrowseData';
 
 interface Shop {
   id: string;
@@ -16,6 +18,12 @@ interface Shop {
   category_id?: string;
   prefecture?: string;
   normalized_city?: string;
+  subcategory?: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
 }
 
 interface ClaimFormData {
@@ -34,7 +42,24 @@ export default function ClaimShopPage() {
   const [step, setStep] = useState<ClaimStep>('select');
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [unclaimedShops, setUnclaimedShops] = useState<Shop[]>([]);
+  const [allUnclaimedShops, setAllUnclaimedShops] = useState<Shop[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedRegion, setSelectedRegion] = useState<string>('all');
+  const [selectedPrefecture, setSelectedPrefecture] = useState<string>('all');
+  
+  // Debounced search
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   const [formData, setFormData] = useState<ClaimFormData>({
     claimant_name: '',
     claimant_email: user?.email || '',
@@ -46,6 +71,24 @@ export default function ClaimShopPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/categories`);
+        if (res.ok) {
+          const data = await res.json();
+          setCategories(Array.isArray(data) ? data : []);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+    if (apiUrl) {
+      fetchCategories();
+    }
+  }, [apiUrl]);
+
   // Fetch unclaimed shops on mount
   useEffect(() => {
     if (!authLoading && user) {
@@ -56,7 +99,8 @@ export default function ClaimShopPage() {
   const fetchUnclaimedShops = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${apiUrl}/shops?unclaimed=true&page=1&limit=100`, {
+      // Fetch more shops to allow filtering
+      const res = await fetch(`${apiUrl}/shops?unclaimed=true&page=1&limit=200`, {
         headers: {
           'Content-Type': 'application/json',
           'x-user-id': user?.id || '',
@@ -68,18 +112,72 @@ export default function ClaimShopPage() {
         const shopsArray = Array.isArray(data)
           ? data
           : (data.shops && Array.isArray(data.shops) ? data.shops : []);
+        setAllUnclaimedShops(shopsArray);
         setUnclaimedShops(shopsArray);
       } else {
         console.error('Failed to fetch unclaimed shops');
+        setAllUnclaimedShops([]);
         setUnclaimedShops([]);
       }
     } catch (error) {
       console.error('Error fetching unclaimed shops:', error);
+      setAllUnclaimedShops([]);
       setUnclaimedShops([]);
     } finally {
       setLoading(false);
     }
   };
+
+  // Get available prefectures based on selected region
+  const availablePrefectures = useMemo(() => {
+    if (selectedRegion === 'all') {
+      return PREFECTURES;
+    }
+    const region = REGIONS.find(r => r.key === selectedRegion);
+    if (!region) return [];
+    return PREFECTURES.filter(p => region.prefectures.includes(p.key));
+  }, [selectedRegion]);
+
+  // Filter shops based on selected filters
+  useEffect(() => {
+    let filtered = [...allUnclaimedShops];
+
+    // Search filter
+    if (debouncedSearch.trim()) {
+      const searchLower = debouncedSearch.toLowerCase();
+      filtered = filtered.filter(shop =>
+        shop.name.toLowerCase().includes(searchLower) ||
+        (shop.address && shop.address.toLowerCase().includes(searchLower))
+      );
+    }
+
+    // Category filter
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(shop => {
+        // Check if shop's category_id matches selected category
+        if (shop.category_id === selectedCategory) {
+          return true;
+        }
+        // Also check category name if available
+        const category = categories.find(c => c.id === selectedCategory);
+        if (category && shop.subcategory) {
+          return shop.subcategory.toLowerCase() === category.name.toLowerCase();
+        }
+        return false;
+      });
+    }
+
+    // Prefecture filter
+    if (selectedPrefecture !== 'all') {
+      filtered = filtered.filter(shop => {
+        const shopPrefecture = shop.prefecture || 
+          (shop.address ? extractPrefecture({ address: shop.address }) : null);
+        return shopPrefecture === selectedPrefecture;
+      });
+    }
+
+    setUnclaimedShops(filtered);
+  }, [debouncedSearch, selectedCategory, selectedPrefecture, allUnclaimedShops, categories]);
 
   const handleSelectShop = (shop: Shop) => {
     setSelectedShop(shop);
@@ -280,6 +378,105 @@ export default function ClaimShopPage() {
               <p className="text-gray-600 mb-6">
                 Select a shop you want to claim. You'll need to provide proof documents.
               </p>
+
+              {/* Filters */}
+              <div className="mb-6 space-y-4">
+                {/* Search */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Search Shops
+                  </label>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by shop name or address..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                {/* Category, Region, Prefecture Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Category Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Category
+                    </label>
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="all">All Categories</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Region Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Region
+                    </label>
+                    <select
+                      value={selectedRegion}
+                      onChange={(e) => {
+                        setSelectedRegion(e.target.value);
+                        setSelectedPrefecture('all'); // Reset prefecture when region changes
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="all">All Regions</option>
+                      {REGIONS.map((region) => (
+                        <option key={region.key} value={region.key}>
+                          {region.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Prefecture Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Prefecture
+                    </label>
+                    <select
+                      value={selectedPrefecture}
+                      onChange={(e) => setSelectedPrefecture(e.target.value)}
+                      disabled={selectedRegion === 'all'}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <option value="all">All Prefectures</option>
+                      {availablePrefectures.map((pref) => (
+                        <option key={pref.key} value={pref.key}>
+                          {pref.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Results count */}
+                <div className="text-sm text-gray-600">
+                  Showing {unclaimedShops.length} of {allUnclaimedShops.length} unclaimed shops
+                  {(debouncedSearch || selectedCategory !== 'all' || selectedPrefecture !== 'all') && (
+                    <button
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSelectedCategory('all');
+                        setSelectedRegion('all');
+                        setSelectedPrefecture('all');
+                      }}
+                      className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+              </div>
 
               {loading ? (
                 <div className="text-center py-12">
