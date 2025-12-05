@@ -53,10 +53,10 @@ export default function ReviewsSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            {t('reviews.title') || 'Customer Reviews'}
+            {t('reviews.title') === 'reviews.title' ? 'Customer Reviews' : t('reviews.title')}
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            {t('reviews.description') || 'See what our customers are saying about their experiences'}
+            {t('reviews.description') === 'reviews.description' ? 'See what our customers are saying about their experiences' : t('reviews.description')}
           </p>
         </div>
 
@@ -68,13 +68,13 @@ export default function ReviewsSection() {
         ) : reviews.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600 mb-4">
-              {t('reviews.noReviews') || 'No reviews yet. Be the first to review a shop!'}
+              {t('reviews.noReviews') === 'reviews.noReviews' ? 'No reviews yet. Be the first to review a shop!' : t('reviews.noReviews')}
             </p>
             <Link
               href="/browse"
               className="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
             >
-              {t('reviews.browseShops') || 'Browse Shops'}
+              {t('reviews.browseShops') === 'reviews.browseShops' ? 'Browse Shops' : t('reviews.browseShops')}
             </Link>
           </div>
         ) : (
@@ -92,7 +92,7 @@ export default function ReviewsSection() {
             href="/browse"
             className="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
-            {t('reviews.viewAllShops') || 'View All Shops & Reviews'}
+            {t('reviews.viewAllShops') === 'reviews.viewAllShops' ? 'View All Shops & Reviews' : t('reviews.viewAllShops')}
           </Link>
         </div>
       </div>

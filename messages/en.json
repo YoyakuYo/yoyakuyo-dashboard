@@ -728,6 +728,9 @@
   },
   "reviews": {
     "title": "Reviews",
+    "description": "See what our customers are saying about their experiences",
+    "browseShops": "Browse Shops",
+    "viewAllShops": "View All Shops & Reviews",
     "writeReview": "Write a Review",
     "rating": "Rating",
     "comment": "Comment",
