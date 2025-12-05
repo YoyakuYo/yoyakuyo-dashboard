@@ -268,7 +268,7 @@ const OwnerSidebar = React.memo(() => {
     },
   ];
 
-  const isItemDisabled = (item: any) => {
+  const isItemDisabled = (item: NavItem) => {
     if (item.requiresVerification && !isVerified) return true;
     if (item.requiresSubscription === true && subscriptionPlan === 'free') return true;
     if (item.requiresSubscription === 'pro' && subscriptionPlan !== 'pro') return true;
@@ -286,13 +286,14 @@ const OwnerSidebar = React.memo(() => {
               </div>
               <ul className="space-y-1 mt-2">
                 {section.items.map((item) => {
-                  const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
-                  const isDisabled = isItemDisabled(item);
-                  const isMessages = item.href === '/messages';
+                  const navItem = item as NavItem;
+                  const isActive = pathname === navItem.href || (navItem.href !== '/' && pathname?.startsWith(navItem.href));
+                  const isDisabled = isItemDisabled(navItem);
+                  const isMessages = navItem.href === '/messages';
                   
-                  if (isMessages && item.isPanel) {
+                  if (isMessages && navItem.isPanel) {
                     return (
-                      <li key={item.href}>
+                      <li key={navItem.href}>
                         <button
                           onClick={handleMessagesClick}
                           disabled={isDisabled}
@@ -307,13 +308,13 @@ const OwnerSidebar = React.memo(() => {
                           {isActive && (
                             <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r"></span>
                           )}
-                          <span className="text-xl">{item.icon}</span>
+                          <span className="text-xl">{navItem.icon}</span>
                           <span className={`font-medium flex-1 ${isActive ? 'font-bold' : ''}`}>
-                            {item.label}
+                            {navItem.label}
                           </span>
-                          {item.badge !== undefined && item.badge > 0 && (
+                          {navItem.badge !== undefined && navItem.badge > 0 && (
                             <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
-                              {item.badge}
+                              {navItem.badge}
                             </span>
                           )}
                           {isDisabled && (
@@ -325,9 +326,9 @@ const OwnerSidebar = React.memo(() => {
                   }
                   
                   return (
-                    <li key={item.href}>
+                    <li key={navItem.href}>
                       <Link
-                        href={isDisabled ? '#' : item.href}
+                        href={isDisabled ? '#' : navItem.href}
                         className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors relative ${
                           isActive
                             ? 'bg-blue-600 text-white font-bold'
@@ -344,13 +345,13 @@ const OwnerSidebar = React.memo(() => {
                         {isActive && (
                           <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r"></span>
                         )}
-                        <span className="text-xl">{item.icon}</span>
+                        <span className="text-xl">{navItem.icon}</span>
                         <span className={`font-medium flex-1 ${isActive ? 'font-bold' : ''}`}>
-                          {item.label}
+                          {navItem.label}
                         </span>
-                        {item.badge !== undefined && item.badge > 0 && (
+                        {navItem.badge !== undefined && navItem.badge > 0 && (
                           <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
-                            {item.badge}
+                            {navItem.badge}
                           </span>
                         )}
                         {isDisabled && (
