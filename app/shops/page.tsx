@@ -1462,69 +1462,33 @@ const MyShopPage = () => {
           </div>
         </div>
 
-        {/* Create Shop Form */}
+        {/* Create Shop Form - Redirect to Multi-Step Wizard */}
         {showCreateShop && (
           <div className="bg-white rounded-xl shadow-md border border-gray-100 p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('myShop.createNewShop')}</h2>
-            <form onSubmit={handleCreateShop}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('myShop.shopName')}</label>
-                  <input
-                    type="text"
-                    required
-                    value={shopForm.name || ''}
-                    onChange={(e) => setShopForm(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('myShop.address')}</label>
-                  <input
-                    type="text"
-                    required
-                    value={shopForm.address || ''}
-                    onChange={(e) => setShopForm(prev => ({ ...prev, address: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('myShop.phone')}</label>
-                  <input
-                    type="tel"
-                    required
-                    value={shopForm.phone || ''}
-                    onChange={(e) => setShopForm(prev => ({ ...prev, phone: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('myShop.email')}</label>
-                  <input
-                    type="email"
-                    required
-                    value={shopForm.email || ''}
-                    onChange={(e) => setShopForm(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
-                </div>
-                <div className="flex gap-4">
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    {t('myShop.createShop')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateShop(false)}
-                    className="px-6 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 transition-colors"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                </div>
+            <div className="space-y-4">
+              <p className="text-gray-600 mb-6">
+                Create your shop using our comprehensive setup wizard. You'll be guided through owner identity, business information, shop details, and verification documents.
+              </p>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    router.push('/owner/create-shop');
+                  }}
+                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Start Shop Setup Wizard
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateShop(false)}
+                  className="px-6 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  {t('common.cancel')}
+                </button>
               </div>
-            </form>
+            </div>
           </div>
         )}
 
