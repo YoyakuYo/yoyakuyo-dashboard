@@ -18,6 +18,7 @@ DECLARE
   shops_to_delete UUID[];
   shop_record RECORD;
   user_count INTEGER := 0;
+  deleted_count INTEGER;
 BEGIN
   RAISE NOTICE 'Starting shop deletion process...';
   RAISE NOTICE 'Target emails: %', array_to_string(target_emails, ', ');
@@ -90,39 +91,39 @@ BEGIN
   
   -- Delete services
   DELETE FROM services WHERE shop_id = ANY(shops_to_delete);
-  GET DIAGNOSTICS shop_record = ROW_COUNT;
-  RAISE NOTICE '  Deleted % services', shop_record;
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RAISE NOTICE '  Deleted % services', deleted_count;
 
   -- Delete bookings
   DELETE FROM bookings WHERE shop_id = ANY(shops_to_delete);
-  GET DIAGNOSTICS shop_record = ROW_COUNT;
-  RAISE NOTICE '  Deleted % bookings', shop_record;
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RAISE NOTICE '  Deleted % bookings', deleted_count;
 
   -- Delete shop settings
   DELETE FROM shop_settings WHERE shop_id = ANY(shops_to_delete);
-  GET DIAGNOSTICS shop_record = ROW_COUNT;
-  RAISE NOTICE '  Deleted % shop settings', shop_record;
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RAISE NOTICE '  Deleted % shop settings', deleted_count;
 
   -- Delete owner profiles
   DELETE FROM owner_profiles WHERE shop_id = ANY(shops_to_delete);
-  GET DIAGNOSTICS shop_record = ROW_COUNT;
-  RAISE NOTICE '  Deleted % owner profiles', shop_record;
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RAISE NOTICE '  Deleted % owner profiles', deleted_count;
 
   -- Delete waitlist notifications
   DELETE FROM waitlist_notifications WHERE shop_id = ANY(shops_to_delete);
-  GET DIAGNOSTICS shop_record = ROW_COUNT;
-  RAISE NOTICE '  Deleted % waitlist notifications', shop_record;
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RAISE NOTICE '  Deleted % waitlist notifications', deleted_count;
 
   -- Delete shop claim requests
   DELETE FROM shop_claim_requests WHERE shop_id = ANY(shops_to_delete);
-  GET DIAGNOSTICS shop_record = ROW_COUNT;
-  RAISE NOTICE '  Deleted % shop claim requests', shop_record;
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RAISE NOTICE '  Deleted % shop claim requests', deleted_count;
 
   -- Finally, delete the shops
   RAISE NOTICE 'Deleting shops...';
   DELETE FROM shops WHERE id = ANY(shops_to_delete);
-  GET DIAGNOSTICS shop_record = ROW_COUNT;
-  RAISE NOTICE '✅ Successfully deleted % shops', shop_record;
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RAISE NOTICE '✅ Successfully deleted % shops', deleted_count;
 
   RAISE NOTICE '';
   RAISE NOTICE '=== DELETION COMPLETE ===';
