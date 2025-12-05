@@ -79,7 +79,40 @@ export default function ClaimShopPage() {
         const res = await fetch(`${apiUrl}/categories`);
         if (res.ok) {
           const data = await res.json();
-          setCategories(Array.isArray(data) ? data : []);
+          const allCategories = Array.isArray(data) ? data : [];
+          
+          // Filter out old combined categories and show subcategories instead
+          // Replace "Spa & Massage" with "Spa", "Massages", "Onsen", "Ryokan Onsen"
+          const filteredCategories = allCategories.filter((cat: Category) => {
+            // Exclude old combined categories
+            const lowerName = cat.name.toLowerCase();
+            if (lowerName.includes('spa & massage') || 
+                lowerName.includes('onsen & ryokan') ||
+                lowerName === 'spa & massage' ||
+                lowerName === 'onsen & ryokan') {
+              return false;
+            }
+            return true;
+          });
+          
+          // Add the 4 separate subcategories if they exist
+          const spaOnsenSubcategories = allCategories.filter((cat: Category) => {
+            const lowerName = cat.name.toLowerCase();
+            return lowerName === 'spa' || 
+                   lowerName === 'massages' || 
+                   lowerName === 'onsen' || 
+                   lowerName === 'ryokan onsen';
+          });
+          
+          // Combine filtered categories with subcategories
+          const finalCategories = [
+            ...filteredCategories,
+            ...spaOnsenSubcategories.filter(sub => 
+              !filteredCategories.some(cat => cat.id === sub.id)
+            )
+          ];
+          
+          setCategories(finalCategories);
         }
       } catch (error) {
         console.error('Error fetching categories:', error);
