@@ -29,7 +29,18 @@ AND is_published IS NULL;
 CREATE INDEX IF NOT EXISTS idx_shops_is_visible ON shops(is_visible) WHERE is_visible = TRUE;
 CREATE INDEX IF NOT EXISTS idx_shops_is_published ON shops(is_published) WHERE is_published = TRUE;
 
+-- Add lat/lng columns if they don't exist (for geolocation)
+ALTER TABLE shops
+ADD COLUMN IF NOT EXISTS lat NUMERIC(10, 8),
+ADD COLUMN IF NOT EXISTS lng NUMERIC(11, 8);
+
+-- Create indexes for location queries
+CREATE INDEX IF NOT EXISTS idx_shops_lat ON shops(lat) WHERE lat IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_shops_lng ON shops(lng) WHERE lng IS NOT NULL;
+
 -- Add comments
 COMMENT ON COLUMN shops.is_visible IS 'Whether the shop is visible in listings (can be hidden by owner or staff)';
 COMMENT ON COLUMN shops.is_published IS 'Whether the shop is published and visible to the public (requires verification approval)';
+COMMENT ON COLUMN shops.lat IS 'Latitude coordinate for shop location';
+COMMENT ON COLUMN shops.lng IS 'Longitude coordinate for shop location';
 
