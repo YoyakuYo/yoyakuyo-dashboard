@@ -170,6 +170,51 @@ export function useBookingNotificationsHook() {
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `recipient_type=eq.owner&recipient_id=eq.${user.id}`,
+        },
+        async (payload: any) => {
+          const newNotification = payload.new;
+          if (newNotification && newNotification.type === 'new_booking') {
+            // Show pop-up notification for new booking
+            const bookingId = newNotification.data?.booking_id;
+            if (bookingId) {
+              // Fetch booking details
+              const supabase = getSupabaseClient();
+              const { data: bookingData } = await supabase
+                .from('bookings')
+                .select('customer_name, date, time_slot, start_time, service_id, shop_id, services(name), shops(name)')
+                .eq('id', bookingId)
+                .single();
+              
+              if (bookingData) {
+                const serviceName = (bookingData.services as any)?.name;
+                const date = bookingData.date || 'N/A';
+                const time = bookingData.start_time 
+                  ? new Date(bookingData.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                  : bookingData.time_slot || 'N/A';
+                
+                setNewBookingNotification({
+                  id: bookingId,
+                  customerName: bookingData.customer_name || 'Customer',
+                  serviceName: serviceName,
+                  date: date,
+                  time: time,
+                  isAICreated: true,
+                });
+                
+                // Reload count
+                await reloadPendingCount();
+              }
+            }
+          }
+        }
+      )
       .subscribe();
 
     subscriptionRef.current = channel;
