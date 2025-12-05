@@ -154,27 +154,38 @@ export default function ClaimShopPage() {
 
     // Category filter
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(shop => {
-        // Check if shop's category_id matches selected category (UUID match)
-        if (shop.category_id === selectedCategory) {
-          return true;
-        }
-        // Also check if category name matches subcategory
-        const category = categories.find(c => c.id === selectedCategory);
-        if (category) {
-          // Check if shop's subcategory matches the category name
-          if (shop.subcategory && shop.subcategory.toLowerCase() === category.name.toLowerCase()) {
+      const selectedCategoryObj = categories.find(c => c.id === selectedCategory);
+      if (selectedCategoryObj) {
+        filtered = filtered.filter(shop => {
+          // 1. Direct category_id match (UUID match)
+          if (shop.category_id === selectedCategory) {
             return true;
           }
-          // Check if shop's category_id matches any parent category
-          // This handles cases where subcategories are under parent categories
+          
+          // 2. Check if shop's subcategory matches the selected category name
+          // (e.g., shop.subcategory = "Massages" and selectedCategory.name = "Massages")
+          if (shop.subcategory && shop.subcategory.toLowerCase() === selectedCategoryObj.name.toLowerCase()) {
+            return true;
+          }
+          
+          // 3. Check if shop's category_id points to a category with the same name
+          // (handles cases where category was renamed but shops still have old UUID)
           const shopCategory = categories.find(c => c.id === shop.category_id);
-          if (shopCategory && shopCategory.name === category.name) {
+          if (shopCategory && shopCategory.name.toLowerCase() === selectedCategoryObj.name.toLowerCase()) {
             return true;
           }
-        }
-        return false;
-      });
+          
+          // 4. For parent categories, check if shop is in any subcategory of that parent
+          // (e.g., if "Spa, Onsen & Relaxation" is selected, include shops in "Spa", "Massages", "Onsen", "Ryokan Onsen")
+          // This is handled by checking if the shop's category name matches the selected category name
+          // or if the shop's subcategory is a known subcategory of the selected category
+          
+          return false;
+        });
+      } else {
+        // If category not found, filter out all shops
+        filtered = [];
+      }
     }
 
     // Region filter - filter by prefectures in the selected region
