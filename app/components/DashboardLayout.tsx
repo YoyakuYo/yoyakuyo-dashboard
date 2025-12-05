@@ -9,6 +9,7 @@ import { usePathname, useRouter } from "next/navigation";
 import AuthGuard from "./AuthGuard";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
+import OwnerSidebar from "./OwnerSidebar";
 import PublicLayoutWrapper from "./PublicLayoutWrapper";
 import { OwnerAIChatProvider, OwnerAIChat } from "./OwnerAIChat";
 import { useBookingNotificationsHook } from "@/lib/useBookingNotifications";
@@ -84,7 +85,7 @@ export default function DashboardLayout({
       <OwnerAIChatProvider>
         <BookingNotificationsWrapper>
           <Header />
-          <Sidebar />
+          <OwnerSidebar />
           <main className="lg:ml-64 pt-16 min-h-screen bg-gray-50">
             {children}
           </main>
