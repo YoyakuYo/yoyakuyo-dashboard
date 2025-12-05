@@ -114,10 +114,14 @@ BEGIN
   GET DIAGNOSTICS deleted_count = ROW_COUNT;
   RAISE NOTICE '  Deleted % waitlist notifications', deleted_count;
 
-  -- Delete shop claim requests
-  DELETE FROM shop_claim_requests WHERE shop_id = ANY(shops_to_delete);
-  GET DIAGNOSTICS deleted_count = ROW_COUNT;
-  RAISE NOTICE '  Deleted % shop claim requests', deleted_count;
+  -- Delete shop claim requests (if table exists)
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'shop_claim_requests') THEN
+    DELETE FROM shop_claim_requests WHERE shop_id = ANY(shops_to_delete);
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RAISE NOTICE '  Deleted % shop claim requests', deleted_count;
+  ELSE
+    RAISE NOTICE '  shop_claim_requests table does not exist, skipping...';
+  END IF;
 
   -- Finally, delete the shops
   RAISE NOTICE 'Deleting shops...';
