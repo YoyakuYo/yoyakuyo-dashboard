@@ -32,40 +32,58 @@ BEGIN
     SELECT id INTO onsen_ryokan_category_id FROM categories WHERE name = 'Onsen & Ryokan';
     
     -- ============================================================================
-    -- STEP 1: Create subcategories if they don't exist
+    -- STEP 1: Ensure parent category exists and create subcategories
     -- ============================================================================
-    RAISE NOTICE 'Step 1: Ensuring all 4 subcategories exist...';
+    RAISE NOTICE 'Step 1: Ensuring parent category and all 4 subcategories exist...';
     
-    -- Create Spa category if it doesn't exist
+    -- Ensure parent category "Spa, Onsen & Relaxation" exists
+    IF parent_category_id IS NULL THEN
+        INSERT INTO categories (name, description)
+        VALUES ('Spa, Onsen & Relaxation', 'Spas, onsen (hot springs), massage, relaxation services, ryokan baths')
+        RETURNING id INTO parent_category_id;
+        RAISE NOTICE '  ✅ Created parent category "Spa, Onsen & Relaxation"';
+    ELSE
+        RAISE NOTICE '  ✅ Parent category "Spa, Onsen & Relaxation" exists';
+    END IF;
+    
+    -- Create Spa subcategory if it doesn't exist (under parent "Spa, Onsen & Relaxation")
     IF spa_category_id IS NULL THEN
         INSERT INTO categories (name, description)
         VALUES ('Spa', 'Spa treatments and wellness services')
         RETURNING id INTO spa_category_id;
-        RAISE NOTICE '  ✅ Created Spa category';
+        RAISE NOTICE '  ✅ Created Spa subcategory';
+    ELSE
+        RAISE NOTICE '  ✅ Spa subcategory exists';
     END IF;
     
-    -- Create Massages category if it doesn't exist
+    -- Create Massages subcategory if it doesn't exist (under parent "Spa, Onsen & Relaxation")
     IF massages_category_id IS NULL THEN
         INSERT INTO categories (name, description)
         VALUES ('Massages', 'Massage therapy and relaxation services')
         RETURNING id INTO massages_category_id;
-        RAISE NOTICE '  ✅ Created Massages category';
+        RAISE NOTICE '  ✅ Created Massages subcategory';
+    ELSE
+        RAISE NOTICE '  ✅ Massages subcategory exists';
     END IF;
     
-    -- Create Onsen category if it doesn't exist
+    -- Create Onsen subcategory if it doesn't exist (under parent "Spa, Onsen & Relaxation")
     IF onsen_category_id IS NULL THEN
         INSERT INTO categories (name, description)
         VALUES ('Onsen', 'Traditional Japanese hot springs and public baths')
         RETURNING id INTO onsen_category_id;
-        RAISE NOTICE '  ✅ Created Onsen category';
+        RAISE NOTICE '  ✅ Created Onsen subcategory';
+    ELSE
+        RAISE NOTICE '  ✅ Onsen subcategory exists';
     END IF;
     
-    -- Create Ryokan Onsen category if it doesn't exist
+    -- Create Ryokan Onsen subcategory if it doesn't exist (under parent "Spa, Onsen & Relaxation")
     IF ryokan_onsen_category_id IS NULL THEN
         INSERT INTO categories (name, description)
         VALUES ('Ryokan Onsen', 'Traditional Japanese inns with onsen facilities')
         RETURNING id INTO ryokan_onsen_category_id;
-        RAISE NOTICE '  ✅ Created Ryokan Onsen category';
+        RAISE NOTICE '  ✅ Created Ryokan Onsen subcategory';
+    ELSE
+        RAISE NOTICE '  ✅ Ryokan Onsen subcategory exists';
     END IF;
     
     -- ============================================================================
@@ -363,10 +381,16 @@ END $$;
 -- ============================================================================
 -- VERIFICATION: Check final distribution
 -- ============================================================================
+-- Show distribution across parent and subcategories
 SELECT 
     'Final Distribution' AS report_type,
     c.name AS category_name,
-    COUNT(*) AS shop_count
+    COUNT(*) AS shop_count,
+    CASE 
+        WHEN c.name = 'Spa, Onsen & Relaxation' THEN 'Parent Category'
+        WHEN c.name IN ('Spa', 'Massages', 'Onsen', 'Ryokan Onsen') THEN 'Subcategory'
+        ELSE 'Legacy Category'
+    END AS category_type
 FROM shops s
 JOIN categories c ON s.category_id = c.id
 WHERE c.name IN ('Spa, Onsen & Relaxation', 'Spa', 'Massages', 'Onsen', 'Ryokan Onsen', 'Spa & Massage', 'Onsen & Ryokan')
@@ -380,7 +404,35 @@ AND (
 AND s.address IS NOT NULL 
 AND s.address != ''
 GROUP BY c.name
-ORDER BY shop_count DESC;
+ORDER BY 
+    CASE 
+        WHEN c.name = 'Spa, Onsen & Relaxation' THEN 1
+        WHEN c.name IN ('Spa', 'Massages', 'Onsen', 'Ryokan Onsen') THEN 2
+        ELSE 3
+    END,
+    shop_count DESC;
+
+-- Show total shops in all 4 subcategories (should be all shops, parent should have 0)
+SELECT 
+    'Subcategory Summary' AS report_type,
+    COUNT(*) FILTER (WHERE c.name = 'Spa') AS spa_count,
+    COUNT(*) FILTER (WHERE c.name = 'Massages') AS massages_count,
+    COUNT(*) FILTER (WHERE c.name = 'Onsen') AS onsen_count,
+    COUNT(*) FILTER (WHERE c.name = 'Ryokan Onsen') AS ryokan_onsen_count,
+    COUNT(*) FILTER (WHERE c.name IN ('Spa', 'Massages', 'Onsen', 'Ryokan Onsen')) AS total_subcategories,
+    COUNT(*) FILTER (WHERE c.name = 'Spa, Onsen & Relaxation') AS parent_count
+FROM shops s
+JOIN categories c ON s.category_id = c.id
+WHERE c.name IN ('Spa, Onsen & Relaxation', 'Spa', 'Massages', 'Onsen', 'Ryokan Onsen')
+AND (
+    NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'shops' AND column_name = 'deleted_at'
+    )
+    OR s.deleted_at IS NULL
+)
+AND s.address IS NOT NULL 
+AND s.address != '';
 
 -- Show sample shops in each of the 4 subcategories
 SELECT 
