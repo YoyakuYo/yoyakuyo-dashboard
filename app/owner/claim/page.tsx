@@ -155,37 +155,65 @@ export default function ClaimShopPage() {
     // Category filter
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(shop => {
-        // Check if shop's category_id matches selected category
+        // Check if shop's category_id matches selected category (UUID match)
         if (shop.category_id === selectedCategory) {
           return true;
         }
-        // Also check category name if available
+        // Also check if category name matches subcategory
         const category = categories.find(c => c.id === selectedCategory);
-        if (category && shop.subcategory) {
-          return shop.subcategory.toLowerCase() === category.name.toLowerCase();
+        if (category) {
+          // Check if shop's subcategory matches the category name
+          if (shop.subcategory && shop.subcategory.toLowerCase() === category.name.toLowerCase()) {
+            return true;
+          }
+          // Check if shop's category_id matches any parent category
+          // This handles cases where subcategories are under parent categories
+          const shopCategory = categories.find(c => c.id === shop.category_id);
+          if (shopCategory && shopCategory.name === category.name) {
+            return true;
+          }
         }
         return false;
       });
     }
 
-    // Prefecture filter
+    // Region filter - filter by prefectures in the selected region
+    if (selectedRegion !== 'all') {
+      const region = REGIONS.find(r => r.key === selectedRegion);
+      if (region) {
+        filtered = filtered.filter(shop => {
+          // Extract prefecture from shop
+          let shopPrefecture: string | null = null;
+          if (shop.prefecture) {
+            shopPrefecture = shop.prefecture;
+          } else if (shop.address) {
+            shopPrefecture = extractPrefecture(shop as any);
+          }
+          
+          // Check if shop's prefecture is in the selected region
+          return shopPrefecture && region.prefectures.includes(shopPrefecture);
+        });
+      }
+    }
+
+    // Prefecture filter (only applies if region is selected or region is 'all')
     if (selectedPrefecture !== 'all') {
       filtered = filtered.filter(shop => {
-        // Use shop.prefecture if available, otherwise extract from address
+        // Extract prefecture from shop
+        let shopPrefecture: string | null = null;
         if (shop.prefecture) {
-          return shop.prefecture === selectedPrefecture;
+          shopPrefecture = shop.prefecture;
+        } else if (shop.address) {
+          shopPrefecture = extractPrefecture(shop as any);
         }
-        if (shop.address) {
-          // extractPrefecture expects a Shop object, so pass the full shop
-          const extractedPrefecture = extractPrefecture(shop as any);
-          return extractedPrefecture === selectedPrefecture;
-        }
-        return false;
+        
+        // Match exact prefecture
+        return shopPrefecture === selectedPrefecture;
       });
     }
 
     setUnclaimedShops(filtered);
-  }, [debouncedSearch, selectedCategory, selectedPrefecture, allUnclaimedShops, categories]);
+  }, [debouncedSearch, selectedCategory, selectedRegion, selectedPrefecture, allUnclaimedShops, categories]);
 
   const handleSelectShop = (shop: Shop) => {
     setSelectedShop(shop);
