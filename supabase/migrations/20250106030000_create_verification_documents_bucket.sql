@@ -1,42 +1,30 @@
 -- ============================================================================
--- CREATE VERIFICATION DOCUMENTS STORAGE BUCKET
+-- CREATE VERIFICATION DOCUMENTS STORAGE POLICIES
 -- ============================================================================
--- This migration creates the storage bucket for shop verification documents
+-- This migration creates the storage policies for the verification-documents bucket
 -- 
--- NOTE: Storage bucket creation requires service role permissions.
--- If this migration fails, create the bucket manually in Supabase Dashboard:
--- 1. Go to Storage → Create Bucket
--- 2. Name: "verification-documents"
--- 3. Public: false (private bucket)
--- 4. File size limit: 10MB
--- 5. Allowed MIME types: image/jpeg, image/jpg, image/png, image/webp, application/pdf
+-- IMPORTANT: The bucket itself must be created manually first!
+-- 
+-- To create the bucket:
+-- 1. Go to Supabase Dashboard → Storage
+-- 2. Click "New bucket"
+-- 3. Name: "verification-documents"
+-- 4. Public: false (unchecked)
+-- 5. File size limit: 10MB
+-- 6. Allowed MIME types: image/jpeg, image/jpg, image/png, image/webp, application/pdf
+-- 7. Click "Create bucket"
+-- 
+-- Then run this migration to create the policies.
 -- ============================================================================
 
--- Try to create storage bucket (requires service role or manual creation)
+-- Verify bucket exists before creating policies
 DO $$
 BEGIN
-    -- Check if bucket already exists
     IF NOT EXISTS (
         SELECT 1 FROM storage.buckets WHERE id = 'verification-documents'
     ) THEN
-        -- Attempt to create bucket (will fail if not service role)
-        INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-        VALUES (
-            'verification-documents',
-            'verification-documents',
-            false, -- Private bucket (only authenticated users can access)
-            10485760, -- 10MB limit
-            ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf']
-        );
-        RAISE NOTICE 'Storage bucket "verification-documents" created successfully';
-    ELSE
-        RAISE NOTICE 'Storage bucket "verification-documents" already exists';
+        RAISE EXCEPTION 'Storage bucket "verification-documents" does not exist. Please create it first in Supabase Dashboard → Storage → New Bucket';
     END IF;
-EXCEPTION
-    WHEN insufficient_privilege THEN
-        RAISE WARNING 'Insufficient privileges to create storage bucket. Please create it manually in Supabase Dashboard.';
-    WHEN OTHERS THEN
-        RAISE WARNING 'Error creating storage bucket: %. Please create it manually in Supabase Dashboard.', SQLERRM;
 END $$;
 
 -- ============================================================================
