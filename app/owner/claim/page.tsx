@@ -171,9 +171,16 @@ export default function ClaimShopPage() {
     // Prefecture filter
     if (selectedPrefecture !== 'all') {
       filtered = filtered.filter(shop => {
-        const shopPrefecture = shop.prefecture || 
-          (shop.address ? extractPrefecture({ address: shop.address }) : null);
-        return shopPrefecture === selectedPrefecture;
+        // Use shop.prefecture if available, otherwise extract from address
+        if (shop.prefecture) {
+          return shop.prefecture === selectedPrefecture;
+        }
+        if (shop.address) {
+          // extractPrefecture expects a Shop object, so pass the full shop
+          const extractedPrefecture = extractPrefecture(shop as any);
+          return extractedPrefecture === selectedPrefecture;
+        }
+        return false;
       });
     }
 
