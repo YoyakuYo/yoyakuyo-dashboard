@@ -132,11 +132,20 @@ BEGIN
   GET DIAGNOSTICS deleted_count = ROW_COUNT;
   RAISE NOTICE '  Deleted % notifications', deleted_count;
 
-  -- Delete messages (if table exists)
+  -- Delete messages (if table exists and has user reference columns)
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'messages') THEN
-    DELETE FROM messages WHERE sender_id = ANY(target_user_ids) OR recipient_id = ANY(target_user_ids);
-    GET DIAGNOSTICS deleted_count = ROW_COUNT;
-    RAISE NOTICE '  Deleted % messages', deleted_count;
+    -- Try different possible column names
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'messages' AND column_name = 'sender_id') THEN
+      DELETE FROM messages WHERE sender_id = ANY(target_user_ids) OR recipient_id = ANY(target_user_ids);
+      GET DIAGNOSTICS deleted_count = ROW_COUNT;
+      RAISE NOTICE '  Deleted % messages', deleted_count;
+    ELSIF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'messages' AND column_name = 'user_id') THEN
+      DELETE FROM messages WHERE user_id = ANY(target_user_ids);
+      GET DIAGNOSTICS deleted_count = ROW_COUNT;
+      RAISE NOTICE '  Deleted % messages', deleted_count;
+    ELSE
+      RAISE NOTICE '  messages table exists but has no recognized user reference columns, skipping...';
+    END IF;
   END IF;
 
   -- Delete from public.users
