@@ -285,19 +285,36 @@ export default function CustomerShopsPage() {
             >
               {t('categories.all')}
             </button>
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedCategory === category.id
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {t(`categories.${category.name.toLowerCase().replace(/\s+/g, '_')}`) || category.name}
-              </button>
-            ))}
+            {categories.map((category) => {
+              // Create translation key from category name
+              const translationKey = `categories.${category.name.toLowerCase().replace(/\s+/g, '_').replace(/[&,]/g, '').replace(/\//g, '_')}`;
+              // Try to get translation, but check if it actually exists
+              let categoryDisplayName = category.name;
+              try {
+                const translated = t(translationKey);
+                // If translation returns the key itself, it means the translation doesn't exist
+                if (translated && translated !== translationKey) {
+                  categoryDisplayName = translated;
+                }
+              } catch (e) {
+                // Translation key doesn't exist, use category name
+                categoryDisplayName = category.name;
+              }
+              
+              return (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedCategory === category.id
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {categoryDisplayName}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

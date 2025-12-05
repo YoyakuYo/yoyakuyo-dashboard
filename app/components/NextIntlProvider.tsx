@@ -152,6 +152,16 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
           return photoTexts[locale] || 'Photos';
         }
         
+        // Handle missing category keys gracefully
+        if (key.startsWith('categories.')) {
+          // Extract the category name from the key (e.g., "categories.beauty_services" -> "Beauty Services")
+          const categoryName = key.replace('categories.', '')
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, (l) => l.toUpperCase())
+            .trim();
+          return categoryName;
+        }
+        
         // Handle missing city/prefecture keys gracefully
         if (key.startsWith('cities.') || key.startsWith('prefectures.')) {
           // Extract the name from the key (e.g., "cities.tokyo" -> "tokyo")
