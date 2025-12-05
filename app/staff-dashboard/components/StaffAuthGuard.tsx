@@ -7,6 +7,7 @@ import { apiUrl } from "@/lib/apiClient";
 
 export default function StaffAuthGuard({ children }: { children: React.ReactNode }) {
   const [isStaff, setIsStaff] = useState<boolean | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -17,9 +18,13 @@ export default function StaffAuthGuard({ children }: { children: React.ReactNode
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
+          setIsAuthenticated(false);
+          setIsStaff(false);
           router.push("/");
           return;
         }
+
+        setIsAuthenticated(true);
 
         // Check if user is staff
         const response = await fetch(`${apiUrl}/staff/profile`, {
@@ -32,12 +37,12 @@ export default function StaffAuthGuard({ children }: { children: React.ReactNode
           setIsStaff(true);
         } else {
           setIsStaff(false);
-          router.push("/");
+          // Don't redirect - let the page show the setup button
         }
       } catch (error) {
         console.error("Error checking staff access:", error);
         setIsStaff(false);
-        router.push("/");
+        // Don't redirect on error - let the page handle it
       } finally {
         setLoading(false);
       }
@@ -57,10 +62,12 @@ export default function StaffAuthGuard({ children }: { children: React.ReactNode
     );
   }
 
-  if (!isStaff) {
+  // Only redirect if not authenticated
+  if (!isAuthenticated) {
     return null; // Will redirect
   }
 
+  // If authenticated (even if not staff), allow access so they can see setup button
   return <>{children}</>;
 }
 
