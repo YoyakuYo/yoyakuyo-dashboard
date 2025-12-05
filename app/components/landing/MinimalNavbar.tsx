@@ -53,7 +53,7 @@ export default function MinimalNavbar() {
               href="/staff-dashboard"
               className="px-3 py-1.5 text-xs font-medium text-purple-700 hover:text-purple-900 transition-colors border border-purple-300 rounded-md"
             >
-              Staff
+              {t('navStaff') || 'Staff'}
             </Link>
             <button
               onClick={handleLoginClick}

@@ -126,71 +126,71 @@ const OwnerSidebar = React.memo(() => {
   const isVerified = shop?.verification_status === 'approved';
   const subscriptionPlan = shop?.subscription_plan || 'free';
 
-  // Navigation sections
+  // Navigation sections - using translations
   const navSections = [
     {
-      title: 'OVERVIEW',
+      title: t('nav.overview'),
       items: [
         { 
           href: '/owner/dashboard', 
-          label: 'Dashboard', 
+          label: t('nav.dashboard'), 
           icon: '📊',
           requiresVerification: false,
         },
       ],
     },
     {
-      title: 'SHOP SETUP',
+      title: t('nav.shopSetup'),
       items: [
         { 
           href: '/owner/shop-profile', 
-          label: 'Shop Profile', 
+          label: t('nav.shopProfile'), 
           icon: '🏪',
           requiresVerification: false,
         },
         { 
           href: '/owner/owner-profile', 
-          label: 'Owner Profile', 
+          label: t('nav.ownerProfile'), 
           icon: '👤',
           requiresVerification: false,
         },
         { 
           href: '/owner/verification', 
-          label: 'Verification & Documents', 
+          label: t('nav.verificationDocuments'), 
           icon: '✅',
           requiresVerification: false,
         },
       ],
     },
     {
-      title: 'SERVICES & PRICING',
+      title: t('nav.servicesPricing'),
       items: [
         { 
           href: '/owner/services', 
-          label: 'Services', 
+          label: t('nav.services'), 
           icon: '💼',
           requiresVerification: false,
         },
         { 
           href: '/owner/pricing', 
-          label: 'Pricing', 
+          label: t('nav.pricing'), 
           icon: '💰',
           requiresVerification: false,
         },
         { 
           href: '/owner/availability', 
-          label: 'Availability & Schedule', 
+          label: t('nav.availabilitySchedule'), 
           icon: '📅',
           requiresVerification: false,
         },
       ],
     },
     {
-      title: 'OPERATIONS',
+      title: t('nav.operations'),
       items: [
         { 
           href: '/bookings', 
-          label: 'Bookings', 
+          label: t('nav.bookings'), 
           icon: '📅', 
           badge: unreadBookingsCount > 0 ? unreadBookingsCount : undefined,
           requiresVerification: true,
@@ -198,14 +198,14 @@ const OwnerSidebar = React.memo(() => {
         },
         { 
           href: '/owner/calendar', 
-          label: 'Calendar', 
+          label: t('nav.calendar'), 
           icon: '🗓️',
           requiresVerification: true,
           requiresSubscription: true,
         },
         { 
           href: '/messages', 
-          label: 'Messages', 
+          label: t('nav.messages'), 
           icon: '💬', 
           badge: unreadCount > 0 ? unreadCount : undefined, 
           isPanel: true,
@@ -214,18 +214,18 @@ const OwnerSidebar = React.memo(() => {
       ],
     },
     {
-      title: 'AI & AUTOMATION',
+      title: t('nav.aiAutomation'),
       items: [
         { 
           href: '/assistant', 
-          label: 'AI Assistant', 
+          label: t('nav.aiAssistant'), 
           icon: '🤖',
           requiresVerification: true,
           requiresSubscription: 'pro',
         },
         { 
           href: '/owner/automation', 
-          label: 'Automation Rules', 
+          label: t('nav.automationRules'), 
           icon: '⚙️',
           requiresVerification: true,
           requiresSubscription: 'pro',
@@ -233,34 +233,34 @@ const OwnerSidebar = React.memo(() => {
       ],
     },
     {
-      title: 'BUSINESS & BILLING',
+      title: t('nav.businessBilling'),
       items: [
         { 
           href: '/owner/subscription', 
-          label: 'Subscription', 
+          label: t('nav.subscription'), 
           icon: '💳',
           requiresVerification: false,
         },
         { 
           href: '/owner/staff', 
-          label: 'Staff & Roles', 
+          label: t('nav.staffRoles'), 
           icon: '👥',
           requiresVerification: false,
         },
         { 
           href: '/owner/payouts', 
-          label: 'Payouts', 
+          label: t('nav.payouts'), 
           icon: '💵',
           requiresVerification: false,
         },
       ],
     },
     {
-      title: 'SYSTEM',
+      title: t('nav.system'),
       items: [
         { 
           href: '/settings', 
-          label: 'Settings', 
+          label: t('nav.settings'), 
           icon: '⚙️',
           requiresVerification: false,
         },

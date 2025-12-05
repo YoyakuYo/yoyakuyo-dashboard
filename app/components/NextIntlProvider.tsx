@@ -19,37 +19,42 @@ const messageMap: Record<SupportedLocale, any> = {
   'pt-BR': ptBRMessages && typeof ptBRMessages === 'object' ? ptBRMessages : {},
 };
 
+// Get locale from cookie or localStorage (synchronous for initial render)
+function getStoredLocale(): SupportedLocale {
+  if (typeof window === 'undefined') return 'ja';
+  
+  // Try cookie first
+  const cookies = document.cookie.split(';');
+  const langCookie = cookies.find(c => c.trim().startsWith('yoyaku_yo_language='));
+  if (langCookie) {
+    const value = langCookie.split('=')[1]?.trim() as SupportedLocale;
+    if (value && messageMap[value]) {
+      return value;
+    }
+  }
+  
+  // Fallback to localStorage
+  const stored = localStorage.getItem('yoyaku_yo_language') as SupportedLocale;
+  if (stored && messageMap[stored]) {
+    return stored;
+  }
+  
+  return 'ja'; // Default to Japanese
+}
+
 export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<SupportedLocale>('ja'); // Default to Japanese
-  const [messages, setMessages] = useState<any>(messageMap['ja']);
+  // Initialize with stored locale immediately (not just in useEffect)
+  const initialLocale = typeof window !== 'undefined' ? getStoredLocale() : 'ja';
+  const [locale, setLocale] = useState<SupportedLocale>(initialLocale);
+  const [messages, setMessages] = useState<any>(messageMap[initialLocale] || messageMap['ja']);
 
   useEffect(() => {
-    // Get locale from cookie or localStorage
-    const getStoredLocale = (): SupportedLocale => {
-      if (typeof window === 'undefined') return 'ja';
-      
-      // Try cookie first
-      const cookies = document.cookie.split(';');
-      const langCookie = cookies.find(c => c.trim().startsWith('yoyaku_yo_language='));
-      if (langCookie) {
-        const value = langCookie.split('=')[1]?.trim() as SupportedLocale;
-        if (value && messageMap[value]) {
-          return value;
-        }
-      }
-      
-      // Fallback to localStorage
-      const stored = localStorage.getItem('yoyaku_yo_language') as SupportedLocale;
-      if (stored && messageMap[stored]) {
-        return stored;
-      }
-      
-      return 'ja'; // Default to Japanese
-    };
-
+    // Re-check locale on mount to ensure it's up to date
     const currentLocale = getStoredLocale();
-    setLocale(currentLocale);
-    setMessages(messageMap[currentLocale] || messageMap['ja']);
+    if (currentLocale !== locale) {
+      setLocale(currentLocale);
+      setMessages(messageMap[currentLocale] || messageMap['ja']);
+    }
   }, []);
 
   // Listen for locale changes
