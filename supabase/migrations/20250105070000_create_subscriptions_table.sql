@@ -5,6 +5,29 @@
 -- Used by: /owner/subscription page, subscription API routes
 -- ============================================================================
 
+-- Drop table if it exists with wrong structure (from previous failed migration)
+DO $$
+BEGIN
+  -- Check if table exists
+  IF EXISTS (
+    SELECT FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+    AND table_name = 'subscriptions'
+  ) THEN
+    -- Check if user_id column exists
+    IF NOT EXISTS (
+      SELECT FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+      AND table_name = 'subscriptions' 
+      AND column_name = 'user_id'
+    ) THEN
+      -- Table exists but missing user_id column - drop and recreate
+      DROP TABLE IF EXISTS subscriptions CASCADE;
+      RAISE NOTICE 'Dropped existing subscriptions table (missing user_id column)';
+    END IF;
+  END IF;
+END $$;
+
 -- Create subscriptions table
 CREATE TABLE IF NOT EXISTS subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
