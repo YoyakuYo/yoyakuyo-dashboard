@@ -9,7 +9,7 @@
 CREATE TABLE IF NOT EXISTS subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   shop_id UUID NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   plan TEXT NOT NULL CHECK (plan IN ('basic', 'premium', 'enterprise')),
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'canceled', 'past_due', 'trialing', 'unpaid', 'incomplete', 'incomplete_expired')),
   stripe_subscription_id TEXT UNIQUE,
@@ -112,7 +112,7 @@ CREATE TRIGGER update_subscriptions_updated_at
 -- Add comments
 COMMENT ON TABLE subscriptions IS 'Shop subscription plans (basic, premium, enterprise)';
 COMMENT ON COLUMN subscriptions.shop_id IS 'Foreign key to shops table';
-COMMENT ON COLUMN subscriptions.user_id IS 'Foreign key to users table (shop owner)';
+COMMENT ON COLUMN subscriptions.user_id IS 'Foreign key to auth.users (shop owner)';
 COMMENT ON COLUMN subscriptions.plan IS 'Subscription plan: basic, premium, or enterprise';
 COMMENT ON COLUMN subscriptions.status IS 'Subscription status from Stripe';
 COMMENT ON COLUMN subscriptions.stripe_subscription_id IS 'Stripe subscription ID (unique)';
