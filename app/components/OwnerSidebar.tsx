@@ -20,6 +20,16 @@ interface Shop {
   ai_enabled?: boolean;
 }
 
+interface NavItem {
+  href: string;
+  label: string;
+  icon: string;
+  requiresVerification: boolean;
+  requiresSubscription?: boolean | 'pro';
+  badge?: number;
+  isPanel?: boolean;
+}
+
 const OwnerSidebar = React.memo(() => {
   const pathname = usePathname();
   const { signOut, user } = useAuth();
