@@ -132,20 +132,26 @@ BEGIN
   GET DIAGNOSTICS deleted_count = ROW_COUNT;
   RAISE NOTICE '  Deleted % notifications', deleted_count;
 
-  -- Delete messages (if table exists and has user reference columns)
+  -- Delete messages (legacy table - delete messages for shops owned by these users)
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'messages') THEN
-    -- Try different possible column names
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'messages' AND column_name = 'sender_id') THEN
-      DELETE FROM messages WHERE sender_id = ANY(target_user_ids) OR recipient_id = ANY(target_user_ids);
-      GET DIAGNOSTICS deleted_count = ROW_COUNT;
-      RAISE NOTICE '  Deleted % messages', deleted_count;
-    ELSIF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'messages' AND column_name = 'user_id') THEN
-      DELETE FROM messages WHERE user_id = ANY(target_user_ids);
-      GET DIAGNOSTICS deleted_count = ROW_COUNT;
-      RAISE NOTICE '  Deleted % messages', deleted_count;
-    ELSE
-      RAISE NOTICE '  messages table exists but has no recognized user reference columns, skipping...';
-    END IF;
+    -- Legacy messages table has shop_id, not user_id
+    -- Delete messages for shops owned by these users
+    DELETE FROM messages WHERE shop_id IN (
+      SELECT id FROM shops WHERE owner_user_id = ANY(target_user_ids)
+    );
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RAISE NOTICE '  Deleted % messages (legacy table)', deleted_count;
+  END IF;
+
+  -- Delete shop_messages (if table exists)
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'shop_messages') THEN
+    -- shop_messages has sender_id as TEXT (can be user ID or LINE ID)
+    -- Delete messages where sender_id matches user ID (as text)
+    DELETE FROM shop_messages WHERE sender_id IN (
+      SELECT id::TEXT FROM unnest(target_user_ids) AS id
+    );
+    GET DIAGNOSTICS deleted_count = ROW_COUNT;
+    RAISE NOTICE '  Deleted % shop_messages', deleted_count;
   END IF;
 
   -- Delete from public.users
