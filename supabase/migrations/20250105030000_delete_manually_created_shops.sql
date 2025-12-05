@@ -1,10 +1,13 @@
 -- Migration: Delete manually created shops
--- This script helps identify and delete shops created manually by a specific user
+-- This script helps identify and delete shops created manually by specific users
 -- 
+-- Configured emails:
+-- - sowoumar45@gmail.com
+-- - omarsowbarca45@gmail.com
+--
 -- INSTRUCTIONS:
--- 1. Replace 'YOUR_USER_EMAIL' with your actual email address
--- 2. Review the shops that will be deleted
--- 3. Run this migration
+-- 1. Review the shops that will be deleted (shown in the output)
+-- 2. Run this migration in Supabase SQL Editor
 
 DO $$
 DECLARE
@@ -66,7 +69,7 @@ BEGIN
     );
 
   IF shops_to_delete IS NULL OR array_length(shops_to_delete, 1) IS NULL THEN
-    RAISE NOTICE 'No shops found to delete for user: %', target_email;
+    RAISE NOTICE 'No shops found to delete for the provided emails: %', array_to_string(target_emails, ', ');
     RETURN;
   END IF;
 
