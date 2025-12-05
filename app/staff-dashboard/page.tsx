@@ -987,7 +987,7 @@ function ShopControlDetail({
         {editingService && (
           <ServiceEditForm
             service={editingService}
-            onSave={(data) => {
+            onSave={(data: { name: string; description: string; price: string | number; duration: number; category: string }) => {
               if (editingService.id) {
                 onUpdateService(editingService.id, data);
               } else {
