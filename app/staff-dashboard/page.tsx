@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/apiClient";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
+import StaffSetupButton from "@/components/StaffSetupButton";
 
 interface StaffProfile {
   id: string;
@@ -51,6 +52,23 @@ export default function StaffDashboardPage() {
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not staff, show setup button
+  if (!staffProfile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full p-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Staff Access Required</h1>
+            <p className="text-gray-600 mb-4">
+              You need a staff profile to access this dashboard. Click the button below to create one.
+            </p>
+            <StaffSetupButton />
+          </div>
         </div>
       </div>
     );
