@@ -48,7 +48,9 @@ export default function DashboardLayout({
     }
     
     // Check if it starts with owner route patterns
-    if (route.startsWith('/shops/services') || route.startsWith('/owner/subscription')) {
+    if (route.startsWith('/shops/services') || 
+        route.startsWith('/owner/') || 
+        route.startsWith('/owner/subscription')) {
       return true;
     }
     
