@@ -137,36 +137,49 @@ function CategoryPageContent() {
         // Filter by region and prefecture (client-side, as they're not in DB)
         let filteredShops = shopsArray;
         
+        // Import utilities for prefecture extraction
+        const { extractPrefecture } = await import('@/lib/browse/shopBrowseData');
+        const { PREFECTURES } = await import('@/lib/prefectures');
+        
+        // Helper function to get prefecture key from shop
+        const getShopPrefectureKey = (shop: Shop): string | null => {
+          // First, try to use shop.prefecture field if it exists
+          if (shop.prefecture) {
+            const pref = PREFECTURES.find((p: any) => 
+              p.name.toLowerCase() === shop.prefecture?.toLowerCase() ||
+              p.nameJa === shop.prefecture ||
+              p.key === shop.prefecture?.toLowerCase() ||
+              shop.prefecture?.includes(p.nameJa) ||
+              shop.prefecture?.toLowerCase().includes(p.name.toLowerCase())
+            );
+            if (pref) return pref.key;
+          }
+          
+          // Fallback: extract from address using extractPrefecture function
+          const extractedKey = extractPrefecture(shop);
+          return extractedKey !== 'unknown' ? extractedKey : null;
+        };
+        
         if (filters.region !== 'all') {
           const { REGIONS } = await import('@/lib/regions');
-          const { PREFECTURES } = await import('@/lib/prefectures');
           const region = REGIONS.find(r => r.key === filters.region);
           if (region) {
             const regionPrefectureKeys = region.prefectures;
             filteredShops = shopsArray.filter((shop: Shop) => {
-              const address = shop.address?.toLowerCase() || '';
-              return regionPrefectureKeys.some(prefKey => {
-                const pref = PREFECTURES.find((p: any) => p.key === prefKey);
-                if (!pref) return false;
-                // Check if address contains prefecture name (English or Japanese)
-                return address.includes(pref.name.toLowerCase()) || 
-                       address.includes(pref.nameJa);
-              });
+              const shopPrefectureKey = getShopPrefectureKey(shop);
+              if (!shopPrefectureKey) return false;
+              return regionPrefectureKeys.includes(shopPrefectureKey);
             });
           }
         }
         
         // Further filter by specific prefecture if selected
         if (filters.prefecture !== 'all') {
-          const { PREFECTURES } = await import('@/lib/prefectures');
-          const pref = PREFECTURES.find((p: any) => p.key === filters.prefecture);
-          if (pref) {
-            filteredShops = filteredShops.filter((shop: Shop) => {
-              const address = shop.address?.toLowerCase() || '';
-              return address.includes(pref.name.toLowerCase()) || 
-                     address.includes(pref.nameJa);
-            });
-          }
+          filteredShops = filteredShops.filter((shop: Shop) => {
+            const shopPrefectureKey = getShopPrefectureKey(shop);
+            if (!shopPrefectureKey) return false;
+            return shopPrefectureKey === filters.prefecture;
+          });
         }
 
         // Filter out hidden shops
