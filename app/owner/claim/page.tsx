@@ -128,7 +128,7 @@ export default function ClaimShopPage() {
     if (!authLoading && user) {
       fetchUnclaimedShops();
     }
-  }, [authLoading, user, selectedCategory, selectedPrefecture, debouncedSearch]);
+  }, [authLoading, user, selectedCategory, selectedRegion, selectedPrefecture, debouncedSearch]);
 
   const fetchUnclaimedShops = async () => {
     try {
@@ -139,7 +139,12 @@ export default function ClaimShopPage() {
       params.set('page', '1');
       params.set('limit', '200');
       
-      // Add prefecture filter if selected
+      // Add region filter if selected (API will convert to prefectures)
+      if (selectedRegion !== 'all') {
+        params.set('region', selectedRegion);
+      }
+      
+      // Add prefecture filter if selected (will be intersected with region if both are set)
       if (selectedPrefecture !== 'all') {
         params.set('prefecture', selectedPrefecture);
       }
@@ -196,35 +201,11 @@ export default function ClaimShopPage() {
     return PREFECTURES.filter(p => region.prefectures.includes(p.key));
   }, [selectedRegion]);
 
-  // Apply region filter client-side (since API doesn't support region filtering directly)
+  // No need for client-side region filtering anymore - API handles it
+  // Keep this effect to sync unclaimedShops with allUnclaimedShops
   useEffect(() => {
-    let filtered = [...allUnclaimedShops];
-
-    // Region filter - filter by prefectures in the selected region
-    if (selectedRegion !== 'all') {
-      const region = REGIONS.find(r => r.key === selectedRegion);
-      if (region) {
-        filtered = filtered.filter(shop => {
-          // Extract prefecture from shop
-          let shopPrefecture: string | null = null;
-          if (shop.prefecture) {
-            shopPrefecture = shop.prefecture;
-          } else if (shop.address) {
-            try {
-              shopPrefecture = extractPrefecture(shop as any);
-            } catch (e) {
-              console.error('Error extracting prefecture:', e, shop);
-            }
-          }
-          
-          // Check if shop's prefecture is in the selected region
-          return shopPrefecture && region.prefectures.includes(shopPrefecture);
-        });
-      }
-    }
-
-    setUnclaimedShops(filtered);
-  }, [selectedRegion, allUnclaimedShops]);
+    setUnclaimedShops(allUnclaimedShops);
+  }, [allUnclaimedShops]);
 
   const handleSelectShop = (shop: Shop) => {
     setSelectedShop(shop);
