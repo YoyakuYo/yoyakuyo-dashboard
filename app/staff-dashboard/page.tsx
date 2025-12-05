@@ -248,6 +248,37 @@ function ShopVerificationModule() {
     }
   };
 
+  const handleDelete = async (shopId: string, shopName: string) => {
+    if (!confirm(`Are you sure you want to delete "${shopName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const response = await fetch(`${apiUrl}/staff/shops/${shopId}`, {
+        method: "DELETE",
+        headers: {
+          "x-user-id": user.id,
+        },
+      });
+
+      if (response.ok) {
+        alert(`Shop "${shopName}" deleted successfully`);
+        loadShops();
+        setSelectedShop(null);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to delete shop: ${errorData.error || "Unknown error"}`);
+      }
+    } catch (error) {
+      console.error("Error deleting shop:", error);
+      alert("Error deleting shop");
+    }
+  };
+
   if (selectedShop) {
     return (
       <ShopDetailView
@@ -255,6 +286,7 @@ function ShopVerificationModule() {
         onBack={() => setSelectedShop(null)}
         onApprove={handleApprove}
         onReject={handleReject}
+        onDelete={handleDelete}
       />
     );
   }
@@ -352,7 +384,7 @@ function ShopVerificationModule() {
   );
 }
 
-function ShopDetailView({ shop, onBack, onApprove, onReject }: any) {
+function ShopDetailView({ shop, onBack, onApprove, onReject, onDelete }: any) {
   const [rejectReason, setRejectReason] = useState("");
 
   return (
@@ -423,6 +455,14 @@ function ShopDetailView({ shop, onBack, onApprove, onReject }: any) {
             Reject Shop
           </button>
         </div>
+        {onDelete && (
+          <button
+            onClick={() => onDelete(shop.id, shop.name)}
+            className="px-4 py-2 bg-red-800 text-white rounded-lg hover:bg-red-900"
+          >
+            Delete Shop
+          </button>
+        )}
       </div>
     </div>
   );
