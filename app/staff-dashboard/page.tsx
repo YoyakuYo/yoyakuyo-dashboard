@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { apiUrl } from "@/lib/apiClient";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
-import StaffSetupButton from "@/components/StaffSetupButton";
+import StaffSetupButton from "../components/StaffSetupButton";
 
 interface StaffProfile {
   id: string;
