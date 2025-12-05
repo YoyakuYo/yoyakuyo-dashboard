@@ -364,6 +364,10 @@ export default function PublicShopDetailPage() {
           shop_id: shopId,
           service_id: bookingServiceId,
           staff_id: bookingStaffId || null,
+          customer_name: customerName || 'Guest',
+          customer_email: user?.email || null,
+          date: bookingDate,
+          time_slot: bookingTime,
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
           status: 'pending',
@@ -702,7 +706,21 @@ export default function PublicShopDetailPage() {
                 />
               </div>
 
-
+              {!user && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('booking.yourName') || 'Your Name'} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    required
+                    placeholder={t('booking.yourName') || 'Enter your name'}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
+                </div>
+              )}
 
               {bookingError && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">

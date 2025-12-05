@@ -155,10 +155,24 @@ export default function PublicBookingPage() {
   };
 
   const bookAppointment = async () => {
-    if (selectedService && selectedStaff && selectedDate && name) {
-      const nameParts = name.trim().split(/\s+/);
-      const first_name = nameParts[0] || name;
-      const last_name = nameParts.slice(1).join(' ') || null;
+    if (selectedService && selectedDate && name) {
+      // Calculate start_time and end_time from date and selected timeslot
+      let startDateTime: Date;
+      let endDateTime: Date;
+      
+      if (timeslots.length > 0 && selectedDate) {
+        // Use first available timeslot if none selected
+        const timeslot = timeslots[0];
+        startDateTime = new Date(`${selectedDate}T${timeslot.start_time}`);
+        endDateTime = new Date(`${selectedDate}T${timeslot.end_time}`);
+      } else if (selectedDate) {
+        // Default to current time if no timeslot
+        startDateTime = new Date(`${selectedDate}T10:00`);
+        endDateTime = new Date(startDateTime.getTime() + 60 * 60000); // 1 hour default
+      } else {
+        alert(t('booking.selectDate') || 'Please select a date');
+        return;
+      }
 
       try {
         const res = await fetch(`${apiUrl}/bookings`, {
@@ -169,11 +183,12 @@ export default function PublicBookingPage() {
           body: JSON.stringify({
             shop_id: shopId,
             service_id: selectedService,
-            staff_id: selectedStaff,
-            start_time: selectedDate,
-            end_time: selectedDate,
-            first_name: first_name,
-            last_name: last_name,
+            staff_id: selectedStaff || null,
+            customer_name: name.trim(),
+            customer_email: email || null,
+            date: selectedDate,
+            start_time: startDateTime.toISOString(),
+            end_time: endDateTime.toISOString(),
             notes: `Booking for ${name}`,
           }),
         });
