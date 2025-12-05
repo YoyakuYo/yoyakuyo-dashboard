@@ -13,37 +13,92 @@ interface StaffProfile {
   is_super_admin: boolean;
 }
 
+type UserRole = 'super_admin' | 'shop_owner' | 'shop_staff' | 'user';
+
+interface UserRoleInfo {
+  role: UserRole;
+  isSuperAdmin: boolean;
+  isShopOwner: boolean;
+  isShopStaff: boolean;
+  ownedShopIds: string[];
+}
+
 export default function StaffDashboardPage() {
   const [activeTab, setActiveTab] = useState<"verification" | "complaints" | "shops" | "bookings" | "users">("verification");
   const [staffProfile, setStaffProfile] = useState<StaffProfile | null>(null);
+  const [userRole, setUserRole] = useState<UserRoleInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadStaffProfile = async () => {
+    const loadUserRole = async () => {
       try {
         const supabase = getSupabaseClient();
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) return;
 
-        const response = await fetch(`${apiUrl}/staff/profile`, {
+        // Load staff profile
+        const staffResponse = await fetch(`${apiUrl}/staff/profile`, {
           headers: {
             "x-user-id": user.id,
           },
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          setStaffProfile(data.profile);
+        let staffProfileData: StaffProfile | null = null;
+        if (staffResponse.ok) {
+          const data = await staffResponse.json();
+          staffProfileData = data.profile;
+          setStaffProfile(staffProfileData);
         }
+
+        // Determine user role
+        const roleInfo: UserRoleInfo = {
+          role: 'user',
+          isSuperAdmin: false,
+          isShopOwner: false,
+          isShopStaff: false,
+          ownedShopIds: [],
+        };
+
+        // Check if super admin
+        if (staffProfileData?.is_super_admin) {
+          roleInfo.role = 'super_admin';
+          roleInfo.isSuperAdmin = true;
+        } else {
+          // Check if shop owner
+          const { data: ownedShops } = await supabase
+            .from("shops")
+            .select("id")
+            .eq("owner_user_id", user.id);
+
+          if (ownedShops && ownedShops.length > 0) {
+            roleInfo.role = 'shop_owner';
+            roleInfo.isShopOwner = true;
+            roleInfo.ownedShopIds = ownedShops.map(s => s.id);
+          } else {
+            // Check if shop staff
+            const { data: shopStaff } = await supabase
+              .from("shop_staff")
+              .select("shop_id")
+              .eq("user_id", user.id);
+
+            if (shopStaff && shopStaff.length > 0) {
+              roleInfo.role = 'shop_staff';
+              roleInfo.isShopStaff = true;
+              roleInfo.ownedShopIds = shopStaff.map(s => s.shop_id);
+            }
+          }
+        }
+
+        setUserRole(roleInfo);
       } catch (error) {
-        console.error("Error loading staff profile:", error);
+        console.error("Error loading user role:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadStaffProfile();
+    loadUserRole();
   }, []);
 
   if (loading) {
@@ -103,12 +158,14 @@ export default function StaffDashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8">
             {[
-              { id: "verification", label: "Shop Verification" },
-              { id: "complaints", label: "Complaints" },
-              { id: "shops", label: "Shop Control" },
-              { id: "bookings", label: "Bookings & Calendar" },
-              { id: "users", label: "Users & Owners" },
-            ].map((tab) => (
+              { id: "verification", label: "Shop Verification", allowedRoles: ['super_admin', 'shop_owner', 'shop_staff'] },
+              { id: "complaints", label: "Complaints", allowedRoles: ['super_admin', 'shop_owner', 'shop_staff'] },
+              { id: "shops", label: "Shop Control", allowedRoles: ['shop_owner', 'shop_staff'] }, // BLOCKED for super_admin
+              { id: "bookings", label: "Bookings & Calendar", allowedRoles: ['super_admin', 'shop_owner', 'shop_staff'] },
+              { id: "users", label: "Users & Owners", allowedRoles: ['super_admin'] },
+            ]
+            .filter(tab => !userRole || tab.allowedRoles.includes(userRole.role))
+            .map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
@@ -129,8 +186,20 @@ export default function StaffDashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === "verification" && <ShopVerificationModule />}
         {activeTab === "complaints" && <ComplaintsModule />}
-        {activeTab === "shops" && <ShopControlModule />}
-        {activeTab === "bookings" && <BookingsModule />}
+        {activeTab === "shops" && (
+          userRole?.isSuperAdmin ? (
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="text-center py-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
+                <p className="text-gray-600 mb-2">Admins cannot edit shop data directly.</p>
+                <p className="text-sm text-gray-500">Shop owners must manage their own shops through the owner dashboard.</p>
+              </div>
+            </div>
+          ) : (
+            <ShopControlModule userRole={userRole} />
+          )
+        )}
+        {activeTab === "bookings" && <BookingsModule userRole={userRole} />}
         {activeTab === "users" && <UsersModule />}
       </main>
     </div>
@@ -787,9 +856,9 @@ function ComplaintDetailView({ complaint, onBack }: any) {
 }
 
 // ============================================================================
-// MODULE C: SHOP CONTROL
+// MODULE C: SHOP CONTROL (OWNERS ONLY)
 // ============================================================================
-function ShopControlModule() {
+function ShopControlModule({ userRole }: { userRole: UserRoleInfo | null }) {
   const [shops, setShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedShop, setSelectedShop] = useState<any | null>(null);
@@ -1224,7 +1293,8 @@ function ServiceEditForm({ service, onSave, onCancel }: any) {
 // ============================================================================
 // MODULE D: BOOKINGS & CALENDAR
 // ============================================================================
-function BookingsModule() {
+function BookingsModule({ userRole }: { userRole: UserRoleInfo | null }) {
+  const isReadOnly = userRole?.isSuperAdmin || false;
   const [shops, setShops] = useState<any[]>([]);
   const [selectedShop, setSelectedShop] = useState<any | null>(null);
   const [bookings, setBookings] = useState<any[]>([]);
@@ -1282,6 +1352,7 @@ function BookingsModule() {
         bookings={bookings}
         onBack={() => setSelectedShop(null)}
         onLoadBookings={() => loadBookings(selectedShop.id)}
+        isReadOnly={isReadOnly}
       />
     );
   }
@@ -1331,7 +1402,7 @@ function BookingsModule() {
   );
 }
 
-function ShopBookingsView({ shop, bookings, onBack, onLoadBookings }: any) {
+function ShopBookingsView({ shop, bookings, onBack, onLoadBookings, isReadOnly = false }: any) {
   const [newBooking, setNewBooking] = useState({
     customer_name: "",
     customer_email: "",
@@ -1423,44 +1494,53 @@ function ShopBookingsView({ shop, bookings, onBack, onLoadBookings }: any) {
       </button>
       <h2 className="text-2xl font-bold mb-4">Calendar: {shop.name}</h2>
 
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="font-semibold mb-4">Create Manual Booking</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <input
-            type="text"
-            placeholder="Customer Name *"
-            value={newBooking.customer_name}
-            onChange={(e) => setNewBooking({ ...newBooking, customer_name: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
-          />
-          <input
-            type="email"
-            placeholder="Customer Email"
-            value={newBooking.customer_email}
-            onChange={(e) => setNewBooking({ ...newBooking, customer_email: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
-          />
-          <input
-            type="date"
-            value={newBooking.date}
-            onChange={(e) => setNewBooking({ ...newBooking, date: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
-          />
-          <input
-            type="time"
-            value={newBooking.time_slot}
-            onChange={(e) => setNewBooking({ ...newBooking, time_slot: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
-          />
-          <input
-            type="text"
-            placeholder="Notes"
-            value={newBooking.notes}
-            onChange={(e) => setNewBooking({ ...newBooking, notes: e.target.value })}
-            className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg"
-          />
-          <button
-            onClick={handleCreateBooking}
+      {isReadOnly && (
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800">
+            <strong>Read-Only Mode:</strong> You can view bookings but cannot create, modify, or cancel them.
+          </p>
+        </div>
+      )}
+
+      {!isReadOnly && (
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <h3 className="font-semibold mb-4">Create Manual Booking</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="text"
+              placeholder="Customer Name *"
+              value={newBooking.customer_name}
+              onChange={(e) => setNewBooking({ ...newBooking, customer_name: e.target.value })}
+              className="px-3 py-2 border border-gray-300 rounded-lg"
+            />
+            <input
+              type="email"
+              placeholder="Customer Email"
+              value={newBooking.customer_email}
+              onChange={(e) => setNewBooking({ ...newBooking, customer_email: e.target.value })}
+              className="px-3 py-2 border border-gray-300 rounded-lg"
+            />
+            <input
+              type="date"
+              value={newBooking.date}
+              onChange={(e) => setNewBooking({ ...newBooking, date: e.target.value })}
+              className="px-3 py-2 border border-gray-300 rounded-lg"
+            />
+            <input
+              type="time"
+              value={newBooking.time_slot}
+              onChange={(e) => setNewBooking({ ...newBooking, time_slot: e.target.value })}
+              className="px-3 py-2 border border-gray-300 rounded-lg"
+            />
+            <input
+              type="text"
+              placeholder="Notes"
+              value={newBooking.notes}
+              onChange={(e) => setNewBooking({ ...newBooking, notes: e.target.value })}
+              className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg"
+            />
+            <button
+              onClick={handleCreateBooking}
             className="col-span-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Create Booking
@@ -1480,22 +1560,28 @@ function ShopBookingsView({ shop, bookings, onBack, onLoadBookings }: any) {
                 </p>
               </div>
               <div className="flex gap-2">
-                <select
-                  value={booking.status}
-                  onChange={(e) => handleUpdateBooking(booking.id, e.target.value)}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="completed">Completed</option>
-                </select>
-                <button
-                  onClick={() => handleDeleteBooking(booking.id)}
-                  className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
-                >
-                  Delete
-                </button>
+                {isReadOnly ? (
+                  <span className="px-3 py-1 text-sm text-gray-500 italic">Read-only</span>
+                ) : (
+                  <>
+                    <select
+                      value={booking.status}
+                      onChange={(e) => handleUpdateBooking(booking.id, e.target.value)}
+                      className="px-3 py-1 text-sm border border-gray-300 rounded"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                    <button
+                      onClick={() => handleDeleteBooking(booking.id)}
+                      className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}
@@ -1620,17 +1706,58 @@ function UsersModule() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Shops</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Full Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Linked Shop</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Verification Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Account Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((user) => (
+              {users.map((user: any) => (
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.full_name || "N/A"}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.full_name || user.name || "N/A"}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      user.role === 'shop_owner' ? 'bg-blue-100 text-blue-800' :
+                      user.role === 'shop_staff' ? 'bg-purple-100 text-purple-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {user.role || 'user'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {user.linked_shop_id ? (
+                      <span className="text-blue-600">{user.linked_shop_id.substring(0, 8)}...</span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {user.verification_status ? (
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        user.verification_status === 'approved' ? 'bg-green-100 text-green-800' :
+                        user.verification_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        user.verification_status === 'rejected' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {user.verification_status}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      user.account_status === 'active' ? 'bg-green-100 text-green-800' :
+                      user.account_status === 'suspended' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {user.account_status || 'active'}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
                       onClick={() => loadUserDetails(user.id)}
