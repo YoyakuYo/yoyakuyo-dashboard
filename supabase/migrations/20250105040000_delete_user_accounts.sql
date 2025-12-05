@@ -146,8 +146,8 @@ BEGIN
   -- Delete shop_messages (if table exists)
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'shop_messages') THEN
     -- shop_messages has sender_id as TEXT (can be user ID or LINE ID)
-    -- Delete messages where sender_id matches user ID (as text)
-    DELETE FROM shop_messages WHERE sender_id IN (
+    -- Delete messages where sender_id matches user ID (cast UUID to TEXT for comparison)
+    DELETE FROM shop_messages WHERE sender_id::TEXT IN (
       SELECT id::TEXT FROM unnest(target_user_ids) AS id
     );
     GET DIAGNOSTICS deleted_count = ROW_COUNT;
