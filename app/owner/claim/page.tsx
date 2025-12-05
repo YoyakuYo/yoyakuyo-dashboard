@@ -90,18 +90,38 @@ export default function ClaimShopPage() {
     }
   }, [apiUrl]);
 
-  // Fetch unclaimed shops on mount
+  // Fetch unclaimed shops when filters change or on mount
   useEffect(() => {
     if (!authLoading && user) {
       fetchUnclaimedShops();
     }
-  }, [authLoading, user]);
+  }, [authLoading, user, selectedCategory, selectedPrefecture, debouncedSearch]);
 
   const fetchUnclaimedShops = async () => {
     try {
       setLoading(true);
-      // Fetch more shops to allow filtering
-      const res = await fetch(`${apiUrl}/shops?unclaimed=true&page=1&limit=200`, {
+      // Build query with filters to fetch filtered shops from API
+      const params = new URLSearchParams();
+      params.set('unclaimed', 'true');
+      params.set('page', '1');
+      params.set('limit', '200');
+      
+      // Add prefecture filter if selected
+      if (selectedPrefecture !== 'all') {
+        params.set('prefecture', selectedPrefecture);
+      }
+      
+      // Add category filter if selected
+      if (selectedCategory !== 'all') {
+        params.set('category', selectedCategory);
+      }
+      
+      // Add search filter if provided
+      if (debouncedSearch.trim()) {
+        params.set('search', debouncedSearch.trim());
+      }
+
+      const res = await fetch(`${apiUrl}/shops?${params.toString()}`, {
         headers: {
           'Content-Type': 'application/json',
           'x-user-id': user?.id || '',
@@ -113,10 +133,14 @@ export default function ClaimShopPage() {
         const shopsArray = Array.isArray(data)
           ? data
           : (data.shops && Array.isArray(data.shops) ? data.shops : []);
+        
+        console.log('Fetched shops:', shopsArray.length, shopsArray.slice(0, 3));
+        
+        // Store all shops for client-side filtering if needed
         setAllUnclaimedShops(shopsArray);
         setUnclaimedShops(shopsArray);
       } else {
-        console.error('Failed to fetch unclaimed shops');
+        console.error('Failed to fetch unclaimed shops:', res.status, res.statusText);
         setAllUnclaimedShops([]);
         setUnclaimedShops([]);
       }
@@ -139,54 +163,9 @@ export default function ClaimShopPage() {
     return PREFECTURES.filter(p => region.prefectures.includes(p.key));
   }, [selectedRegion]);
 
-  // Filter shops based on selected filters
+  // Apply region filter client-side (since API doesn't support region filtering directly)
   useEffect(() => {
     let filtered = [...allUnclaimedShops];
-
-    // Search filter
-    if (debouncedSearch.trim()) {
-      const searchLower = debouncedSearch.toLowerCase();
-      filtered = filtered.filter(shop =>
-        shop.name.toLowerCase().includes(searchLower) ||
-        (shop.address && shop.address.toLowerCase().includes(searchLower))
-      );
-    }
-
-    // Category filter
-    if (selectedCategory !== 'all') {
-      const selectedCategoryObj = categories.find(c => c.id === selectedCategory);
-      if (selectedCategoryObj) {
-        filtered = filtered.filter(shop => {
-          // 1. Direct category_id match (UUID match)
-          if (shop.category_id === selectedCategory) {
-            return true;
-          }
-          
-          // 2. Check if shop's subcategory matches the selected category name
-          // (e.g., shop.subcategory = "Massages" and selectedCategory.name = "Massages")
-          if (shop.subcategory && shop.subcategory.toLowerCase() === selectedCategoryObj.name.toLowerCase()) {
-            return true;
-          }
-          
-          // 3. Check if shop's category_id points to a category with the same name
-          // (handles cases where category was renamed but shops still have old UUID)
-          const shopCategory = categories.find(c => c.id === shop.category_id);
-          if (shopCategory && shopCategory.name.toLowerCase() === selectedCategoryObj.name.toLowerCase()) {
-            return true;
-          }
-          
-          // 4. For parent categories, check if shop is in any subcategory of that parent
-          // (e.g., if "Spa, Onsen & Relaxation" is selected, include shops in "Spa", "Massages", "Onsen", "Ryokan Onsen")
-          // This is handled by checking if the shop's category name matches the selected category name
-          // or if the shop's subcategory is a known subcategory of the selected category
-          
-          return false;
-        });
-      } else {
-        // If category not found, filter out all shops
-        filtered = [];
-      }
-    }
 
     // Region filter - filter by prefectures in the selected region
     if (selectedRegion !== 'all') {
@@ -198,7 +177,11 @@ export default function ClaimShopPage() {
           if (shop.prefecture) {
             shopPrefecture = shop.prefecture;
           } else if (shop.address) {
-            shopPrefecture = extractPrefecture(shop as any);
+            try {
+              shopPrefecture = extractPrefecture(shop as any);
+            } catch (e) {
+              console.error('Error extracting prefecture:', e, shop);
+            }
           }
           
           // Check if shop's prefecture is in the selected region
@@ -207,24 +190,8 @@ export default function ClaimShopPage() {
       }
     }
 
-    // Prefecture filter (only applies if region is selected or region is 'all')
-    if (selectedPrefecture !== 'all') {
-      filtered = filtered.filter(shop => {
-        // Extract prefecture from shop
-        let shopPrefecture: string | null = null;
-        if (shop.prefecture) {
-          shopPrefecture = shop.prefecture;
-        } else if (shop.address) {
-          shopPrefecture = extractPrefecture(shop as any);
-        }
-        
-        // Match exact prefecture
-        return shopPrefecture === selectedPrefecture;
-      });
-    }
-
     setUnclaimedShops(filtered);
-  }, [debouncedSearch, selectedCategory, selectedRegion, selectedPrefecture, allUnclaimedShops, categories]);
+  }, [selectedRegion, allUnclaimedShops]);
 
   const handleSelectShop = (shop: Shop) => {
     setSelectedShop(shop);
