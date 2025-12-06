@@ -127,7 +127,7 @@ BEGIN
   END IF;
 END $$;
 
--- Step 2: Verify the fix
+-- Step 15: Verify the fix
 SELECT 
   'Verification' AS check_type,
   column_name,
@@ -138,6 +138,6 @@ WHERE table_schema = 'public'
   AND table_name = 'shop_claim_documents'
   AND column_name = 'claim_id';
 
--- Step 3: Refresh PostgREST schema cache
+-- Step 16: Refresh PostgREST schema cache
 SELECT pg_notify('pgrst', 'reload schema');
 
