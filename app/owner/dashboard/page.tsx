@@ -30,6 +30,17 @@ interface Verification {
   document_count?: number;
 }
 
+interface OwnerNotification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  verification_id?: string;
+  shop_id?: string;
+}
+
 interface DashboardStats {
   todayBookings: number;
   totalBookings: number;
@@ -42,6 +53,8 @@ export default function OwnerDashboardPage() {
   const router = useRouter();
   const [shop, setShop] = useState<Shop | null>(null);
   const [verification, setVerification] = useState<Verification | null>(null);
+  const [notifications, setNotifications] = useState<OwnerNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -395,7 +408,7 @@ export default function OwnerDashboardPage() {
             <div>
               <p className="text-sm text-gray-600">AI Status</p>
               <p className="text-2xl font-bold mt-2">
-                {shop.ai_enabled ? '✅ Enabled' : '🔒 Disabled'}
+                {shop?.ai_enabled ? '✅ Enabled' : '🔒 Disabled'}
               </p>
             </div>
           </div>
@@ -443,14 +456,14 @@ export default function OwnerDashboardPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
             <span className="font-medium">Online Booking</span>
-            <span className={shop.booking_enabled ? 'text-green-600' : 'text-gray-400'}>
-              {shop.booking_enabled ? '✅ Enabled' : '🔒 Disabled'}
+            <span className={shop?.booking_enabled ? 'text-green-600' : 'text-gray-400'}>
+              {shop?.booking_enabled ? '✅ Enabled' : '🔒 Disabled'}
             </span>
           </div>
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
             <span className="font-medium">AI Assistant</span>
-            <span className={shop.ai_enabled ? 'text-green-600' : 'text-gray-400'}>
-              {shop.ai_enabled ? '✅ Enabled' : '🔒 Disabled'}
+            <span className={shop?.ai_enabled ? 'text-green-600' : 'text-gray-400'}>
+              {shop?.ai_enabled ? '✅ Enabled' : '🔒 Disabled'}
             </span>
           </div>
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded">

@@ -60,6 +60,7 @@ export default function ClaimShopPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [verificationId, setVerificationId] = useState<string | null>(null);
+  const [verification, setVerification] = useState<{ id: string; verification_status: string; shop_id?: string } | null>(null);
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -143,6 +144,7 @@ export default function ClaimShopPage() {
             (existingVerification.verification_status === 'draft' || 
              existingVerification.verification_status === 'resubmission_required')) {
           setVerificationId(existingVerification.id);
+          setVerification(existingVerification);
           
           // If resubmission_required, go directly to documents step
           if (existingVerification.verification_status === 'resubmission_required') {
@@ -281,6 +283,10 @@ export default function ClaimShopPage() {
       if (res.ok) {
         const data = await res.json();
         setVerificationId(data.verification_id);
+        // Store verification data if available
+        if (data.verification) {
+          setVerification(data.verification);
+        }
         setStep('documents');
       } else {
         const errorData = await res.json();
