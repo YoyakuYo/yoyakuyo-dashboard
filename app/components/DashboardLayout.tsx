@@ -99,22 +99,12 @@ export default function DashboardLayout({
   }
 
   // For owner dashboard routes, apply full dashboard layout with AuthGuard
+  // ALL COMPONENTS REMOVED - BLANK LAYOUT
   return (
     <AuthGuard>
-      <OwnerAIChatProvider>
-        <BookingNotificationsWrapper>
-          <div className="fixed top-0 left-0 right-0 z-40">
-            <Header />
-            <VerificationBanner />
-          </div>
-          <OwnerSidebar />
-          <main className="lg:ml-64 min-h-screen bg-gray-50" style={{ paddingTop: '7.75rem' }}>
-            {children}
-          </main>
-          <OwnerAIChat />
-          <MessagesPanelWrapper />
-        </BookingNotificationsWrapper>
-      </OwnerAIChatProvider>
+      <main className="min-h-screen bg-gray-50">
+        {children}
+      </main>
     </AuthGuard>
   );
 }
