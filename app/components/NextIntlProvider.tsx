@@ -43,18 +43,18 @@ function getStoredLocale(): SupportedLocale {
 }
 
 export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
-  // Initialize with stored locale immediately (not just in useEffect)
-  const initialLocale = typeof window !== 'undefined' ? getStoredLocale() : 'ja';
-  const [locale, setLocale] = useState<SupportedLocale>(initialLocale);
-  const [messages, setMessages] = useState<any>(messageMap[initialLocale] || messageMap['ja']);
+  // Initialize with default locale to avoid SSR/client mismatch
+  // Will update after mount with stored locale
+  const [locale, setLocale] = useState<SupportedLocale>('ja');
+  const [messages, setMessages] = useState<any>(messageMap['ja']);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Re-check locale on mount to ensure it's up to date
+    // Set mounted flag and load stored locale after mount
+    setMounted(true);
     const currentLocale = getStoredLocale();
-    if (currentLocale !== locale) {
-      setLocale(currentLocale);
-      setMessages(messageMap[currentLocale] || messageMap['ja']);
-    }
+    setLocale(currentLocale);
+    setMessages(messageMap[currentLocale] || messageMap['ja']);
   }, []);
 
   // Listen for locale changes

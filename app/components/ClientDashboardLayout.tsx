@@ -23,8 +23,18 @@ export default function ClientDashboardLayout({
     return <>{children}</>;
   }
   
-  // After mount, check if this is the landing page
-  if (pathname === "/") {
+  // Routes that should NOT use DashboardLayout (they have their own layouts)
+  const excludedRoutes = [
+    "/", // Landing page has MinimalNavbar
+    "/staff-dashboard", // Staff dashboard has its own layout
+  ];
+  
+  // Check if current route should be excluded
+  const isExcluded = excludedRoutes.some(route => 
+    pathname === route || pathname?.startsWith(route + "/")
+  );
+  
+  if (isExcluded) {
     return <>{children}</>;
   }
   
