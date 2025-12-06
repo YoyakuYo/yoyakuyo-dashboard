@@ -207,24 +207,22 @@ export default function StaffDashboardPage() {
 }
 
 // ============================================================================
-// MODULE A: SHOP VERIFICATION CONTROL
+// MODULE A: OWNER VERIFICATION CONTROL
 // ============================================================================
 function ShopVerificationModule() {
-  const [shops, setShops] = useState<any[]>([]);
+  const [verifications, setVerifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    status: "all",
-    claim_status: "all",
-    verification_status: "all",
+    status: "all", // pending, approved, rejected, resubmission_required
     search: "",
   });
-  const [selectedShop, setSelectedShop] = useState<any | null>(null);
+  const [selectedVerification, setSelectedVerification] = useState<any | null>(null);
 
   useEffect(() => {
-    loadShops();
+    loadVerifications();
   }, [filters]);
 
-  const loadShops = async () => {
+  const loadVerifications = async () => {
     try {
       setLoading(true);
       const supabase = getSupabaseClient();
@@ -233,11 +231,8 @@ function ShopVerificationModule() {
 
       const params = new URLSearchParams();
       if (filters.status !== "all") params.set("status", filters.status);
-      if (filters.claim_status !== "all") params.set("claim_status", filters.claim_status);
-      if (filters.verification_status !== "all") params.set("verification_status", filters.verification_status);
-      if (filters.search) params.set("search", filters.search);
 
-      const response = await fetch(`${apiUrl}/staff/shops?${params.toString()}`, {
+      const response = await fetch(`${apiUrl}/staff/owner-verifications?${params.toString()}`, {
         headers: {
           "x-user-id": user.id,
         },
@@ -245,24 +240,24 @@ function ShopVerificationModule() {
 
       if (response.ok) {
         const data = await response.json();
-        setShops(data.shops || []);
+        setVerifications(Array.isArray(data) ? data : []);
       }
     } catch (error) {
-      console.error("Error loading shops:", error);
+      console.error("Error loading verifications:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApprove = async (shopId: string) => {
-    if (!confirm("Approve this shop? This will enable booking, AI, and calendar.")) return;
+  const handleApprove = async (verificationId: string) => {
+    if (!confirm("Approve this verification? This will enable booking, AI, and calendar.")) return;
 
     try {
       const supabase = getSupabaseClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const response = await fetch(`${apiUrl}/staff/shops/${shopId}/approve`, {
+      const response = await fetch(`${apiUrl}/staff/owner-verifications/${verificationId}/approve`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -272,20 +267,21 @@ function ShopVerificationModule() {
       });
 
       if (response.ok) {
-        alert("Shop approved successfully!");
-        loadShops();
-        setSelectedShop(null);
+        alert("Verification approved successfully!");
+        loadVerifications();
+        setSelectedVerification(null);
       } else {
-        alert("Failed to approve shop");
+        const errorData = await response.json();
+        alert(`Failed to approve: ${errorData.error || "Unknown error"}`);
       }
     } catch (error) {
-      console.error("Error approving shop:", error);
-      alert("Error approving shop");
+      console.error("Error approving verification:", error);
+      alert("Error approving verification");
     }
   };
 
-  const handleReject = async (shopId: string, reason: string) => {
-    if (!reason) {
+  const handleReject = async (verificationId: string, reason: string) => {
+    if (!reason || !reason.trim()) {
       alert("Please provide a reason for rejection");
       return;
     }
@@ -295,67 +291,89 @@ function ShopVerificationModule() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const response = await fetch(`${apiUrl}/staff/shops/${shopId}/reject`, {
+      const response = await fetch(`${apiUrl}/staff/owner-verifications/${verificationId}/reject`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-user-id": user.id,
         },
-        body: JSON.stringify({ reason }),
+        body: JSON.stringify({ rejection_reason: reason }),
       });
 
       if (response.ok) {
-        alert("Shop rejected");
-        loadShops();
-        setSelectedShop(null);
+        alert("Verification rejected");
+        loadVerifications();
+        setSelectedVerification(null);
       } else {
-        alert("Failed to reject shop");
+        const errorData = await response.json();
+        alert(`Failed to reject: ${errorData.error || "Unknown error"}`);
       }
     } catch (error) {
-      console.error("Error rejecting shop:", error);
-      alert("Error rejecting shop");
+      console.error("Error rejecting verification:", error);
+      alert("Error rejecting verification");
     }
   };
 
-  const handleDelete = async (shopId: string, shopName: string) => {
-    if (!confirm(`Are you sure you want to delete "${shopName}"? This action cannot be undone.`)) {
-      return;
-    }
-
+  const handleRequestResubmission = async (verificationId: string, reason: string) => {
     try {
       const supabase = getSupabaseClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const response = await fetch(`${apiUrl}/staff/shops/${shopId}`, {
-        method: "DELETE",
+      const response = await fetch(`${apiUrl}/staff/owner-verifications/${verificationId}/request-resubmission`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-id": user.id,
+        },
+        body: JSON.stringify({ reason: reason || "Additional documents required" }),
+      });
+
+      if (response.ok) {
+        alert("Resubmission requested");
+        loadVerifications();
+        setSelectedVerification(null);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to request resubmission: ${errorData.error || "Unknown error"}`);
+      }
+    } catch (error) {
+      console.error("Error requesting resubmission:", error);
+      alert("Error requesting resubmission");
+    }
+  };
+
+  const loadVerificationDetails = async (verificationId: string) => {
+    try {
+      const supabase = getSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const response = await fetch(`${apiUrl}/staff/owner-verifications/${verificationId}`, {
         headers: {
           "x-user-id": user.id,
         },
       });
 
       if (response.ok) {
-        alert(`Shop "${shopName}" deleted successfully`);
-        loadShops();
-        setSelectedShop(null);
-      } else {
-        const errorData = await response.json();
-        alert(`Failed to delete shop: ${errorData.error || "Unknown error"}`);
+        const data = await response.json();
+        setSelectedVerification(data);
       }
     } catch (error) {
-      console.error("Error deleting shop:", error);
-      alert("Error deleting shop");
+      console.error("Error loading verification details:", error);
     }
   };
 
-  if (selectedShop) {
+  if (selectedVerification) {
     return (
-      <ShopDetailView
-        shop={selectedShop}
-        onBack={() => setSelectedShop(null)}
+      <OwnerVerificationDetailView
+        verification={selectedVerification.verification}
+        documents={selectedVerification.documents || []}
+        shop={selectedVerification.verification.shops}
+        onBack={() => setSelectedVerification(null)}
         onApprove={handleApprove}
         onReject={handleReject}
-        onDelete={handleDelete}
+        onRequestResubmission={handleRequestResubmission}
       />
     );
   }
@@ -368,24 +386,15 @@ function ShopVerificationModule() {
           onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           className="px-4 py-2 border border-gray-300 rounded-lg"
         >
-          <option value="all">All Shops</option>
-          <option value="unclaimed">Unclaimed</option>
-          <option value="claimed">Claimed</option>
-        </select>
-        <select
-          value={filters.verification_status}
-          onChange={(e) => setFilters({ ...filters, verification_status: e.target.value })}
-          className="px-4 py-2 border border-gray-300 rounded-lg"
-        >
           <option value="all">All Status</option>
-          <option value="not_submitted">Not Submitted</option>
           <option value="pending">Pending</option>
           <option value="approved">Approved</option>
           <option value="rejected">Rejected</option>
+          <option value="resubmission_required">Resubmission Required</option>
         </select>
         <input
           type="text"
-          placeholder="Search shops..."
+          placeholder="Search by shop name or owner name..."
           value={filters.search}
           onChange={(e) => setFilters({ ...filters, search: e.target.value })}
           className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
@@ -402,85 +411,262 @@ function ShopVerificationModule() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Shop Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Verification</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Verification Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Shop Claim Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {shops.map((shop) => (
-                <tr key={shop.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{shop.name}</div>
-                    <div className="text-sm text-gray-500">{shop.address}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {shop.owner_profiles?.name || shop.users?.email || "Unclaimed"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      shop.claim_status === "approved" ? "bg-green-100 text-green-800" :
-                      shop.claim_status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                      "bg-gray-100 text-gray-800"
-                    }`}>
-                      {shop.claim_status || "unclaimed"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      shop.verification_status === "approved" ? "bg-green-100 text-green-800" :
-                      shop.verification_status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                      shop.verification_status === "rejected" ? "bg-red-100 text-red-800" :
-                      "bg-gray-100 text-gray-800"
-                    }`}>
-                      {shop.verification_status === "not_submitted" ? "Not submitted" :
-                       shop.verification_status === "pending" ? "Pending" :
-                       shop.verification_status === "approved" ? "Approved" :
-                       shop.verification_status === "rejected" ? "Rejected" :
-                       shop.verification_status || "Not submitted"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex gap-2">
+              {verifications
+                .filter((v: any) => {
+                  if (filters.search) {
+                    const search = filters.search.toLowerCase();
+                    return (
+                      v.shops?.name?.toLowerCase().includes(search) ||
+                      v.full_name?.toLowerCase().includes(search)
+                    );
+                  }
+                  return true;
+                })
+                .map((verification: any) => (
+                  <tr key={verification.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{verification.shops?.name || "N/A"}</div>
+                      <div className="text-sm text-gray-500">{verification.shops?.address || ""}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {verification.full_name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        verification.verification_status === "approved" ? "bg-green-100 text-green-800" :
+                        verification.verification_status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                        verification.verification_status === "rejected" ? "bg-red-100 text-red-800" :
+                        verification.verification_status === "resubmission_required" ? "bg-orange-100 text-orange-800" :
+                        "bg-gray-100 text-gray-800"
+                      }`}>
+                        {verification.verification_status || "pending"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        verification.shops?.claim_status === "approved" ? "bg-green-100 text-green-800" :
+                        verification.shops?.claim_status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                        verification.shops?.claim_status === "rejected" ? "bg-red-100 text-red-800" :
+                        "bg-gray-100 text-gray-800"
+                      }`}>
+                        {verification.shops?.claim_status || "unclaimed"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
-                        onClick={() => setSelectedShop(shop)}
+                        onClick={() => loadVerificationDetails(verification.id)}
                         className="text-blue-600 hover:text-blue-900"
                       >
-                        View
+                        View Details
                       </button>
-                      {/* Only show approve/reject actions for pending shops */}
-                      {shop.verification_status === "pending" && (
-                        <>
-                          <button
-                            onClick={() => handleApprove(shop.id)}
-                            className="text-green-600 hover:text-green-900"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => {
-                              const reason = prompt("Rejection reason:");
-                              if (reason) handleReject(shop.id, reason);
-                            }}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Reject
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => handleDelete(shop.id, shop.name)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OwnerVerificationDetailView({ verification, documents, shop, onBack, onApprove, onReject, onRequestResubmission }: any) {
+  const [rejectReason, setRejectReason] = useState("");
+  const [resubmissionReason, setResubmissionReason] = useState("");
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6">
+      <button onClick={onBack} className="mb-4 text-blue-600 hover:text-blue-800">
+        ← Back to list
+      </button>
+      
+      <h2 className="text-2xl font-bold mb-6">Owner Verification Details</h2>
+
+      {/* Shop Information */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <h3 className="font-semibold mb-2">Shop Information</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-gray-500">Shop Name</p>
+            <p className="font-medium">{shop?.name || "N/A"}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Address</p>
+            <p className="font-medium">{shop?.address || "N/A"}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Claim Status</p>
+            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+              shop?.claim_status === "approved" ? "bg-green-100 text-green-800" :
+              shop?.claim_status === "pending" ? "bg-yellow-100 text-yellow-800" :
+              shop?.claim_status === "rejected" ? "bg-red-100 text-red-800" :
+              "bg-gray-100 text-gray-800"
+            }`}>
+              {shop?.claim_status || "unclaimed"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Owner Identity Information */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <h3 className="font-semibold mb-4">Owner Identity</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-gray-500">Full Legal Name</p>
+            <p className="font-medium">{verification.full_name}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Date of Birth</p>
+            <p className="font-medium">{verification.date_of_birth}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Nationality</p>
+            <p className="font-medium">{verification.nationality}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Country of Residence</p>
+            <p className="font-medium">{verification.country_of_residence}</p>
+          </div>
+          <div className="col-span-2">
+            <p className="text-sm text-gray-500">Home Address</p>
+            <p className="font-medium">{verification.home_address}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Phone Number</p>
+            <p className="font-medium">{verification.phone_number}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Email</p>
+            <p className="font-medium">{verification.email}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Business Relationship */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <h3 className="font-semibold mb-4">Business Relationship</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-gray-500">Role in Business</p>
+            <p className="font-medium">{verification.role_in_business}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Position Title</p>
+            <p className="font-medium">{verification.position_title}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Since When</p>
+            <p className="font-medium">{verification.since_when}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Verification Status</p>
+            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+              verification.verification_status === "approved" ? "bg-green-100 text-green-800" :
+              verification.verification_status === "pending" ? "bg-yellow-100 text-yellow-800" :
+              verification.verification_status === "rejected" ? "bg-red-100 text-red-800" :
+              verification.verification_status === "resubmission_required" ? "bg-orange-100 text-orange-800" :
+              "bg-gray-100 text-gray-800"
+            }`}>
+              {verification.verification_status}
+            </span>
+          </div>
+        </div>
+        {verification.rejection_reason && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+            <p className="text-sm font-medium text-red-800">Rejection Reason:</p>
+            <p className="text-sm text-red-700">{verification.rejection_reason}</p>
+          </div>
+        )}
+        {verification.failed_attempts > 0 && (
+          <div className="mt-2 text-sm text-gray-600">
+            Failed Attempts: {verification.failed_attempts}
+          </div>
+        )}
+      </div>
+
+      {/* Documents */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <h3 className="font-semibold mb-4">Uploaded Documents</h3>
+        {documents.length === 0 ? (
+          <p className="text-sm text-gray-500">No documents uploaded</p>
+        ) : (
+          <div className="space-y-2">
+            {documents.map((doc: any) => (
+              <div key={doc.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded">
+                <div>
+                  <p className="font-medium text-sm">{doc.document_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                  {doc.file_name && <p className="text-xs text-gray-500">{doc.file_name}</p>}
+                </div>
+                <a
+                  href={doc.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 text-sm"
+                >
+                  View →
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      {verification.verification_status === "pending" && (
+        <div className="space-y-4">
+          <button
+            onClick={() => onApprove(verification.id)}
+            className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            ✅ Approve
+          </button>
+          <div>
+            <input
+              type="text"
+              placeholder="Rejection reason (required)..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2"
+            />
+            <button
+              onClick={() => onReject(verification.id, rejectReason)}
+              disabled={!rejectReason.trim()}
+              className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ❌ Reject
+            </button>
+          </div>
+          <div>
+            <input
+              type="text"
+              placeholder="Resubmission reason (optional)..."
+              value={resubmissionReason}
+              onChange={(e) => setResubmissionReason(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2"
+            />
+            <button
+              onClick={() => onRequestResubmission(verification.id, resubmissionReason)}
+              className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+            >
+              📝 Request Resubmission
+            </button>
+          </div>
+        </div>
+      )}
+
+      {verification.verification_status === "resubmission_required" && (
+        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <p className="text-sm text-orange-800">
+            Resubmission requested. Owner can upload additional documents.
+          </p>
         </div>
       )}
     </div>

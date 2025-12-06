@@ -1,16 +1,18 @@
 // app/owner/claim/page.tsx
-// Shop claim flow with document upload
+// Shop claim flow - STRICT 3-STEP PROCESS
+// STEP 1: Owner Identity
+// STEP 2: Legal Documents
+// STEP 3: Staff Review Only
 
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
 import { REGIONS } from '@/lib/regions';
 import { PREFECTURES } from '@/lib/prefectures';
-import { extractPrefecture } from '@/lib/browse/shopBrowseData';
 
 interface Shop {
   id: string;
@@ -27,14 +29,26 @@ interface Category {
   name: string;
 }
 
-interface ClaimFormData {
-  claimant_name: string;
-  claimant_email: string;
-  claimant_phone: string;
-  claimant_website: string;
+interface IdentityFormData {
+  full_name: string;
+  date_of_birth: string;
+  nationality: string;
+  country_of_residence: string;
+  home_address: string;
+  phone_number: string;
+  email: string;
+  role_in_business: 'Owner' | 'Manager' | 'Authorized Agent';
+  position_title: string;
+  since_when: string;
 }
 
-type ClaimStep = 'select' | 'form' | 'upload' | 'confirm';
+interface DocumentUpload {
+  document_type: string;
+  file: File;
+  file_url?: string;
+}
+
+type ClaimStep = 'select' | 'identity' | 'documents' | 'submitted';
 
 export default function ClaimShopPage() {
   const t = useTranslations();
@@ -43,9 +57,9 @@ export default function ClaimShopPage() {
   const [step, setStep] = useState<ClaimStep>('select');
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [unclaimedShops, setUnclaimedShops] = useState<Shop[]>([]);
-  const [allUnclaimedShops, setAllUnclaimedShops] = useState<Shop[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const [verificationId, setVerificationId] = useState<string | null>(null);
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,58 +75,35 @@ export default function ClaimShopPage() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
-  const [formData, setFormData] = useState<ClaimFormData>({
-    claimant_name: '',
-    claimant_email: user?.email || '',
-    claimant_phone: '',
-    claimant_website: '',
+
+  // Identity form data
+  const [identityData, setIdentityData] = useState<IdentityFormData>({
+    full_name: '',
+    date_of_birth: '',
+    nationality: '',
+    country_of_residence: '',
+    home_address: '',
+    phone_number: '',
+    email: user?.email || '',
+    role_in_business: 'Owner',
+    position_title: '',
+    since_when: '',
   });
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+
+  // Document uploads
+  const [documents, setDocuments] = useState<DocumentUpload[]>([]);
   const [fileUploading, setFileUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch categories on mount
+  // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const res = await fetch(`${apiUrl}/categories`);
         if (res.ok) {
           const data = await res.json();
-          const allCategories = Array.isArray(data) ? data : [];
-          
-          // Filter out old combined categories and show subcategories instead
-          // Replace "Spa & Massage" with "Spa", "Massages", "Onsen", "Ryokan Onsen"
-          const filteredCategories = allCategories.filter((cat: Category) => {
-            // Exclude old combined categories
-            const lowerName = cat.name.toLowerCase();
-            if (lowerName.includes('spa & massage') || 
-                lowerName.includes('onsen & ryokan') ||
-                lowerName === 'spa & massage' ||
-                lowerName === 'onsen & ryokan') {
-              return false;
-            }
-            return true;
-          });
-          
-          // Add the 4 separate subcategories if they exist
-          const spaOnsenSubcategories = allCategories.filter((cat: Category) => {
-            const lowerName = cat.name.toLowerCase();
-            return lowerName === 'spa' || 
-                   lowerName === 'massages' || 
-                   lowerName === 'onsen' || 
-                   lowerName === 'ryokan onsen';
-          });
-          
-          // Combine filtered categories with subcategories
-          const finalCategories = [
-            ...filteredCategories,
-            ...spaOnsenSubcategories.filter(sub => 
-              !filteredCategories.some(cat => cat.id === sub.id)
-            )
-          ];
-          
-          setCategories(finalCategories);
+          setCategories(Array.isArray(data) ? data : []);
         }
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -123,7 +114,7 @@ export default function ClaimShopPage() {
     }
   }, [apiUrl]);
 
-  // Fetch unclaimed shops when filters change or on mount
+  // Fetch unclaimed shops
   useEffect(() => {
     if (!authLoading && user) {
       fetchUnclaimedShops();
@@ -133,28 +124,20 @@ export default function ClaimShopPage() {
   const fetchUnclaimedShops = async () => {
     try {
       setLoading(true);
-      // Build query with filters to fetch filtered shops from API
       const params = new URLSearchParams();
       params.set('unclaimed', 'true');
       params.set('page', '1');
       params.set('limit', '200');
       
-      // Add region filter if selected (API will convert to prefectures)
       if (selectedRegion !== 'all') {
         params.set('region', selectedRegion);
       }
-      
-      // Add prefecture filter if selected (will be intersected with region if both are set)
       if (selectedPrefecture !== 'all') {
         params.set('prefecture', selectedPrefecture);
       }
-      
-      // Add category filter if selected
       if (selectedCategory !== 'all') {
         params.set('category', selectedCategory);
       }
-      
-      // Add search filter if provided
       if (debouncedSearch.trim()) {
         params.set('search', debouncedSearch.trim());
       }
@@ -171,27 +154,18 @@ export default function ClaimShopPage() {
         const shopsArray = Array.isArray(data)
           ? data
           : (data.shops && Array.isArray(data.shops) ? data.shops : []);
-        
-        console.log('Fetched shops:', shopsArray.length, shopsArray.slice(0, 3));
-        
-        // Store all shops for client-side filtering if needed
-        setAllUnclaimedShops(shopsArray);
         setUnclaimedShops(shopsArray);
       } else {
-        console.error('Failed to fetch unclaimed shops:', res.status, res.statusText);
-        setAllUnclaimedShops([]);
         setUnclaimedShops([]);
       }
     } catch (error) {
       console.error('Error fetching unclaimed shops:', error);
-      setAllUnclaimedShops([]);
       setUnclaimedShops([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Get available prefectures based on selected region
   const availablePrefectures = useMemo(() => {
     if (selectedRegion === 'all') {
       return PREFECTURES;
@@ -201,155 +175,42 @@ export default function ClaimShopPage() {
     return PREFECTURES.filter(p => region.prefectures.includes(p.key));
   }, [selectedRegion]);
 
-  // No need for client-side region filtering anymore - API handles it
-  // Keep this effect to sync unclaimedShops with allUnclaimedShops
-  useEffect(() => {
-    setUnclaimedShops(allUnclaimedShops);
-  }, [allUnclaimedShops]);
-
   const handleSelectShop = (shop: Shop) => {
     setSelectedShop(shop);
-    setStep('form');
+    setStep('identity');
     setError(null);
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleIdentitySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate required fields
-    if (!formData.claimant_name.trim() || !formData.claimant_email.trim()) {
-      setError('Name and email are required');
+    setError(null);
+
+    // Validate all required fields
+    if (!identityData.full_name.trim() || !identityData.date_of_birth || 
+        !identityData.nationality.trim() || !identityData.country_of_residence.trim() ||
+        !identityData.home_address.trim() || !identityData.phone_number.trim() ||
+        !identityData.email.trim() || !identityData.position_title.trim() ||
+        !identityData.since_when) {
+      setError('All fields are required');
       return;
     }
 
-    // Basic email validation
+    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.claimant_email)) {
+    if (!emailRegex.test(identityData.email)) {
       setError('Please enter a valid email address');
       return;
     }
 
-    setStep('upload');
-    setError(null);
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    
-    // Validate file types
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-    const invalidFiles = files.filter(f => !allowedTypes.includes(f.type));
-    
-    if (invalidFiles.length > 0) {
-      setError('Only JPG, PNG, and PDF files are allowed');
-      return;
-    }
-
-    // Limit to 3 files
-    const totalFiles = uploadedFiles.length + files.length;
-    if (totalFiles > 3) {
-      setError('Maximum 3 files allowed');
-      return;
-    }
-
-    // Limit file size (10MB per file)
-    const oversizedFiles = files.filter(f => f.size > 10 * 1024 * 1024);
-    if (oversizedFiles.length > 0) {
-      setError('Each file must be less than 10MB');
-      return;
-    }
-
-    setUploadedFiles([...uploadedFiles, ...files]);
-    setError(null);
-  };
-
-  const removeFile = (index: number) => {
-    setUploadedFiles(uploadedFiles.filter((_, i) => i !== index));
-  };
-
-  const uploadFilesToStorage = async (): Promise<Array<{ path: string; name: string; size: number; type: string }>> => {
-    if (uploadedFiles.length === 0) {
-      return [];
-    }
-
-    if (!user || !selectedShop) {
-      throw new Error('User or shop not selected');
-    }
-
-    setFileUploading(true);
-
-    try {
-      // Import Supabase storage utilities
-      const { createClient } = await import('@supabase/supabase-js');
-      
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      
-      if (!supabaseUrl || !supabaseAnonKey) {
-        throw new Error('Supabase configuration missing');
-      }
-
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const bucket = 'shop-claims'; // Storage bucket name
-      const basePath = `${selectedShop.id}/${user.id}`;
-
-      const uploadedFilesData: Array<{ path: string; name: string; size: number; type: string }> = [];
-
-      for (let i = 0; i < uploadedFiles.length; i++) {
-        const file = uploadedFiles[i];
-        const fileName = `${Date.now()}-${i}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-        const filePath = `${basePath}/${fileName}`;
-
-        // Upload to Supabase Storage
-        const { data, error } = await supabase.storage
-          .from(bucket)
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false,
-          });
-
-        if (error) {
-          console.error('Error uploading file:', error);
-          throw new Error(`Failed to upload ${file.name}: ${error.message}`);
-        }
-
-        uploadedFilesData.push({
-          path: data.path,
-          name: file.name,
-          size: file.size,
-          type: file.type,
-        });
-      }
-
-      return uploadedFilesData;
-    } catch (error: any) {
-      console.error('Error uploading files:', error);
-      throw new Error(error.message || 'Failed to upload files');
-    } finally {
-      setFileUploading(false);
-    }
-  };
-
-  const handleSubmitClaim = async () => {
     if (!selectedShop || !user) {
       setError('Shop or user not selected');
       return;
     }
 
-    if (uploadedFiles.length === 0) {
-      setError('Please upload at least one document');
-      return;
-    }
-
     try {
       setSubmitting(true);
-      setError(null);
 
-      // Upload files to storage
-      const fileData = await uploadFilesToStorage();
-
-      // Create claim request
-      const res = await fetch(`${apiUrl}/shop-claims`, {
+      const res = await fetch(`${apiUrl}/owner-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -357,25 +218,164 @@ export default function ClaimShopPage() {
         },
         body: JSON.stringify({
           shop_id: selectedShop.id,
-          claimant_name: formData.claimant_name,
-          claimant_email: formData.claimant_email,
-          claimant_phone: formData.claimant_phone || null,
-          claimant_website: formData.claimant_website || null,
-          file_paths: fileData,
+          ...identityData,
         }),
       });
 
       if (res.ok) {
-        setStep('confirm');
+        const data = await res.json();
+        setVerificationId(data.verification_id);
+        setStep('documents');
       } else {
         const errorData = await res.json();
-        setError(errorData.error || 'Failed to submit claim request');
+        setError(errorData.error || 'Failed to submit identity information');
       }
     } catch (error: any) {
-      console.error('Error submitting claim:', error);
-      setError(error.message || 'Failed to submit claim request');
+      console.error('Error submitting identity:', error);
+      setError(error.message || 'Failed to submit identity information');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, documentType: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Only JPG, PNG, and PDF files are allowed');
+      return;
+    }
+
+    // Validate file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Each file must be less than 10MB');
+      return;
+    }
+
+    // Check if document type already exists
+    const existingIndex = documents.findIndex(d => d.document_type === documentType);
+    if (existingIndex >= 0) {
+      // Replace existing
+      const updated = [...documents];
+      updated[existingIndex] = { document_type, file };
+      setDocuments(updated);
+    } else {
+      // Add new
+      if (documents.length >= 3) {
+        setError('Maximum 3 documents allowed');
+        return;
+      }
+      setDocuments([...documents, { document_type, file }]);
+    }
+
+    setError(null);
+  };
+
+  const removeDocument = (documentType: string) => {
+    setDocuments(documents.filter(d => d.document_type !== documentType));
+  };
+
+  const uploadFileToStorage = async (file: File, verificationId: string): Promise<string> => {
+    const { createClient } = await import('@supabase/supabase-js');
+    
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Supabase configuration missing');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const bucket = 'verification-documents';
+    const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    const filePath = `${verificationId}/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) {
+      throw new Error(`Failed to upload ${file.name}: ${error.message}`);
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(data.path);
+
+    return urlData.publicUrl;
+  };
+
+  const handleDocumentsSubmit = async () => {
+    if (!verificationId || !user) {
+      setError('Verification ID or user not found');
+      return;
+    }
+
+    // Validate mandatory documents
+    const mandatoryTypes = ['business_registration', 'tax_registration', 'commercial_registry'];
+    const hasMandatory = documents.some(d => mandatoryTypes.includes(d.document_type));
+    
+    if (!hasMandatory) {
+      setError('At least one mandatory document is required: Business Registration, Tax Registration, or Commercial Registry');
+      return;
+    }
+
+    // Validate address proof
+    const addressProofTypes = ['lease_contract', 'utility_bill', 'bank_statement'];
+    const hasAddressProof = documents.some(d => addressProofTypes.includes(d.document_type));
+    
+    if (!hasAddressProof) {
+      setError('At least one address proof is required: Lease Contract, Utility Bill, or Bank Statement');
+      return;
+    }
+
+    try {
+      setFileUploading(true);
+      setError(null);
+
+      // Upload all files
+      const uploadedDocuments = [];
+      for (const doc of documents) {
+        const fileUrl = await uploadFileToStorage(doc.file, verificationId);
+        uploadedDocuments.push({
+          document_type: doc.document_type,
+          file_url: fileUrl,
+          file_name: doc.file.name,
+          file_size: doc.file.size,
+          file_type: doc.file.type,
+        });
+      }
+
+      // Submit documents to API
+      const res = await fetch(`${apiUrl}/owner-verification/${verificationId}/documents`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user.id,
+        },
+        body: JSON.stringify({
+          documents: uploadedDocuments,
+        }),
+      });
+
+      if (res.ok) {
+        setStep('submitted');
+      } else {
+        const errorData = await res.json();
+        setError(errorData.error || 'Failed to submit documents');
+      }
+    } catch (error: any) {
+      console.error('Error submitting documents:', error);
+      setError(error.message || 'Failed to submit documents');
+    } finally {
+      setFileUploading(false);
     }
   };
 
@@ -399,17 +399,16 @@ export default function ClaimShopPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-8">
-          {/* Step 1: Select Shop */}
+          {/* STEP 1: SELECT SHOP */}
           {step === 'select' && (
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Claim a Shop</h1>
               <p className="text-gray-600 mb-6">
-                Select a shop you want to claim. You'll need to provide proof documents.
+                Select a shop you want to claim. You'll need to provide identity and legal documents.
               </p>
 
               {/* Filters */}
               <div className="mb-6 space-y-4">
-                {/* Search */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Search Shops
@@ -423,9 +422,7 @@ export default function ClaimShopPage() {
                   />
                 </div>
 
-                {/* Category, Region, Prefecture Filters */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Category Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Category
@@ -444,7 +441,6 @@ export default function ClaimShopPage() {
                     </select>
                   </div>
 
-                  {/* Region Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Region
@@ -453,7 +449,7 @@ export default function ClaimShopPage() {
                       value={selectedRegion}
                       onChange={(e) => {
                         setSelectedRegion(e.target.value);
-                        setSelectedPrefecture('all'); // Reset prefecture when region changes
+                        setSelectedPrefecture('all');
                       }}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
@@ -466,7 +462,6 @@ export default function ClaimShopPage() {
                     </select>
                   </div>
 
-                  {/* Prefecture Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Prefecture
@@ -487,9 +482,8 @@ export default function ClaimShopPage() {
                   </div>
                 </div>
 
-                {/* Results count */}
                 <div className="text-sm text-gray-600">
-                  Showing {unclaimedShops.length} of {allUnclaimedShops.length} unclaimed shops
+                  Showing {unclaimedShops.length} unclaimed shops
                   {(debouncedSearch || selectedCategory !== 'all' || selectedPrefecture !== 'all') && (
                     <button
                       onClick={() => {
@@ -548,12 +542,12 @@ export default function ClaimShopPage() {
             </div>
           )}
 
-          {/* Step 2: Claim Form */}
-          {step === 'form' && selectedShop && (
+          {/* STEP 2: OWNER IDENTITY */}
+          {step === 'identity' && selectedShop && (
             <div>
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Claim Shop</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Owner Identity</h1>
                   <p className="text-gray-600">
                     Shop: <span className="font-semibold">{selectedShop.name}</span>
                   </p>
@@ -565,11 +559,17 @@ export default function ClaimShopPage() {
                   onClick={() => {
                     setStep('select');
                     setSelectedShop(null);
-                    setFormData({
-                      claimant_name: '',
-                      claimant_email: user?.email || '',
-                      claimant_phone: '',
-                      claimant_website: '',
+                    setIdentityData({
+                      full_name: '',
+                      date_of_birth: '',
+                      nationality: '',
+                      country_of_residence: '',
+                      home_address: '',
+                      phone_number: '',
+                      email: user?.email || '',
+                      role_in_business: 'Owner',
+                      position_title: '',
+                      since_when: '',
                     });
                   }}
                   className="text-gray-600 hover:text-gray-900"
@@ -578,66 +578,140 @@ export default function ClaimShopPage() {
                 </button>
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                <p className="text-sm text-yellow-800 font-medium mb-2">⚠️ Important:</p>
-                <p className="text-sm text-yellow-700">
-                  The documents you upload must clearly show this shop's name and address. They need to match what is displayed for this shop in YoyakuYo (name and address). Claims with mismatching names or addresses may be rejected.
-                </p>
-              </div>
+              <form onSubmit={handleIdentitySubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Full Legal Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={identityData.full_name}
+                      onChange={(e) => setIdentityData({ ...identityData, full_name: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
 
-              <form onSubmit={handleFormSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.claimant_name}
-                    onChange={(e) => setFormData({ ...formData, claimant_name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Your full name"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Date of Birth <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={identityData.date_of_birth}
+                      onChange={(e) => setIdentityData({ ...identityData, date_of_birth: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.claimant_email}
-                    onChange={(e) => setFormData({ ...formData, claimant_email: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="your@email.com"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nationality <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={identityData.nationality}
+                      onChange={(e) => setIdentityData({ ...identityData, nationality: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone Number <span className="text-gray-400 text-xs">(optional)</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.claimant_phone}
-                    onChange={(e) => setFormData({ ...formData, claimant_phone: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="+81 90-1234-5678"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Country of Residence <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={identityData.country_of_residence}
+                      onChange={(e) => setIdentityData({ ...identityData, country_of_residence: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Shop Website <span className="text-gray-400 text-xs">(optional)</span>
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.claimant_website}
-                    onChange={(e) => setFormData({ ...formData, claimant_website: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="https://example.com"
-                  />
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Full Home Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={identityData.home_address}
+                      onChange={(e) => setIdentityData({ ...identityData, home_address: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Phone Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={identityData.phone_number}
+                      onChange={(e) => setIdentityData({ ...identityData, phone_number: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Personal Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={identityData.email}
+                      onChange={(e) => setIdentityData({ ...identityData, email: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Role in Business <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={identityData.role_in_business}
+                      onChange={(e) => setIdentityData({ ...identityData, role_in_business: e.target.value as 'Owner' | 'Manager' | 'Authorized Agent' })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="Owner">Owner</option>
+                      <option value="Manager">Manager</option>
+                      <option value="Authorized Agent">Authorized Agent</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Position Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={identityData.position_title}
+                      onChange={(e) => setIdentityData({ ...identityData, position_title: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Since When (Date) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={identityData.since_when}
+                      onChange={(e) => setIdentityData({ ...identityData, since_when: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
                 </div>
 
                 {error && (
@@ -656,27 +730,28 @@ export default function ClaimShopPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    disabled={submitting}
+                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Continue →
+                    {submitting ? 'Submitting...' : 'Continue to Documents →'}
                   </button>
                 </div>
               </form>
             </div>
           )}
 
-          {/* Step 3: Document Upload */}
-          {step === 'upload' && selectedShop && (
+          {/* STEP 3: DOCUMENT UPLOAD */}
+          {step === 'documents' && selectedShop && (
             <div>
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Upload Documents</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Upload Legal Documents</h1>
                   <p className="text-gray-600">
                     Shop: <span className="font-semibold">{selectedShop.name}</span>
                   </p>
                 </div>
                 <button
-                  onClick={() => setStep('form')}
+                  onClick={() => setStep('identity')}
                   className="text-gray-600 hover:text-gray-900"
                 >
                   ← Back
@@ -685,64 +760,133 @@ export default function ClaimShopPage() {
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <p className="text-sm text-blue-800 font-medium mb-2">📄 Document Requirements:</p>
-                <p className="text-sm text-blue-700 mb-2">
-                  Please upload one or more documents that prove you are connected to this shop.
-                </p>
-                <ul className="text-sm text-blue-700 list-disc list-inside space-y-1">
-                  <li>Business registration</li>
-                  <li>Utility bill showing shop name and address</li>
-                  <li>Shop card</li>
-                  <li>Lease contract</li>
-                  <li>Exterior photo with the shop sign</li>
+                <p className="text-sm text-blue-700 mb-2 font-semibold">MANDATORY (At least one required):</p>
+                <ul className="text-sm text-blue-700 list-disc list-inside space-y-1 mb-3">
+                  <li>Business Registration</li>
+                  <li>Tax Registration</li>
+                  <li>Commercial Registry</li>
                 </ul>
-                <p className="text-sm text-blue-700 mt-2 font-medium">
+                <p className="text-sm text-blue-700 mb-2 font-semibold">PLUS ONE REQUIRED:</p>
+                <ul className="text-sm text-blue-700 list-disc list-inside space-y-1 mb-3">
+                  <li>Lease Contract</li>
+                  <li>Utility Bill (Name + Shop Address must match)</li>
+                  <li>Bank Statement (Business Name must match)</li>
+                </ul>
+                <p className="text-sm text-blue-700 mb-2 font-semibold">OPTIONAL (Anti-fraud):</p>
+                <ul className="text-sm text-blue-700 list-disc list-inside space-y-1 mb-2">
+                  <li>Government ID</li>
+                  <li>Selfie with ID</li>
+                </ul>
+                <p className="text-sm text-blue-700 font-medium">
                   Accepted formats: JPG, PNG, PDF (max 3 files, 10MB each)
                 </p>
               </div>
 
               <div className="space-y-4">
+                {/* Mandatory Documents */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload Documents (1-3 files)
-                  </label>
-                  <input
-                    type="file"
-                    multiple
-                    accept=".jpg,.jpeg,.png,.pdf"
-                    onChange={handleFileSelect}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Mandatory Documents (At least one required):</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {['business_registration', 'tax_registration', 'commercial_registry'].map((docType) => {
+                      const doc = documents.find(d => d.document_type === docType);
+                      return (
+                        <div key={docType} className="border border-gray-200 rounded-lg p-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {docType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </label>
+                          {doc ? (
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-600">{doc.file.name}</span>
+                              <button
+                                onClick={() => removeDocument(docType)}
+                                className="text-red-600 hover:text-red-800 text-sm"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <input
+                              type="file"
+                              accept=".jpg,.jpeg,.png,.pdf"
+                              onChange={(e) => handleFileSelect(e, docType)}
+                              className="w-full text-sm"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                {uploadedFiles.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-700">Uploaded Files:</p>
-                    {uploadedFiles.map((file, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <span className="text-2xl">
-                            {file.type.startsWith('image/') ? '🖼️' : '📄'}
-                          </span>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {(file.size / 1024 / 1024).toFixed(2)} MB
-                            </p>
-                          </div>
+                {/* Address Proof Documents */}
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Address Proof (At least one required):</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {['lease_contract', 'utility_bill', 'bank_statement'].map((docType) => {
+                      const doc = documents.find(d => d.document_type === docType);
+                      return (
+                        <div key={docType} className="border border-gray-200 rounded-lg p-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {docType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </label>
+                          {doc ? (
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-600">{doc.file.name}</span>
+                              <button
+                                onClick={() => removeDocument(docType)}
+                                className="text-red-600 hover:text-red-800 text-sm"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <input
+                              type="file"
+                              accept=".jpg,.jpeg,.png,.pdf"
+                              onChange={(e) => handleFileSelect(e, docType)}
+                              className="w-full text-sm"
+                            />
+                          )}
                         </div>
-                        <button
-                          onClick={() => removeFile(index)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
-                )}
+                </div>
+
+                {/* Optional Documents */}
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Optional (Anti-fraud):</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {['government_id', 'selfie_with_id'].map((docType) => {
+                      const doc = documents.find(d => d.document_type === docType);
+                      return (
+                        <div key={docType} className="border border-gray-200 rounded-lg p-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {docType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </label>
+                          {doc ? (
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-600">{doc.file.name}</span>
+                              <button
+                                onClick={() => removeDocument(docType)}
+                                className="text-red-600 hover:text-red-800 text-sm"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <input
+                              type="file"
+                              accept=".jpg,.jpeg,.png,.pdf"
+                              onChange={(e) => handleFileSelect(e, docType)}
+                              className="w-full text-sm"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -753,45 +897,45 @@ export default function ClaimShopPage() {
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setStep('form')}
+                    onClick={() => setStep('identity')}
                     className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                   >
                     ← Back
                   </button>
                   <button
-                    onClick={handleSubmitClaim}
-                    disabled={uploadedFiles.length === 0 || submitting || fileUploading}
+                    onClick={handleDocumentsSubmit}
+                    disabled={documents.length === 0 || fileUploading || submitting}
                     className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {submitting || fileUploading ? 'Submitting...' : 'Submit Claim Request'}
+                    {fileUploading || submitting ? 'Submitting...' : 'Submit for Review'}
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 4: Confirmation */}
-          {step === 'confirm' && (
+          {/* STEP 4: SUBMITTED */}
+          {step === 'submitted' && (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">✅</div>
               <h1 className="text-3xl font-bold text-gray-900 mb-4">Claim Submitted</h1>
               <div className="max-w-2xl mx-auto space-y-4 text-gray-600">
                 <p className="text-lg">
-                  Your claim has been submitted.
+                  Your claim has been submitted for staff review.
                 </p>
                 <p>
-                  Our team will review the documents and verify that the shop name and address on your documents match this shop in YoyakuYo.
+                  Our team will review your identity information and documents. You will be notified when your claim is approved or if additional information is required.
                 </p>
-                <p>
-                  You will be notified when your claim is approved or rejected.
+                <p className="font-semibold text-gray-900">
+                  No automatic approval. Staff review required.
                 </p>
               </div>
               <div className="mt-8">
                 <button
-                  onClick={() => router.push('/shops')}
+                  onClick={() => router.push('/owner/dashboard')}
                   className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Back to My Shops
+                  Back to Dashboard
                 </button>
               </div>
             </div>
@@ -801,4 +945,3 @@ export default function ClaimShopPage() {
     </div>
   );
 }
-
