@@ -319,6 +319,12 @@ export default function ClaimShopPage() {
       return;
     }
 
+    // ENFORCE: At least one document must be uploaded
+    if (documents.length === 0) {
+      setError('You must upload at least one document (ID, license, etc.) before submitting.');
+      return;
+    }
+
     // Validate mandatory documents
     const mandatoryTypes = ['business_registration', 'tax_registration', 'commercial_registry'];
     const hasMandatory = documents.some(d => mandatoryTypes.includes(d.document_type));
