@@ -1541,10 +1541,10 @@ function ShopBookingsView({ shop, bookings, onBack, onLoadBookings, isReadOnly =
             />
             <button
               onClick={handleCreateBooking}
-            className="col-span-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Create Booking
-          </button>
+              className="col-span-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Create Booking
+            </button>
         </div>
       </div>
 
