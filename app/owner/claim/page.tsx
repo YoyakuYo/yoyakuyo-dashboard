@@ -35,6 +35,11 @@ interface IdentityFormData {
   nationality: string;
   country_of_residence: string;
   home_address: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  prefecture: string;
+  postal_code: string;
   phone_number: string;
   email: string;
   role_in_business: 'Owner' | 'Manager' | 'Authorized Agent';
@@ -84,6 +89,11 @@ export default function ClaimShopPage() {
     nationality: '',
     country_of_residence: '',
     home_address: '',
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    prefecture: '',
+    postal_code: '',
     phone_number: '',
     email: user?.email || '',
     role_in_business: 'Owner',
@@ -274,13 +284,13 @@ export default function ClaimShopPage() {
     e.preventDefault();
     setError(null);
 
-    // Validate all required fields
+    // Validate all required fields for new API
     if (!identityData.full_name.trim() || !identityData.date_of_birth || 
-        !identityData.nationality.trim() || !identityData.country_of_residence.trim() ||
-        !identityData.home_address.trim() || !identityData.phone_number.trim() ||
-        !identityData.email.trim() || !identityData.position_title.trim() ||
-        !identityData.since_when) {
-      setError('All fields are required');
+        !identityData.country_of_residence.trim() ||
+        !identityData.address_line1.trim() || !identityData.city.trim() || 
+        !identityData.prefecture.trim() || !identityData.phone_number.trim() ||
+        !identityData.email.trim()) {
+      setError('Please fill in all required fields: Full Name, Date of Birth, Country, Address Line 1, City, Prefecture, Phone, and Email');
       return;
     }
 
@@ -304,16 +314,16 @@ export default function ClaimShopPage() {
     try {
       setSubmitting(true);
 
-      // Map old form fields to new API structure
+      // Map form fields to new API structure
       const step1Data = {
         full_name: identityData.full_name,
         date_of_birth: identityData.date_of_birth,
         country: identityData.country_of_residence || identityData.nationality,
-        address_line1: identityData.home_address,
-        address_line2: '',
-        city: '', // Extract from home_address if needed
-        prefecture: selectedShop?.prefecture || '',
-        postal_code: '',
+        address_line1: identityData.address_line1 || identityData.home_address,
+        address_line2: identityData.address_line2 || '',
+        city: identityData.city,
+        prefecture: identityData.prefecture || selectedShop?.prefecture || '',
+        postal_code: identityData.postal_code || '',
         company_phone: identityData.phone_number,
         company_email: identityData.email,
       };
@@ -706,6 +716,11 @@ export default function ClaimShopPage() {
                       nationality: '',
                       country_of_residence: '',
                       home_address: '',
+                      address_line1: '',
+                      address_line2: '',
+                      city: '',
+                      prefecture: '',
+                      postal_code: '',
                       phone_number: '',
                       email: user?.email || '',
                       role_in_business: 'Owner',
