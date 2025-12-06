@@ -276,7 +276,7 @@ const OwnerSidebar = React.memo(() => {
   };
 
   return (
-    <aside className="hidden lg:block w-64 bg-slate-900 text-white h-screen fixed left-0 top-0 pt-16 overflow-hidden">
+    <aside className="hidden lg:block w-64 bg-slate-900 text-white fixed left-0 top-16 bottom-0 overflow-hidden">
       <nav className="p-4 flex flex-col h-full overflow-y-auto">
         <ul className="space-y-6 flex-1">
           {navSections.map((section, sectionIdx) => (
