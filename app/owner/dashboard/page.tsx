@@ -167,6 +167,12 @@ export default function OwnerDashboardPage() {
   // Determine verification status from verification record or shop
   const verificationStatus = verification?.verification_status || shop?.verification_status || 'not_submitted';
   const subscriptionPlan = shop?.subscription_plan || 'free';
+  
+  // If there's a verification (draft, pending, resubmission_required, approved, rejected), show dashboard
+  // If there's a shop, show dashboard
+  // Only show "Create Shop" if there's NO verification AND NO shop
+  const hasActiveVerification = verification && ['draft', 'pending', 'resubmission_required', 'approved', 'rejected'].includes(verification.verification_status);
+  const shouldShowCreateShop = !shop && !hasActiveVerification;
 
   const getVerificationBanner = () => {
     // Show resubmission required banner

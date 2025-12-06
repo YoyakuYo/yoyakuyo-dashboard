@@ -293,7 +293,12 @@ export default function ClaimShopPage() {
         // If there's an existing verification, redirect to documents step
         if (errorData.verification_id && errorData.verification_status) {
           setVerificationId(errorData.verification_id);
-          setVerification({ verification_status: errorData.verification_status });
+          // Create a minimal verification object with required fields
+          setVerification({
+            id: errorData.verification_id,
+            verification_status: errorData.verification_status,
+            shop_id: selectedShop?.id,
+          });
           if (errorData.verification_status === 'draft' || errorData.verification_status === 'resubmission_required') {
             setStep('documents');
             // Load shop info
