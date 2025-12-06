@@ -165,7 +165,54 @@ CREATE INDEX IF NOT EXISTS idx_shops_shop_status ON public.shops(shop_status);
 CREATE INDEX IF NOT EXISTS idx_shops_verification_status ON public.shops(verification_status);
 
 -- ============================================================================
--- STEP 3: ADD DATABASE CONSTRAINTS AND CHECKS
+-- STEP 3: CLEAN UP DATA BEFORE ADDING CONSTRAINTS
+-- ============================================================================
+
+-- Fix shops where shop_status = 'unclaimed' but has owner or wrong verification_status
+UPDATE public.shops
+SET 
+  owner_user_id = NULL,
+  owner_id = NULL,
+  verification_status = 'none'
+WHERE shop_status = 'unclaimed'
+  AND (COALESCE(owner_user_id, owner_id) IS NOT NULL OR verification_status != 'none');
+
+-- Fix shops where verification_status = 'approved' but shop_status != 'claimed' or no owner
+UPDATE public.shops
+SET shop_status = 'claimed'
+WHERE verification_status = 'approved'
+  AND shop_status != 'claimed'
+  AND COALESCE(owner_user_id, owner_id) IS NOT NULL;
+
+-- Reset shops where verification_status = 'approved' but no owner
+UPDATE public.shops
+SET 
+  verification_status = 'none',
+  shop_status = 'unclaimed',
+  owner_user_id = NULL,
+  owner_id = NULL
+WHERE verification_status = 'approved'
+  AND COALESCE(owner_user_id, owner_id) IS NULL;
+
+-- Fix shops where shop_status = 'claimed' but verification_status != 'approved'
+UPDATE public.shops
+SET verification_status = 'pending'
+WHERE shop_status = 'claimed'
+  AND verification_status NOT IN ('approved', 'pending')
+  AND COALESCE(owner_user_id, owner_id) IS NOT NULL;
+
+-- Reset shops where shop_status = 'claimed' but no owner
+UPDATE public.shops
+SET 
+  shop_status = 'unclaimed',
+  verification_status = 'none',
+  owner_user_id = NULL,
+  owner_id = NULL
+WHERE shop_status = 'claimed'
+  AND COALESCE(owner_user_id, owner_id) IS NULL;
+
+-- ============================================================================
+-- STEP 4: ADD DATABASE CONSTRAINTS AND CHECKS (AFTER DATA CLEANUP)
 -- ============================================================================
 
 -- Constraint: role = 'customer' → shop_id MUST be NULL
@@ -208,7 +255,7 @@ ALTER TABLE public.shops ADD CONSTRAINT check_claimed_shop
   );
 
 -- ============================================================================
--- STEP 4: SET DEFAULT VALUES FOR EXISTING DATA
+-- STEP 5: SET DEFAULT VALUES FOR EXISTING DATA
 -- ============================================================================
 
 -- Set default role for existing users
@@ -245,7 +292,7 @@ WHERE shop_status IS NULL
   AND verification_status = 'rejected';
 
 -- ============================================================================
--- STEP 5: SYNC USER ROLES BASED ON SHOP OWNERSHIP
+-- STEP 6: SYNC USER ROLES BASED ON SHOP OWNERSHIP
 -- ============================================================================
 
 -- Set role = 'owner' for users who own shops
@@ -267,7 +314,7 @@ WHERE (s.owner_user_id = u.id OR s.owner_id = u.id)
   AND u.shop_id IS NULL;
 
 -- ============================================================================
--- STEP 6: ADD COMMENTS
+-- STEP 7: ADD COMMENTS
 -- ============================================================================
 
 COMMENT ON COLUMN public.users.role IS 'User role: customer, owner, staff, or super_admin';
