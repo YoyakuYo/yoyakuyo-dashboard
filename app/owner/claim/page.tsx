@@ -114,12 +114,68 @@ export default function ClaimShopPage() {
     }
   }, [apiUrl]);
 
+  // Check for existing verification on mount
+  useEffect(() => {
+    if (!authLoading && user) {
+      checkExistingVerification();
+    }
+  }, [authLoading, user]);
+
   // Fetch unclaimed shops
   useEffect(() => {
     if (!authLoading && user) {
       fetchUnclaimedShops();
     }
   }, [authLoading, user, selectedCategory, selectedRegion, selectedPrefecture, debouncedSearch]);
+
+  const checkExistingVerification = async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`${apiUrl}/owner-verification/current`, {
+        headers: { 'x-user-id': user.id },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const existingVerification = data.verification;
+        
+        // If there's a draft or resubmission_required verification, load it
+        if (existingVerification && 
+            (existingVerification.verification_status === 'draft' || 
+             existingVerification.verification_status === 'resubmission_required')) {
+          setVerificationId(existingVerification.id);
+          
+          // If resubmission_required, go directly to documents step
+          if (existingVerification.verification_status === 'resubmission_required') {
+            setStep('documents');
+            // Load shop info
+            if (existingVerification.shop_id) {
+              const shopRes = await fetch(`${apiUrl}/shops/${existingVerification.shop_id}`, {
+                headers: { 'x-user-id': user.id },
+              });
+              if (shopRes.ok) {
+                const shopData = await shopRes.json();
+                setSelectedShop(shopData);
+              }
+            }
+          } else if (existingVerification.verification_status === 'draft') {
+            // If draft, go to documents step
+            setStep('documents');
+            if (existingVerification.shop_id) {
+              const shopRes = await fetch(`${apiUrl}/shops/${existingVerification.shop_id}`, {
+                headers: { 'x-user-id': user.id },
+              });
+              if (shopRes.ok) {
+                const shopData = await shopRes.json();
+                setSelectedShop(shopData);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking existing verification:', error);
+    }
+  };
 
   const fetchUnclaimedShops = async () => {
     try {
@@ -756,13 +812,22 @@ export default function ClaimShopPage() {
                   <p className="text-gray-600">
                     Shop: <span className="font-semibold">{selectedShop.name}</span>
                   </p>
+                  {verification && verification.verification_status === 'resubmission_required' && (
+                    <div className="mt-2 bg-orange-50 border border-orange-200 rounded-lg p-3">
+                      <p className="text-sm text-orange-800 font-medium">
+                        📋 Resubmission Required: Upload at least one document before resubmitting.
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => setStep('identity')}
-                  className="text-gray-600 hover:text-gray-900"
-                >
-                  ← Back
-                </button>
+                {verification?.verification_status !== 'resubmission_required' && (
+                  <button
+                    onClick={() => setStep('identity')}
+                    className="text-gray-600 hover:text-gray-900"
+                  >
+                    ← Back
+                  </button>
+                )}
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
