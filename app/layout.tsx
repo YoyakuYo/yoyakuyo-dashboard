@@ -22,7 +22,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  console.log("🔥 Root Layout rendered");
+  // Removed console.log to reduce noise
   return (
     <html lang="en">
       <body className={inter.className}>
