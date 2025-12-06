@@ -602,7 +602,7 @@ function OwnerVerificationDetailView({ verification, documents, shop, onBack, on
             {documents.map((doc: any) => (
               <div key={doc.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded">
                 <div>
-                  <p className="font-medium text-sm">{doc.document_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                  <p className="font-medium text-sm">{doc.document_type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</p>
                   {doc.file_name && <p className="text-xs text-gray-500">{doc.file_name}</p>}
                 </div>
                 <a
