@@ -136,22 +136,6 @@ BEGIN
       -- Enable RLS
       ALTER TABLE shop_claims ENABLE ROW LEVEL SECURITY;
       
-      -- Create updated_at trigger function if it doesn't exist
-      CREATE OR REPLACE FUNCTION update_updated_at_column()
-      RETURNS TRIGGER AS $$
-      BEGIN
-        NEW.updated_at = NOW();
-        RETURN NEW;
-      END;
-      $$ LANGUAGE plpgsql;
-      
-      -- Create trigger
-      DROP TRIGGER IF EXISTS update_shop_claims_updated_at ON shop_claims;
-      CREATE TRIGGER update_shop_claims_updated_at
-        BEFORE UPDATE ON shop_claims
-        FOR EACH ROW
-        EXECUTE FUNCTION update_updated_at_column();
-      
       -- Basic RLS policies for shop_claims
       DROP POLICY IF EXISTS "Owners can view their own claims" ON shop_claims;
       CREATE POLICY "Owners can view their own claims" ON shop_claims
