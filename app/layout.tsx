@@ -3,9 +3,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/useAuth";
 import { CustomAuthProvider } from "@/lib/useCustomAuth";
-import ClientDashboardLayout from "./components/ClientDashboardLayout";
 import { NextIntlProviderWrapper } from "./components/NextIntlProvider";
 import { BookingNotificationProvider } from "./components/BookingNotificationContext";
+import ConditionalLayout from "./components/ConditionalLayout";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,9 +30,9 @@ export default function RootLayout({
           <AuthProvider>
             <CustomAuthProvider>
               <BookingNotificationProvider>
-                <ClientDashboardLayout>
+                <ConditionalLayout>
                   {children}
-                </ClientDashboardLayout>
+                </ConditionalLayout>
               </BookingNotificationProvider>
             </CustomAuthProvider>
           </AuthProvider>
