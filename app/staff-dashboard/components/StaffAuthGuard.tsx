@@ -20,6 +20,11 @@ export default function StaffAuthGuard({ children }: { children: React.ReactNode
         if (!user) {
           setIsAuthenticated(false);
           setIsStaff(false);
+          setLoading(false);
+          // Redirect to login - trigger the login modal
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('openLoginModal'));
+          }
           router.push("/");
           return;
         }
@@ -62,9 +67,28 @@ export default function StaffAuthGuard({ children }: { children: React.ReactNode
     );
   }
 
-  // Only redirect if not authenticated
+  // Show loading while checking authentication
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">Checking access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not authenticated, show message (redirect already triggered)
   if (!isAuthenticated) {
-    return null; // Will redirect
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Please log in to access the Staff Dashboard.</p>
+          <p className="text-sm text-gray-500 mt-2">Redirecting to login...</p>
+        </div>
+      </div>
+    );
   }
 
   // If authenticated (even if not staff), allow access so they can see setup button
