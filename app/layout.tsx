@@ -30,9 +30,9 @@ export default function RootLayout({
           <AuthProvider>
             <CustomAuthProvider>
               <BookingNotificationProvider>
-                <DashboardLayout>
+                <ClientDashboardLayout>
                   {children}
-                </DashboardLayout>
+                </ClientDashboardLayout>
               </BookingNotificationProvider>
             </CustomAuthProvider>
           </AuthProvider>
