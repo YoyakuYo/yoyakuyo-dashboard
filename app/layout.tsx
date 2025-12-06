@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/useAuth";
 import { CustomAuthProvider } from "@/lib/useCustomAuth";
-import DashboardLayout from "./components/DashboardLayout";
+import ClientDashboardLayout from "./components/ClientDashboardLayout";
 import { NextIntlProviderWrapper } from "./components/NextIntlProvider";
 import { BookingNotificationProvider } from "./components/BookingNotificationContext";
 
