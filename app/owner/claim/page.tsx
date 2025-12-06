@@ -233,10 +233,49 @@ export default function ClaimShopPage() {
     return PREFECTURES.filter(p => region.prefectures.includes(p.key));
   }, [selectedRegion]);
 
-  const handleSelectShop = (shop: Shop) => {
-    setSelectedShop(shop);
-    setStep('identity');
+  const handleSelectShop = async (shop: Shop) => {
+    if (!user?.id) {
+      setError('You must be logged in to claim a shop');
+      return;
+    }
+
     setError(null);
+    setSubmitting(true);
+
+    try {
+      // Start claim process - creates claim with status='draft'
+      const res = await fetch(`${apiUrl}/api/owner/claims/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user.id,
+        },
+        body: JSON.stringify({ shop_id: shop.id }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setVerificationId(data.claim_id);
+        setSelectedShop(shop);
+        setStep('identity');
+      } else {
+        const errorData = await res.json();
+        setError(errorData.error || 'Failed to start claim process');
+        // If there's an existing claim, redirect to documents
+        if (errorData.claim_id) {
+          setVerificationId(errorData.claim_id);
+          setSelectedShop(shop);
+          if (errorData.status === 'draft' || errorData.status === 'resubmission_required') {
+            setStep('documents');
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Error starting claim:', error);
+      setError(error.message || 'Failed to start claim process');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleIdentitySubmit = async (e: React.FormEvent) => {
