@@ -296,52 +296,43 @@ export default function ClaimShopPage() {
       return;
     }
 
+    if (!verificationId) {
+      setError('Claim ID not found. Please select a shop first.');
+      return;
+    }
+
     try {
       setSubmitting(true);
 
-      const res = await fetch(`${apiUrl}/owner-verification`, {
+      // Map old form fields to new API structure
+      const step1Data = {
+        full_name: identityData.full_name,
+        date_of_birth: identityData.date_of_birth,
+        country: identityData.country_of_residence || identityData.nationality,
+        address_line1: identityData.home_address,
+        address_line2: '',
+        city: '', // Extract from home_address if needed
+        prefecture: selectedShop?.prefecture || '',
+        postal_code: '',
+        company_phone: identityData.phone_number,
+        company_email: identityData.email,
+      };
+
+      const res = await fetch(`${apiUrl}/api/owner/claims/${verificationId}/step1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-user-id': user.id,
         },
-        body: JSON.stringify({
-          shop_id: selectedShop.id,
-          ...identityData,
-        }),
+        body: JSON.stringify(step1Data),
       });
 
       if (res.ok) {
         const data = await res.json();
-        setVerificationId(data.verification_id);
-        // Store verification data if available
-        if (data.verification) {
-          setVerification(data.verification);
-        }
         setStep('documents');
       } else {
         const errorData = await res.json();
-        // If there's an existing verification, redirect to documents step
-        if (errorData.verification_id && errorData.verification_status) {
-          setVerificationId(errorData.verification_id);
-          // Create a minimal verification object with required fields
-          setVerification({
-            id: errorData.verification_id,
-            verification_status: errorData.verification_status,
-            shop_id: selectedShop?.id,
-          });
-          if (errorData.verification_status === 'draft' || errorData.verification_status === 'resubmission_required') {
-            setStep('documents');
-            // Load shop info
-            if (selectedShop) {
-              // Shop already selected, proceed to documents
-            }
-          } else {
-            setError(errorData.error || 'You already have a verification for this shop');
-          }
-        } else {
-          setError(errorData.error || t('common.error') + ': Failed to submit identity information');
-        }
+        setError(errorData.error || t('common.error') + ': Failed to submit identity information');
       }
     } catch (error: any) {
       console.error('Error submitting identity:', error);
@@ -460,36 +451,50 @@ export default function ClaimShopPage() {
       setFileUploading(true);
       setError(null);
 
-      // Upload all files
-      const uploadedDocuments = [];
+      // Upload files one at a time using new API
       for (const doc of documents) {
         const fileUrl = await uploadFileToStorage(doc.file, verificationId);
-        uploadedDocuments.push({
-          document_type: doc.document_type,
-          file_url: fileUrl,
-          file_name: doc.file.name,
-          file_size: doc.file.size,
-          file_type: doc.file.type,
+        
+        // Map old document_type to new doc_type enum
+        let docType: 'business_proof' | 'id_document' | 'other' = 'other';
+        if (['business_registration', 'tax_registration', 'commercial_registry', 'lease_contract', 'utility_bill', 'bank_statement'].includes(doc.document_type)) {
+          docType = 'business_proof';
+        } else if (['government_id', 'selfie_with_id'].includes(doc.document_type)) {
+          docType = 'id_document';
+        }
+
+        const res = await fetch(`${apiUrl}/api/owner/claims/${verificationId}/documents`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': user.id,
+          },
+          body: JSON.stringify({
+            doc_type: docType,
+            file_url: fileUrl,
+          }),
         });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Failed to upload document');
+        }
       }
 
-      // Submit documents to API
-      const res = await fetch(`${apiUrl}/owner-verification/${verificationId}/documents`, {
+      // After all documents uploaded, submit the claim
+      const submitRes = await fetch(`${apiUrl}/api/owner/claims/${verificationId}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-user-id': user.id,
         },
-        body: JSON.stringify({
-          documents: uploadedDocuments,
-        }),
       });
 
-      if (res.ok) {
+      if (submitRes.ok) {
         setStep('submitted');
       } else {
-        const errorData = await res.json();
-        setError(errorData.error || t('common.error') + ': Failed to submit documents');
+        const errorData = await submitRes.json();
+        setError(errorData.error || t('common.error') + ': Failed to submit claim');
       }
     } catch (error: any) {
       console.error('Error submitting documents:', error);
