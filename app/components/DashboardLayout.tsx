@@ -76,7 +76,15 @@ export default function DashboardLayout({
     return <>{children}</>;
   }
 
-  // For public routes, wrap with PublicLayoutWrapper (includes header)
+  // Check if this is the landing page (root route) - it has its own MinimalNavbar
+  const isLandingPage = pathname === "/";
+  
+  // For landing page, don't apply any layout (it has its own MinimalNavbar)
+  if (isLandingPage) {
+    return <>{children}</>;
+  }
+
+  // For other public routes, wrap with PublicLayoutWrapper (includes header)
   if (!isOwnerRoute) {
     console.log("🔥 DashboardLayout: Applying PublicLayoutWrapper for public route:", pathname);
     return <PublicLayoutWrapper>{children}</PublicLayoutWrapper>;
