@@ -48,18 +48,19 @@ export default function SubscriptionPage() {
     if (!user?.id) return;
 
     try {
-      const supabase = getSupabaseClient();
-      const { data, error } = await supabase
-        .from('shops')
-        .select('id, name')
-        .eq('owner_user_id', user.id)
-        .order('name');
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        setShops(data);
-        setSelectedShopId(data[0].id);
+      // Use the same API endpoint as the dashboard for consistency
+      const res = await fetch(`${apiUrl}/shops/owner`, {
+        headers: { 'x-user-id': user.id },
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.shops && data.shops.length > 0) {
+          setShops(data.shops);
+          setSelectedShopId(data.shops[0].id);
+        }
+      } else {
+        console.error('Error loading shops:', res.status, res.statusText);
       }
     } catch (error) {
       console.error('Error loading shops:', error);
