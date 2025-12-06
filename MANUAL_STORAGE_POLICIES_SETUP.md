@@ -1,22 +1,18 @@
--- ============================================================================
--- FIX VERIFICATION DOCUMENTS STORAGE POLICY
--- ============================================================================
--- IMPORTANT: Storage policies must be created via Supabase Dashboard or
--- with service role permissions. This migration provides the SQL to run
--- manually in Supabase Dashboard → SQL Editor.
--- ============================================================================
--- 
--- TO APPLY THESE POLICIES:
--- 1. Go to Supabase Dashboard → SQL Editor
--- 2. Copy and paste the policies below (starting from line 20)
--- 3. Run the SQL
--- ============================================================================
+# Manual Storage Policies Setup
 
--- ============================================================================
--- MANUAL STEPS (Run in Supabase Dashboard → SQL Editor):
--- ============================================================================
+## Problem
+Storage policies cannot be created via SQL migrations without service role permissions. You need to create them manually in the Supabase Dashboard.
 
--- Step 1: Drop existing policies
+## Solution
+
+### Option 1: Via Supabase Dashboard SQL Editor (Recommended)
+
+1. Go to your Supabase Dashboard
+2. Navigate to **SQL Editor**
+3. Copy and paste the following SQL:
+
+```sql
+-- Drop existing policies
 DROP POLICY IF EXISTS "Owners can read their verification documents" ON storage.objects;
 DROP POLICY IF EXISTS "Owners can upload verification documents" ON storage.objects;
 DROP POLICY IF EXISTS "Owners can update their verification documents" ON storage.objects;
@@ -24,8 +20,6 @@ DROP POLICY IF EXISTS "Owners can delete their verification documents" ON storag
 DROP POLICY IF EXISTS "Staff can read all verification documents" ON storage.objects;
 DROP POLICY IF EXISTS "Staff can update all verification documents" ON storage.objects;
 DROP POLICY IF EXISTS "Staff can delete all verification documents" ON storage.objects;
-
--- Step 2: Create new policies
 
 -- Owners can read their own verification documents
 -- File path structure: user_id/verification_id/filename
@@ -35,36 +29,17 @@ CREATE POLICY "Owners can read their verification documents"
     USING (
         bucket_id = 'verification-documents'
         AND auth.role() = 'authenticated'
-        AND (
-            -- First folder must be user's ID
-            (storage.foldername(name))[1] = auth.uid()::text
-            OR EXISTS (
-                -- Or check if verification belongs to user
-                SELECT 1 FROM owner_verification ov
-                WHERE ov.user_id = auth.uid()
-                AND ov.id::text = (storage.foldername(name))[2]
-            )
-        )
+        AND (storage.foldername(name))[1] = auth.uid()::text
     );
 
 -- Owners can upload verification documents
--- File path structure: user_id/verification_id/filename
 CREATE POLICY "Owners can upload verification documents"
     ON storage.objects
     FOR INSERT
     WITH CHECK (
         bucket_id = 'verification-documents'
         AND auth.role() = 'authenticated'
-        AND (
-            -- First folder must be user's ID
-            (storage.foldername(name))[1] = auth.uid()::text
-            OR EXISTS (
-                -- Or check if verification belongs to user
-                SELECT 1 FROM owner_verification ov
-                WHERE ov.user_id = auth.uid()
-                AND ov.id::text = (storage.foldername(name))[2]
-            )
-        )
+        AND (storage.foldername(name))[1] = auth.uid()::text
     );
 
 -- Owners can update their verification documents
@@ -138,3 +113,35 @@ CREATE POLICY "Staff can delete all verification documents"
             AND active = TRUE
         )
     );
+```
+
+4. Click **Run** to execute the SQL
+
+### Option 2: Via Supabase Dashboard Storage UI
+
+1. Go to **Storage** → **Policies**
+2. Select the `verification-documents` bucket
+3. Click **New Policy**
+4. For each policy, use the SQL from Option 1 above
+
+## File Path Structure
+
+The policies expect files to be uploaded with this structure:
+```
+user_id/verification_id/filename
+```
+
+Example:
+```
+4a709fa3-9893-4230-beb4-d91aa42f322c/fc03cac9-e8f6-4e3f-bd5d-630ef379f4d2/1765002946354-screenshot.png
+```
+
+This is already implemented in `app/owner/claim/page.tsx` line 294.
+
+## Verification
+
+After running the policies, test by:
+1. Going to the claim shop page
+2. Uploading a document
+3. It should upload successfully without RLS errors
+
