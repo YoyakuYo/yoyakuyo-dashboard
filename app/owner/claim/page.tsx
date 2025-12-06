@@ -129,53 +129,45 @@ export default function ClaimShopPage() {
     }
   }, [authLoading, user, selectedCategory, selectedRegion, selectedPrefecture, debouncedSearch]);
 
-  const checkExistingVerification = async () => {
+  const checkExistingClaim = async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`${apiUrl}/owner-verification/current`, {
+      const res = await fetch(`${apiUrl}/api/owner/claims/my`, {
         headers: { 'x-user-id': user.id },
       });
       if (res.ok) {
         const data = await res.json();
-        const existingVerification = data.verification;
+        const existingClaim = data.claims?.find((c: any) => 
+          ['draft', 'submitted', 'pending', 'resubmission_required'].includes(c.status)
+        );
         
-        // If there's a draft or resubmission_required verification, load it
-        if (existingVerification && 
-            (existingVerification.verification_status === 'draft' || 
-             existingVerification.verification_status === 'resubmission_required')) {
-          setVerificationId(existingVerification.id);
-          setVerification(existingVerification);
+        if (existingClaim) {
+          setVerificationId(existingClaim.id);
+          setVerification({
+            id: existingClaim.id,
+            verification_status: existingClaim.status,
+            shop_id: existingClaim.shop_id,
+          });
           
-          // If resubmission_required, go directly to documents step
-          if (existingVerification.verification_status === 'resubmission_required') {
-            setStep('documents');
-            // Load shop info
-            if (existingVerification.shop_id) {
-              const shopRes = await fetch(`${apiUrl}/shops/${existingVerification.shop_id}`, {
-                headers: { 'x-user-id': user.id },
-              });
-              if (shopRes.ok) {
-                const shopData = await shopRes.json();
-                setSelectedShop(shopData);
-              }
+          // Load shop info
+          if (existingClaim.shop_id) {
+            const shopRes = await fetch(`${apiUrl}/shops/${existingClaim.shop_id}`, {
+              headers: { 'x-user-id': user.id },
+            });
+            if (shopRes.ok) {
+              const shopData = await shopRes.json();
+              setSelectedShop(shopData);
             }
-          } else if (existingVerification.verification_status === 'draft') {
-            // If draft, go to documents step
+          }
+          
+          // If resubmission_required or draft, go to documents step
+          if (existingClaim.status === 'resubmission_required' || existingClaim.status === 'draft') {
             setStep('documents');
-            if (existingVerification.shop_id) {
-              const shopRes = await fetch(`${apiUrl}/shops/${existingVerification.shop_id}`, {
-                headers: { 'x-user-id': user.id },
-              });
-              if (shopRes.ok) {
-                const shopData = await shopRes.json();
-                setSelectedShop(shopData);
-              }
-            }
           }
         }
       }
     } catch (error) {
-      console.error('Error checking existing verification:', error);
+      console.error('Error checking existing claim:', error);
     }
   };
 
