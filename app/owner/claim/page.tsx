@@ -792,14 +792,15 @@ export default function ClaimShopPage() {
                       return (
                         <div key={docType} className="border border-gray-200 rounded-lg p-4">
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {docType === 'business_registration' && t('claim.mandatoryList1')}
-                            {docType === 'tax_registration' && t('claim.mandatoryList2')}
-                            {docType === 'commercial_registry' && t('claim.mandatoryList3')}
-                            {docType === 'lease_contract' && t('claim.plusOneList1')}
-                            {docType === 'utility_bill' && t('claim.plusOneList2')}
-                            {docType === 'bank_statement' && t('claim.plusOneList3')}
-                            {docType === 'government_id' && t('claim.optionalList1')}
-                            {docType === 'selfie_with_id' && t('claim.optionalList2')}
+                            {docType === 'business_registration' ? t('claim.mandatoryList1') :
+                             docType === 'tax_registration' ? t('claim.mandatoryList2') :
+                             docType === 'commercial_registry' ? t('claim.mandatoryList3') :
+                             docType === 'lease_contract' ? t('claim.plusOneList1') :
+                             docType === 'utility_bill' ? t('claim.plusOneList2') :
+                             docType === 'bank_statement' ? t('claim.plusOneList3') :
+                             docType === 'government_id' ? t('claim.optionalList1') :
+                             docType === 'selfie_with_id' ? t('claim.optionalList2') :
+                             docType.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
                           </label>
                           {doc ? (
                             <div className="flex items-center justify-between">
@@ -834,14 +835,15 @@ export default function ClaimShopPage() {
                       return (
                         <div key={docType} className="border border-gray-200 rounded-lg p-4">
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {docType === 'business_registration' && t('claim.mandatoryList1')}
-                            {docType === 'tax_registration' && t('claim.mandatoryList2')}
-                            {docType === 'commercial_registry' && t('claim.mandatoryList3')}
-                            {docType === 'lease_contract' && t('claim.plusOneList1')}
-                            {docType === 'utility_bill' && t('claim.plusOneList2')}
-                            {docType === 'bank_statement' && t('claim.plusOneList3')}
-                            {docType === 'government_id' && t('claim.optionalList1')}
-                            {docType === 'selfie_with_id' && t('claim.optionalList2')}
+                            {docType === 'business_registration' ? t('claim.mandatoryList1') :
+                             docType === 'tax_registration' ? t('claim.mandatoryList2') :
+                             docType === 'commercial_registry' ? t('claim.mandatoryList3') :
+                             docType === 'lease_contract' ? t('claim.plusOneList1') :
+                             docType === 'utility_bill' ? t('claim.plusOneList2') :
+                             docType === 'bank_statement' ? t('claim.plusOneList3') :
+                             docType === 'government_id' ? t('claim.optionalList1') :
+                             docType === 'selfie_with_id' ? t('claim.optionalList2') :
+                             docType.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
                           </label>
                           {doc ? (
                             <div className="flex items-center justify-between">
@@ -876,14 +878,15 @@ export default function ClaimShopPage() {
                       return (
                         <div key={docType} className="border border-gray-200 rounded-lg p-4">
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {docType === 'business_registration' && t('claim.mandatoryList1')}
-                            {docType === 'tax_registration' && t('claim.mandatoryList2')}
-                            {docType === 'commercial_registry' && t('claim.mandatoryList3')}
-                            {docType === 'lease_contract' && t('claim.plusOneList1')}
-                            {docType === 'utility_bill' && t('claim.plusOneList2')}
-                            {docType === 'bank_statement' && t('claim.plusOneList3')}
-                            {docType === 'government_id' && t('claim.optionalList1')}
-                            {docType === 'selfie_with_id' && t('claim.optionalList2')}
+                            {docType === 'business_registration' ? t('claim.mandatoryList1') :
+                             docType === 'tax_registration' ? t('claim.mandatoryList2') :
+                             docType === 'commercial_registry' ? t('claim.mandatoryList3') :
+                             docType === 'lease_contract' ? t('claim.plusOneList1') :
+                             docType === 'utility_bill' ? t('claim.plusOneList2') :
+                             docType === 'bank_statement' ? t('claim.plusOneList3') :
+                             docType === 'government_id' ? t('claim.optionalList1') :
+                             docType === 'selfie_with_id' ? t('claim.optionalList2') :
+                             docType.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
                           </label>
                           {doc ? (
                             <div className="flex items-center justify-between">
