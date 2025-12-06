@@ -1047,7 +1047,8 @@
     "testimonialsSubtitle": "See what our customers are saying",
     "review1Text": "\"Amazing experience! Found the perfect salon in minutes. The AI assistant was incredibly helpful.\"",
     "review2Text": "\"Booking was so easy! The platform helped me discover new places I never knew existed.\"",
-    "review3Text": "\"As a shop owner, the AI messaging feature has saved me so much time. Highly recommended!\""
+    "review3Text": "\"As a shop owner, the AI messaging feature has saved me so much time. Highly recommended!\"",
+    "navStaff": "Staff Dashboard"
   },
   "assistant": {
     "title": "Asistente IA",
