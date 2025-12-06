@@ -118,7 +118,7 @@ export default function ClaimShopPage() {
   // Check for existing verification on mount
   useEffect(() => {
     if (!authLoading && user) {
-      checkExistingVerification();
+      checkExistingClaim();
     }
   }, [authLoading, user]);
 
