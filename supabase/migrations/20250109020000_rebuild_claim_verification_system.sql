@@ -63,10 +63,13 @@ CREATE TABLE IF NOT EXISTS shop_claims (
   staff_reviewer_id UUID REFERENCES auth.users(id),
   staff_note TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT unique_active_claim_per_shop UNIQUE (shop_id, owner_id, status) 
-    WHERE status IN ('draft', 'submitted', 'pending', 'resubmission_required')
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Create partial unique index for active claims
+CREATE UNIQUE INDEX IF NOT EXISTS unique_active_claim_per_shop 
+ON shop_claims (shop_id, owner_id, status) 
+WHERE status IN ('draft', 'submitted', 'pending', 'resubmission_required');
 
 -- 4. Create shop_claim_documents table
 CREATE TABLE IF NOT EXISTS shop_claim_documents (
