@@ -291,7 +291,8 @@ export default function ClaimShopPage() {
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     const bucket = 'verification-documents';
     const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    const filePath = `${verificationId}/${fileName}`;
+    // Use user_id as first folder (for RLS policy), then verification_id
+    const filePath = `${user?.id}/${verificationId}/${fileName}`;
 
     const { data, error } = await supabase.storage
       .from(bucket)
