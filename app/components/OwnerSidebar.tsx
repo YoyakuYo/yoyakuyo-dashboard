@@ -1,5 +1,5 @@
 // app/components/OwnerSidebar.tsx
-// Reorganized owner dashboard sidebar with sections
+// Rebuilt Owner Dashboard Sidebar - EXACT structure only
 
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
@@ -10,24 +10,11 @@ import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
 import { useBookingNotifications } from './BookingNotificationContext';
-import NotificationDot from './NotificationDot';
 
 interface Shop {
   id: string;
+  name?: string;
   verification_status?: string;
-  subscription_plan?: string;
-  booking_enabled?: boolean;
-  ai_enabled?: boolean;
-}
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: string;
-  requiresVerification: boolean;
-  requiresSubscription?: boolean | 'pro';
-  badge?: number;
-  isPanel?: boolean;
 }
 
 const OwnerSidebar = React.memo(() => {
@@ -120,160 +107,82 @@ const OwnerSidebar = React.memo(() => {
     window.dispatchEvent(new CustomEvent('openMessagesPanel', { detail: {} }));
   };
 
-  // Check if feature is enabled
-  const isBookingEnabled = shop?.booking_enabled ?? false;
-  const isAiEnabled = shop?.ai_enabled ?? false;
-  const isVerified = shop?.verification_status === 'approved';
-  const subscriptionPlan = shop?.subscription_plan || 'free';
-
-  // Navigation sections - using translations
+  // EXACT navigation structure - NO extras
   const navSections = [
     {
-      title: t('nav.overview'),
+      title: 'OVERVIEW',
       items: [
         { 
           href: '/owner/dashboard', 
-          label: t('nav.dashboard'), 
+          label: 'Dashboard', 
           icon: '📊',
-          requiresVerification: false,
         },
       ],
     },
     {
-      title: t('nav.shopSetup'),
+      title: 'SHOP SETUP',
       items: [
         { 
           href: '/owner/shop-profile', 
-          label: t('nav.shopProfile'), 
+          label: 'Shop Profile', 
           icon: '🏪',
-          requiresVerification: false,
         },
-        { 
-          href: '/owner/owner-profile', 
-          label: t('nav.ownerProfile'), 
-          icon: '👤',
-          requiresVerification: false,
-        },
-        { 
-          href: '/owner/verification', 
-          label: t('nav.verificationDocuments'), 
-          icon: '✅',
-          requiresVerification: false,
-        },
-      ],
-    },
-    {
-      title: t('nav.servicesPricing'),
-      items: [
         { 
           href: '/owner/services', 
-          label: t('nav.services'), 
+          label: 'Services', 
           icon: '💼',
-          requiresVerification: false,
-        },
-        { 
-          href: '/owner/pricing', 
-          label: t('nav.pricing'), 
-          icon: '💰',
-          requiresVerification: false,
         },
         { 
           href: '/owner/availability', 
-          label: t('nav.availabilitySchedule'), 
+          label: 'Availability', 
           icon: '📅',
-          requiresVerification: false,
         },
       ],
     },
     {
-      title: t('nav.operations'),
+      title: 'OPERATIONS',
       items: [
         { 
           href: '/bookings', 
-          label: t('nav.bookings'), 
-          icon: '📅', 
+          label: 'Bookings', 
+          icon: '📅',
           badge: unreadBookingsCount > 0 ? unreadBookingsCount : undefined,
-          requiresVerification: true,
-          requiresSubscription: true,
         },
         { 
           href: '/owner/calendar', 
-          label: t('nav.calendar'), 
+          label: 'Calendar', 
           icon: '🗓️',
-          requiresVerification: true,
-          requiresSubscription: true,
         },
         { 
           href: '/messages', 
-          label: t('nav.messages'), 
-          icon: '💬', 
-          badge: unreadCount > 0 ? unreadCount : undefined, 
+          label: 'Messages', 
+          icon: '💬',
+          badge: unreadCount > 0 ? unreadCount : undefined,
           isPanel: true,
-          requiresVerification: false,
         },
       ],
     },
     {
-      title: t('nav.aiAutomation'),
+      title: 'AI BOOKING ASSISTANT',
       items: [
         { 
-          href: '/assistant', 
-          label: t('nav.aiAssistant'), 
+          href: '/owner/ai-settings', 
+          label: 'AI Settings', 
           icon: '🤖',
-          requiresVerification: true,
-          requiresSubscription: 'pro',
-        },
-        { 
-          href: '/owner/automation', 
-          label: t('nav.automationRules'), 
-          icon: '⚙️',
-          requiresVerification: true,
-          requiresSubscription: 'pro',
         },
       ],
     },
     {
-      title: t('nav.businessBilling'),
+      title: 'BUSINESS',
       items: [
         { 
           href: '/owner/subscription', 
-          label: t('nav.subscription'), 
+          label: 'Subscription', 
           icon: '💳',
-          requiresVerification: false,
-        },
-        { 
-          href: '/owner/staff', 
-          label: t('nav.staffRoles'), 
-          icon: '👥',
-          requiresVerification: false,
-        },
-        { 
-          href: '/owner/payouts', 
-          label: t('nav.payouts'), 
-          icon: '💵',
-          requiresVerification: false,
-        },
-      ],
-    },
-    {
-      title: t('nav.system'),
-      items: [
-        { 
-          href: '/settings', 
-          label: t('nav.settings'), 
-          icon: '⚙️',
-          requiresVerification: false,
         },
       ],
     },
   ];
-
-  const isItemDisabled = (item: NavItem) => {
-    if (item.requiresVerification && !isVerified) return true;
-    if (item.requiresSubscription === true && subscriptionPlan === 'free') return true;
-    if (item.requiresSubscription === 'pro' && subscriptionPlan !== 'pro') return true;
-    return false;
-  };
 
   return (
     <aside className="hidden lg:block w-64 bg-slate-900 text-white fixed left-0 top-16 bottom-0 overflow-hidden">
@@ -286,39 +195,31 @@ const OwnerSidebar = React.memo(() => {
               </div>
               <ul className="space-y-1 mt-2">
                 {section.items.map((item) => {
-                  const navItem = item as NavItem;
-                  const isActive = pathname === navItem.href || (navItem.href !== '/' && pathname?.startsWith(navItem.href));
-                  const isDisabled = isItemDisabled(navItem);
-                  const isMessages = navItem.href === '/messages';
+                  const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
+                  const isMessages = item.href === '/messages';
                   
-                  if (isMessages && navItem.isPanel) {
+                  if (isMessages && item.isPanel) {
                     return (
-                      <li key={navItem.href}>
+                      <li key={item.href}>
                         <button
                           onClick={handleMessagesClick}
-                          disabled={isDisabled}
                           className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors relative w-full text-left ${
                             isActive
                               ? 'bg-blue-600 text-white font-bold'
-                              : isDisabled
-                              ? 'text-gray-500 cursor-not-allowed opacity-50'
                               : 'text-gray-300 hover:bg-slate-800 hover:text-white'
                           }`}
                         >
                           {isActive && (
                             <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r"></span>
                           )}
-                          <span className="text-xl">{navItem.icon}</span>
+                          <span className="text-xl">{item.icon}</span>
                           <span className={`font-medium flex-1 ${isActive ? 'font-bold' : ''}`}>
-                            {navItem.label}
+                            {item.label}
                           </span>
-                          {navItem.badge !== undefined && navItem.badge > 0 && (
+                          {item.badge !== undefined && item.badge > 0 && (
                             <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
-                              {navItem.badge}
+                              {item.badge}
                             </span>
-                          )}
-                          {isDisabled && (
-                            <span className="ml-auto text-xs text-gray-500">🔒</span>
                           )}
                         </button>
                       </li>
@@ -326,36 +227,26 @@ const OwnerSidebar = React.memo(() => {
                   }
                   
                   return (
-                    <li key={navItem.href}>
+                    <li key={item.href}>
                       <Link
-                        href={isDisabled ? '#' : navItem.href}
+                        href={item.href}
                         className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors relative ${
                           isActive
                             ? 'bg-blue-600 text-white font-bold'
-                            : isDisabled
-                            ? 'text-gray-500 cursor-not-allowed opacity-50'
                             : 'text-gray-300 hover:bg-slate-800 hover:text-white'
                         }`}
-                        onClick={(e) => {
-                          if (isDisabled) {
-                            e.preventDefault();
-                          }
-                        }}
                       >
                         {isActive && (
                           <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r"></span>
                         )}
-                        <span className="text-xl">{navItem.icon}</span>
+                        <span className="text-xl">{item.icon}</span>
                         <span className={`font-medium flex-1 ${isActive ? 'font-bold' : ''}`}>
-                          {navItem.label}
+                          {item.label}
                         </span>
-                        {navItem.badge !== undefined && navItem.badge > 0 && (
+                        {item.badge !== undefined && item.badge > 0 && (
                           <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
-                            {navItem.badge}
+                            {item.badge}
                           </span>
-                        )}
-                        {isDisabled && (
-                          <span className="ml-auto text-xs text-gray-500">🔒</span>
                         )}
                       </Link>
                     </li>
@@ -380,7 +271,7 @@ const OwnerSidebar = React.memo(() => {
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
           >
             <span className="text-xl">🚪</span>
-            <span className="font-medium">{t('nav.logout')}</span>
+            <span className="font-medium">Logout</span>
           </button>
         </div>
       </nav>
@@ -391,4 +282,3 @@ const OwnerSidebar = React.memo(() => {
 OwnerSidebar.displayName = 'OwnerSidebar';
 
 export default OwnerSidebar;
-

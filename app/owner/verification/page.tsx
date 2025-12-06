@@ -182,6 +182,7 @@ export default function VerificationPage() {
 
   const verificationStatus = shop.verification_status || 'not_submitted';
   const canResubmit = verificationStatus === 'rejected';
+  const isReadOnly = verificationStatus === 'approved'; // Once approved, owners cannot edit
 
   return (
     <div className="p-6">
@@ -268,7 +269,7 @@ export default function VerificationPage() {
         )}
 
         {/* Upload New Documents */}
-        {canResubmit && (
+        {canResubmit && !isReadOnly && (
           <div className="border-t pt-4">
             <h3 className="font-medium mb-3">Upload Additional Documents</h3>
             {(['owner_id', 'business_registration', 'tax_doc', 'lease', 'other'] as const).map((docType) => (
@@ -285,12 +286,12 @@ export default function VerificationPage() {
                   accept="image/*,.pdf"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) {
+                    if (file && !isReadOnly) {
                       handleFileUpload(file, docType);
                     }
                   }}
                   className="w-full px-4 py-2 border rounded-lg"
-                  disabled={uploading}
+                  disabled={uploading || isReadOnly}
                 />
               </div>
             ))}
@@ -299,7 +300,7 @@ export default function VerificationPage() {
       </div>
 
       {/* Actions */}
-      {canResubmit && (
+      {canResubmit && !isReadOnly && (
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4">Resubmit Verification</h2>
           <p className="text-gray-600 mb-4">

@@ -1,23 +1,16 @@
 // app/owner/pricing/page.tsx
-// Pricing management page
+// REMOVED - Redirect to services (pricing is part of services)
 
 "use client";
-
-import React from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function PricingPage() {
   const router = useRouter();
   
-  // Redirect to main shops page for now
-  React.useEffect(() => {
-    router.push('/shops');
+  useEffect(() => {
+    router.replace('/owner/services');
   }, [router]);
 
-  return (
-    <div className="p-6">
-      <p className="text-gray-600">Redirecting to shop management...</p>
-    </div>
-  );
+  return null;
 }
-

@@ -8,7 +8,7 @@
 
 -- ============================================================================
 -- STEP 1: Clean existing bad data
--- ============================================================================
+-- ===========================================================================
 -- For all shops that have verification_status = 'pending' 
 -- BUT have NO row in shop_verification_requests
 -- → set verification_status = 'not_submitted'

@@ -16,6 +16,7 @@ import { useBookingNotificationsHook } from "@/lib/useBookingNotifications";
 import BookingNotificationBar from "./BookingNotificationBar";
 import { useBookingNotifications } from "./BookingNotificationContext";
 import { MessagesPanel } from "./owner/MessagesPanel";
+import VerificationBanner from "./VerificationBanner";
 
 // Routes that should NOT have dashboard layout (Header, Sidebar, AuthGuard)
 const authRoutes: string[] = [];
@@ -86,9 +87,12 @@ export default function DashboardLayout({
     <AuthGuard>
       <OwnerAIChatProvider>
         <BookingNotificationsWrapper>
-          <Header />
+          <div className="fixed top-0 left-0 right-0 z-40">
+            <Header />
+            <VerificationBanner />
+          </div>
           <OwnerSidebar />
-          <main className="lg:ml-64 pt-16 min-h-screen bg-gray-50">
+          <main className="lg:ml-64 min-h-screen bg-gray-50" style={{ paddingTop: '7.75rem' }}>
             {children}
           </main>
           <OwnerAIChat />

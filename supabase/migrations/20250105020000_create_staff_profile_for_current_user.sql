@@ -15,7 +15,7 @@
 -- Replace 'your-email@example.com' with your actual email address
 DO $$
 DECLARE
-  target_email TEXT := 'your-email@example.com';  -- CHANGE THIS TO YOUR EMAIL
+  target_email TEXT := 'sowoumar45@gmail.com';  -- CHANGE THIS TO YOUR EMAIL
   current_user_id UUID;
   user_email TEXT;
   user_name TEXT;

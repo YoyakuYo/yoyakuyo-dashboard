@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS shop_verification_requests (
   notes TEXT,
   submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   reviewed_at TIMESTAMPTZ,
-  reviewed_by_staff_id UUID REFERENCES staff_profiles(id) ON DELETE SET NULL,
+  reviewed_by_staff_id UUID, -- References staff_profiles(id) if table exists
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
