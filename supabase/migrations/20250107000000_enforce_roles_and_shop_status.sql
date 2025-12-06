@@ -173,9 +173,9 @@ UPDATE public.shops
 SET 
   owner_user_id = NULL,
   owner_id = NULL,
-  verification_status = 'none'
+  verification_status = 'not_submitted'
 WHERE shop_status = 'unclaimed'
-  AND (COALESCE(owner_user_id, owner_id) IS NOT NULL OR verification_status != 'none');
+  AND (COALESCE(owner_user_id, owner_id) IS NOT NULL OR verification_status NOT IN ('not_submitted', 'none'));
 
 -- Fix shops where verification_status = 'approved' but shop_status != 'claimed' or no owner
 UPDATE public.shops
@@ -187,7 +187,7 @@ WHERE verification_status = 'approved'
 -- Reset shops where verification_status = 'approved' but no owner
 UPDATE public.shops
 SET 
-  verification_status = 'none',
+  verification_status = 'not_submitted',
   shop_status = 'unclaimed',
   owner_user_id = NULL,
   owner_id = NULL
@@ -205,7 +205,7 @@ WHERE shop_status = 'claimed'
 UPDATE public.shops
 SET 
   shop_status = 'unclaimed',
-  verification_status = 'none',
+  verification_status = 'not_submitted',
   owner_user_id = NULL,
   owner_id = NULL
 WHERE shop_status = 'claimed'
@@ -230,12 +230,28 @@ ALTER TABLE public.users DROP CONSTRAINT IF EXISTS check_staff_no_shop;
 ALTER TABLE public.users ADD CONSTRAINT check_staff_no_shop 
   CHECK (role NOT IN ('staff', 'super_admin') OR shop_id IS NULL);
 
--- Constraint: shop_status = 'unclaimed' → owner_user_id MUST be NULL AND verification_status = 'none'
+-- First, update the verification_status constraint to handle 'none' if it exists, or use 'not_submitted'
+DO $$
+BEGIN
+  -- Drop existing constraint
+  ALTER TABLE public.shops DROP CONSTRAINT IF EXISTS shops_verification_status_check;
+  
+  -- Add new constraint that includes both 'none' (for backward compatibility) and 'not_submitted'
+  ALTER TABLE public.shops ADD CONSTRAINT shops_verification_status_check 
+    CHECK (verification_status IN ('none', 'not_submitted', 'pending', 'approved', 'rejected'));
+END $$;
+
+-- Update any 'none' values to 'not_submitted' for consistency
+UPDATE public.shops
+SET verification_status = 'not_submitted'
+WHERE verification_status = 'none';
+
+-- Constraint: shop_status = 'unclaimed' → owner_user_id MUST be NULL AND verification_status = 'not_submitted'
 ALTER TABLE public.shops DROP CONSTRAINT IF EXISTS check_unclaimed_shop;
 ALTER TABLE public.shops ADD CONSTRAINT check_unclaimed_shop 
   CHECK (
     shop_status != 'unclaimed' OR 
-    (COALESCE(owner_user_id, owner_id) IS NULL AND verification_status = 'none')
+    (COALESCE(owner_user_id, owner_id) IS NULL AND verification_status IN ('none', 'not_submitted'))
   );
 
 -- Constraint: verification_status = 'approved' → shop_status MUST be 'claimed' AND owner_user_id MUST NOT be NULL
@@ -269,6 +285,11 @@ SET account_status = 'active'
 WHERE account_status IS NULL;
 
 -- Set default shop_status for existing shops
+-- First, ensure verification_status is set correctly
+UPDATE public.shops 
+SET verification_status = 'not_submitted'
+WHERE verification_status IS NULL OR verification_status = 'none';
+
 UPDATE public.shops 
 SET shop_status = 'unclaimed' 
 WHERE shop_status IS NULL AND COALESCE(owner_user_id, owner_id) IS NULL;

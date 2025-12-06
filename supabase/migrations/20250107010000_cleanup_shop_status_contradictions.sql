@@ -27,13 +27,13 @@ WHERE verification_status = 'approved'
   AND COALESCE(owner_user_id, owner_id) IS NULL;
 
 -- ============================================================================
--- STEP 2: FIX SHOPS WHERE shop_status = 'unclaimed' BUT verification_status != 'none'
+-- STEP 2: FIX SHOPS WHERE shop_status = 'unclaimed' BUT verification_status != 'not_submitted'
 -- ============================================================================
 
 UPDATE public.shops
-SET verification_status = 'none'
+SET verification_status = 'not_submitted'
 WHERE shop_status = 'unclaimed'
-  AND verification_status != 'none';
+  AND verification_status NOT IN ('none', 'not_submitted');
 
 -- ============================================================================
 -- STEP 3: FIX SHOPS WHERE shop_status = 'claimed' BUT verification_status != 'approved'
@@ -50,7 +50,7 @@ WHERE shop_status = 'claimed'
 UPDATE public.shops
 SET 
   shop_status = 'unclaimed',
-  verification_status = 'none',
+  verification_status = 'not_submitted',
   owner_user_id = NULL,
   owner_id = NULL
 WHERE shop_status = 'claimed'
