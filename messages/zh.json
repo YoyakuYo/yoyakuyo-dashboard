@@ -418,7 +418,8 @@
     "website": "Website",
     "description": "Description",
     "price": "Price",
-    "duration": "Duration"
+    "duration": "Duration",
+    "cannotBeChanged": "cannot be changed"
   },
   "nav": {
     "shops": "店铺",
@@ -454,7 +455,10 @@
     "automationRules": "Automation Rules",
     "staffRoles": "Staff & Roles",
     "payouts": "Payouts",
-    "settings": "Settings"
+    "settings": "Settings",
+    "aiBookingAssistant": "AI预约助手",
+    "availability": "可用时间",
+    "aiSettings": "AI设置"
   },
   "myShop": {
     "title": "我的店铺",
@@ -658,14 +662,38 @@
     "nav": {
       "home": "首页",
       "myBookings": "我的预约",
+      "messages": "消息",
       "savedShops": "保存的店铺",
       "favorites": "收藏",
       "aiChat": "AI聊天",
       "notifications": "通知",
       "browseShops": "浏览店铺",
-      "settings": "设置",
-      "messages": "Messages"
-    }
+      "settings": "设置"
+    },
+    "profile": "个人资料",
+    "customer": "客户",
+    "profileInformation": "Profile Information"
+  },
+  "verification": {
+    "verified": "已验证",
+    "pending": "待审核",
+    "unverified": "未验证",
+    "pendingMessage": "您的店铺验证正在审核中。一旦获得批准，我们将通知您。",
+    "unverifiedMessage": "您的店铺需要验证后才能接收预约。上传您的文件以开始。",
+    "viewStatus": "查看状态",
+    "uploadDocuments": "上传文件"
+  },
+  "aiSettings": {
+    "title": "AI预约助手设置",
+    "subtitle": "通过简单的开关控制AI助手的行为",
+    "aiAssistant": "AI助手",
+    "aiAssistantDesc": "启用AI以帮助处理预约和客户咨询",
+    "autoConfirm": "自动确认预约",
+    "autoConfirmDesc": "无需手动批准即可自动确认预约",
+    "autoReply": "自动回复消息",
+    "autoReplyDesc": "AI自动回复客户消息",
+    "noShopFound": "未找到店铺。请先创建店铺。",
+    "updateFailed": "更新设置失败"
   },
   "landing": {
     "heroTagline": "为每个人提供简单、多语言的预订体验。",

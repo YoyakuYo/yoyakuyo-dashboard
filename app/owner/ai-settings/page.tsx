@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/useAuth';
 import { apiUrl } from '@/lib/apiClient';
+import { useTranslations } from 'next-intl';
 
 interface Shop {
   id: string;
@@ -17,6 +18,7 @@ interface Shop {
 
 export default function AISettingsPage() {
   const { user } = useAuth();
+  const t = useTranslations();
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -64,11 +66,11 @@ export default function AISettingsPage() {
       if (res.ok) {
         await loadShop();
       } else {
-        alert('Failed to update setting');
+        alert(t('aiSettings.updateFailed'));
       }
     } catch (error) {
       console.error('Error updating setting:', error);
-      alert('Failed to update setting');
+      alert(t('aiSettings.updateFailed'));
     } finally {
       setSaving(false);
     }
@@ -88,7 +90,7 @@ export default function AISettingsPage() {
     return (
       <div className="p-6">
         <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-600">No shop found. Please create a shop first.</p>
+          <p className="text-gray-600">{t('aiSettings.noShopFound')}</p>
         </div>
       </div>
     );
@@ -99,16 +101,16 @@ export default function AISettingsPage() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow">
           <div className="p-6 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">AI Booking Assistant Settings</h1>
-            <p className="text-gray-600 mt-2">Control your AI assistant behavior with simple toggles</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t('aiSettings.title')}</h1>
+            <p className="text-gray-600 mt-2">{t('aiSettings.subtitle')}</p>
           </div>
 
           <div className="p-6 space-y-6">
             {/* AI ON/OFF */}
             <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
               <div>
-                <h3 className="font-semibold text-gray-900">AI Assistant</h3>
-                <p className="text-sm text-gray-600">Enable AI to help with bookings and customer inquiries</p>
+                <h3 className="font-semibold text-gray-900">{t('aiSettings.aiAssistant')}</h3>
+                <p className="text-sm text-gray-600">{t('aiSettings.aiAssistantDesc')}</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -125,8 +127,8 @@ export default function AISettingsPage() {
             {/* Auto-Confirm */}
             <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
               <div>
-                <h3 className="font-semibold text-gray-900">Auto-Confirm Bookings</h3>
-                <p className="text-sm text-gray-600">Automatically confirm bookings without manual approval</p>
+                <h3 className="font-semibold text-gray-900">{t('aiSettings.autoConfirm')}</h3>
+                <p className="text-sm text-gray-600">{t('aiSettings.autoConfirmDesc')}</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -147,8 +149,8 @@ export default function AISettingsPage() {
             {/* Auto-Reply */}
             <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
               <div>
-                <h3 className="font-semibold text-gray-900">Auto-Reply to Messages</h3>
-                <p className="text-sm text-gray-600">AI automatically responds to customer messages</p>
+                <h3 className="font-semibold text-gray-900">{t('aiSettings.autoReply')}</h3>
+                <p className="text-sm text-gray-600">{t('aiSettings.autoReplyDesc')}</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input

@@ -45,7 +45,8 @@
     "required": "必須",
     "characters": "文字",
     "selectAll": "すべて選択",
-    "viewDetails": "詳細を見る"
+    "viewDetails": "詳細を見る",
+    "cannotBeChanged": "cannot be changed"
   },
   "auth": {
     "signInToShop": "店舗にサインイン",
@@ -106,7 +107,10 @@
     "automationRules": "Automation Rules",
     "staffRoles": "Staff & Roles",
     "payouts": "Payouts",
-    "settings": "Settings"
+    "settings": "Settings",
+    "aiBookingAssistant": "AI予約アシスタント",
+    "availability": "利用可能時間",
+    "aiSettings": "AI設定"
   },
   "home": {
     "welcomeTitle": "Yoyaku Yoへようこそ",
@@ -841,8 +845,32 @@
       "notifications": "通知",
       "browseShops": "店舗を閲覧",
       "settings": "設定",
-      "messages": "Messages"
-    }
+      "messages": "メッセージ"
+    },
+    "profile": "プロフィール",
+    "customer": "顧客",
+    "profileInformation": "Profile Information"
+  },
+  "verification": {
+    "verified": "認証済み",
+    "pending": "審査中",
+    "unverified": "未認証",
+    "pendingMessage": "店舗の認証が審査中です。承認され次第、お知らせいたします。",
+    "unverifiedMessage": "予約を受けるには、店舗の認証が必要です。書類をアップロードして始めましょう。",
+    "viewStatus": "ステータスを確認",
+    "uploadDocuments": "書類をアップロード"
+  },
+  "aiSettings": {
+    "title": "AI予約アシスタント設定",
+    "subtitle": "シンプルなトグルでAIアシスタントの動作を制御",
+    "aiAssistant": "AIアシスタント",
+    "aiAssistantDesc": "予約とお客様の問い合わせをサポートするAIを有効化",
+    "autoConfirm": "予約の自動確認",
+    "autoConfirmDesc": "手動承認なしで予約を自動確認",
+    "autoReply": "メッセージの自動返信",
+    "autoReplyDesc": "AIがお客様のメッセージに自動返信",
+    "noShopFound": "店舗が見つかりません。まず店舗を作成してください。",
+    "updateFailed": "設定の更新に失敗しました"
   },
   "landing": {
     "heroTitle": "完璧なサービスを予約",

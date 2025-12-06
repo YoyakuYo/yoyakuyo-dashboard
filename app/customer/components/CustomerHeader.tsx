@@ -100,7 +100,7 @@ export default function CustomerHeader() {
       <div className="h-full px-4 flex items-center justify-between">
         {/* Logo - Links to customer home, not public landing page */}
         <Link href="/customer/home" className="text-xl font-bold text-blue-600 hover:text-blue-700">
-          Yoyaku Yo
+          {t('home.title')}
         </Link>
 
         {/* Right side: Language, Notifications, Profile */}
@@ -142,7 +142,7 @@ export default function CustomerHeader() {
                 {getInitials()}
               </div>
               <span className="hidden sm:block text-sm font-medium text-gray-700">
-                {profile?.name || user?.email?.split("@")[0] || "Customer"}
+                {profile?.name || user?.email?.split("@")[0] || t('customer.customer')}
               </span>
               <svg
                 className={`w-4 h-4 text-gray-600 transition-transform ${showDropdown ? "rotate-180" : ""}`}
@@ -166,13 +166,13 @@ export default function CustomerHeader() {
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   onClick={() => setShowDropdown(false)}
                 >
-                  Profile
+                  {t('customer.profile')}
                 </Link>
                 <button
                   onClick={handleSignOut}
                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
-                  Logout
+                  {t('nav.logout')}
                 </button>
               </div>
             )}

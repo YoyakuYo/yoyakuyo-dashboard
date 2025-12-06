@@ -418,7 +418,8 @@
     "website": "Website",
     "description": "Description",
     "price": "Price",
-    "duration": "Duration"
+    "duration": "Duration",
+    "cannotBeChanged": "cannot be changed"
   },
   "nav": {
     "shops": "Lojas",
@@ -454,7 +455,10 @@
     "automationRules": "Automation Rules",
     "staffRoles": "Staff & Roles",
     "payouts": "Payouts",
-    "settings": "Settings"
+    "settings": "Settings",
+    "aiBookingAssistant": "AI BOOKING ASSISTANT",
+    "availability": "Availability",
+    "aiSettings": "AI Settings"
   },
   "myShop": {
     "title": "Minha Loja",
@@ -664,8 +668,32 @@
       "notifications": "Notificações",
       "browseShops": "Navegar Lojas",
       "settings": "Configurações",
-      "messages": "Messages"
-    }
+      "messages": "Mensagens"
+    },
+    "profile": "Perfil",
+    "customer": "Cliente",
+    "profileInformation": "Profile Information"
+  },
+  "verification": {
+    "verified": "Verificado",
+    "pending": "Pendente",
+    "unverified": "Não Verificado",
+    "pendingMessage": "A verificação da sua loja está pendente de revisão. Notificaremos você assim que for aprovada.",
+    "unverifiedMessage": "Sua loja precisa ser verificada antes de poder receber reservas. Envie seus documentos para começar.",
+    "viewStatus": "Ver Status",
+    "uploadDocuments": "Enviar Documentos"
+  },
+  "aiSettings": {
+    "title": "Configurações do Assistente de Reservas com IA",
+    "subtitle": "Controle o comportamento do seu assistente de IA com interruptores simples",
+    "aiAssistant": "Assistente de IA",
+    "aiAssistantDesc": "Habilite a IA para ajudar com reservas e consultas de clientes",
+    "autoConfirm": "Confirmar Reservas Automaticamente",
+    "autoConfirmDesc": "Confirma reservas automaticamente sem aprovação manual",
+    "autoReply": "Responder Mensagens Automaticamente",
+    "autoReplyDesc": "A IA responde automaticamente às mensagens dos clientes",
+    "noShopFound": "Nenhuma loja encontrada. Por favor, crie uma loja primeiro.",
+    "updateFailed": "Falha ao atualizar a configuração"
   },
   "landing": {
     "heroTagline": "Uma experiência de reserva simples e multilíngue para todos.",

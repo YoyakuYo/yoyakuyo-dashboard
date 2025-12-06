@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { useTranslations } from "next-intl";
 
 export default function CustomerSettingsPage() {
   const { user } = useCustomAuth();
+  const t = useTranslations();
   const [profile, setProfile] = useState({
     name: "",
     email: "",
@@ -76,7 +78,7 @@ export default function CustomerSettingsPage() {
 
     // Validate name is not empty
     if (!profile.name.trim()) {
-      setMessage("Error: Name is required");
+      setMessage(t('common.error') + ': ' + t('common.name') + ' ' + t('common.required'));
       return;
     }
 
@@ -94,9 +96,9 @@ export default function CustomerSettingsPage() {
       .eq("customer_auth_id", user.id);
 
     if (error) {
-      setMessage(`Error: ${error.message}`);
+      setMessage(t('common.error') + ': ' + error.message);
     } else {
-      setMessage("Profile updated successfully!");
+      setMessage(t('common.success') + ': ' + t('customer.profile') + ' ' + t('common.update') + 'd');
       // Clear message after 3 seconds
       setTimeout(() => setMessage(""), 3000);
     }
@@ -116,15 +118,15 @@ export default function CustomerSettingsPage() {
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Settings</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">{t('nav.settings')}</h1>
 
       <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Profile Information</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('customer.profileInformation')}</h2>
 
         <form onSubmit={handleSave} className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-              Name
+              {t('common.name')}
             </label>
             <input
               id="name"
@@ -138,7 +140,7 @@ export default function CustomerSettingsPage() {
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email
+              {t('common.email')}
             </label>
             <input
               id="email"
@@ -147,12 +149,12 @@ export default function CustomerSettingsPage() {
               disabled
               className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
             />
-            <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
+            <p className="mt-1 text-xs text-gray-500">{t('common.email')} {t('common.cannotBeChanged')}</p>
           </div>
 
           <div>
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-              Phone
+              {t('common.phone')}
             </label>
             <input
               id="phone"
@@ -180,7 +182,7 @@ export default function CustomerSettingsPage() {
             disabled={saving}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
-            {saving ? "Saving..." : "Save Changes"}
+            {saving ? t('common.updating') : t('common.save')}
           </button>
         </form>
       </div>

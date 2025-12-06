@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/useAuth';
 import { apiUrl } from '@/lib/apiClient';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { useTranslations } from 'next-intl';
 
 interface Shop {
   id: string;
@@ -15,6 +16,7 @@ interface Shop {
 
 const Header = React.memo(() => {
   const { user } = useAuth();
+  const t = useTranslations();
   const [shop, setShop] = useState<Shop | null>(null);
 
   useEffect(() => {
@@ -46,19 +48,19 @@ const Header = React.memo(() => {
     if (status === 'approved') {
       return (
         <span className="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
-          Verified
+          {t('verification.verified')}
         </span>
       );
     } else if (status === 'pending') {
       return (
         <span className="px-3 py-1 bg-yellow-500 text-white text-xs font-semibold rounded-full">
-          Pending
+          {t('verification.pending')}
         </span>
       );
     } else {
       return (
         <span className="px-3 py-1 bg-gray-500 text-white text-xs font-semibold rounded-full">
-          Unverified
+          {t('verification.unverified')}
         </span>
       );
     }
@@ -69,7 +71,7 @@ const Header = React.memo(() => {
       <div className="h-full flex items-center justify-between px-6">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold">
-            {shop?.name || 'My Shop'}
+            {shop?.name || t('nav.myShop')}
           </h1>
           {getVerificationBadge()}
         </div>

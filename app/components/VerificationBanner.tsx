@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
 import { apiUrl } from '@/lib/apiClient';
+import { useTranslations } from 'next-intl';
 
 interface Shop {
   id: string;
@@ -16,6 +17,7 @@ interface Shop {
 const VerificationBanner = React.memo(() => {
   const { user } = useAuth();
   const router = useRouter();
+  const t = useTranslations();
   const [shop, setShop] = useState<Shop | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -56,15 +58,15 @@ const VerificationBanner = React.memo(() => {
   const getBannerContent = () => {
     if (verificationStatus === 'pending') {
       return {
-        message: 'Your shop verification is pending review. We will notify you once it\'s approved.',
+        message: t('verification.pendingMessage'),
         bgColor: 'bg-yellow-500',
-        buttonText: 'View Status',
+        buttonText: t('verification.viewStatus'),
       };
     } else {
       return {
-        message: 'Your shop needs to be verified before you can receive bookings. Upload your documents to get started.',
+        message: t('verification.unverifiedMessage'),
         bgColor: 'bg-red-500',
-        buttonText: 'Upload Documents',
+        buttonText: t('verification.uploadDocuments'),
       };
     }
   };

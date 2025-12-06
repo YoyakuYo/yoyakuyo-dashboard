@@ -44,7 +44,8 @@
     "optional": "Optional",
     "required": "Required",
     "characters": "characters",
-    "viewDetails": "View Details"
+    "viewDetails": "View Details",
+    "cannotBeChanged": "cannot be changed"
   },
   "auth": {
     "signInToShop": "Sign in to your shop",
@@ -105,7 +106,10 @@
     "automationRules": "Automation Rules",
     "staffRoles": "Staff & Roles",
     "payouts": "Payouts",
-    "settings": "Settings"
+    "settings": "Settings",
+    "aiBookingAssistant": "AI BOOKING ASSISTANT",
+    "availability": "Availability",
+    "aiSettings": "AI Settings"
   },
   "home": {
     "welcomeTitle": "Welcome to Yoyaku Yo",
@@ -833,7 +837,31 @@
       "notifications": "Notifications",
       "browseShops": "Browse Shops",
       "settings": "Settings"
-    }
+    },
+    "profile": "Profile",
+    "customer": "Customer",
+    "profileInformation": "Profile Information"
+  },
+  "verification": {
+    "verified": "Verified",
+    "pending": "Pending",
+    "unverified": "Unverified",
+    "pendingMessage": "Your shop verification is pending review. We will notify you once it's approved.",
+    "unverifiedMessage": "Your shop needs to be verified before you can receive bookings. Upload your documents to get started.",
+    "viewStatus": "View Status",
+    "uploadDocuments": "Upload Documents"
+  },
+  "aiSettings": {
+    "title": "AI Booking Assistant Settings",
+    "subtitle": "Control your AI assistant behavior with simple toggles",
+    "aiAssistant": "AI Assistant",
+    "aiAssistantDesc": "Enable AI to help with bookings and customer inquiries",
+    "autoConfirm": "Auto-Confirm Bookings",
+    "autoConfirmDesc": "Automatically confirm bookings without manual approval",
+    "autoReply": "Auto-Reply to Messages",
+    "autoReplyDesc": "AI automatically responds to customer messages",
+    "noShopFound": "No shop found. Please create a shop first.",
+    "updateFailed": "Failed to update setting"
   },
   "messages": {
     "title": "Messages",

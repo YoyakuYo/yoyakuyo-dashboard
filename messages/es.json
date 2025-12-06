@@ -418,7 +418,8 @@
     "website": "Website",
     "description": "Description",
     "price": "Price",
-    "duration": "Duration"
+    "duration": "Duration",
+    "cannotBeChanged": "cannot be changed"
   },
   "nav": {
     "shops": "Tiendas",
@@ -454,7 +455,10 @@
     "automationRules": "Automation Rules",
     "staffRoles": "Staff & Roles",
     "payouts": "Payouts",
-    "settings": "Settings"
+    "settings": "Settings",
+    "aiBookingAssistant": "AI BOOKING ASSISTANT",
+    "availability": "Availability",
+    "aiSettings": "AI Settings"
   },
   "myShop": {
     "title": "Mi Tienda",
@@ -664,8 +668,32 @@
       "notifications": "Notificaciones",
       "browseShops": "Explorar Tiendas",
       "settings": "Configuración",
-      "messages": "Messages"
-    }
+      "messages": "Mensajes"
+    },
+    "profile": "Perfil",
+    "customer": "Cliente",
+    "profileInformation": "Profile Information"
+  },
+  "verification": {
+    "verified": "Verificado",
+    "pending": "Pendiente",
+    "unverified": "No Verificado",
+    "pendingMessage": "La verificación de tu tienda está pendiente de revisión. Te notificaremos una vez que sea aprobada.",
+    "unverifiedMessage": "Tu tienda necesita ser verificada antes de poder recibir reservas. Sube tus documentos para comenzar.",
+    "viewStatus": "Ver Estado",
+    "uploadDocuments": "Subir Documentos"
+  },
+  "aiSettings": {
+    "title": "Configuración del Asistente de Reservas con IA",
+    "subtitle": "Controla el comportamiento de tu asistente de IA con interruptores simples",
+    "aiAssistant": "Asistente de IA",
+    "aiAssistantDesc": "Habilita la IA para ayudar con reservas y consultas de clientes",
+    "autoConfirm": "Confirmar Reservas Automáticamente",
+    "autoConfirmDesc": "Confirma reservas automáticamente sin aprobación manual",
+    "autoReply": "Responder Mensajes Automáticamente",
+    "autoReplyDesc": "La IA responde automáticamente a los mensajes de los clientes",
+    "noShopFound": "No se encontró tienda. Por favor, crea una tienda primero.",
+    "updateFailed": "Error al actualizar la configuración"
   },
   "landing": {
     "heroTagline": "Una experiencia de reserva simple y multilingüe para todos.",

@@ -110,52 +110,52 @@ const OwnerSidebar = React.memo(() => {
   // EXACT navigation structure - NO extras
   const navSections = [
     {
-      title: 'OVERVIEW',
+      title: t('nav.overview'),
       items: [
         { 
           href: '/owner/dashboard', 
-          label: 'Dashboard', 
+          label: t('nav.dashboard'), 
           icon: '📊',
         },
       ],
     },
     {
-      title: 'SHOP SETUP',
+      title: t('nav.shopSetup'),
       items: [
         { 
           href: '/owner/shop-profile', 
-          label: 'Shop Profile', 
+          label: t('nav.shopProfile'), 
           icon: '🏪',
         },
         { 
           href: '/owner/services', 
-          label: 'Services', 
+          label: t('nav.services'), 
           icon: '💼',
         },
         { 
           href: '/owner/availability', 
-          label: 'Availability', 
+          label: t('nav.availability'), 
           icon: '📅',
         },
       ],
     },
     {
-      title: 'OPERATIONS',
+      title: t('nav.operations'),
       items: [
         { 
           href: '/bookings', 
-          label: 'Bookings', 
+          label: t('nav.bookings'), 
           icon: '📅',
           badge: unreadBookingsCount > 0 ? unreadBookingsCount : undefined,
         },
         { 
           href: '/owner/calendar', 
-          label: 'Calendar', 
+          label: t('nav.calendar'), 
           icon: '🗓️',
         },
         { 
           href: '/messages', 
-          label: 'Messages', 
+          label: t('nav.messages'), 
           icon: '💬',
           badge: unreadCount > 0 ? unreadCount : undefined,
           isPanel: true,
@@ -163,21 +163,21 @@ const OwnerSidebar = React.memo(() => {
       ],
     },
     {
-      title: 'AI BOOKING ASSISTANT',
+      title: t('nav.aiBookingAssistant'),
       items: [
         { 
           href: '/owner/ai-settings', 
-          label: 'AI Settings', 
+          label: t('nav.aiSettings'), 
           icon: '🤖',
         },
       ],
     },
     {
-      title: 'BUSINESS',
+      title: t('nav.businessBilling'),
       items: [
         { 
           href: '/owner/subscription', 
-          label: 'Subscription', 
+          label: t('nav.subscription'), 
           icon: '💳',
         },
       ],
@@ -271,7 +271,7 @@ const OwnerSidebar = React.memo(() => {
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
           >
             <span className="text-xl">🚪</span>
-            <span className="font-medium">Logout</span>
+            <span className="font-medium">{t('nav.logout')}</span>
           </button>
         </div>
       </nav>
