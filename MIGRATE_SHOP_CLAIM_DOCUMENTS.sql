@@ -340,6 +340,31 @@ BEGIN
   END IF;
 END $$;
 
+-- Create updated_at trigger function if it doesn't exist (outside DO block)
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for shop_claims if table exists
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+    AND table_name = 'shop_claims'
+  ) THEN
+    DROP TRIGGER IF EXISTS update_shop_claims_updated_at ON shop_claims;
+    CREATE TRIGGER update_shop_claims_updated_at
+      BEFORE UPDATE ON shop_claims
+      FOR EACH ROW
+      EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END $$;
+
 -- Verification: Check the final structure
 SELECT 
   'Final Structure' AS check_type,
