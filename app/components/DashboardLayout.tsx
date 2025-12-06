@@ -61,7 +61,10 @@ export default function DashboardLayout({
   
   const isAuthRoute = useMemo(() => authRoutes.includes(pathname || ""), [pathname]);
   
-  console.log("🔥 DashboardLayout evaluating route:", pathname, "| isOwnerRoute:", isOwnerRoute, "| isAuthRoute:", isAuthRoute);
+  // Don't log for excluded routes to reduce noise
+  if (pathname && !pathname.startsWith("/staff-dashboard") && pathname !== "/") {
+    console.log("🔥 DashboardLayout evaluating route:", pathname, "| isOwnerRoute:", isOwnerRoute, "| isAuthRoute:", isAuthRoute);
+  }
 
   // For auth routes, just pass through - login and signup handle their own styling
   if (isAuthRoute) {
