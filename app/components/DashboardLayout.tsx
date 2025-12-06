@@ -76,6 +76,14 @@ export default function DashboardLayout({
     return <>{children}</>;
   }
 
+  // Check if this is a staff dashboard route - it has its own layout
+  const isStaffRoute = pathname?.startsWith("/staff-dashboard");
+  
+  // For staff routes, don't apply any layout (staff layout handles it)
+  if (isStaffRoute) {
+    return <>{children}</>;
+  }
+
   // Check if this is the landing page (root route) - it has its own MinimalNavbar
   const isLandingPage = pathname === "/";
   
