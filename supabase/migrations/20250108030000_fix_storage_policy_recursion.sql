@@ -1,21 +1,13 @@
-# Manual Storage Policies Setup
+-- ============================================================================
+-- FIX STORAGE POLICY RECURSION ISSUE
+-- ============================================================================
+-- The previous policy caused infinite recursion when checking staff_profiles.
+-- This version avoids recursion by using a simpler approach.
+-- ============================================================================
+-- 
+-- TO APPLY: Run this SQL in Supabase Dashboard → SQL Editor
+-- ============================================================================
 
-## Problem
-Storage policies cannot be created via SQL migrations without service role permissions. You need to create them manually in the Supabase Dashboard.
-
-## ⚠️ IMPORTANT: Fix Recursion Issue
-
-The previous policies caused infinite recursion. Use the **NEW SQL below** which fixes this issue.
-
-## Solution
-
-### Option 1: Via Supabase Dashboard SQL Editor (Recommended)
-
-1. Go to your Supabase Dashboard
-2. Navigate to **SQL Editor**
-3. Copy and paste the following SQL (UPDATED - fixes recursion):
-
-```sql
 -- Drop existing policies
 DROP POLICY IF EXISTS "Owners can read their verification documents" ON storage.objects;
 DROP POLICY IF EXISTS "Owners can upload verification documents" ON storage.objects;
@@ -25,24 +17,13 @@ DROP POLICY IF EXISTS "Staff can read all verification documents" ON storage.obj
 DROP POLICY IF EXISTS "Staff can update all verification documents" ON storage.objects;
 DROP POLICY IF EXISTS "Staff can delete all verification documents" ON storage.objects;
 
--- Create helper function to avoid RLS recursion
-CREATE OR REPLACE FUNCTION is_staff_user(user_id UUID)
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-SECURITY DEFINER
-STABLE
-AS $$
-BEGIN
-    RETURN EXISTS (
-        SELECT 1 FROM staff_profiles
-        WHERE auth_user_id = user_id
-        AND active = TRUE
-    );
-END;
-$$;
+-- ============================================================================
+-- SIMPLIFIED POLICIES (No recursion)
+-- ============================================================================
 
 -- Owners can read their own verification documents
 -- File path structure: user_id/verification_id/filename
+-- Only checks if first folder matches user's auth.uid()
 CREATE POLICY "Owners can read their verification documents"
     ON storage.objects
     FOR SELECT
@@ -53,6 +34,8 @@ CREATE POLICY "Owners can read their verification documents"
     );
 
 -- Owners can upload verification documents
+-- File path structure: user_id/verification_id/filename
+-- Only checks if first folder matches user's auth.uid()
 CREATE POLICY "Owners can upload verification documents"
     ON storage.objects
     FOR INSERT
@@ -87,7 +70,23 @@ CREATE POLICY "Owners can delete their verification documents"
         AND (storage.foldername(name))[1] = auth.uid()::text
     );
 
--- Staff can read all verification documents (uses function to avoid recursion)
+-- Staff can read all verification documents
+-- Use SECURITY DEFINER function to avoid RLS recursion
+CREATE OR REPLACE FUNCTION is_staff_user(user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM staff_profiles
+        WHERE auth_user_id = user_id
+        AND active = TRUE
+    );
+END;
+$$;
+
 CREATE POLICY "Staff can read all verification documents"
     ON storage.objects
     FOR SELECT
@@ -118,37 +117,9 @@ CREATE POLICY "Staff can delete all verification documents"
         AND is_staff_user(auth.uid())
     );
 
--- Grant execute permission
+-- Grant execute permission on the function
 GRANT EXECUTE ON FUNCTION is_staff_user(UUID) TO authenticated;
-```
 
-4. Click **Run** to execute the SQL
-
-### Option 2: Via Supabase Dashboard Storage UI
-
-1. Go to **Storage** → **Policies**
-2. Select the `verification-documents` bucket
-3. Click **New Policy**
-4. For each policy, use the SQL from Option 1 above
-
-## File Path Structure
-
-The policies expect files to be uploaded with this structure:
-```
-user_id/verification_id/filename
-```
-
-Example:
-```
-4a709fa3-9893-4230-beb4-d91aa42f322c/fc03cac9-e8f6-4e3f-bd5d-630ef379f4d2/1765002946354-screenshot.png
-```
-
-This is already implemented in `app/owner/claim/page.tsx` line 294.
-
-## Verification
-
-After running the policies, test by:
-1. Going to the claim shop page
-2. Uploading a document
-3. It should upload successfully without RLS errors
+COMMENT ON FUNCTION is_staff_user(UUID) IS 
+    'Checks if a user is staff. Uses SECURITY DEFINER to avoid RLS recursion.';
 
