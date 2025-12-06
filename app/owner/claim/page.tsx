@@ -290,7 +290,22 @@ export default function ClaimShopPage() {
         setStep('documents');
       } else {
         const errorData = await res.json();
-        setError(errorData.error || t('common.error') + ': Failed to submit identity information');
+        // If there's an existing verification, redirect to documents step
+        if (errorData.verification_id && errorData.verification_status) {
+          setVerificationId(errorData.verification_id);
+          setVerification({ verification_status: errorData.verification_status });
+          if (errorData.verification_status === 'draft' || errorData.verification_status === 'resubmission_required') {
+            setStep('documents');
+            // Load shop info
+            if (selectedShop) {
+              // Shop already selected, proceed to documents
+            }
+          } else {
+            setError(errorData.error || 'You already have a verification for this shop');
+          }
+        } else {
+          setError(errorData.error || t('common.error') + ': Failed to submit identity information');
+        }
       }
     } catch (error: any) {
       console.error('Error submitting identity:', error);

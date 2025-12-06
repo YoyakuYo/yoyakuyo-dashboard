@@ -80,7 +80,8 @@ export default function OwnerDashboardPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setVerification(data);
+        // Store the verification object, not just the data wrapper
+        setVerification(data.verification || data);
       } else if (res.status === 404) {
         // No verification found - this is OK, user can create one
         setVerification(null);
@@ -101,13 +102,9 @@ export default function OwnerDashboardPage() {
         const data = await res.json();
         if (data.shops && data.shops.length > 0) {
           setShop(data.shops[0]);
-        } else {
-          // No shop found - but check if there's a verification/claim first
-          // Don't redirect if verification exists (user is in claim process)
-          if (!verification) {
-            router.push('/owner/create-shop');
-          }
         }
+        // DO NOT redirect to create-shop if verification exists
+        // The dashboard will show appropriate status based on verification
       }
     } catch (error) {
       console.error('Error loading shop:', error);
@@ -224,7 +221,7 @@ export default function OwnerDashboardPage() {
             </div>
             <div className="ml-3">
               <p className="text-sm text-yellow-700">
-                <strong>Your shop is under review.</strong> Verification status: <strong>PENDING</strong>
+                <strong>Waiting for Approval</strong> - Verification status: <strong>PENDING</strong>
               </p>
               <p className="mt-1 text-sm text-yellow-600">
                 We're reviewing your shop and documents. You'll be notified once verification is complete.
@@ -300,6 +297,32 @@ export default function OwnerDashboardPage() {
     }
     return null;
   };
+
+  // If no shop and no verification, show create shop message
+  if (shouldShowCreateShop) {
+    return (
+      <div className="p-6">
+        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <span className="text-blue-400 text-xl">ℹ️</span>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-700">
+                <strong>Get Started</strong>
+              </p>
+              <p className="mt-1 text-sm text-blue-600">
+                Claim a shop to start managing your business on Yoyaku Yo.
+              </p>
+              <Link href="/owner/claim" className="mt-2 inline-block text-sm font-medium text-blue-800 hover:text-blue-900">
+                Claim a Shop →
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
