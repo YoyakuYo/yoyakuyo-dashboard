@@ -204,7 +204,7 @@ export default function OwnerDashboardPage() {
             <div className="p-6">
               <h2 className="text-2xl font-bold mb-4">Overview</h2>
               
-              {currentClaim && (
+              {currentClaim ? (
                 <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
                   <h3 className="font-semibold text-blue-900 mb-2">Current Claim Status</h3>
                   <p className="text-blue-700">
@@ -229,9 +229,22 @@ export default function OwnerDashboardPage() {
                     View Claim Details →
                   </Link>
                 </div>
+              ) : (
+                <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                  <h3 className="font-semibold text-yellow-900 mb-2">No Active Claims</h3>
+                  <p className="text-yellow-700 mb-3">
+                    You don't have any active claims. Start by claiming a shop to get verified.
+                  </p>
+                  <Link
+                    href="/owner/claim"
+                    className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Claim a Shop
+                  </Link>
+                </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600">Active Claims</p>
                   <p className="text-2xl font-bold mt-2">{claims.length}</p>
@@ -245,6 +258,54 @@ export default function OwnerDashboardPage() {
                   <p className="text-2xl font-bold mt-2">{threads.length}</p>
                 </div>
               </div>
+
+              {claims.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-3">All Claims</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shop</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {claims.map((claim) => (
+                          <tr key={claim.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {claim.shop?.name || 'Unknown Shop'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                claim.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                claim.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                claim.status === 'pending' || claim.status === 'submitted' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {claim.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(claim.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <Link
+                                href="/owner/claim"
+                                className="text-blue-600 hover:text-blue-900"
+                              >
+                                View
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -370,7 +431,7 @@ function VerificationTab({ claim, userId }: { claim?: Claim; userId?: string }) 
   const loadOwnerProfile = async () => {
     if (!userId) return;
     try {
-      const res = await fetch(`${apiUrl}/owner/profiles`, {
+      const res = await fetch(`${apiUrl}/api/owner/profiles`, {
         headers: { 'x-user-id': userId },
       });
       if (res.ok) {
