@@ -63,13 +63,130 @@ BEGIN
     ALTER TABLE shop_claim_documents 
     DROP COLUMN IF EXISTS verification_id CASCADE;
     
-    -- Step 6: Ensure shop_claims table exists
+    -- Step 6: Ensure shop_claims table exists, create if it doesn't
     IF NOT EXISTS (
       SELECT FROM information_schema.tables 
       WHERE table_schema = 'public' 
       AND table_name = 'shop_claims'
     ) THEN
-      RAISE EXCEPTION 'shop_claims table does not exist. Please run the main migration first.';
+      RAISE NOTICE 'shop_claims table does not exist. Creating it...';
+      
+      -- Ensure claim_status enum exists
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'claim_status') THEN
+        CREATE TYPE claim_status AS ENUM (
+          'draft',
+          'submitted',
+          'pending',
+          'approved',
+          'resubmission_required',
+          'rejected',
+          'cancelled'
+        );
+      END IF;
+      
+      -- Ensure owner_profiles exists (needed for foreign key)
+      IF NOT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'owner_profiles'
+      ) THEN
+        CREATE TABLE IF NOT EXISTS owner_profiles (
+          id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+          full_name TEXT NOT NULL DEFAULT '',
+          date_of_birth DATE,
+          country TEXT,
+          address_line1 TEXT,
+          address_line2 TEXT,
+          city TEXT,
+          prefecture TEXT,
+          postal_code TEXT,
+          company_phone TEXT,
+          company_email TEXT,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        
+        -- Enable RLS
+        ALTER TABLE owner_profiles ENABLE ROW LEVEL SECURITY;
+      END IF;
+      
+      -- Create shop_claims table
+      CREATE TABLE shop_claims (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        shop_id UUID NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+        owner_id UUID NOT NULL REFERENCES owner_profiles(id) ON DELETE CASCADE,
+        status claim_status NOT NULL DEFAULT 'draft',
+        staff_reviewer_id UUID REFERENCES auth.users(id),
+        staff_note TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      
+      -- Create partial unique index for active claims
+      CREATE UNIQUE INDEX IF NOT EXISTS unique_active_claim_per_shop 
+      ON shop_claims (shop_id, owner_id, status) 
+      WHERE status IN ('draft', 'submitted', 'pending', 'resubmission_required');
+      
+      -- Create indexes
+      CREATE INDEX IF NOT EXISTS idx_shop_claims_shop_id ON shop_claims(shop_id);
+      CREATE INDEX IF NOT EXISTS idx_shop_claims_owner_id ON shop_claims(owner_id);
+      CREATE INDEX IF NOT EXISTS idx_shop_claims_status ON shop_claims(status);
+      CREATE INDEX IF NOT EXISTS idx_shop_claims_staff_reviewer_id ON shop_claims(staff_reviewer_id);
+      
+      -- Enable RLS
+      ALTER TABLE shop_claims ENABLE ROW LEVEL SECURITY;
+      
+      -- Create updated_at trigger function if it doesn't exist
+      CREATE OR REPLACE FUNCTION update_updated_at_column()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        NEW.updated_at = NOW();
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+      
+      -- Create trigger
+      DROP TRIGGER IF EXISTS update_shop_claims_updated_at ON shop_claims;
+      CREATE TRIGGER update_shop_claims_updated_at
+        BEFORE UPDATE ON shop_claims
+        FOR EACH ROW
+        EXECUTE FUNCTION update_updated_at_column();
+      
+      -- Basic RLS policies for shop_claims
+      DROP POLICY IF EXISTS "Owners can view their own claims" ON shop_claims;
+      CREATE POLICY "Owners can view their own claims" ON shop_claims
+        FOR SELECT USING (auth.uid() = owner_id);
+
+      DROP POLICY IF EXISTS "Owners can insert their own claims" ON shop_claims;
+      CREATE POLICY "Owners can insert their own claims" ON shop_claims
+        FOR INSERT WITH CHECK (auth.uid() = owner_id);
+
+      DROP POLICY IF EXISTS "Owners can update their own draft claims" ON shop_claims;
+      CREATE POLICY "Owners can update their own draft claims" ON shop_claims
+        FOR UPDATE USING (
+          auth.uid() = owner_id 
+          AND status IN ('draft', 'resubmission_required')
+        );
+
+      DROP POLICY IF EXISTS "Staff can view all claims" ON shop_claims;
+      CREATE POLICY "Staff can view all claims" ON shop_claims
+        FOR SELECT USING (
+          EXISTS (
+            SELECT 1 FROM staff_profiles
+            WHERE auth_user_id = auth.uid() AND active = true
+          )
+        );
+
+      DROP POLICY IF EXISTS "Staff can update claims" ON shop_claims;
+      CREATE POLICY "Staff can update claims" ON shop_claims
+        FOR UPDATE USING (
+          EXISTS (
+            SELECT 1 FROM staff_profiles
+            WHERE auth_user_id = auth.uid() AND active = true
+          )
+        );
+      
+      RAISE NOTICE 'Created shop_claims table successfully';
     END IF;
     
     -- Step 7: Ensure claim_document_type enum exists
