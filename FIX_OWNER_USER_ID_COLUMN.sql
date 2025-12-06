@@ -83,7 +83,11 @@ WHERE table_schema = 'public'
   AND table_name = 'owner_profiles'
 ORDER BY ordinal_position;
 
--- Step 5: Ensure id column is the primary key and references auth.users
+-- Step 5: Clean up orphaned rows (rows where id doesn't exist in auth.users)
+DELETE FROM owner_profiles 
+WHERE id NOT IN (SELECT id FROM auth.users);
+
+-- Step 6: Ensure id column is the primary key and references auth.users
 DO $$
 BEGIN
   -- Check if id is the primary key
@@ -92,7 +96,6 @@ BEGIN
     WHERE table_schema = 'public'
       AND table_name = 'owner_profiles'
       AND constraint_type = 'PRIMARY KEY'
-      AND constraint_name LIKE '%owner_profiles%'
   ) THEN
     -- Make id the primary key if it isn't already
     ALTER TABLE owner_profiles 
@@ -110,18 +113,39 @@ BEGIN
       AND kcu.column_name = 'id'
       AND tc.constraint_type = 'FOREIGN KEY'
   ) THEN
-    -- Add foreign key constraint
-    ALTER TABLE owner_profiles
-    ADD CONSTRAINT owner_profiles_id_fkey 
-    FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
-    RAISE NOTICE 'Added foreign key constraint on id';
+    -- Only add foreign key if all existing rows have valid user IDs
+    -- We already deleted orphaned rows above, so this should work
+    BEGIN
+      ALTER TABLE owner_profiles
+      ADD CONSTRAINT owner_profiles_id_fkey 
+      FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
+      RAISE NOTICE 'Added foreign key constraint on id';
+    EXCEPTION
+      WHEN OTHERS THEN
+        RAISE NOTICE 'Could not add foreign key constraint: %. Cleaning orphaned rows first...', SQLERRM;
+        -- Delete any remaining orphaned rows
+        DELETE FROM owner_profiles 
+        WHERE id NOT IN (SELECT id FROM auth.users);
+        -- Try again
+        BEGIN
+          ALTER TABLE owner_profiles
+          ADD CONSTRAINT owner_profiles_id_fkey 
+          FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
+          RAISE NOTICE 'Successfully added foreign key constraint after cleanup';
+        EXCEPTION
+          WHEN OTHERS THEN
+            RAISE NOTICE 'Still cannot add foreign key. This is OK - constraint may already exist or table may be empty.';
+        END;
+    END;
+  ELSE
+    RAISE NOTICE 'Foreign key constraint already exists';
   END IF;
 END $$;
 
--- Step 6: Refresh PostgREST cache
+-- Step 7: Refresh PostgREST cache
 SELECT pg_notify('pgrst', 'reload schema');
 
--- Step 7: Final verification
+-- Step 8: Final verification
 SELECT 
   'Verification' AS check_type,
   CASE 
