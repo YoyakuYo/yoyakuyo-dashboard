@@ -203,7 +203,7 @@ export default function ClaimShopPage() {
     }
 
     if (!selectedShop || !user) {
-      setError('Shop or user not selected');
+      setError(t('common.error') + ': Shop or user not selected');
       return;
     }
 
@@ -228,11 +228,11 @@ export default function ClaimShopPage() {
         setStep('documents');
       } else {
         const errorData = await res.json();
-        setError(errorData.error || 'Failed to submit identity information');
+        setError(errorData.error || t('common.error') + ': Failed to submit identity information');
       }
     } catch (error: any) {
       console.error('Error submitting identity:', error);
-      setError(error.message || 'Failed to submit identity information');
+      setError(error.message || t('common.error') + ': Failed to submit identity information');
     } finally {
       setSubmitting(false);
     }
@@ -265,7 +265,7 @@ export default function ClaimShopPage() {
     } else {
       // Add new
       if (documents.length >= 3) {
-        setError('Maximum 3 documents allowed');
+        setError(t('claim.errorMaxFiles'));
         return;
       }
       setDocuments([...documents, { document_type: documentType, file }]);
@@ -314,7 +314,7 @@ export default function ClaimShopPage() {
 
   const handleDocumentsSubmit = async () => {
     if (!verificationId || !user) {
-      setError('Verification ID or user not found');
+      setError(t('common.error') + ': Verification ID or user not found');
       return;
     }
 
@@ -369,11 +369,11 @@ export default function ClaimShopPage() {
         setStep('submitted');
       } else {
         const errorData = await res.json();
-        setError(errorData.error || 'Failed to submit documents');
+        setError(errorData.error || t('common.error') + ': Failed to submit documents');
       }
     } catch (error: any) {
       console.error('Error submitting documents:', error);
-      setError(error.message || 'Failed to submit documents');
+      setError(error.message || t('common.error') + ': Failed to submit documents');
     } finally {
       setFileUploading(false);
     }
@@ -402,22 +402,22 @@ export default function ClaimShopPage() {
           {/* STEP 1: SELECT SHOP */}
           {step === 'select' && (
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Claim a Shop</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('claim.title')}</h1>
               <p className="text-gray-600 mb-6">
-                Select a shop you want to claim. You'll need to provide identity and legal documents.
+                {t('claim.subtitle')}
               </p>
 
               {/* Filters */}
               <div className="mb-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Search Shops
+                    {t('claim.searchShops')}
                   </label>
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by shop name or address..."
+                    placeholder={t('claim.searchPlaceholder')}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -425,14 +425,14 @@ export default function ClaimShopPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Category
+                      {t('claim.category')}
                     </label>
                     <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value="all">All Categories</option>
+                      <option value="all">{t('claim.allCategories')}</option>
                       {categories.map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.name}
@@ -443,7 +443,7 @@ export default function ClaimShopPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Region
+                      {t('claim.region')}
                     </label>
                     <select
                       value={selectedRegion}
@@ -453,7 +453,7 @@ export default function ClaimShopPage() {
                       }}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value="all">All Regions</option>
+                      <option value="all">{t('claim.allRegions')}</option>
                       {REGIONS.map((region) => (
                         <option key={region.key} value={region.key}>
                           {region.name}
@@ -464,7 +464,7 @@ export default function ClaimShopPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Prefecture
+                      {t('claim.prefecture')}
                     </label>
                     <select
                       value={selectedPrefecture}
@@ -472,7 +472,7 @@ export default function ClaimShopPage() {
                       disabled={selectedRegion === 'all'}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     >
-                      <option value="all">All Prefectures</option>
+                      <option value="all">{t('claim.allPrefectures')}</option>
                       {availablePrefectures.map((pref) => (
                         <option key={pref.key} value={pref.key}>
                           {pref.name}
@@ -483,7 +483,7 @@ export default function ClaimShopPage() {
                 </div>
 
                 <div className="text-sm text-gray-600">
-                  Showing {unclaimedShops.length} unclaimed shops
+                  {t('claim.showingShops', { count: unclaimedShops.length })}
                   {(debouncedSearch || selectedCategory !== 'all' || selectedPrefecture !== 'all') && (
                     <button
                       onClick={() => {
@@ -494,7 +494,7 @@ export default function ClaimShopPage() {
                       }}
                       className="ml-2 text-blue-600 hover:text-blue-800 underline"
                     >
-                      Clear filters
+                      {t('claim.clearFilters')}
                     </button>
                   )}
                 </div>
@@ -503,12 +503,12 @@ export default function ClaimShopPage() {
               {loading ? (
                 <div className="text-center py-12">
                   <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <p className="mt-2 text-gray-600">Loading shops...</p>
+                  <p className="mt-2 text-gray-600">{t('claim.loadingShops')}</p>
                 </div>
               ) : unclaimedShops.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
-                  <p className="text-lg">No unclaimed shops available</p>
-                  <p className="text-sm mt-2">All shops have been claimed.</p>
+                  <p className="text-lg">{t('claim.noUnclaimedShops')}</p>
+                  <p className="text-sm mt-2">{t('claim.allShopsClaimed')}</p>
                 </div>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -532,7 +532,7 @@ export default function ClaimShopPage() {
                           }}
                           className="ml-4 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
                         >
-                          Claim This Shop
+                          {t('claim.claimThisShop')}
                         </button>
                       </div>
                     </div>
@@ -547,9 +547,9 @@ export default function ClaimShopPage() {
             <div>
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Owner Identity</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('claim.ownerIdentity')}</h1>
                   <p className="text-gray-600">
-                    Shop: <span className="font-semibold">{selectedShop.name}</span>
+                    {t('claim.shopLabel')}: <span className="font-semibold">{selectedShop.name}</span>
                   </p>
                   {selectedShop.address && (
                     <p className="text-sm text-gray-500 mt-1">{selectedShop.address}</p>
@@ -582,7 +582,7 @@ export default function ClaimShopPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Full Legal Name <span className="text-red-500">*</span>
+                      {t('claim.fullLegalName')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -595,7 +595,7 @@ export default function ClaimShopPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Date of Birth <span className="text-red-500">*</span>
+                      {t('claim.dateOfBirth')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"
@@ -608,7 +608,7 @@ export default function ClaimShopPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nationality <span className="text-red-500">*</span>
+                      {t('claim.nationality')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -621,7 +621,7 @@ export default function ClaimShopPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Country of Residence <span className="text-red-500">*</span>
+                      {t('claim.countryOfResidence')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -634,7 +634,7 @@ export default function ClaimShopPage() {
 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Full Home Address <span className="text-red-500">*</span>
+                      {t('claim.fullHomeAddress')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -647,7 +647,7 @@ export default function ClaimShopPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone Number <span className="text-red-500">*</span>
+                      {t('claim.phoneNumber')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
@@ -660,7 +660,7 @@ export default function ClaimShopPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Personal Email <span className="text-red-500">*</span>
+                      {t('claim.personalEmail')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="email"
@@ -673,7 +673,7 @@ export default function ClaimShopPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Role in Business <span className="text-red-500">*</span>
+                      {t('claim.roleInBusiness')} <span className="text-red-500">*</span>
                     </label>
                     <select
                       required
@@ -681,15 +681,15 @@ export default function ClaimShopPage() {
                       onChange={(e) => setIdentityData({ ...identityData, role_in_business: e.target.value as 'Owner' | 'Manager' | 'Authorized Agent' })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value="Owner">Owner</option>
-                      <option value="Manager">Manager</option>
-                      <option value="Authorized Agent">Authorized Agent</option>
+                      <option value="Owner">{t('claim.roleOwner')}</option>
+                      <option value="Manager">{t('claim.roleManager')}</option>
+                      <option value="Authorized Agent">{t('claim.roleAuthorizedAgent')}</option>
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Position Title <span className="text-red-500">*</span>
+                      {t('claim.positionTitle')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -702,7 +702,7 @@ export default function ClaimShopPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Since When (Date) <span className="text-red-500">*</span>
+                      {t('claim.sinceWhen')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"
@@ -726,14 +726,14 @@ export default function ClaimShopPage() {
                     onClick={() => setStep('select')}
                     className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                   >
-                    Cancel
+                    {t('claim.cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
                     className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {submitting ? 'Submitting...' : 'Continue to Documents →'}
+                    {submitting ? t('claim.submitting') : t('claim.continueToDocuments')}
                   </button>
                 </div>
               </form>
@@ -759,40 +759,47 @@ export default function ClaimShopPage() {
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <p className="text-sm text-blue-800 font-medium mb-2">📄 Document Requirements:</p>
-                <p className="text-sm text-blue-700 mb-2 font-semibold">MANDATORY (At least one required):</p>
+                <p className="text-sm text-blue-800 font-medium mb-2">📄 {t('claim.documentRequirements')}:</p>
+                <p className="text-sm text-blue-700 mb-2 font-semibold">{t('claim.mandatoryTitle')}</p>
                 <ul className="text-sm text-blue-700 list-disc list-inside space-y-1 mb-3">
-                  <li>Business Registration</li>
-                  <li>Tax Registration</li>
-                  <li>Commercial Registry</li>
+                  <li>{t('claim.mandatoryList1')}</li>
+                  <li>{t('claim.mandatoryList2')}</li>
+                  <li>{t('claim.mandatoryList3')}</li>
                 </ul>
-                <p className="text-sm text-blue-700 mb-2 font-semibold">PLUS ONE REQUIRED:</p>
+                <p className="text-sm text-blue-700 mb-2 font-semibold">{t('claim.plusOneTitle')}</p>
                 <ul className="text-sm text-blue-700 list-disc list-inside space-y-1 mb-3">
-                  <li>Lease Contract</li>
-                  <li>Utility Bill (Name + Shop Address must match)</li>
-                  <li>Bank Statement (Business Name must match)</li>
+                  <li>{t('claim.plusOneList1')}</li>
+                  <li>{t('claim.plusOneList2')}</li>
+                  <li>{t('claim.plusOneList3')}</li>
                 </ul>
-                <p className="text-sm text-blue-700 mb-2 font-semibold">OPTIONAL (Anti-fraud):</p>
+                <p className="text-sm text-blue-700 mb-2 font-semibold">{t('claim.optionalTitle')}</p>
                 <ul className="text-sm text-blue-700 list-disc list-inside space-y-1 mb-2">
-                  <li>Government ID</li>
-                  <li>Selfie with ID</li>
+                  <li>{t('claim.optionalList1')}</li>
+                  <li>{t('claim.optionalList2')}</li>
                 </ul>
                 <p className="text-sm text-blue-700 font-medium">
-                  Accepted formats: JPG, PNG, PDF (max 3 files, 10MB each)
+                  {t('claim.acceptedFormats')}
                 </p>
               </div>
 
               <div className="space-y-4">
                 {/* Mandatory Documents */}
                 <div>
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Mandatory Documents (At least one required):</p>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">{t('claim.mandatoryDocuments')}</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {['business_registration', 'tax_registration', 'commercial_registry'].map((docType) => {
                       const doc = documents.find(d => d.document_type === docType);
                       return (
                         <div key={docType} className="border border-gray-200 rounded-lg p-4">
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {docType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            {docType === 'business_registration' && t('claim.mandatoryList1')}
+                            {docType === 'tax_registration' && t('claim.mandatoryList2')}
+                            {docType === 'commercial_registry' && t('claim.mandatoryList3')}
+                            {docType === 'lease_contract' && t('claim.plusOneList1')}
+                            {docType === 'utility_bill' && t('claim.plusOneList2')}
+                            {docType === 'bank_statement' && t('claim.plusOneList3')}
+                            {docType === 'government_id' && t('claim.optionalList1')}
+                            {docType === 'selfie_with_id' && t('claim.optionalList2')}
                           </label>
                           {doc ? (
                             <div className="flex items-center justify-between">
@@ -801,7 +808,7 @@ export default function ClaimShopPage() {
                                 onClick={() => removeDocument(docType)}
                                 className="text-red-600 hover:text-red-800 text-sm"
                               >
-                                Remove
+                                {t('claim.remove')}
                               </button>
                             </div>
                           ) : (
@@ -820,14 +827,21 @@ export default function ClaimShopPage() {
 
                 {/* Address Proof Documents */}
                 <div>
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Address Proof (At least one required):</p>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">{t('claim.addressProof')}</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {['lease_contract', 'utility_bill', 'bank_statement'].map((docType) => {
                       const doc = documents.find(d => d.document_type === docType);
                       return (
                         <div key={docType} className="border border-gray-200 rounded-lg p-4">
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {docType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            {docType === 'business_registration' && t('claim.mandatoryList1')}
+                            {docType === 'tax_registration' && t('claim.mandatoryList2')}
+                            {docType === 'commercial_registry' && t('claim.mandatoryList3')}
+                            {docType === 'lease_contract' && t('claim.plusOneList1')}
+                            {docType === 'utility_bill' && t('claim.plusOneList2')}
+                            {docType === 'bank_statement' && t('claim.plusOneList3')}
+                            {docType === 'government_id' && t('claim.optionalList1')}
+                            {docType === 'selfie_with_id' && t('claim.optionalList2')}
                           </label>
                           {doc ? (
                             <div className="flex items-center justify-between">
@@ -836,7 +850,7 @@ export default function ClaimShopPage() {
                                 onClick={() => removeDocument(docType)}
                                 className="text-red-600 hover:text-red-800 text-sm"
                               >
-                                Remove
+                                {t('claim.remove')}
                               </button>
                             </div>
                           ) : (
@@ -855,14 +869,21 @@ export default function ClaimShopPage() {
 
                 {/* Optional Documents */}
                 <div>
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Optional (Anti-fraud):</p>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">{t('claim.optionalDocuments')}</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {['government_id', 'selfie_with_id'].map((docType) => {
                       const doc = documents.find(d => d.document_type === docType);
                       return (
                         <div key={docType} className="border border-gray-200 rounded-lg p-4">
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {docType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            {docType === 'business_registration' && t('claim.mandatoryList1')}
+                            {docType === 'tax_registration' && t('claim.mandatoryList2')}
+                            {docType === 'commercial_registry' && t('claim.mandatoryList3')}
+                            {docType === 'lease_contract' && t('claim.plusOneList1')}
+                            {docType === 'utility_bill' && t('claim.plusOneList2')}
+                            {docType === 'bank_statement' && t('claim.plusOneList3')}
+                            {docType === 'government_id' && t('claim.optionalList1')}
+                            {docType === 'selfie_with_id' && t('claim.optionalList2')}
                           </label>
                           {doc ? (
                             <div className="flex items-center justify-between">
@@ -871,7 +892,7 @@ export default function ClaimShopPage() {
                                 onClick={() => removeDocument(docType)}
                                 className="text-red-600 hover:text-red-800 text-sm"
                               >
-                                Remove
+                                {t('claim.remove')}
                               </button>
                             </div>
                           ) : (
@@ -900,14 +921,14 @@ export default function ClaimShopPage() {
                     onClick={() => setStep('identity')}
                     className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                   >
-                    ← Back
+                    {t('claim.back')}
                   </button>
                   <button
                     onClick={handleDocumentsSubmit}
                     disabled={documents.length === 0 || fileUploading || submitting}
                     className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {fileUploading || submitting ? 'Submitting...' : 'Submit for Review'}
+                    {fileUploading || submitting ? t('claim.submitting') : t('claim.submitForReview')}
                   </button>
                 </div>
               </div>
@@ -918,16 +939,16 @@ export default function ClaimShopPage() {
           {step === 'submitted' && (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">✅</div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">Claim Submitted</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">{t('claim.claimSubmitted')}</h1>
               <div className="max-w-2xl mx-auto space-y-4 text-gray-600">
                 <p className="text-lg">
-                  Your claim has been submitted for staff review.
+                  {t('claim.submittedMessage1')}
                 </p>
                 <p>
-                  Our team will review your identity information and documents. You will be notified when your claim is approved or if additional information is required.
+                  {t('claim.submittedMessage2')}
                 </p>
                 <p className="font-semibold text-gray-900">
-                  No automatic approval. Staff review required.
+                  {t('claim.noAutoApproval')}
                 </p>
               </div>
               <div className="mt-8">
@@ -935,7 +956,7 @@ export default function ClaimShopPage() {
                   onClick={() => router.push('/owner/dashboard')}
                   className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Back to Dashboard
+                  {t('claim.backToDashboard')}
                 </button>
               </div>
             </div>
