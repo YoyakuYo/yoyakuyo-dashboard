@@ -618,6 +618,18 @@ export default function ClaimShopPage() {
                     </button>
                   )}
                 </div>
+
+                {error && (
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-800 text-sm font-medium">Error: {error}</p>
+                    <button
+                      onClick={() => setError(null)}
+                      className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
               </div>
 
               {loading ? (
@@ -648,11 +660,15 @@ export default function ClaimShopPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleSelectShop(shop);
+                            e.preventDefault();
+                            if (!submitting) {
+                              handleSelectShop(shop);
+                            }
                           }}
-                          className="ml-4 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                          disabled={submitting}
+                          className="ml-4 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {t('claim.claimThisShop')}
+                          {submitting ? t('claim.loading') || 'Loading...' : t('claim.claimThisShop')}
                         </button>
                       </div>
                     </div>
