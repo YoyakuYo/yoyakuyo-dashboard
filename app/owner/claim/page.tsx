@@ -260,7 +260,7 @@ export default function ClaimShopPage() {
     if (existingIndex >= 0) {
       // Replace existing
       const updated = [...documents];
-      updated[existingIndex] = { document_type, file };
+      updated[existingIndex] = { document_type: documentType, file };
       setDocuments(updated);
     } else {
       // Add new
@@ -268,7 +268,7 @@ export default function ClaimShopPage() {
         setError('Maximum 3 documents allowed');
         return;
       }
-      setDocuments([...documents, { document_type, file }]);
+      setDocuments([...documents, { document_type: documentType, file }]);
     }
 
     setError(null);
