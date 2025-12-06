@@ -1402,7 +1402,9 @@ function BookingsModule({ userRole }: { userRole: UserRoleInfo | null }) {
   );
 }
 
-function ShopBookingsView({ shop, bookings, onBack, onLoadBookings, isReadOnly = false }: any) {
+function ShopBookingsView(props: any) {
+  const { shop, bookings, onBack, onLoadBookings, isReadOnly = false } = props;
+  const readOnly = isReadOnly;
   const [newBooking, setNewBooking] = useState({
     customer_name: "",
     customer_email: "",
@@ -1494,7 +1496,7 @@ function ShopBookingsView({ shop, bookings, onBack, onLoadBookings, isReadOnly =
       </button>
       <h2 className="text-2xl font-bold mb-4">Calendar: {shop.name}</h2>
 
-      {isReadOnly && (
+      {readOnly && (
         <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-sm text-yellow-800">
             <strong>Read-Only Mode:</strong> You can view bookings but cannot create, modify, or cancel them.
@@ -1502,7 +1504,7 @@ function ShopBookingsView({ shop, bookings, onBack, onLoadBookings, isReadOnly =
         </div>
       )}
 
-      {!isReadOnly && (
+      {!readOnly && (
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
           <h3 className="font-semibold mb-4">Create Manual Booking</h3>
           <div className="grid grid-cols-2 gap-4">
@@ -1545,8 +1547,9 @@ function ShopBookingsView({ shop, bookings, onBack, onLoadBookings, isReadOnly =
             >
               Create Booking
             </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div>
         <h3 className="font-semibold mb-4">Existing Bookings</h3>
@@ -1560,7 +1563,7 @@ function ShopBookingsView({ shop, bookings, onBack, onLoadBookings, isReadOnly =
                 </p>
               </div>
               <div className="flex gap-2">
-                {isReadOnly ? (
+                {readOnly ? (
                   <span className="px-3 py-1 text-sm text-gray-500 italic">Read-only</span>
                 ) : (
                   <>
