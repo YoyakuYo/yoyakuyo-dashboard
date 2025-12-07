@@ -161,7 +161,7 @@ export default function CreateShopPage() {
       const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('verification-documents')
+        .from('verification')
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false,
@@ -170,7 +170,7 @@ export default function CreateShopPage() {
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('verification-documents')
+        .from('verification')
         .getPublicUrl(fileName);
 
       const newDoc: VerificationDoc = {

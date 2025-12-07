@@ -7,6 +7,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
+import { useAIConversation, ConversationIdentity } from '@/lib/useAIConversation';
 
 interface Message {
   id: string;
@@ -47,7 +48,6 @@ export function BrowseAIAssistant({
   const browseContext = useBrowseAIContext();
   const shopContext = browseContext?.shopContext;
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,10 +55,27 @@ export function BrowseAIAssistant({
   const inputRef = useRef<HTMLInputElement>(null);
   // Track conversation history for context
   const [rememberedLocation, setRememberedLocation] = useState<string | null>(null);
-  // Session ID for persistent conversation history
-  const [sessionId, setSessionId] = useState<string | null>(null);
   // Track if we've sent the initial shop greeting
   const [hasSentShopGreeting, setHasSentShopGreeting] = useState(false);
+
+  // Use ai_conversations with user_type='guest'
+  const conversationIdentity: ConversationIdentity = {
+    userType: 'guest',
+    userId: null,
+    contextKey: 'public_landing',
+    shopId: shopContext?.shopId || (shops.length > 0 ? shops[0].id : null),
+    guestId: typeof window !== 'undefined' ? localStorage.getItem('yoyakuyo_guest_id') || undefined : undefined,
+  };
+
+  const { messages: conversationMessages, addMessage, setMessages, saveConversation } = useAIConversation(conversationIdentity);
+
+  // Convert conversationMessages to Message format for UI
+  const messages: Message[] = conversationMessages.map((msg: any) => ({
+    id: msg.timestamp || `msg-${Date.now()}-${Math.random()}`,
+    role: msg.role === 'assistant' ? 'assistant' : 'user',
+    content: msg.content,
+    timestamp: new Date(msg.timestamp),
+  }));
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -74,41 +91,8 @@ export function BrowseAIAssistant({
     }
   }, [isOpen]);
 
-  // Initialize session ID from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      let storedSessionId = localStorage.getItem('yoyaku_yo_customer_ai_session');
-      if (!storedSessionId) {
-        storedSessionId = `customer_ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        localStorage.setItem('yoyaku_yo_customer_ai_session', storedSessionId);
-      }
-      setSessionId(storedSessionId);
-    }
-  }, []);
-
-  // Load conversation history when session ID is available
-  useEffect(() => {
-    if (sessionId && shops.length > 0) {
-      loadConversationHistory();
-    }
-  }, [sessionId, shops.length]);
-
-  // Reload conversation history when chat opens to ensure we have the latest messages
-  useEffect(() => {
-    if (isOpen && sessionId && shops.length > 0) {
-      loadConversationHistory();
-    }
-  }, [isOpen, sessionId, shops.length]);
-
-  // Also reload history periodically (every 30 seconds) when chat is open
-  useEffect(() => {
-    if (isOpen && sessionId && shops.length > 0) {
-      const interval = setInterval(() => {
-        loadConversationHistory();
-      }, 30000); // Reload every 30 seconds
-      return () => clearInterval(interval);
-    }
-  }, [isOpen, sessionId, shops.length]);
+  // Conversation history is loaded automatically by useAIConversation hook
+  // No need for manual loading
 
   // Auto-greet with shop name when shop context is available and chat opens
   useEffect(() => {
@@ -131,25 +115,9 @@ export function BrowseAIAssistant({
   }, [isOpen, shopContext?.shopId, shopContext?.shopName, shopContext?.prefecture, shopContext?.category, hasSentShopGreeting, messages.length]);
 
   const loadConversationHistory = async () => {
-    if (!sessionId || shops.length === 0) return;
-    
-    try {
-      // Use the first shop's ID for loading history (customer AI is general, not shop-specific)
-      const shopId = shops[0].id;
-      const res = await fetch(`${apiUrl}/customer-ai/my-messages?customerId=${sessionId}&shopId=${shopId}`);
-      if (res.ok) {
-        const history = await res.json();
-        const convertedMessages: Message[] = (Array.isArray(history) ? history : []).map((msg: any) => ({
-          id: msg.id || `msg-${Date.now()}-${Math.random()}`,
-          role: msg.role === 'user' ? 'user' : 'assistant',
-          content: msg.message || msg.content || '',
-          timestamp: new Date(msg.created_at || Date.now()),
-        }));
-        setMessages(convertedMessages);
-      }
-    } catch (error) {
-      console.error('Error loading conversation history:', error);
-    }
+    // BrowseAIAssistant uses ai_conversations with user_type='guest'
+    // This is handled by the useAIConversation hook, so we don't need to load manually
+    // The hook will load from ai_conversations automatically
   };
 
   // Extract location from conversation messages
@@ -202,7 +170,8 @@ export function BrowseAIAssistant({
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    // Add user message to conversation (will be saved to ai_conversations)
+    await addMessage('user', userMessage.content);
     setInput('');
     setLoading(true);
     setError(null);
@@ -227,7 +196,7 @@ export function BrowseAIAssistant({
         prefecture: selectedPrefecture || null,
         category: selectedCategoryId || null,
         searchQuery: searchQuery || null,
-        customerId: sessionId, // Send session ID for persistent storage
+        customerId: conversationIdentity.guestId || undefined, // Send guest ID for persistent storage
         shops: shops.map(s => ({
           id: s.id,
           name: s.name,
@@ -286,26 +255,13 @@ export function BrowseAIAssistant({
         timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, aiMessage]);
-      
-      // Reload history from database after sending message to ensure we have the latest
-      // This ensures messages are always in sync with the database
-      if (sessionId && shops.length > 0) {
-        setTimeout(() => {
-          loadConversationHistory();
-        }, 1000); // Wait 1 second for backend to save
-      }
+      // Add AI message to conversation (will be saved to ai_conversations)
+      await addMessage('assistant', messageContent);
     } catch (err: any) {
       console.error('Error sending message to AI:', err);
       setError(err.message || 'Failed to send message. Please try again.');
       
-      const errorMessage: Message = {
-        id: `error-${Date.now()}`,
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      await addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
     } finally {
       setLoading(false);
     }

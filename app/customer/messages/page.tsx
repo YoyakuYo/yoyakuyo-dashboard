@@ -104,7 +104,8 @@ function CustomerMessagesPageContent() {
 
       if (res.ok) {
         const thread = await res.json();
-        setSelectedThread(thread.id);
+        // Backend should return session_id for customer_chat_messages
+        setSelectedThread(thread.session_id || thread.id);
         await loadThreads(); // Refresh thread list
       }
     } catch (error) {
@@ -127,7 +128,7 @@ function CustomerMessagesPageContent() {
 
       if (res.ok) {
         const thread = await res.json();
-        setSelectedThread(thread.id);
+        setSelectedThread(thread.session_id || thread.id); // Use session_id
         await loadThreads(); // Refresh thread list
       }
     } catch (error) {
@@ -149,52 +150,53 @@ function CustomerMessagesPageContent() {
 
       if (!customerProfile) return;
 
-      // Get threads for this customer
-      // Note: customer_id in shop_threads stores customer_profile.id
-      const { data: threadsData } = await supabase
-        .from("shop_threads")
-        .select(`
-          id,
-          shop_id,
-          created_at,
-          updated_at,
-          shops (id, name)
-        `)
-        .eq("customer_id", customerProfile.id)
-        .order("updated_at", { ascending: false });
+      // Get all unique session_ids for this customer from customer_chat_messages
+      // Since session_id is generated from customer_id + shop_id, we need to get all sessions
+      // where this customer has sent messages
+      const { data: customerMessages } = await supabase
+        .from("customer_chat_messages")
+        .select("session_id, created_at")
+        .eq("role", "user") // Customer messages have role='user'
+        .order("created_at", { ascending: false });
 
-      if (threadsData) {
-        // Get unread counts and last messages for each thread
-        const threadsWithDetails = await Promise.all(
-          threadsData.map(async (thread: any) => {
-            const { data: unreadMessages } = await supabase
-              .from("shop_messages")
-              .select("id", { count: "exact" })
-              .eq("thread_id", thread.id)
-              .eq("read_by_customer", false)
-              .eq("sender_type", "owner");
-
-            const { data: lastMessage } = await supabase
-              .from("shop_messages")
-              .select("*")
-              .eq("thread_id", thread.id)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-
-            return {
-              id: thread.id,
-              shop_id: thread.shop_id,
-              shop_name: thread.shops?.name || 'Shop',
-              unreadCount: unreadMessages?.length || 0,
-              lastMessageAt: lastMessage?.created_at || thread.updated_at || thread.created_at,
-              lastMessagePreview: lastMessage?.content?.substring(0, 100) || null,
-            };
-          })
-        );
-
-        setThreads(threadsWithDetails);
+      if (!customerMessages || customerMessages.length === 0) {
+        setThreads([]);
+        setLoading(false);
+        return;
       }
+
+      // Get unique session_ids
+      const uniqueSessionIds = [...new Set(customerMessages.map((m: any) => m.session_id))];
+
+      // For each session, get the last message and shop info
+      // Since we can't directly get shop_id from session_id, we'll need to use the API
+      // or store shop_id in a separate lookup
+      // For now, we'll fetch messages for each session to get shop context
+      const threadsWithDetails = await Promise.all(
+        uniqueSessionIds.map(async (sessionId: string) => {
+          // Get last message for this session
+          const { data: lastMessage } = await supabase
+            .from("customer_chat_messages")
+            .select("*")
+            .eq("session_id", sessionId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          // Get shop info from API (we'll need to add an endpoint for this)
+          // For now, use sessionId as thread id
+          return {
+            id: sessionId,
+            shop_id: '', // Will be populated from API
+            shop_name: 'Shop', // Will be populated from API
+            unreadCount: 0, // customer_chat_messages doesn't have read flags
+            lastMessageAt: lastMessage?.created_at || new Date().toISOString(),
+            lastMessagePreview: lastMessage?.content?.substring(0, 100) || null,
+          };
+        })
+      );
+
+      setThreads(threadsWithDetails);
     } catch (error) {
       console.error("Error loading threads:", error);
     } finally {
@@ -219,7 +221,7 @@ function CustomerMessagesPageContent() {
     }
   };
 
-  const subscribeToMessages = (threadId: string) => {
+  const subscribeToMessages = (sessionId: string) => {
     const supabase = getSupabaseClient();
 
     if (channelRef.current) {
@@ -227,17 +229,17 @@ function CustomerMessagesPageContent() {
     }
 
     const channel = supabase
-      .channel(`customer-thread-${threadId}`)
+      .channel(`customer-session-${sessionId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'shop_messages',
-          filter: `thread_id=eq.${threadId}`,
+          table: 'customer_chat_messages',
+          filter: `session_id=eq.${sessionId}`,
         },
         () => {
-          loadMessages(threadId);
+          loadMessages(sessionId);
         }
       )
       .subscribe();

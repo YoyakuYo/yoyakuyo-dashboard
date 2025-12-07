@@ -511,7 +511,7 @@ function VerificationTab({ claim, userId }: { claim?: Claim; userId?: string }) 
     const fileName = `${userId}/${claim.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
     const { data: uploadData, error: uploadError } = await supabaseClient.storage
-      .from('verification-documents')
+      .from('verification')
       .upload(fileName, file);
 
     if (uploadError) {
@@ -520,7 +520,7 @@ function VerificationTab({ claim, userId }: { claim?: Claim; userId?: string }) 
     }
 
     const { data: { publicUrl } } = supabaseClient.storage
-      .from('verification-documents')
+      .from('verification')
       .getPublicUrl(fileName);
 
     // Save document reference
