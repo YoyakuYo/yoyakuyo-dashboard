@@ -98,21 +98,17 @@ export function BrowseAIAssistant({
   useEffect(() => {
     if (isOpen && shopContext?.shopId && shopContext?.shopName && !hasSentShopGreeting) {
       // Only show greeting if there are no messages yet
-      if (messages.length === 0) {
-        const greetingMessage: Message = {
-          id: `assistant-greeting-${Date.now()}`,
-          role: 'assistant',
-          content: `Welcome to **${shopContext.shopName}**${shopContext.prefecture ? ` in ${shopContext.prefecture}` : ''}${shopContext.category ? ` - ${shopContext.category}` : ''}.\n\nHow can I help you with booking, services, or schedule availability today?`,
-          timestamp: new Date(),
-        };
-        setMessages([greetingMessage]);
+      if (conversationMessages.length === 0) {
+        const greetingContent = `Welcome to **${shopContext.shopName}**${shopContext.prefecture ? ` in ${shopContext.prefecture}` : ''}${shopContext.category ? ` - ${shopContext.category}` : ''}.\n\nHow can I help you with booking, services, or schedule availability today?`;
+        // Use addMessage to add greeting (will be saved to ai_conversations)
+        addMessage('assistant', greetingContent);
         setHasSentShopGreeting(true);
       }
     } else if (!shopContext?.shopId) {
       // Reset greeting flag when shop context is cleared
       setHasSentShopGreeting(false);
     }
-  }, [isOpen, shopContext?.shopId, shopContext?.shopName, shopContext?.prefecture, shopContext?.category, hasSentShopGreeting, messages.length]);
+  }, [isOpen, shopContext?.shopId, shopContext?.shopName, shopContext?.prefecture, shopContext?.category, hasSentShopGreeting, conversationMessages.length, addMessage]);
 
   const loadConversationHistory = async () => {
     // BrowseAIAssistant uses ai_conversations with user_type='guest'
