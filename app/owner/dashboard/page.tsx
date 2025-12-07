@@ -416,7 +416,7 @@ function AIAssistantCard({ shopId }: { shopId?: string }) {
           }}
           className="flex-1 px-3 py-2 border rounded-lg text-sm"
           placeholder="Ask a question..."
-          disabled={isLoading}
+          disabled={saving}
         />
         <button
           onClick={handleSend}
