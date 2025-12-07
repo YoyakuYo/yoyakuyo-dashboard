@@ -5,19 +5,15 @@
 -- but the column might not exist or be named differently
 -- ============================================================
 
--- Step 1: Check if shops table has 'name' column
+-- Step 1: CREATE shops.name column (guaranteed)
+-- First, add the column if it doesn't exist
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS name TEXT;
+
+-- Step 2: Copy data from shop_name if that column exists
 DO $$
 DECLARE
-  has_name BOOLEAN;
   has_shop_name BOOLEAN;
 BEGIN
-  SELECT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = 'shops'
-      AND column_name = 'name'
-  ) INTO has_name;
-  
   SELECT EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'public'
@@ -25,20 +21,20 @@ BEGIN
       AND column_name = 'shop_name'
   ) INTO has_shop_name;
   
-  IF NOT has_name THEN
-    IF has_shop_name THEN
-      -- Add name column and copy from shop_name
-      ALTER TABLE shops ADD COLUMN IF NOT EXISTS name TEXT;
-      UPDATE shops SET name = shop_name WHERE name IS NULL AND shop_name IS NOT NULL;
-      RAISE NOTICE '✅ Added name column and copied data from shop_name';
-    ELSE
-      -- Add name column with default empty string
-      ALTER TABLE shops ADD COLUMN IF NOT EXISTS name TEXT DEFAULT '';
-      RAISE NOTICE '✅ Added name column with default empty string';
-    END IF;
-  ELSE
-    RAISE NOTICE '✅ shops.name column already exists';
+  IF has_shop_name THEN
+    -- Copy data from shop_name
+    UPDATE shops SET name = shop_name WHERE name IS NULL AND shop_name IS NOT NULL;
+    RAISE NOTICE '✅ Copied data from shop_name to name';
   END IF;
+  
+  -- Set default empty string for any remaining NULLs
+  UPDATE shops SET name = '' WHERE name IS NULL;
+  
+  -- Make it NOT NULL after setting values
+  ALTER TABLE shops ALTER COLUMN name SET DEFAULT '';
+  ALTER TABLE shops ALTER COLUMN name SET NOT NULL;
+  
+  RAISE NOTICE '✅ shops.name column created and set to NOT NULL';
 END $$;
 
 -- Step 2: Fix the on_shop_claim trigger function to handle missing name gracefully
