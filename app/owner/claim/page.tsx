@@ -410,7 +410,7 @@ export default function ClaimShopPage() {
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const bucket = 'verification';
+    const bucket = 'verification-documents'; // Fixed: bucket name must match exactly
     const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     // Path format: verification/{verification_id}/{filename}
     const filePath = `${verificationId}/${fileName}`;
