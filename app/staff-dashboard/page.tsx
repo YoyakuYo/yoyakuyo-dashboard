@@ -420,9 +420,14 @@ function VerificationTab({
           <div>
             <h3 className="font-semibold mb-2">Owner Information</h3>
             <p>Name: {claimDetails.owner?.full_name || 'N/A'}</p>
-            <p>Country: {claimDetails.owner?.country || 'N/A'}</p>
-            <p>Email: {claimDetails.owner?.company_email || 'N/A'}</p>
-            <p>Phone: {claimDetails.owner?.company_phone || 'N/A'}</p>
+            <p>Nationality: {claimDetails.owner?.nationality || 'N/A'}</p>
+            <p>Country of Residence: {claimDetails.owner?.country_of_residence || 'N/A'}</p>
+            <p>Address: {claimDetails.owner?.address || 'N/A'}</p>
+            <p>Email: {claimDetails.owner?.email || 'N/A'}</p>
+            <p>Phone: {claimDetails.owner?.phone_number || 'N/A'}</p>
+            <p>Role in Business: {claimDetails.owner?.role_in_business || 'N/A'}</p>
+            <p>Position Title: {claimDetails.owner?.position_title || 'N/A'}</p>
+            <p>Since When: {claimDetails.owner?.since_when ? new Date(claimDetails.owner.since_when).toLocaleDateString() : 'N/A'}</p>
           </div>
 
           <div>

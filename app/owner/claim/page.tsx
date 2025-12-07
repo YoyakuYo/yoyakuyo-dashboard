@@ -34,7 +34,6 @@ interface IdentityFormData {
   date_of_birth: string;
   nationality: string;
   country_of_residence: string;
-  home_address: string;
   address_line1: string;
   address_line2: string;
   city: string;
@@ -88,7 +87,6 @@ export default function ClaimShopPage() {
     date_of_birth: '',
     nationality: '',
     country_of_residence: '',
-    home_address: '',
     address_line1: '',
     address_line2: '',
     city: '',
@@ -106,6 +104,8 @@ export default function ClaimShopPage() {
   const [fileUploading, setFileUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [step1Saved, setStep1Saved] = useState(false);
+  const [documentsUploaded, setDocumentsUploaded] = useState(false);
 
   // Fetch categories
   useEffect(() => {
@@ -284,13 +284,14 @@ export default function ClaimShopPage() {
     e.preventDefault();
     setError(null);
 
-    // Validate all required fields for new API
+    // Validate all required fields
     if (!identityData.full_name.trim() || !identityData.date_of_birth || 
-        !identityData.country_of_residence.trim() ||
+        !identityData.nationality.trim() || !identityData.country_of_residence.trim() ||
         !identityData.address_line1.trim() || !identityData.city.trim() || 
         !identityData.prefecture.trim() || !identityData.phone_number.trim() ||
-        !identityData.email.trim()) {
-      setError('Please fill in all required fields: Full Name, Date of Birth, Country, Address Line 1, City, Prefecture, Phone, and Email');
+        !identityData.email.trim() || !identityData.role_in_business ||
+        !identityData.position_title.trim() || !identityData.since_when) {
+      setError('Please fill in all required fields: Full Name, Date of Birth, Nationality, Country of Residence, Address Line 1, City, Prefecture, Phone, Email, Role in Business, Position Title, and Since When');
       return;
     }
 
@@ -314,18 +315,22 @@ export default function ClaimShopPage() {
     try {
       setSubmitting(true);
 
-      // Map form fields to new API structure
+      // Map form fields to API structure (1-to-1 with owner_verification)
       const step1Data = {
         full_name: identityData.full_name,
         date_of_birth: identityData.date_of_birth,
-        country: identityData.country_of_residence || identityData.nationality,
-        address_line1: identityData.address_line1 || identityData.home_address,
+        nationality: identityData.nationality,
+        country_of_residence: identityData.country_of_residence,
+        address_line1: identityData.address_line1,
         address_line2: identityData.address_line2 || '',
         city: identityData.city,
         prefecture: identityData.prefecture || selectedShop?.prefecture || '',
         postal_code: identityData.postal_code || '',
-        company_phone: identityData.phone_number,
-        company_email: identityData.email,
+        phone_number: identityData.phone_number,
+        email: identityData.email,
+        role_in_business: identityData.role_in_business,
+        position_title: identityData.position_title,
+        since_when: identityData.since_when,
       };
 
       const res = await fetch(`${apiUrl}/api/owner/claims/${verificationId}/step1`, {
@@ -339,7 +344,9 @@ export default function ClaimShopPage() {
 
       if (res.ok) {
         const data = await res.json();
-        setStep('documents');
+        // Step 1 API should ONLY save owner profile - do NOT auto-advance
+        setError(null);
+        setStep1Saved(true);
       } else {
         const errorData = await res.json();
         setError(errorData.error || t('common.error') + ': Failed to submit identity information');
@@ -427,33 +434,15 @@ export default function ClaimShopPage() {
     return urlData.publicUrl;
   };
 
-  const handleDocumentsSubmit = async () => {
+  // Step 2: Upload documents ONLY (no auto-submit)
+  const handleDocumentsUpload = async () => {
     if (!verificationId || !user) {
       setError(t('common.error') + ': Verification ID or user not found');
       return;
     }
 
-    // ENFORCE: At least one document must be uploaded
     if (documents.length === 0) {
-      setError('You must upload at least one document (ID, license, etc.) before submitting.');
-      return;
-    }
-
-    // Validate mandatory documents
-    const mandatoryTypes = ['business_registration', 'tax_registration', 'commercial_registry'];
-    const hasMandatory = documents.some(d => mandatoryTypes.includes(d.document_type));
-    
-    if (!hasMandatory) {
-      setError('At least one mandatory document is required: Business Registration, Tax Registration, or Commercial Registry');
-      return;
-    }
-
-    // Validate address proof
-    const addressProofTypes = ['lease_contract', 'utility_bill', 'bank_statement'];
-    const hasAddressProof = documents.some(d => addressProofTypes.includes(d.document_type));
-    
-    if (!hasAddressProof) {
-      setError('At least one address proof is required: Lease Contract, Utility Bill, or Bank Statement');
+      setError('You must select at least one document to upload.');
       return;
     }
 
@@ -491,7 +480,28 @@ export default function ClaimShopPage() {
         }
       }
 
-      // After all documents uploaded, submit the claim
+      // Step 2 API should ONLY upload documents - do NOT auto-submit
+      setDocumentsUploaded(true);
+      setError(null);
+    } catch (error: any) {
+      console.error('Error uploading documents:', error);
+      setError(error.message || t('common.error') + ': Failed to upload documents');
+    } finally {
+      setFileUploading(false);
+    }
+  };
+
+  // Step 3: Submit claim ONLY (separate from document upload)
+  const handleClaimSubmit = async () => {
+    if (!verificationId || !user) {
+      setError(t('common.error') + ': Verification ID or user not found');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError(null);
+
       const submitRes = await fetch(`${apiUrl}/api/owner/claims/${verificationId}/submit`, {
         method: 'POST',
         headers: {
@@ -507,10 +517,10 @@ export default function ClaimShopPage() {
         setError(errorData.error || t('common.error') + ': Failed to submit claim');
       }
     } catch (error: any) {
-      console.error('Error submitting documents:', error);
-      setError(error.message || t('common.error') + ': Failed to submit documents');
+      console.error('Error submitting claim:', error);
+      setError(error.message || t('common.error') + ': Failed to submit claim');
     } finally {
-      setFileUploading(false);
+      setSubmitting(false);
     }
   };
 
@@ -715,7 +725,6 @@ export default function ClaimShopPage() {
                       date_of_birth: '',
                       nationality: '',
                       country_of_residence: '',
-                      home_address: '',
                       address_line1: '',
                       address_line2: '',
                       city: '',
@@ -784,6 +793,69 @@ export default function ClaimShopPage() {
                       required
                       value={identityData.country_of_residence}
                       onChange={(e) => setIdentityData({ ...identityData, country_of_residence: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Address Line 1 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={identityData.address_line1}
+                      onChange={(e) => setIdentityData({ ...identityData, address_line1: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Address Line 2
+                    </label>
+                    <input
+                      type="text"
+                      value={identityData.address_line2}
+                      onChange={(e) => setIdentityData({ ...identityData, address_line2: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      City <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={identityData.city}
+                      onChange={(e) => setIdentityData({ ...identityData, city: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Prefecture <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={identityData.prefecture}
+                      onChange={(e) => setIdentityData({ ...identityData, prefecture: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Postal Code
+                    </label>
+                    <input
+                      type="text"
+                      value={identityData.postal_code}
+                      onChange={(e) => setIdentityData({ ...identityData, postal_code: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -863,21 +935,43 @@ export default function ClaimShopPage() {
                   </div>
                 )}
 
+                {step1Saved && !error && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-sm text-green-800">✓ Profile saved successfully. Click "Continue to Documents" to proceed.</p>
+                  </div>
+                )}
+
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setStep('select')}
+                    onClick={() => {
+                      setStep('select');
+                      setStep1Saved(false);
+                    }}
                     className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                   >
                     {t('claim.cancel')}
                   </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {submitting ? t('claim.submitting') : t('claim.continueToDocuments')}
-                  </button>
+                  {step1Saved ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStep('documents');
+                        setStep1Saved(false);
+                      }}
+                      className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      {t('claim.continueToDocuments')}
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {submitting ? t('claim.submitting') : 'Save Profile'}
+                    </button>
+                  )}
                 </div>
               </form>
             </div>
@@ -1070,21 +1164,40 @@ export default function ClaimShopPage() {
                   </div>
                 )}
 
+                {documentsUploaded && !error && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-sm text-green-800">✓ Documents uploaded successfully. Click "Submit for Review" to submit your claim.</p>
+                  </div>
+                )}
+
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setStep('identity')}
+                    onClick={() => {
+                      setStep('identity');
+                      setDocumentsUploaded(false);
+                    }}
                     className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                   >
                     {t('claim.back')}
                   </button>
-                  <button
-                    onClick={handleDocumentsSubmit}
-                    disabled={documents.length === 0 || fileUploading || submitting}
-                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {fileUploading || submitting ? t('claim.submitting') : t('claim.submitForReview')}
-                  </button>
+                  {documentsUploaded ? (
+                    <button
+                      onClick={handleClaimSubmit}
+                      disabled={submitting}
+                      className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {submitting ? t('claim.submitting') : t('claim.submitForReview')}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleDocumentsUpload}
+                      disabled={documents.length === 0 || fileUploading}
+                      className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {fileUploading ? 'Uploading...' : 'Upload Documents'}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
