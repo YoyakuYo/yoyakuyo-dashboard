@@ -28,6 +28,15 @@ DECLARE
   owner_email TEXT;
   owner_name TEXT;
   shop_name_value TEXT;
+  verification_full_name TEXT;
+  verification_date_of_birth DATE;
+  verification_country TEXT;
+  verification_address_line1 TEXT;
+  verification_city TEXT;
+  verification_prefecture TEXT;
+  verification_phone TEXT;
+  verification_email TEXT;
+  profile_exists BOOLEAN;
 BEGIN
   -- Only trigger when owner_user_id changes from NULL to a value
   IF NEW.owner_user_id IS NOT NULL AND (OLD.owner_user_id IS NULL OR OLD.owner_user_id != NEW.owner_user_id) THEN
@@ -46,23 +55,57 @@ BEGIN
         shop_name_value := '';
     END;
     
-    -- 1. Create or update owner profile (using owner_profiles table structure)
-    -- Note: owner_profiles.id references auth.users(id), not users.id
-    INSERT INTO owner_profiles (id, full_name, country, address_line1, city, prefecture, company_phone, company_email)
-    VALUES (
-      NEW.owner_user_id,
-      COALESCE(owner_name, ''),
-      '',
-      '',
-      '',
-      '',
-      '',
-      COALESCE(owner_email, '')
-    )
-    ON CONFLICT (id) 
-    DO UPDATE SET 
-      company_email = COALESCE(owner_email, owner_profiles.company_email),
-      updated_at = NOW();
+    -- 1. Check if owner profile exists
+    SELECT EXISTS (SELECT 1 FROM owner_profiles WHERE id = NEW.owner_user_id) INTO profile_exists;
+    
+    IF profile_exists THEN
+      -- Update existing profile
+      UPDATE owner_profiles
+      SET 
+        full_name = COALESCE(owner_name, owner_profiles.full_name),
+        company_email = COALESCE(owner_email, owner_profiles.company_email),
+        updated_at = NOW()
+      WHERE id = NEW.owner_user_id;
+    ELSE
+      -- Profile doesn't exist - try to get data from owner_verification
+      BEGIN
+        SELECT 
+          full_name, date_of_birth, country_of_residence,
+          address_line1, city, prefecture, phone_number, email
+        INTO 
+          verification_full_name, verification_date_of_birth, verification_country,
+          verification_address_line1, verification_city, verification_prefecture,
+          verification_phone, verification_email
+        FROM owner_verification
+        WHERE user_id = NEW.owner_user_id
+          AND shop_id = NEW.id
+        ORDER BY created_at DESC
+        LIMIT 1;
+        
+        -- Only insert if we found verification data
+        IF verification_full_name IS NOT NULL THEN
+          INSERT INTO owner_profiles (
+            id, full_name, date_of_birth, country,
+            address_line1, city, prefecture, company_phone, company_email
+          )
+          VALUES (
+            NEW.owner_user_id,
+            verification_full_name,
+            COALESCE(verification_date_of_birth, '1900-01-01'::DATE),
+            COALESCE(verification_country, ''),
+            COALESCE(verification_address_line1, ''),
+            COALESCE(verification_city, ''),
+            COALESCE(verification_prefecture, ''),
+            COALESCE(verification_phone, ''),
+            COALESCE(verification_email, owner_email, '')
+          );
+        END IF;
+      EXCEPTION
+        WHEN OTHERS THEN
+          -- If owner_verification doesn't exist or has issues, skip
+          RAISE WARNING 'Could not create owner_profile from verification: %', SQLERRM;
+      END;
+    END IF;
     
     -- 2. Create default shop settings if they don't exist
     INSERT INTO shop_settings (shop_id)
