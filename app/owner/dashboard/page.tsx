@@ -372,16 +372,17 @@ export default function OwnerDashboardPage() {
 // AI Assistant Card Component
 function AIAssistantCard({ shopId }: { shopId?: string }) {
   const { user } = useAuth();
-  const { messages, addMessage, isLoading } = useAIConversation(
-    user?.id || '',
-    'owner',
-    shopId || undefined
-  );
+  const { messages, addMessage, saving } = useAIConversation({
+    userType: 'owner',
+    userId: user?.id || undefined,
+    contextKey: 'owner_dashboard',
+    shopId: shopId || undefined,
+  });
   const [input, setInput] = useState('');
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-    await addMessage(input, 'user');
+    if (!input.trim() || saving) return;
+    await addMessage('user', input);
     setInput('');
   };
 
@@ -419,7 +420,7 @@ function AIAssistantCard({ shopId }: { shopId?: string }) {
         />
         <button
           onClick={handleSend}
-          disabled={isLoading || !input.trim()}
+          disabled={saving || !input.trim()}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
         >
           Send
