@@ -28,15 +28,35 @@ LIMIT 10;
 ### 2. Staff User Not in `staff` Table
 **Check:** Is the staff user properly registered?
 
-Run this SQL:
+**First, check the actual column names:**
 ```sql
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'staff'
+ORDER BY ordinal_position;
+```
+
+**Then check staff users (adjust column names based on schema above):**
+```sql
+-- If staff table has 'user_id' column:
 SELECT 
   s.id,
-  s.auth_user_id,
+  s.user_id AS auth_user_id,
   s.is_active,
   u.email
 FROM staff s
-JOIN users u ON u.id = s.auth_user_id
+JOIN users u ON u.id = s.user_id
+WHERE s.is_active = true;
+
+-- OR if staff table has 'id' that references users:
+SELECT 
+  s.id,
+  s.id AS auth_user_id,
+  s.is_active,
+  u.email
+FROM staff s
+JOIN users u ON u.id = s.id
 WHERE s.is_active = true;
 ```
 
