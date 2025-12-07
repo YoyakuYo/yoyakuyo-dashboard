@@ -534,6 +534,7 @@ function VerificationTab({ claim, userId }: { claim?: Claim; userId?: string }) 
         body: JSON.stringify({
           doc_type: docType,
           file_url: publicUrl,
+          file_path: uploadData.path, // Store file path for signed URL generation
         }),
       });
 

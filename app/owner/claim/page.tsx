@@ -399,7 +399,7 @@ export default function ClaimShopPage() {
     setDocuments(documents.filter(d => d.document_type !== documentType));
   };
 
-  const uploadFileToStorage = async (file: File, verificationId: string): Promise<string> => {
+  const uploadFileToStorage = async (file: File, verificationId: string): Promise<{ filePath: string; fileUrl: string }> => {
     const { createClient } = await import('@supabase/supabase-js');
     
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -426,12 +426,15 @@ export default function ClaimShopPage() {
       throw new Error(`Failed to upload ${file.name}: ${error.message}`);
     }
 
-    // Get public URL
+    // Get public URL (for backward compatibility, but we'll use file_path for signed URLs)
     const { data: urlData } = supabase.storage
       .from(bucket)
       .getPublicUrl(data.path);
 
-    return urlData.publicUrl;
+    return {
+      filePath: data.path,
+      fileUrl: urlData.publicUrl,
+    };
   };
 
   // Step 2: Upload documents ONLY (no auto-submit)
@@ -452,7 +455,7 @@ export default function ClaimShopPage() {
 
       // Upload files one at a time using new API
       for (const doc of documents) {
-        const fileUrl = await uploadFileToStorage(doc.file, verificationId);
+        const { filePath, fileUrl } = await uploadFileToStorage(doc.file, verificationId);
         
         // Map old document_type to new doc_type enum
         let docType: 'business_proof' | 'id_document' | 'other' = 'other';
@@ -471,6 +474,7 @@ export default function ClaimShopPage() {
           body: JSON.stringify({
             doc_type: docType,
             file_url: fileUrl,
+            file_path: filePath,
           }),
         });
 
