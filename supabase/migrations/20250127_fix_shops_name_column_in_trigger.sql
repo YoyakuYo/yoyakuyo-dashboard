@@ -6,31 +6,15 @@
 -- ============================================================
 
 -- Step 1: CREATE shops.name column (guaranteed)
--- First, add the column if it doesn't exist
-ALTER TABLE shops ADD COLUMN IF NOT EXISTS name TEXT;
-
--- Step 2: Copy data from shop_name if that column exists
 DO $$
-DECLARE
-  has_shop_name BOOLEAN;
 BEGIN
-  SELECT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = 'shops'
-      AND column_name = 'shop_name'
-  ) INTO has_shop_name;
+  -- Add the column if it doesn't exist
+  ALTER TABLE shops ADD COLUMN IF NOT EXISTS name TEXT;
   
-  IF has_shop_name THEN
-    -- Copy data from shop_name
-    UPDATE shops SET name = shop_name WHERE name IS NULL AND shop_name IS NOT NULL;
-    RAISE NOTICE '✅ Copied data from shop_name to name';
-  END IF;
-  
-  -- Set default empty string for any remaining NULLs
+  -- Set default empty string for all NULL values
   UPDATE shops SET name = '' WHERE name IS NULL;
   
-  -- Make it NOT NULL after setting values
+  -- Set default and make NOT NULL
   ALTER TABLE shops ALTER COLUMN name SET DEFAULT '';
   ALTER TABLE shops ALTER COLUMN name SET NOT NULL;
   

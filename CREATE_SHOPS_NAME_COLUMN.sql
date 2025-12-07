@@ -48,15 +48,9 @@ BEGIN
     -- Add name column
     ALTER TABLE shops ADD COLUMN name TEXT;
     
-    -- If shop_name exists, copy data
-    IF has_shop_name THEN
-      UPDATE shops SET name = shop_name WHERE name IS NULL AND shop_name IS NOT NULL;
-      RAISE NOTICE '✅ Created name column and copied data from shop_name';
-    ELSE
-      -- Set default empty string for all rows
-      UPDATE shops SET name = '' WHERE name IS NULL;
-      RAISE NOTICE '✅ Created name column with empty string default';
-    END IF;
+    -- Set default empty string for all rows
+    UPDATE shops SET name = '' WHERE name IS NULL;
+    RAISE NOTICE '✅ Created name column with empty string default';
     
     -- Make it NOT NULL after setting values
     ALTER TABLE shops ALTER COLUMN name SET DEFAULT '';
