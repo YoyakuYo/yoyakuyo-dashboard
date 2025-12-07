@@ -25,39 +25,41 @@ LIMIT 10;
 
 **Expected:** Should show your submitted claim with `verification_status = 'pending'`
 
-### 2. Staff User Not in `staff` Table
-**Check:** Is the staff user properly registered?
+### 2. Staff User Not in `staff_profiles` Table
+**Check:** Is the staff user properly registered in `staff_profiles` (platform staff)?
 
-**First, check the actual column names:**
+**IMPORTANT:** There are TWO different tables:
+- `staff` = Shop employees (employees working at shops)
+- `staff_profiles` = Platform staff (admins, managers, verifiers) ← **This is what we need**
+
+**Check platform staff users:**
 ```sql
-SELECT column_name, data_type
-FROM information_schema.columns
-WHERE table_schema = 'public'
-  AND table_name = 'staff'
-ORDER BY ordinal_position;
+SELECT 
+  sp.id,
+  sp.auth_user_id,
+  sp.full_name,
+  sp.email,
+  sp.active,
+  sp.is_super_admin,
+  u.email AS user_email
+FROM staff_profiles sp
+JOIN users u ON u.id = sp.auth_user_id
+WHERE sp.active = true;
 ```
 
-**Then check staff users (adjust column names based on schema above):**
+**If no results, add staff user:**
 ```sql
--- If staff table has 'user_id' column:
-SELECT 
-  s.id,
-  s.user_id AS auth_user_id,
-  s.is_active,
-  u.email
-FROM staff s
-JOIN users u ON u.id = s.user_id
-WHERE s.is_active = true;
-
--- OR if staff table has 'id' that references users:
-SELECT 
-  s.id,
-  s.id AS auth_user_id,
-  s.is_active,
-  u.email
-FROM staff s
-JOIN users u ON u.id = s.id
-WHERE s.is_active = true;
+-- Replace YOUR_USER_ID with actual user ID from auth.users
+INSERT INTO staff_profiles (auth_user_id, full_name, email, active, is_super_admin)
+VALUES (
+  'YOUR_USER_ID',
+  'Staff Name',
+  'staff@example.com',
+  true,
+  false
+)
+ON CONFLICT (auth_user_id) DO UPDATE
+SET active = true;
 ```
 
 **Expected:** Should show your staff user with `is_active = true`
