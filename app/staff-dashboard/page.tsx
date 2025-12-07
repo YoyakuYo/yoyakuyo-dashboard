@@ -115,7 +115,8 @@ export default function StaffDashboardPage() {
   const loadClaims = async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`${apiUrl}/api/staff/claims?status=submitted,pending,resubmission_required`, {
+      // Backend only shows 'pending' and 'resubmission_required' status
+      const res = await fetch(`${apiUrl}/api/staff/claims`, {
         headers: { 'x-user-id': user.id },
       });
       if (res.ok) {
