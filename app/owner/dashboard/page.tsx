@@ -166,9 +166,17 @@ export default function OwnerDashboardPage() {
     );
   }
 
+  // Find active claim (pending verification)
   const currentClaim = claims.find(c => 
     ['draft', 'submitted', 'pending', 'resubmission_required'].includes(c.status)
   ) || claims[0];
+  
+  // Determine dashboard state:
+  // 1. If user has shop (owner_user_id set) → Show full shop dashboard
+  // 2. Else if has pending verification → Show "Under review"
+  // 3. Else → Show "Create or Claim Shop"
+  const hasShop = shop !== null;
+  const hasPendingVerification = currentClaim && ['pending', 'submitted'].includes(currentClaim.status);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -204,36 +212,48 @@ export default function OwnerDashboardPage() {
             <div className="p-6">
               <h2 className="text-2xl font-bold mb-4">Overview</h2>
               
-              {currentClaim ? (
-                <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
-                  <h3 className="font-semibold text-blue-900 mb-2">Current Claim Status</h3>
-                  <p className="text-blue-700">
-                    Status: <span className="font-bold">{currentClaim.status}</span>
+              {hasShop ? (
+                <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-400 rounded">
+                  <h3 className="font-semibold text-green-900 mb-2">Shop Verified</h3>
+                  <p className="text-green-700">
+                    Your shop is verified and active. You can manage bookings, services, and settings.
                   </p>
-                  {currentClaim.shop && (
-                    <p className="text-blue-700 mt-1">
-                      Shop: {currentClaim.shop.name}
+                  {shop && (
+                    <p className="text-green-700 mt-1">
+                      Shop: <span className="font-bold">{shop.name}</span>
                     </p>
                   )}
-                  {currentClaim.staff_note && (
-                    <div className="mt-2 p-2 bg-white rounded">
-                      <p className="text-sm text-gray-700">
-                        <strong>Staff Note:</strong> {currentClaim.staff_note}
+                </div>
+              ) : hasPendingVerification ? (
+                <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                  <h3 className="font-semibold text-yellow-900 mb-2">Claim Under Review</h3>
+                  <p className="text-yellow-700">
+                    Your shop claim is currently being reviewed by our staff.
+                  </p>
+                  {currentClaim && (
+                    <>
+                      <p className="text-yellow-700 mt-1">
+                        Status: <span className="font-bold">{currentClaim.status}</span>
                       </p>
-                    </div>
+                      {currentClaim.shop && (
+                        <p className="text-yellow-700 mt-1">
+                          Shop: {currentClaim.shop.name}
+                        </p>
+                      )}
+                    </>
                   )}
                   <Link
                     href="/owner/claim"
-                    className="mt-3 inline-block text-sm font-medium text-blue-800 hover:text-blue-900"
+                    className="mt-3 inline-block text-sm font-medium text-yellow-800 hover:text-yellow-900"
                   >
                     View Claim Details →
                   </Link>
                 </div>
               ) : (
-                <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
-                  <h3 className="font-semibold text-yellow-900 mb-2">No Active Claims</h3>
-                  <p className="text-yellow-700 mb-3">
-                    You don't have any active claims. Start by claiming a shop to get verified.
+                <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
+                  <h3 className="font-semibold text-blue-900 mb-2">Get Started</h3>
+                  <p className="text-blue-700 mb-3">
+                    Claim a shop to start managing bookings and services.
                   </p>
                   <Link
                     href="/owner/claim"
@@ -312,7 +332,7 @@ export default function OwnerDashboardPage() {
           {activeTab === 'my-shop' && (
             <div className="p-6">
               <h2 className="text-2xl font-bold mb-4">My Shop</h2>
-              {shop ? (
+              {hasShop ? (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Shop Name</label>
@@ -331,9 +351,30 @@ export default function OwnerDashboardPage() {
                     Edit Shop Profile
                   </Link>
                 </div>
+              ) : hasPendingVerification ? (
+                <div className="text-center py-8">
+                  <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                    <h3 className="font-semibold text-yellow-900 mb-2">Your Claim is Under Review</h3>
+                    <p className="text-yellow-700">
+                      Your shop claim is currently being reviewed by our staff. 
+                      You'll be able to manage your shop once it's approved.
+                    </p>
+                    {currentClaim && (
+                      <p className="text-yellow-700 mt-2">
+                        Status: <span className="font-bold">{currentClaim.status}</span>
+                      </p>
+                    )}
+                  </div>
+                  <Link
+                    href="/owner/claim"
+                    className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    View Claim Details
+                  </Link>
+                </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-600 mb-4">No shop found</p>
+                  <p className="text-gray-600 mb-4">No shop found. Claim a shop to get started.</p>
                   <Link
                     href="/owner/claim"
                     className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
