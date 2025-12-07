@@ -257,15 +257,15 @@ export default function ClaimShopPage() {
 
       if (res.ok) {
         const data = await res.json();
-        setVerificationId(data.claim_id);
+        setVerificationId(data.verification_id);
         setSelectedShop(shop);
         setStep('identity');
       } else {
         const errorData = await res.json();
         setError(errorData.error || 'Failed to start claim process');
-        // If there's an existing claim, redirect to documents
-        if (errorData.claim_id) {
-          setVerificationId(errorData.claim_id);
+        // If there's an existing verification, redirect to documents
+        if (errorData.verification_id) {
+          setVerificationId(errorData.verification_id);
           setSelectedShop(shop);
           if (errorData.status === 'draft' || errorData.status === 'resubmission_required') {
             setStep('documents');
@@ -410,10 +410,10 @@ export default function ClaimShopPage() {
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const bucket = 'verification-documents';
+    const bucket = 'verification';
     const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    // Use user_id as first folder (for RLS policy), then verification_id
-    const filePath = `${user?.id}/${verificationId}/${fileName}`;
+    // Path format: verification/{verification_id}/{filename}
+    const filePath = `${verificationId}/${fileName}`;
 
     const { data, error } = await supabase.storage
       .from(bucket)
@@ -457,14 +457,7 @@ export default function ClaimShopPage() {
       for (const doc of documents) {
         const { filePath, fileUrl } = await uploadFileToStorage(doc.file, verificationId);
         
-        // Map old document_type to new doc_type enum
-        let docType: 'business_proof' | 'id_document' | 'other' = 'other';
-        if (['business_registration', 'tax_registration', 'commercial_registry', 'lease_contract', 'utility_bill', 'bank_statement'].includes(doc.document_type)) {
-          docType = 'business_proof';
-        } else if (['government_id', 'selfie_with_id'].includes(doc.document_type)) {
-          docType = 'id_document';
-        }
-
+        // Send document_type directly (API will map it)
         const res = await fetch(`${apiUrl}/api/owner/claims/${verificationId}/documents`, {
           method: 'POST',
           headers: {
@@ -472,7 +465,7 @@ export default function ClaimShopPage() {
             'x-user-id': user.id,
           },
           body: JSON.stringify({
-            doc_type: docType,
+            doc_type: doc.document_type, // Send original document_type, API will map
             file_url: fileUrl,
             file_path: filePath,
           }),
