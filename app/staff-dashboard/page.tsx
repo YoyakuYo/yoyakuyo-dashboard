@@ -14,9 +14,14 @@ interface Claim {
   id: string;
   shop_name: string;
   owner_name: string;
+  owner_email: string;
   country: string;
   status: string;
+  rejection_reason?: string | null;
+  failed_attempts: number;
+  last_rejection_at?: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 interface Complaint {
@@ -72,6 +77,7 @@ export default function StaffDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [selectedClaim, setSelectedClaim] = useState<string | null>(null);
   const [claimDetails, setClaimDetails] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('pending');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -90,7 +96,7 @@ export default function StaffDashboardPage() {
     try {
       switch (activeTab) {
         case 'verification':
-          await loadClaims();
+          await loadClaims(statusFilter);
           break;
         case 'complaints':
           await loadComplaints();
@@ -112,11 +118,13 @@ export default function StaffDashboardPage() {
     }
   };
 
-  const loadClaims = async () => {
+  const loadClaims = async (statusFilter: string = 'pending') => {
     if (!user?.id) return;
     try {
-      // Backend only shows 'pending' and 'resubmission_required' status
-      const res = await fetch(`${apiUrl}/api/staff/claims`, {
+      const url = statusFilter === 'all' 
+        ? `${apiUrl}/api/staff/claims?status=all`
+        : `${apiUrl}/api/staff/claims?status=${statusFilter}`;
+      const res = await fetch(url, {
         headers: { 'x-user-id': user.id },
       });
       if (res.ok) {
@@ -213,7 +221,7 @@ export default function StaffDashboardPage() {
       });
       if (res.ok) {
         alert('Claim approved successfully');
-        await loadClaims();
+        await loadClaims(statusFilter || 'pending');
         setSelectedClaim(null);
         setClaimDetails(null);
       } else {
@@ -238,7 +246,7 @@ export default function StaffDashboardPage() {
       });
       if (res.ok) {
         alert('Claim rejected successfully');
-        await loadClaims();
+        await loadClaims(statusFilter || 'pending');
         setSelectedClaim(null);
         setClaimDetails(null);
       } else {
@@ -266,7 +274,7 @@ export default function StaffDashboardPage() {
       });
       if (res.ok) {
         alert('More information requested successfully');
-        await loadClaims();
+        await loadClaims(statusFilter || 'pending');
         setSelectedClaim(null);
         setClaimDetails(null);
       } else {
@@ -349,6 +357,7 @@ export default function StaffDashboardPage() {
               onApprove={handleApprove}
               onReject={handleReject}
               onRequestMoreInfo={handleRequestMoreInfo}
+              onFilterChange={loadClaims}
             />
           )}
 
@@ -385,6 +394,7 @@ function VerificationTab({
   onApprove,
   onReject,
   onRequestMoreInfo,
+  onFilterChange,
 }: {
   claims: Claim[];
   selectedClaim: string | null;
@@ -393,8 +403,10 @@ function VerificationTab({
   onApprove: (id: string) => void;
   onReject: (id: string, note: string) => void;
   onRequestMoreInfo: (id: string, note: string) => void;
+  onFilterChange: (status: string) => void;
 }) {
   const [actionNote, setActionNote] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('pending');
 
   if (selectedClaim && claimDetails) {
     return (
@@ -475,66 +487,137 @@ function VerificationTab({
               />
             </div>
 
-            <div className="flex gap-4">
-              <button
-                onClick={() => onApprove(selectedClaim!)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                Approve
-              </button>
-              <button
-                onClick={() => onReject(selectedClaim!, actionNote)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Reject
-              </button>
-              <button
-                onClick={() => onRequestMoreInfo(selectedClaim!, actionNote)}
-                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
-              >
-                Request More Info
-              </button>
-            </div>
+            {(claimDetails.status === 'pending' || claimDetails.status === 'resubmission_required') && (
+              <div className="flex gap-4">
+                <button
+                  onClick={() => onApprove(selectedClaim!)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => {
+                    if (!actionNote.trim()) {
+                      alert('Please provide a rejection reason');
+                      return;
+                    }
+                    onReject(selectedClaim!, actionNote);
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  Reject
+                </button>
+                <button
+                  onClick={() => {
+                    if (!actionNote.trim()) {
+                      alert('Please provide a note');
+                      return;
+                    }
+                    onRequestMoreInfo(selectedClaim!, actionNote);
+                  }}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+                >
+                  Request More Info
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
     );
   }
 
+  const handleFilterChange = (newFilter: string) => {
+    setStatusFilter(newFilter);
+    onFilterChange(newFilter);
+  };
+
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4">Shop Verification</h2>
+      
+      {/* Status Filter */}
+      <div className="mb-4 flex gap-2">
+        {['all', 'pending', 'approved', 'rejected'].map((filter) => (
+          <button
+            key={filter}
+            onClick={() => handleFilterChange(filter)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+              statusFilter === filter
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {filter.charAt(0).toUpperCase() + filter.slice(1)}
+          </button>
+        ))}
+      </div>
       
       {claims.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Shop Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted At</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Country</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Owner Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Shop Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Attempts</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Decision</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {claims.map((claim) => (
                 <tr key={claim.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{claim.shop_name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{claim.owner_name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{claim.country}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{claim.status}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(claim.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{claim.owner_name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{claim.owner_email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{claim.shop_name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      claim.status === 'approved' ? 'bg-green-100 text-green-800' :
+                      claim.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                      claim.status === 'pending' || claim.status === 'resubmission_required' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {claim.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{claim.failed_attempts || 0}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {claim.last_rejection_at 
+                      ? new Date(claim.last_rejection_at).toLocaleDateString()
+                      : claim.updated_at 
+                        ? new Date(claim.updated_at).toLocaleDateString()
+                        : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button
                       onClick={() => onSelectClaim(claim.id)}
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-blue-600 hover:text-blue-800 mr-2"
                     >
-                      View
+                      Review
                     </button>
+                    {claim.status === 'pending' || claim.status === 'resubmission_required' ? (
+                      <>
+                        <button
+                          onClick={() => onApprove(claim.id)}
+                          className="text-green-600 hover:text-green-800 mr-2"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => onReject(claim.id, '')}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -542,7 +625,7 @@ function VerificationTab({
           </table>
         </div>
       ) : (
-        <p className="text-gray-600">No claims to review</p>
+        <p className="text-gray-600">No claims found</p>
       )}
     </div>
   );

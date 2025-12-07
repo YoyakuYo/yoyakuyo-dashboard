@@ -99,20 +99,20 @@ const Sidebar = React.memo(() => {
   };
 
   const navItems = [
-    { href: '/shops', label: t('nav.myShop'), icon: '🏪' },
-    { href: '/analytics', label: t('analytics.title'), icon: '📊' },
-    { href: '/assistant', label: t('nav.aiAssistant'), icon: '🤖', badge: unreadCount > 0 ? unreadCount : undefined },
-    { href: '/messages', label: t('nav.messages'), icon: '💬', badge: unreadCount > 0 ? unreadCount : undefined, isPanel: true },
-    { href: '/bookings', label: t('nav.bookings'), icon: '📅', badge: unreadBookingsCount > 0 ? unreadBookingsCount : undefined },
-    { href: '/owner/subscription', label: t('nav.subscription') || 'Subscription', icon: '💳' },
-    { href: '/settings', label: t('settings.title'), icon: '⚙️' },
+    { href: '/owner/dashboard', label: 'Dashboard', icon: '🏠' },
+    { href: '/owner/shop-profile', label: 'My Shop', icon: '🏪' },
+    { href: '/owner/bookings', label: 'Bookings', icon: '📅', badge: unreadBookingsCount > 0 ? unreadBookingsCount : undefined },
+    { href: '/owner/calendar', label: 'Calendar', icon: '📆' },
+    { href: '/owner/messages', label: 'Messages', icon: '💬', badge: unreadCount > 0 ? unreadCount : undefined },
+    { href: '/owner/customers', label: 'Customers', icon: '👥' },
+    { href: '/owner/reviews', label: 'Reviews', icon: '⭐' },
+    { href: '/owner/photos', label: 'Photos / Media', icon: '📷' },
+    { href: '/owner/services', label: 'Services', icon: '🔧' },
+    { href: '/owner/ai', label: 'AI Assistant', icon: '🤖' },
+    { href: '/owner/subscription', label: 'Subscriptions & Billing', icon: '💳' },
+    { href: '/owner/settings', label: 'Settings', icon: '⚙️' },
   ];
 
-  const handleMessagesClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    // Dispatch custom event to open messages panel
-    window.dispatchEvent(new CustomEvent('openMessagesPanel', { detail: {} }));
-  };
 
   return (
     <aside className="hidden lg:block w-64 bg-slate-900 text-white min-h-screen fixed left-0 top-0 pt-16">
@@ -120,36 +120,8 @@ const Sidebar = React.memo(() => {
         <ul className="space-y-1 flex-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
-            const isMessages = item.href === '/messages';
             
-            // For Messages, use button instead of Link to open panel
-            if (isMessages && item.isPanel) {
-              return (
-                <li key={item.href}>
-                  <button
-                    onClick={handleMessagesClick}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors relative w-full text-left ${
-                      isActive
-                        ? 'bg-blue-600 text-white font-bold'
-                        : 'text-gray-300 hover:bg-slate-800 hover:text-white'
-                    }`}
-                  >
-                    {isActive && (
-                      <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r"></span>
-                    )}
-                    <span className="text-xl">{item.icon}</span>
-                    <span className={`font-medium ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
-                </li>
-              );
-            }
-            
-            // For other items, use Link as before
+            // Use Link for all items
             return (
               <li key={item.href}>
                 <Link
