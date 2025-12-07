@@ -400,16 +400,10 @@ export default function ClaimShopPage() {
   };
 
   const uploadFileToStorage = async (file: File, verificationId: string): Promise<{ filePath: string; fileUrl: string }> => {
-    const { createClient } = await import('@supabase/supabase-js');
+    // Use authenticated Supabase client (includes user session)
+    const { getSupabaseClient } = await import('@/lib/supabaseClient');
+    const supabase = getSupabaseClient();
     
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Supabase configuration missing');
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
     const bucket = 'verification-documents'; // Fixed: bucket name must match exactly
     const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
     // Path format: verification/{verification_id}/{filename}
