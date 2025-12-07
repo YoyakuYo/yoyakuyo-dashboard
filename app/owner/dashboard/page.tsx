@@ -42,20 +42,6 @@ interface Booking {
   service_name?: string;
 }
 
-interface Thread {
-  id: string;
-  shop_id: string;
-  last_message_at: string;
-  shop?: {
-    id: string;
-    name: string;
-  };
-  staff?: {
-    id: string;
-    email: string;
-    full_name?: string;
-  };
-}
 
 export default function OwnerDashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -212,20 +198,6 @@ export default function OwnerDashboardPage() {
     }
   };
 
-  const loadThreads = async () => {
-    if (!user?.id) return;
-    try {
-      const res = await fetch(`${apiUrl}/api/owner/messages/threads`, {
-        headers: { 'x-user-id': user.id },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setThreads(data.threads || []);
-      }
-    } catch (error) {
-      console.error('Error loading threads:', error);
-    }
-  };
 
   if (authLoading || loading) {
     return (
