@@ -250,7 +250,7 @@ export default function OwnerDashboardPage() {
           {/* Shop Status Card */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-bold mb-4">Shop Status</h2>
-            {hasShop ? (
+            {shopVerificationStatus === 'verified' && hasShop ? (
               <div className="mb-4 p-4 bg-green-50 border-l-4 border-green-400 rounded">
                 <h3 className="font-semibold text-green-900 mb-2">Shop Verified</h3>
                 <p className="text-green-700">
@@ -265,7 +265,7 @@ export default function OwnerDashboardPage() {
                   Manage Your Shop →
                 </Link>
               </div>
-            ) : hasPendingVerification ? (
+            ) : (shopVerificationStatus === 'pending' || hasPendingVerification) ? (
               <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
                 <h3 className="font-semibold text-yellow-900 mb-2">Claim Under Review</h3>
                 <p className="text-yellow-700">
