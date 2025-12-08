@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/useAuth';
 import { useRouter } from 'next/navigation';
 import { apiUrl } from '@/lib/apiClient';
-import SupportChat from '@/components/SupportChat';
+import SupportChat from '../../components/SupportChat';
 import Link from 'next/link';
 
 export default function OwnerSupportPage() {

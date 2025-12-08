@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { apiUrl } from '@/lib/apiClient';
 import Link from 'next/link';
 import { useAIConversation } from '@/lib/useAIConversation';
-import FloatingHelpButton from '@/components/FloatingHelpButton';
+import FloatingHelpButton from '../../components/FloatingHelpButton';
 
 interface Claim {
   id: string;
