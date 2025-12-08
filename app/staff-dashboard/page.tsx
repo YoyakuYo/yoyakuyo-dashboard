@@ -366,10 +366,38 @@ export default function StaffDashboardPage() {
     }
   };
 
-  if (authLoading || loading) {
+  if (authLoading || roleLoading || loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  // Show unauthorized message if user is not staff
+  if (userRole && userRole !== 'staff' && userRole !== 'super_admin') {
+    return (
+      <div className="p-8">
+        <div className="max-w-2xl mx-auto bg-white rounded-lg shadow border border-red-200 p-6">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h1>
+          <p className="text-gray-700 mb-4">
+            You do not have permission to access the staff dashboard. This area is restricted to staff members only.
+          </p>
+          <div className="flex gap-4">
+            <button
+              onClick={() => router.push('/staff-login')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Staff Login
+            </button>
+            <button
+              onClick={() => router.push('/')}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            >
+              Go Home
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
