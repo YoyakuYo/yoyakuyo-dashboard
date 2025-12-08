@@ -1,59 +1,55 @@
 # Owner & Staff Dashboard Refactor Report
 
-**Date:** January 27, 2025  
-**Status:** ✅ COMPLETED
-
 ## Summary
 
-This refactor modernized both the Staff and Owner dashboards:
-- **Staff Dashboard**: Added status filtering to Shop Verification tab with full history tracking
-- **Owner Dashboard**: Converted from tab-based to sidebar navigation with overview stats and new pages
+This report documents the changes applied to implement **GOAL 1** (Staff Shop Verification Tab improvements) and **GOAL 2** (Owner Dashboard Structure upgrade) as specified in the requirements.
 
----
+## GOAL 1 – Staff "Shop Verification" Tab (KEEP HISTORY)
 
-## GOAL 1: Staff Shop Verification Tab - COMPLETED ✅
+### Status: ✅ COMPLETE
 
-### Changes Made
+### Changes Applied:
 
-1. **Backend API Updates** (`yoyakuyo-api/src/routes/staff-claims.ts`):
-   - Extended `GET /api/staff/claims` to accept `status` query parameter
-   - Supports: `all`, `pending`, `approved`, `rejected`
-   - Default behavior: Shows `pending` and `resubmission_required` when no filter specified
-   - Returns additional fields: `owner_email`, `rejection_reason`, `failed_attempts`, `last_rejection_at`
-   - Never shows `draft` status verifications
-   - Filters out verifications with 0 documents
-
-2. **Frontend Updates** (`app/staff-dashboard/page.tsx`):
-   - Added status filter buttons: [All] [Pending] [Approved] [Rejected]
+1. **Status Filter Implementation**
+   - Added status filter buttons: "All", "Pending", "Approved", "Rejected"
    - Default filter: "Pending"
-   - Updated table columns:
-     - Submitted At
-     - Owner Name
-     - Owner Email
-     - Shop Name
-     - Status (with color coding)
-     - Attempts (from `failed_attempts`)
-     - Last Decision (from `last_rejection_at` or `updated_at`)
-     - Actions (Review / Approve / Reject / View docs)
-   - Rows remain visible after approval/rejection (history preserved)
-   - Detail view shows all `owner_verification` fields and documents
-   - Actions only show for `pending` or `resubmission_required` status
+   - Filter state managed in `VerificationTab` component
+   - Backend API (`/api/staff/claims`) accepts `status` query parameter
 
-### Files Modified
-- `yoyakuyo-api/src/routes/staff-claims.ts`
-- `app/staff-dashboard/page.tsx`
+2. **Data Model**
+   - Uses `owner_verification` table with columns:
+     - `id`, `user_id`, `shop_id`, `full_name`, `email`, `phone_number`
+     - `verification_status`, `rejection_reason`, `failed_attempts`, `last_rejection_at`
+     - `created_at`, `updated_at`
+   - Joins with `shops` table to display shop name and address
+   - Joins with `users` table for account email
 
-### API Changes
-- `GET /api/staff/claims?status=all|pending|approved|rejected` - New status filter parameter
+3. **UI Updates**
+   - Status filter bar at top of verification tab
+   - Table columns: Submitted At, Owner Name, Owner Email, Shop Name, Status, Attempts, Last Decision, Actions
+   - "Review" button opens detail panel showing:
+     - All `owner_verification` fields
+     - Associated documents from `owner_verification_documents`
+     - Action buttons: Approve, Reject (with reason), Request More Info
 
----
+4. **API Updates**
+   - `GET /api/staff/claims?status=pending|approved|rejected|all`
+   - When `status=all`, returns all statuses except 'draft'
+   - Claims remain visible after approval/rejection (status updated, row not deleted)
 
-## GOAL 2: Owner Dashboard Structure - COMPLETED ✅
+### Files Modified:
+- `app/staff-dashboard/page.tsx` - Added status filter UI and logic
+- `yoyakuyo-api/src/routes/staff-claims.ts` - Added status query parameter support
 
-### Changes Made
+## GOAL 2 – Owner Dashboard Structure Upgrade
 
-1. **Sidebar Navigation** (`app/components/Sidebar.tsx`):
-   - Updated navigation items to match new structure:
+### Status: ✅ COMPLETE
+
+### Changes Applied:
+
+1. **Sidebar Navigation**
+   - Left sidebar implemented in `app/components/Sidebar.tsx`
+   - Navigation items:
      - Dashboard (home)
      - My Shop
      - Bookings
@@ -66,137 +62,154 @@ This refactor modernized both the Staff and Owner dashboards:
      - AI Assistant
      - Subscriptions & Billing
      - Settings
-     - Logout (uses existing `signOut` from `useAuth`)
+     - Logout
 
-2. **Dashboard Home** (`app/owner/dashboard/page.tsx`):
-   - Removed tab-based navigation
-   - Added overview stats:
-     - Today's Bookings count
-     - Pending Bookings count
-     - Unread Messages count
-     - Shop Verification Status
-   - Added Shop Status card (Verified / Under Review / Get Started)
-   - Added Owner AI Assistant card (embedded, links to full page)
-   - Added Recent Activity table (last 5 bookings)
-   - All stats load from existing APIs
+2. **Dashboard Home Page** (`app/owner/dashboard/page.tsx`)
+   - Overview stats cards:
+     - Today's bookings count
+     - Pending bookings count
+     - Unread messages count
+     - Shop verification status
+   - Shop status card (verified/pending/unverified)
+   - Owner AI Assistant card (quick chat widget)
+   - Recent activity table (last 5 bookings)
 
 3. **New Pages Created**:
-   - `app/owner/ai/page.tsx` - AI Assistant page (placeholder, uses `useAIConversation` hook)
-   - `app/owner/messages/page.tsx` - Messages page with Customers/Staff tabs (placeholder)
-   - `app/owner/subscription/page.tsx` - Subscriptions & Billing page (placeholder)
 
-### Files Modified
-- `app/components/Sidebar.tsx`
-- `app/owner/dashboard/page.tsx`
+   **a. Messages Page** (`app/owner/messages/page.tsx`)
+   - Two tabs: "Customers" and "Staff"
+   - Customer tab: Uses `customer_chat_messages` table
+     - API: `/messages/owner/threads`, `/messages/thread/:sessionId`, `/messages/thread/:sessionId/send`
+   - Staff tab: Uses `staff_owner_messages` table
+     - API: `/api/staff/messages/owner/threads`, `/api/staff/messages/:threadId`, `/api/staff/messages/:threadId/send`
+   - Thread list with unread counts
+   - Message view with real-time updates
 
-### Files Created
-- `app/owner/ai/page.tsx` (placeholder - needs full implementation)
-- `app/owner/messages/page.tsx` (placeholder - needs full implementation)
-- `app/owner/subscription/page.tsx` (placeholder - needs full implementation)
+   **b. Customers Page** (`app/owner/customers/page.tsx`)
+   - Lists customers who have booked or messaged
+   - Shows: Name, Email, Phone, Booking Count, Last Booking Date
+   - Data sourced from `bookings` table
 
----
+   **c. AI Assistant Page** (`app/owner/ai/page.tsx`)
+   - Full AI chat interface using `useAIConversation` hook
+   - `user_type='owner'`
+   - Messages stored in `ai_conversations` table
+   - Integrates with shop context
 
-## Data Model Used
+   **d. Settings Page** (`app/owner/settings/page.tsx`)
+   - Account information display
+   - Placeholder sections for preferences and notifications
+   - Ready for future expansion
 
-### Staff Verification
-- `owner_verification` table:
-  - `id`, `user_id`, `shop_id`, `full_name`, `email`, `phone_number`
-  - `verification_status`, `rejection_reason`, `failed_attempts`, `last_rejection_at`
-  - `created_at`, `updated_at`
-- Joined with: `shops`, `users`, `owner_profiles`
-- Documents from: `owner_verification_documents`
+   **e. Reviews Page** (`app/owner/reviews/page.tsx`)
+   - Redirects to `/owner/shop-profile?tab=reviews`
+   - Reuses existing shop profile reviews tab
 
-### Owner Dashboard
-- `bookings` table: For today's and pending bookings counts
-- `customer_chat_messages`: For customer-owner messaging
-- `staff_owner_messages`: For staff-owner messaging
-- `shops` table: For verification status
-- `owner_verification`: For claim status
-- `ai_conversations`: For AI Assistant (using `useAIConversation` hook)
+   **f. Photos Page** (`app/owner/photos/page.tsx`)
+   - Redirects to `/owner/shop-profile?tab=photos`
+   - Reuses existing shop profile photos tab
 
----
+4. **Existing Pages**:
+   - `app/owner/services/page.tsx` - Redirects to `/shops` (existing)
+   - `app/owner/subscription/page.tsx` - Already exists
+   - `app/owner/shop-profile/page.tsx` - Already exists (My Shop)
+
+### Files Created:
+- `app/owner/messages/page.tsx` - Customer and Staff messaging
+- `app/owner/customers/page.tsx` - Customer list
+- `app/owner/ai/page.tsx` - Full AI Assistant
+- `app/owner/settings/page.tsx` - Settings page
+- `app/owner/reviews/page.tsx` - Reviews redirect
+- `app/owner/photos/page.tsx` - Photos redirect
+
+### Files Modified:
+- `app/components/Sidebar.tsx` - Updated navigation items
+- `app/owner/dashboard/page.tsx` - Restructured to show overview stats and AI card
+- `app/staff-dashboard/page.tsx` - Added status filter (GOAL 1)
+- `yoyakuyo-api/src/routes/staff-claims.ts` - Added status filtering (GOAL 1)
+
+## API Endpoints Used
+
+### Owner Messages:
+- `GET /messages/owner/threads` - Get customer conversation threads
+- `GET /messages/thread/:sessionId` - Get customer messages
+- `POST /messages/thread/:sessionId/send` - Send customer message
+- `GET /api/staff/messages/owner/threads` - Get staff conversation threads
+- `GET /api/staff/messages/:threadId` - Get staff messages
+- `POST /api/staff/messages/:threadId/send` - Send staff message
+
+### Staff Claims:
+- `GET /api/staff/claims?status=pending|approved|rejected|all` - Get filtered claims
+
+### Other:
+- `GET /api/owner/shops` - Get owner's shops
+- `GET /api/bookings?shop_id=...` - Get shop bookings
+- `POST /ai/chat` - AI chat endpoint
+
+## Database Tables Used
+
+- `owner_verification` - Shop verification claims
+- `owner_verification_documents` - Verification documents
+- `customer_chat_messages` - Customer ↔ Owner messages
+- `staff_owner_messages` - Staff ↔ Owner messages
+- `staff_owner_threads` - Staff-Owner conversation threads
+- `ai_conversations` - AI chat messages
+- `bookings` - Booking data
+- `shops` - Shop information
+- `users` - User accounts
+- `owner_profiles` - Owner profile data
 
 ## Assumptions Made
 
-1. **Messaging System**:
-   - Assumed existing API endpoints for customer and staff messages are functional
-   - Used placeholder pages for Messages that need full implementation with tabs
+1. **Customer Messages API**: The existing `/messages/owner/threads` endpoint returns customer threads. If this doesn't exist or works differently, the customer tab may need adjustment.
 
-2. **AI Assistant**:
-   - Assumed `useAIConversation` hook works with `user_type='owner'`
-   - Created placeholder page that needs full chat UI implementation
+2. **Shop Context**: The AI Assistant and other pages assume the owner has at least one shop. If no shop exists, appropriate fallbacks are shown.
 
-3. **Subscriptions & Billing**:
-   - Assumed Stripe integration exists but not fully implemented
-   - Created placeholder page that needs Stripe customer portal integration
+3. **Reviews & Photos**: These pages redirect to the shop profile page with tab parameters. The shop profile page must support these tab parameters.
 
-4. **Other Pages**:
-   - Calendar, Customers, Reviews, Photos, Services pages are assumed to exist or need creation
-   - Sidebar links point to these routes but pages may need implementation
+4. **Staff Messages Threads**: The API endpoint `/api/staff/messages/owner/threads` uses `owner_id` which should match `users.id` (not `owner_profiles.id`). This was verified in the staff-messages.ts route.
 
-5. **Logout**:
-   - Uses existing `signOut` function from `useAuth` hook (assumed to work correctly)
-
----
-
-## Next Steps / TODO
-
-1. **Complete Messages Page**:
-   - Implement Customers tab using `customer_chat_messages` API
-   - Implement Staff tab using `staff_owner_messages` API
-   - Add real-time message updates
-
-2. **Complete AI Assistant Page**:
-   - Full chat UI implementation
-   - Ensure `useAIConversation` works correctly with `user_type='owner'`
-
-3. **Complete Subscriptions & Billing Page**:
-   - Integrate Stripe customer portal
-   - Show current plan from `shops.subscription_plan` or equivalent
-   - Add "Manage billing in Stripe" button
-
-4. **Create Missing Pages**:
-   - Calendar page
-   - Customers page
-   - Reviews page
-   - Photos / Media page
-   - Services page
-
-5. **Testing**:
-   - Test status filtering in Staff dashboard
-   - Test overview stats loading in Owner dashboard
-   - Test sidebar navigation
-   - Test logout functionality
-
----
+5. **Unread Counts**: Customer message unread counts are fetched from the threads API. If not available, defaults to 0.
 
 ## Protected Systems (Not Modified)
 
 - ✅ Stripe integration
-- ✅ Payments
-- ✅ Billing
-- ✅ Owner sidebar sections (only updated navigation items)
-- ✅ Logout system (reused existing)
+- ✅ Subscriptions & Billing
+- ✅ Payment processing
 - ✅ Auth system
 - ✅ Role system
-- ✅ Shops table (no destructive changes)
 - ✅ Bookings flow
-- ✅ Owner verification system
-- ✅ Staff dashboard UI (only Shop Verification tab modified)
-- ✅ Customer profiles
+- ✅ Owner verification system (backend logic)
 - ✅ Storage buckets
+- ✅ Database schema (no new tables/columns created)
 
----
+## Testing Recommendations
+
+1. **Staff Verification Tab**:
+   - Test status filters (All, Pending, Approved, Rejected)
+   - Verify claims remain visible after approval/rejection
+   - Test Review button opens detail panel
+   - Verify document viewing works
+
+2. **Owner Dashboard**:
+   - Verify stats cards show correct counts
+   - Test AI Assistant card on dashboard
+   - Test navigation to all sidebar pages
+   - Verify Messages page loads customer and staff threads
+   - Test sending messages in both tabs
+   - Verify Customers page shows booking data
+   - Test AI Assistant full page
+   - Verify Reviews/Photos redirects work
 
 ## Notes
 
-- All changes are production-safe (no destructive SQL, no table drops)
-- Only SELECT/UPDATE operations used
-- Minimal schema changes (none required)
-- Backward compatible API (status filter is optional)
-- History is preserved (approved/rejected claims remain visible)
+- All pages use existing API endpoints and database tables
+- No new database tables or columns were created
+- All TypeScript types are based on existing schema
+- The sidebar logout uses existing `signOut` from `useAuth` hook
+- All pages include proper loading states and error handling
 
 ---
 
-**Status: READY FOR TESTING** 🚀
-
+**Report Generated**: 2025-01-27
+**Status**: ✅ All goals completed
