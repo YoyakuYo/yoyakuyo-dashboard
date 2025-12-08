@@ -40,6 +40,7 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
     const loadConversation = async () => {
       setLoading(true);
       try {
+        console.log('Loading conversation...', { shopId, userId: user.id });
         // Try to find existing support conversation
         const res = await fetch(`${apiUrl}/api/conversations?type=owner_staff`, {
           headers: { 'x-user-id': user.id },
@@ -47,18 +48,24 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
         
         if (res.ok) {
           const data = await res.json();
+          console.log('Conversations loaded:', data.conversations?.length || 0);
           // Find conversation for this shop
           const existingConv = data.conversations?.find((c: any) => 
             c.shop_id === shopId && c.owner_id === user.id
           );
           
           if (existingConv) {
+            console.log('Found existing conversation:', existingConv.id);
             setConversationId(existingConv.id);
             await loadMessages(existingConv.id);
           } else {
+            console.log('No existing conversation found, creating new one...');
             // Create new support conversation
             await createSupportConversation();
           }
+        } else {
+          const errorText = await res.text();
+          console.error('Failed to load conversations:', res.status, errorText);
         }
       } catch (error) {
         console.error('Error loading conversation:', error);
@@ -105,9 +112,13 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
   }, [messages]);
 
   const createSupportConversation = async () => {
-    if (!user?.id || !shopId) return;
+    if (!user?.id || !shopId) {
+      console.error('Cannot create conversation: missing user.id or shopId', { userId: user?.id, shopId });
+      return;
+    }
 
     try {
+      console.log('Creating support conversation...', { shopId, ownerId: user.id });
       // Create conversation (staff_id can be null, will be assigned when staff replies)
       const res = await fetch(`${apiUrl}/api/conversations`, {
         method: 'POST',
@@ -125,14 +136,21 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
 
       if (res.ok) {
         const data = await res.json();
-        setConversationId(data.conversation.id);
-        await loadMessages(data.conversation.id);
+        console.log('Conversation created:', data.conversation?.id);
+        if (data.conversation?.id) {
+          setConversationId(data.conversation.id);
+          await loadMessages(data.conversation.id);
+        } else {
+          console.error('Conversation created but no ID returned:', data);
+        }
       } else {
         const errorText = await res.text();
-        console.error('Failed to create conversation:', errorText);
+        console.error('Failed to create conversation:', res.status, errorText);
+        alert(`Failed to create support conversation: ${errorText}`);
       }
     } catch (error) {
       console.error('Error creating conversation:', error);
+      alert('Failed to create support conversation. Please try again.');
     }
   };
 
@@ -318,9 +336,9 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
+            placeholder={conversationId ? "Type your message..." : "Creating conversation..."}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={sending || !conversationId}
+            disabled={sending || !conversationId || loading}
           />
           <button
             type="submit"
