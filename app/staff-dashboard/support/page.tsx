@@ -80,17 +80,26 @@ export default function SupportInboxPage() {
     fetchUserRole();
   }, [user?.id]);
 
-  // Helper function to determine message label based on sender_id and sender.role
+  // Helper function to determine message label - ONLY based on sender_id comparison
   const getMessageLabel = (msg: Message): string => {
-    // Normalize IDs to strings for comparison
+    // CRITICAL: Compare sender_id with current user id - NO role-based logic
     const isCurrentUser = String(msg.sender_id) === String(user?.id);
     const senderRole = msg.sender?.role || msg.sender_role;
     
+    // DEBUG LOGGING
+    console.log('[StaffSupport] Message label check:', {
+      currentUserId: user?.id,
+      messageSenderId: msg.sender_id,
+      isCurrentUser,
+      senderRole,
+      currentUserRole,
+    });
+    
     if (isCurrentUser) {
-      // Current user's message - use current user's role from API
+      // Current user's message - label based on current user's role from database
       return currentUserRole === 'staff' ? '🛟 You (Staff)' : '👤 You (Owner)';
     } else {
-      // Other person's message - use sender's role from database
+      // Other person's message - label based on sender's role from database
       return senderRole === 'owner' ? '👤 Shop Owner' : '🛟 Staff';
     }
   };
@@ -102,14 +111,55 @@ export default function SupportInboxPage() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/login');
+      router.push('/staff-login');
       return;
     }
 
     if (user?.id) {
-      loadConversations();
+      // HARD SEPARATION: Verify user is staff before loading
+      verifyStaffAccess();
     }
   }, [user, authLoading, router]);
+
+  // HARD SEPARATION: Block non-staff from staff support inbox
+  const verifyStaffAccess = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const res = await fetch(`${apiUrl}/users/me`, {
+        headers: { 'x-user-id': user.id },
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const role = data.user?.role || data.role;
+        setCurrentUserRole(role);
+        
+        // BLOCK owner from staff support inbox
+        if (role === 'owner') {
+          console.error('Access denied: Owner user attempted to access staff support inbox');
+          router.push('/owner/support');
+          return;
+        }
+        
+        // Only allow staff role
+        if (role !== 'staff' && role !== 'super_admin') {
+          console.error('Access denied: User role is not staff', role);
+          router.push('/staff-login');
+          return;
+        }
+        
+        // User is authorized staff - load conversations
+        loadConversations();
+      } else {
+        console.error('Failed to verify user role');
+        router.push('/staff-login');
+      }
+    } catch (error) {
+      console.error('Error verifying staff access:', error);
+      router.push('/staff-login');
+    }
+  };
 
   // Subscribe to realtime updates
   useEffect(() => {
@@ -361,6 +411,16 @@ export default function SupportInboxPage() {
                     // ALIGNMENT RULE: IF sender_id === currentUser.id → RIGHT, ELSE → LEFT
                     // Normalize IDs to strings for comparison
                     const isCurrentUser = String(msg.sender_id) === String(user?.id);
+                    
+                    // DEBUG LOGGING - Required output
+                    console.log('[StaffSupport] Message render:', {
+                      currentUserId: user?.id,
+                      currentUserRole: currentUserRole,
+                      messageSenderId: msg.sender_id,
+                      isCurrentUser,
+                      alignment: isCurrentUser ? 'RIGHT' : 'LEFT',
+                    });
+                    
                     return (
                       <div
                         key={msg.id}

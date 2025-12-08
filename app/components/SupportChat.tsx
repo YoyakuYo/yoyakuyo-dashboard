@@ -58,17 +58,26 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
     fetchUserRole();
   }, [user?.id]);
 
-  // Helper function to determine message label based on sender_id and sender.role
+  // Helper function to determine message label - ONLY based on sender_id comparison
   const getMessageLabel = (msg: Message): string => {
-    // Normalize IDs to strings for comparison
+    // CRITICAL: Compare sender_id with current user id - NO role-based logic
     const isCurrentUser = String(msg.sender_id) === String(user?.id);
     const senderRole = msg.sender?.role || msg.sender_role;
     
+    // DEBUG LOGGING
+    console.log('[SupportChat] Message label check:', {
+      currentUserId: user?.id,
+      messageSenderId: msg.sender_id,
+      isCurrentUser,
+      senderRole,
+      currentUserRole,
+    });
+    
     if (isCurrentUser) {
-      // Current user's message - use current user's role from API
+      // Current user's message - label based on current user's role from database
       return currentUserRole === 'owner' ? '👤 You (Owner)' : '🛟 You (Staff)';
     } else {
-      // Other person's message - use sender's role from database
+      // Other person's message - label based on sender's role from database
       return senderRole === 'owner' ? '👤 Shop Owner' : '🛟 Staff';
     }
   };
@@ -286,6 +295,16 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
                 // ALIGNMENT RULE: IF sender_id === currentUser.id → RIGHT, ELSE → LEFT
                 // Normalize IDs to strings for comparison
                 const isCurrentUser = String(msg.sender_id) === String(user?.id);
+                
+                // DEBUG LOGGING - Required output
+                console.log('[SupportChat] Message render:', {
+                  currentUserId: user?.id,
+                  currentUserRole: currentUserRole,
+                  messageSenderId: msg.sender_id,
+                  isCurrentUser,
+                  alignment: isCurrentUser ? 'RIGHT' : 'LEFT',
+                });
+                
                 return (
                   <div
                     key={msg.id}
@@ -372,6 +391,16 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
             // ALIGNMENT RULE: IF sender_id === currentUser.id → RIGHT, ELSE → LEFT
             // Normalize IDs to strings for comparison
             const isCurrentUser = String(msg.sender_id) === String(user?.id);
+            
+            // DEBUG LOGGING - Required output
+            console.log('[SupportChat] Message render:', {
+              currentUserId: user?.id,
+              currentUserRole: currentUserRole,
+              messageSenderId: msg.sender_id,
+              isCurrentUser,
+              alignment: isCurrentUser ? 'RIGHT' : 'LEFT',
+            });
+            
             return (
               <div
                 key={msg.id}

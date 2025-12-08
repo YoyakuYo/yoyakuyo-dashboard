@@ -55,6 +55,8 @@ export default function OwnerDashboardPage() {
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [shopVerificationStatus, setShopVerificationStatus] = useState<string>('unverified');
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -63,9 +65,52 @@ export default function OwnerDashboardPage() {
     }
 
     if (user?.id) {
-      loadData();
+      checkUserRole();
     }
   }, [user, authLoading, router]);
+
+  // HARD SEPARATION: Block staff from owner dashboard
+  const checkUserRole = async () => {
+    if (!user?.id) return;
+    
+    setRoleLoading(true);
+    try {
+      const res = await fetch(`${apiUrl}/users/me`, {
+        headers: { 'x-user-id': user.id },
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const role = data.user?.role || data.role;
+        setUserRole(role);
+        
+        // BLOCK staff from owner dashboard
+        if (role === 'staff' || role === 'super_admin') {
+          console.error('Access denied: Staff user attempted to access owner dashboard');
+          router.push('/staff-dashboard');
+          return;
+        }
+        
+        // Only allow owner role
+        if (role !== 'owner') {
+          console.error('Access denied: User role is not owner', role);
+          router.push('/login');
+          return;
+        }
+        
+        // User is authorized owner - load data
+        loadData();
+      } else {
+        console.error('Failed to verify user role');
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('Error checking user role:', error);
+      router.push('/login');
+    } finally {
+      setRoleLoading(false);
+    }
+  };
 
   const loadData = async () => {
     if (!user?.id) return;
