@@ -86,16 +86,61 @@ export default function StaffDashboardPage() {
   const [claimDetails, setClaimDetails] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState<string>('pending');
 
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
+
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/login');
+      router.push('/staff-login');
       return;
     }
 
     if (user?.id) {
+      checkUserRole();
+    }
+  }, [user, authLoading, router]);
+
+  const checkUserRole = async () => {
+    if (!user?.id) return;
+    
+    setRoleLoading(true);
+    try {
+      const res = await fetch(`${apiUrl}/users/me`, {
+        headers: { 'x-user-id': user.id },
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const role = data.user?.role || data.role;
+        setUserRole(role);
+        
+        // Check if user is staff or super_admin
+        if (role !== 'staff' && role !== 'super_admin') {
+          // Not authorized - redirect to login
+          router.push('/staff-login');
+          return;
+        }
+        
+        // User is authorized - load data
+        loadData();
+      } else {
+        // Could not verify role - redirect to login
+        console.error('Failed to verify user role');
+        router.push('/staff-login');
+      }
+    } catch (error) {
+      console.error('Error checking user role:', error);
+      router.push('/staff-login');
+    } finally {
+      setRoleLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userRole && (userRole === 'staff' || userRole === 'super_admin')) {
       loadData();
     }
-  }, [user, authLoading, router, activeTab]);
+  }, [activeTab, userRole]);
 
   const loadData = async () => {
     if (!user?.id) return;
