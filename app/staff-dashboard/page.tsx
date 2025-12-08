@@ -56,13 +56,20 @@ interface User {
   claim_status?: string;
 }
 
-interface Thread {
+interface Conversation {
   id: string;
+  type: 'customer_owner' | 'owner_staff' | 'staff_customer';
   shop_id: string;
-  owner_id: string;
-  last_message_at: string;
+  customer_id?: string;
+  owner_id?: string;
+  staff_id?: string;
+  created_at: string;
+  updated_at: string;
+  unread_count?: number;
   shop?: { id: string; name: string };
-  owner?: { id: string; full_name?: string };
+  customer?: { id: string; email?: string; full_name?: string };
+  owner?: { id: string; email?: string; full_name?: string };
+  staff?: { id: string; email?: string; full_name?: string };
 }
 
 export default function StaffDashboardPage() {
@@ -73,7 +80,7 @@ export default function StaffDashboardPage() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [threads, setThreads] = useState<Thread[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedClaim, setSelectedClaim] = useState<string | null>(null);
   const [claimDetails, setClaimDetails] = useState<any>(null);
@@ -108,7 +115,7 @@ export default function StaffDashboardPage() {
           await loadUsers();
           break;
         case 'messages':
-          await loadThreads();
+          await loadConversations();
           break;
       }
     } catch (error) {
@@ -181,18 +188,18 @@ export default function StaffDashboardPage() {
     }
   };
 
-  const loadThreads = async () => {
+  const loadConversations = async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`${apiUrl}/api/staff/messages/threads`, {
+      const res = await fetch(`${apiUrl}/api/conversations`, {
         headers: { 'x-user-id': user.id },
       });
       if (res.ok) {
         const data = await res.json();
-        setThreads(data.threads || []);
+        setConversations(data.conversations || []);
       }
     } catch (error) {
-      console.error('Error loading threads:', error);
+      console.error('Error loading conversations:', error);
     }
   };
 
@@ -377,7 +384,7 @@ export default function StaffDashboardPage() {
           )}
 
           {activeTab === 'messages' && (
-            <MessagesTab threads={threads} userId={user?.id} />
+            <MessagesTab conversations={conversations} userId={user?.id} onRefresh={loadConversations} />
           )}
         </div>
       </div>
@@ -843,15 +850,23 @@ function UsersTab({ users }: { users: User[] }) {
 }
 
 // Messages Tab Component
-function MessagesTab({ threads, userId }: { threads: Thread[]; userId?: string }) {
-  const [selectedThread, setSelectedThread] = useState<string | null>(null);
+function MessagesTab({ 
+  conversations, 
+  userId, 
+  onRefresh 
+}: { 
+  conversations: Conversation[]; 
+  userId?: string;
+  onRefresh: () => void;
+}) {
+  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
 
-  const loadMessages = async (threadId: string) => {
+  const loadMessages = async (conversationId: string) => {
     if (!userId) return;
     try {
-      const res = await fetch(`${apiUrl}/api/messages/${threadId}`, {
+      const res = await fetch(`${apiUrl}/api/conversations/${conversationId}`, {
         headers: { 'x-user-id': userId },
       });
       if (res.ok) {
@@ -863,24 +878,36 @@ function MessagesTab({ threads, userId }: { threads: Thread[]; userId?: string }
     }
   };
 
-  const sendMessage = async (threadId: string) => {
+  const sendMessage = async (conversationId: string) => {
     if (!userId || !newMessage.trim()) return;
     try {
-      const res = await fetch(`${apiUrl}/api/messages/${threadId}/send`, {
+      const res = await fetch(`${apiUrl}/api/conversations/${conversationId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-user-id': userId,
         },
-        body: JSON.stringify({ message: newMessage }),
+        body: JSON.stringify({ content: newMessage }),
       });
       if (res.ok) {
         setNewMessage('');
-        await loadMessages(threadId);
+        await loadMessages(conversationId);
+        onRefresh(); // Refresh conversation list to update unread counts
       }
     } catch (error) {
       console.error('Error sending message:', error);
     }
+  };
+
+  const getConversationTitle = (conv: Conversation) => {
+    if (conv.type === 'customer_owner') {
+      return conv.customer?.full_name || conv.customer?.email || 'Customer';
+    } else if (conv.type === 'owner_staff') {
+      return conv.owner?.full_name || conv.owner?.email || 'Owner';
+    } else if (conv.type === 'staff_customer') {
+      return conv.customer?.full_name || conv.customer?.email || 'Customer';
+    }
+    return 'Unknown';
   };
 
   return (
@@ -889,36 +916,41 @@ function MessagesTab({ threads, userId }: { threads: Thread[]; userId?: string }
       
       <div className="grid grid-cols-3 gap-4">
         <div className="border-r pr-4">
-          <h3 className="font-semibold mb-2">Threads</h3>
-          {threads.length > 0 ? (
+          <h3 className="font-semibold mb-2">Conversations</h3>
+          {conversations.length > 0 ? (
             <div className="space-y-2">
-              {threads.map((thread) => (
+              {conversations.map((conv) => (
                 <button
-                  key={thread.id}
+                  key={conv.id}
                   onClick={() => {
-                    setSelectedThread(thread.id);
-                    loadMessages(thread.id);
+                    setSelectedConversation(conv.id);
+                    loadMessages(conv.id);
                   }}
                   className={`w-full text-left p-2 rounded ${
-                    selectedThread === thread.id ? 'bg-blue-50' : 'hover:bg-gray-50'
+                    selectedConversation === conv.id ? 'bg-blue-50' : 'hover:bg-gray-50'
                   }`}
                 >
                   <p className="font-medium text-sm">
-                    {thread.shop?.name || 'Shop'}
+                    {conv.shop?.name || 'Shop'}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {thread.owner?.full_name || 'Owner'}
+                    {getConversationTitle(conv)}
                   </p>
+                  {conv.unread_count && conv.unread_count > 0 && (
+                    <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">
+                      {conv.unread_count}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No messages</p>
+            <p className="text-sm text-gray-500">No conversations</p>
           )}
         </div>
 
         <div className="col-span-2">
-          {selectedThread ? (
+          {selectedConversation ? (
             <div className="space-y-4">
               <div className="h-64 overflow-y-auto border rounded-lg p-4 space-y-2">
                 {messages.map((msg) => (
@@ -928,7 +960,8 @@ function MessagesTab({ threads, userId }: { threads: Thread[]; userId?: string }
                       msg.sender_role === 'staff' ? 'bg-blue-50 ml-auto' : 'bg-gray-50'
                     }`}
                   >
-                    <p className="text-sm">{msg.message}</p>
+                    <p className="text-sm font-medium">{msg.sender?.full_name || msg.sender?.email || msg.sender_role}</p>
+                    <p className="text-sm">{msg.content}</p>
                     <p className="text-xs text-gray-500 mt-1">
                       {new Date(msg.created_at).toLocaleString()}
                     </p>
@@ -942,14 +975,14 @@ function MessagesTab({ threads, userId }: { threads: Thread[]; userId?: string }
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter' && newMessage.trim()) {
-                      sendMessage(selectedThread);
+                      sendMessage(selectedConversation);
                     }
                   }}
                   className="flex-1 px-4 py-2 border rounded-lg"
                   placeholder="Type a message..."
                 />
                 <button
-                  onClick={() => sendMessage(selectedThread)}
+                  onClick={() => sendMessage(selectedConversation)}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Send
@@ -957,7 +990,7 @@ function MessagesTab({ threads, userId }: { threads: Thread[]; userId?: string }
               </div>
             </div>
           ) : (
-            <p className="text-gray-500">Select a thread to view messages</p>
+            <p className="text-gray-500">Select a conversation to view messages</p>
           )}
         </div>
       </div>
