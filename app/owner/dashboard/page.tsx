@@ -76,17 +76,19 @@ export default function OwnerDashboardPage() {
         loadBookings(),
         loadUnreadMessages(),
       ]);
-      
-      // Load verification status after shop is loaded
-      if (shop) {
-        await loadShopVerificationStatus();
-      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Load verification status when shop is available
+  useEffect(() => {
+    if (shop?.id && user?.id) {
+      loadShopVerificationStatus();
+    }
+  }, [shop?.id, user?.id]);
 
   const loadClaims = async () => {
     if (!user?.id) return;
@@ -180,7 +182,7 @@ export default function OwnerDashboardPage() {
   };
   
   const loadShopVerificationStatus = async () => {
-    if (!user?.id || !shop?.id) return;
+    if (!user?.id) return;
     try {
       // Check owner_verification table directly (source of truth)
       const verificationRes = await fetch(`${apiUrl}/api/owner/claims/my`, {
@@ -189,39 +191,74 @@ export default function OwnerDashboardPage() {
       if (verificationRes.ok) {
         const verificationData = await verificationRes.json();
         const verifications = verificationData.claims || [];
-        // Find verification for this shop
-        const shopVerification = verifications.find((v: any) => v.shop_id === shop.id);
+        
+        // Find verification for current shop (if shop is loaded) or any approved verification
+        let shopVerification = null;
+        if (shop?.id) {
+          shopVerification = verifications.find((v: any) => v.shop_id === shop.id);
+        } else {
+          // If no shop loaded yet, check for any approved verification
+          shopVerification = verifications.find((v: any) => 
+            v.status === 'approved' || v.verification_status === 'approved'
+          );
+        }
+        
         if (shopVerification) {
-          // Map verification_status to our status
-          if (shopVerification.status === 'approved' || shopVerification.verification_status === 'approved') {
+          // The API returns both 'status' (mapped from verification_status) and 'verification_status'
+          // Check both fields to be safe
+          const status = shopVerification.status || shopVerification.verification_status;
+          console.log('Found verification:', { 
+            shop_id: shopVerification.shop_id, 
+            status, 
+            verification_status: shopVerification.verification_status 
+          });
+          
+          if (status === 'approved') {
             setShopVerificationStatus('verified');
-          } else if (shopVerification.status === 'pending' || shopVerification.verification_status === 'pending') {
+            return;
+          } else if (status === 'pending' || status === 'submitted') {
             setShopVerificationStatus('pending');
+            return;
           } else {
             setShopVerificationStatus('unverified');
+            return;
           }
-          return;
+        } else {
+          console.log('No verification found for shop:', shop?.id, 'All verifications:', verifications);
+        }
+      } else {
+        console.error('Failed to fetch verifications:', await verificationRes.text());
+      }
+      
+      // Fallback: Check shop data if shop is loaded
+      if (shop?.id) {
+        const res = await fetch(`${apiUrl}/shops/${shop.id}`, {
+          headers: { 'x-user-id': user.id },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const shopData = data.shop || data;
+          console.log('Shop data fallback:', { 
+            is_verified: shopData.is_verified, 
+            verification_status: shopData.verification_status 
+          });
+          // Check both is_verified and verification_status
+          if (shopData.is_verified === true || shopData.verification_status === 'approved') {
+            setShopVerificationStatus('verified');
+            return;
+          } else if (shopData.verification_status === 'pending') {
+            setShopVerificationStatus('pending');
+            return;
+          }
         }
       }
       
-      // Fallback: Check shop data
-      const res = await fetch(`${apiUrl}/shops/${shop.id}`, {
-        headers: { 'x-user-id': user.id },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const shopData = data.shop || data;
-        // Check both is_verified and verification_status
-        if (shopData.is_verified === true || shopData.verification_status === 'approved') {
-          setShopVerificationStatus('verified');
-        } else if (shopData.verification_status === 'pending') {
-          setShopVerificationStatus('pending');
-        } else {
-          setShopVerificationStatus('unverified');
-        }
-      }
+      // Default to unverified if nothing found
+      console.log('Setting status to unverified (no approved verification found)');
+      setShopVerificationStatus('unverified');
     } catch (error) {
       console.error('Error loading shop verification status:', error);
+      setShopVerificationStatus('unverified');
     }
   };
 
