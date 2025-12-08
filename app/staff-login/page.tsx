@@ -198,7 +198,8 @@ export default function StaffLoginPage() {
           </div>
         )}
 
-        <div className="mt-6 text-center text-sm text-gray-600">
+        <div className="mt-6 text-center text-sm text-gray-600 space-y-2">
+          <p>Don't have an account? <Link href="/staff-signup" className="text-blue-600 hover:underline">Sign up</Link></p>
           <p>Not a staff member? <Link href="/login" className="text-blue-600 hover:underline">Use regular login</Link></p>
         </div>
       </div>
