@@ -868,6 +868,11 @@ function MessagesTab({
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [showNewConversation, setShowNewConversation] = useState(false);
+  const [availableOwners, setAvailableOwners] = useState<any[]>([]);
+  const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(null);
+  const [loadingOwners, setLoadingOwners] = useState(false);
 
   const loadMessages = async (conversationId: string) => {
     if (!userId) return;
@@ -911,6 +916,76 @@ function MessagesTab({
     }
   };
 
+  const loadAvailableOwners = async () => {
+    if (!userId) return;
+    setLoadingOwners(true);
+    try {
+      // Get all owners with their shops
+      const res = await fetch(`${apiUrl}/api/staff/users?role=owner`, {
+        headers: { 'x-user-id': userId },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Format owners with shop info
+        const ownersWithShops = (data.users || [])
+          .filter((u: any) => u.role === 'owner' && u.shop)
+          .map((u: any) => ({
+            id: u.id,
+            full_name: u.full_name,
+            email: u.email,
+            shop_id: u.shop?.id,
+            shop_name: u.shop?.name,
+          }));
+        setAvailableOwners(ownersWithShops);
+        console.log('Loaded available owners:', ownersWithShops.length);
+      } else {
+        console.error('Failed to load owners:', await res.text());
+      }
+    } catch (error) {
+      console.error('Error loading owners:', error);
+    } finally {
+      setLoadingOwners(false);
+    }
+  };
+
+  const startNewConversation = async () => {
+    if (!userId || !selectedShopId || !selectedOwnerId) {
+      alert('Please select a shop and owner');
+      return;
+    }
+    try {
+      const res = await fetch(`${apiUrl}/api/conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId,
+        },
+        body: JSON.stringify({
+          type: 'owner_staff',
+          shop_id: selectedShopId,
+          owner_id: selectedOwnerId,
+          staff_id: userId,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedConversation(data.conversation.id);
+        await loadMessages(data.conversation.id);
+        setShowNewConversation(false);
+        setSelectedShopId(null);
+        setSelectedOwnerId(null);
+        onRefresh();
+      } else {
+        const errorText = await res.text();
+        console.error('Failed to create conversation:', errorText);
+        alert('Failed to start conversation');
+      }
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      alert('Failed to start conversation');
+    }
+  };
+
   const getConversationTitle = (conv: Conversation) => {
     if (conv.type === 'customer_owner') {
       return conv.customer?.full_name || conv.customer?.email || 'Customer';
@@ -922,93 +997,216 @@ function MessagesTab({
     return 'Unknown';
   };
 
+  useEffect(() => {
+    if (showNewConversation) {
+      loadAvailableOwners();
+    }
+  }, [showNewConversation, userId]);
+
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Messages</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Messages</h2>
+        <button
+          onClick={() => setShowNewConversation(!showNewConversation)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          {showNewConversation ? 'Cancel' : '+ New Conversation'}
+        </button>
+      </div>
       
       <div className="grid grid-cols-3 gap-4">
         <div className="border-r pr-4">
           <h3 className="font-semibold mb-2">Conversations</h3>
-          {conversations.length > 0 ? (
-            <div className="space-y-2">
-              {conversations.map((conv) => (
-                <button
-                  key={conv.id}
-                  onClick={() => {
-                    setSelectedConversation(conv.id);
-                    loadMessages(conv.id);
+          {showNewConversation ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Select Shop</label>
+                <select
+                  value={selectedShopId || ''}
+                  onChange={(e) => {
+                    setSelectedShopId(e.target.value);
+                    setSelectedOwnerId(null);
                   }}
-                  className={`w-full text-left p-2 rounded ${
-                    selectedConversation === conv.id ? 'bg-blue-50' : 'hover:bg-gray-50'
-                  }`}
+                  className="w-full px-3 py-2 border rounded-lg"
                 >
-                  <p className="font-medium text-sm">
-                    {conv.shop?.name || 'Shop'}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {getConversationTitle(conv)}
-                  </p>
-                  {conv.unread_count && conv.unread_count > 0 && (
-                    <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">
-                      {conv.unread_count}
-                    </span>
-                  )}
-                </button>
-              ))}
+                  <option value="">Choose a shop...</option>
+                  {availableOwners.map((owner: any) => (
+                    <option key={owner.shop_id} value={owner.shop_id}>
+                      {owner.shop_name || `Shop ${owner.shop_id?.substring(0, 8)}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {selectedShopId && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Select Owner</label>
+                  <select
+                    value={selectedOwnerId || ''}
+                    onChange={(e) => setSelectedOwnerId(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="">Choose an owner...</option>
+                    {availableOwners
+                      .filter((o: any) => o.shop_id === selectedShopId)
+                      .map((owner: any) => (
+                        <option key={owner.id} value={owner.id}>
+                          {owner.full_name || owner.email || `Owner ${owner.id?.substring(0, 8)}`}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+              <button
+                onClick={startNewConversation}
+                disabled={!selectedShopId || !selectedOwnerId || loadingOwners}
+                className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+              >
+                Start Conversation
+              </button>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">No conversations</p>
+            <>
+              {conversations.length > 0 ? (
+                <div className="space-y-2">
+                  {conversations.map((conv) => (
+                    <button
+                      key={conv.id}
+                      onClick={() => {
+                        setSelectedConversation(conv.id);
+                        loadMessages(conv.id);
+                      }}
+                      className={`w-full text-left p-2 rounded ${
+                        selectedConversation === conv.id ? 'bg-blue-50' : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <p className="font-medium text-sm">
+                        {conv.shop?.name || 'Shop'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {getConversationTitle(conv)}
+                      </p>
+                      {conv.unread_count && conv.unread_count > 0 && (
+                        <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">
+                          {conv.unread_count}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-500 mb-4">No conversations</p>
+                  <button
+                    onClick={() => setShowNewConversation(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                  >
+                    Start New Conversation
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
         <div className="col-span-2">
           {selectedConversation ? (
-            <div className="space-y-4">
-              <div className="h-64 overflow-y-auto border rounded-lg p-4 space-y-2">
-                {messages.length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">
-                    <p className="text-sm">No messages yet. Start the conversation!</p>
-                  </div>
-                ) : (
-                  messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`p-2 rounded ${
-                        msg.sender_role === 'staff' ? 'bg-blue-50 ml-auto' : 'bg-gray-50'
-                      }`}
-                    >
-                      <p className="text-sm font-medium">{msg.sender?.full_name || msg.sender?.email || msg.sender_role}</p>
-                      <p className="text-sm">{msg.content}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(msg.created_at).toLocaleString()}
+            <>
+              {/* Conversation Header */}
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
+                {(() => {
+                  const conv = conversations.find(c => c.id === selectedConversation);
+                  return (
+                    <div>
+                      <h3 className="font-semibold text-gray-900">
+                        {conv?.shop?.name || 'Shop'}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {getConversationTitle(conv!)}
                       </p>
                     </div>
-                  ))
+                  );
+                })()}
+              </div>
+
+              {/* Messages Area */}
+              <div className="bg-white border rounded-lg flex flex-col" style={{ height: '500px' }}>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {messages.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">
+                      <p className="text-sm">No messages yet. Start the conversation!</p>
+                    </div>
+                  ) : (
+                    messages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`flex ${
+                          msg.sender_role === 'staff' ? 'justify-end' : 'justify-start'
+                        }`}
+                      >
+                        <div
+                          className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                            msg.sender_role === 'staff'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-900'
+                          }`}
+                        >
+                          <p className="text-xs font-medium mb-1 opacity-80">
+                            {msg.sender?.full_name || msg.sender?.email || msg.sender_role}
+                          </p>
+                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                          <p className="text-xs mt-1 opacity-70">
+                            {new Date(msg.created_at).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Send Message Input - ALWAYS VISIBLE when conversation is selected */}
+                <div className="border-t p-4 bg-gray-50">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey && newMessage.trim()) {
+                          e.preventDefault();
+                          sendMessage(selectedConversation);
+                        }
+                      }}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Type a message..."
+                      disabled={!selectedConversation}
+                    />
+                    <button
+                      onClick={() => sendMessage(selectedConversation)}
+                      disabled={!selectedConversation || !newMessage.trim()}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    >
+                      Send
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-96 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+              <div className="text-center">
+                <p className="text-gray-500 text-lg mb-2">No conversation selected</p>
+                <p className="text-gray-400 text-sm mb-4">Select a conversation from the list or start a new one</p>
+                {!showNewConversation && (
+                  <button
+                    onClick={() => setShowNewConversation(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Start New Conversation
+                  </button>
                 )}
               </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && newMessage.trim()) {
-                      sendMessage(selectedConversation);
-                    }
-                  }}
-                  className="flex-1 px-4 py-2 border rounded-lg"
-                  placeholder="Type a message..."
-                />
-                <button
-                  onClick={() => sendMessage(selectedConversation)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Send
-                </button>
-              </div>
             </div>
-          ) : (
-            <p className="text-gray-500">Select a conversation to view messages</p>
           )}
         </div>
       </div>
