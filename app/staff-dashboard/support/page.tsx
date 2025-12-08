@@ -324,11 +324,26 @@ export default function SupportInboxPage() {
                             : 'bg-white text-gray-900 border border-gray-200'
                         }`}
                       >
-                        <p className="text-xs font-medium mb-1 opacity-80">
-                          {msg.sender?.full_name || msg.sender?.email || msg.sender_role}
-                        </p>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`text-xs font-bold px-2 py-1 rounded ${
+                            msg.sender_role === 'staff'
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-orange-100 text-orange-700'
+                          }`}>
+                            {msg.sender_role === 'staff' ? '🛟 You (Support)' : '👤 Shop Owner'}
+                          </span>
+                          {msg.sender?.full_name && (
+                            <span className={`text-xs font-medium ${
+                              msg.sender_role === 'staff' ? 'opacity-90' : 'text-gray-600'
+                            }`}>
+                              {msg.sender.full_name}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                        <p className="text-xs mt-1 opacity-70">
+                        <p className={`text-xs mt-1 ${
+                          msg.sender_role === 'staff' ? 'opacity-70' : 'text-gray-500'
+                        }`}>
                           {new Date(msg.created_at).toLocaleString()}
                         </p>
                       </div>

@@ -249,6 +249,20 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
                         : 'bg-white text-gray-900 border border-gray-200'
                     }`}
                   >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                        msg.sender_role === 'owner'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-200 text-gray-700'
+                      }`}>
+                        {msg.sender_role === 'owner' ? '👤 You' : '🛟 Support'}
+                      </span>
+                      {msg.sender?.full_name && (
+                        <span className="text-xs opacity-80">
+                          {msg.sender.full_name}
+                        </span>
+                      )}
+                    </div>
                     <p className="whitespace-pre-wrap">{msg.content}</p>
                     <p className="text-xs mt-1 opacity-70">
                       {new Date(msg.created_at).toLocaleTimeString()}
@@ -318,11 +332,26 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
                     : 'bg-white text-gray-900 border border-gray-200'
                 }`}
               >
-                <p className="text-xs font-medium mb-1 opacity-80">
-                  {msg.sender?.full_name || msg.sender?.email || msg.sender_role}
-                </p>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-xs font-bold px-2 py-1 rounded ${
+                    msg.sender_role === 'owner'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {msg.sender_role === 'owner' ? '👤 You (Owner)' : '🛟 Support Team'}
+                  </span>
+                  {msg.sender?.full_name && (
+                    <span className={`text-xs font-medium ${
+                      msg.sender_role === 'owner' ? 'opacity-90' : 'text-gray-600'
+                    }`}>
+                      {msg.sender.full_name}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                <p className="text-xs mt-1 opacity-70">
+                <p className={`text-xs mt-1 ${
+                  msg.sender_role === 'owner' ? 'opacity-70' : 'text-gray-500'
+                }`}>
                   {new Date(msg.created_at).toLocaleTimeString()}
                 </p>
               </div>
