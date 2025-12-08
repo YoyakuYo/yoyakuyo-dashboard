@@ -27,15 +27,21 @@ export default function OwnerSupportPage() {
     if (!user?.id) return;
     
     try {
-      const res = await fetch(`${apiUrl}/api/shops/owner`, {
+      const res = await fetch(`${apiUrl}/shops/owner`, {
         headers: { 'x-user-id': user.id },
       });
       
       if (res.ok) {
         const data = await res.json();
+        console.log('Shop data:', data); // Debug log
         if (data.shops && data.shops.length > 0) {
           setShopId(data.shops[0].id);
+        } else {
+          console.warn('No shops found for user:', user.id);
         }
+      } else {
+        const errorText = await res.text();
+        console.error('Failed to load shop:', res.status, errorText);
       }
     } catch (error) {
       console.error('Error loading shop:', error);
