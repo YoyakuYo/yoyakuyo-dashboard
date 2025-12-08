@@ -182,16 +182,43 @@ export default function OwnerDashboardPage() {
   const loadShopVerificationStatus = async () => {
     if (!user?.id || !shop?.id) return;
     try {
+      // Check owner_verification table directly (source of truth)
+      const verificationRes = await fetch(`${apiUrl}/api/owner/claims/my`, {
+        headers: { 'x-user-id': user.id },
+      });
+      if (verificationRes.ok) {
+        const verificationData = await verificationRes.json();
+        const verifications = verificationData.claims || [];
+        // Find verification for this shop
+        const shopVerification = verifications.find((v: any) => v.shop_id === shop.id);
+        if (shopVerification) {
+          // Map verification_status to our status
+          if (shopVerification.status === 'approved' || shopVerification.verification_status === 'approved') {
+            setShopVerificationStatus('verified');
+          } else if (shopVerification.status === 'pending' || shopVerification.verification_status === 'pending') {
+            setShopVerificationStatus('pending');
+          } else {
+            setShopVerificationStatus('unverified');
+          }
+          return;
+        }
+      }
+      
+      // Fallback: Check shop data
       const res = await fetch(`${apiUrl}/shops/${shop.id}`, {
         headers: { 'x-user-id': user.id },
       });
       if (res.ok) {
         const data = await res.json();
         const shopData = data.shop || data;
-        setShopVerificationStatus(
-          shopData.is_verified ? 'verified' : 
-          shopData.verification_status || 'unverified'
-        );
+        // Check both is_verified and verification_status
+        if (shopData.is_verified === true || shopData.verification_status === 'approved') {
+          setShopVerificationStatus('verified');
+        } else if (shopData.verification_status === 'pending') {
+          setShopVerificationStatus('pending');
+        } else {
+          setShopVerificationStatus('unverified');
+        }
       }
     } catch (error) {
       console.error('Error loading shop verification status:', error);
