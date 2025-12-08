@@ -33,17 +33,39 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string>('owner');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
 
+  // Fetch current user's role from API
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const fetchUserRole = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/users/me`, {
+          headers: { 'x-user-id': user.id },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentUserRole(data.user?.role || 'owner');
+        }
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+      }
+    };
+    
+    fetchUserRole();
+  }, [user?.id]);
+
   // Helper function to determine message label based on sender_id and sender.role
   const getMessageLabel = (msg: Message): string => {
-    const isCurrentUser = msg.sender_id === user?.id;
-    const currentUserRole = user?.role || 'owner'; // Get from user context
+    // Normalize IDs to strings for comparison
+    const isCurrentUser = String(msg.sender_id) === String(user?.id);
     const senderRole = msg.sender?.role || msg.sender_role;
     
     if (isCurrentUser) {
-      // Current user's message - use current user's role
+      // Current user's message - use current user's role from API
       return currentUserRole === 'owner' ? '👤 You (Owner)' : '🛟 You (Staff)';
     } else {
       // Other person's message - use sender's role from database
@@ -262,7 +284,8 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
             ) : (
               messages.map((msg) => {
                 // ALIGNMENT RULE: IF sender_id === currentUser.id → RIGHT, ELSE → LEFT
-                const isCurrentUser = msg.sender_id === user?.id;
+                // Normalize IDs to strings for comparison
+                const isCurrentUser = String(msg.sender_id) === String(user?.id);
                 return (
                   <div
                     key={msg.id}
@@ -347,7 +370,8 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
         ) : (
           messages.map((msg) => {
             // ALIGNMENT RULE: IF sender_id === currentUser.id → RIGHT, ELSE → LEFT
-            const isCurrentUser = msg.sender_id === user?.id;
+            // Normalize IDs to strings for comparison
+            const isCurrentUser = String(msg.sender_id) === String(user?.id);
             return (
               <div
                 key={msg.id}
