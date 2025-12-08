@@ -103,6 +103,7 @@ const Sidebar = React.memo(() => {
     { href: '/owner/shop-profile', label: 'My Shop', icon: '🏪' },
     { href: '/owner/messages', label: 'Messages', icon: '💬', badge: unreadCount > 0 ? unreadCount : undefined },
     { href: '/owner/ai', label: 'AI Assistant', icon: '🤖' },
+    { href: '/owner/support', label: 'Contact Support', icon: '💬' },
     { href: '/owner/subscription', label: 'Subscriptions & Billing', icon: '💳' },
     { href: '/owner/settings', label: 'Settings', icon: '⚙️' },
   ];
