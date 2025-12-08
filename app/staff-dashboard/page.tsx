@@ -196,10 +196,16 @@ export default function StaffDashboardPage() {
       });
       if (res.ok) {
         const data = await res.json();
+        console.log('Loaded conversations:', data.conversations?.length || 0, 'conversations');
         setConversations(data.conversations || []);
+      } else {
+        const errorText = await res.text();
+        console.error('Failed to load conversations:', res.status, errorText);
+        setConversations([]);
       }
     } catch (error) {
       console.error('Error loading conversations:', error);
+      setConversations([]);
     }
   };
 
@@ -871,10 +877,16 @@ function MessagesTab({
       });
       if (res.ok) {
         const data = await res.json();
+        console.log('Loaded messages:', data.messages?.length || 0, 'messages');
         setMessages(data.messages || []);
+      } else {
+        const errorText = await res.text();
+        console.error('Failed to load messages:', res.status, errorText);
+        setMessages([]);
       }
     } catch (error) {
       console.error('Error loading messages:', error);
+      setMessages([]);
     }
   };
 
@@ -953,20 +965,26 @@ function MessagesTab({
           {selectedConversation ? (
             <div className="space-y-4">
               <div className="h-64 overflow-y-auto border rounded-lg p-4 space-y-2">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`p-2 rounded ${
-                      msg.sender_role === 'staff' ? 'bg-blue-50 ml-auto' : 'bg-gray-50'
-                    }`}
-                  >
-                    <p className="text-sm font-medium">{msg.sender?.full_name || msg.sender?.email || msg.sender_role}</p>
-                    <p className="text-sm">{msg.content}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(msg.created_at).toLocaleString()}
-                    </p>
+                {messages.length === 0 ? (
+                  <div className="text-center text-gray-500 py-8">
+                    <p className="text-sm">No messages yet. Start the conversation!</p>
                   </div>
-                ))}
+                ) : (
+                  messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`p-2 rounded ${
+                        msg.sender_role === 'staff' ? 'bg-blue-50 ml-auto' : 'bg-gray-50'
+                      }`}
+                    >
+                      <p className="text-sm font-medium">{msg.sender?.full_name || msg.sender?.email || msg.sender_role}</p>
+                      <p className="text-sm">{msg.content}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(msg.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  ))
+                )}
               </div>
               <div className="flex gap-2">
                 <input

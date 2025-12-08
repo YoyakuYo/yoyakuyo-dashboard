@@ -98,6 +98,7 @@ export default function OwnerMessagesPage() {
       });
       if (res.ok) {
         const data = await res.json();
+        console.log('Loaded customer conversations:', data.conversations?.length || 0);
         // Format conversations for customer messages
         const formattedThreads: CustomerThread[] = (data.conversations || []).map((conv: any) => ({
           id: conv.id,
@@ -110,7 +111,8 @@ export default function OwnerMessagesPage() {
         }));
         setCustomerThreads(formattedThreads);
       } else {
-        console.error('Failed to load customer conversations:', await res.text());
+        const errorText = await res.text();
+        console.error('Failed to load customer conversations:', res.status, errorText);
         setCustomerThreads([]);
       }
     } catch (error) {
@@ -128,6 +130,7 @@ export default function OwnerMessagesPage() {
       });
       if (res.ok) {
         const data = await res.json();
+        console.log('Loaded staff conversations:', data.conversations?.length || 0);
         // Format conversations for staff messages
         const formattedThreads: StaffThread[] = (data.conversations || []).map((conv: any) => ({
           id: conv.id,
@@ -139,7 +142,8 @@ export default function OwnerMessagesPage() {
         }));
         setStaffThreads(formattedThreads);
       } else {
-        console.error('Failed to load staff conversations:', await res.text());
+        const errorText = await res.text();
+        console.error('Failed to load staff conversations:', res.status, errorText);
         setStaffThreads([]);
       }
     } catch (error) {
@@ -156,6 +160,7 @@ export default function OwnerMessagesPage() {
       });
       if (res.ok) {
         const data = await res.json();
+        console.log('Loaded messages for conversation:', conversationId, 'Count:', data.messages?.length || 0);
         // Format messages for display
         const formattedMessages: Message[] = (data.messages || []).map((msg: any) => ({
           id: msg.id,
@@ -166,7 +171,8 @@ export default function OwnerMessagesPage() {
         }));
         setMessages(formattedMessages);
       } else {
-        console.error('Failed to load messages:', await res.text());
+        const errorText = await res.text();
+        console.error('Failed to load messages:', res.status, errorText);
         setMessages([]);
       }
     } catch (error) {
