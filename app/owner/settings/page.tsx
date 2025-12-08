@@ -6,11 +6,19 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/useAuth";
 import { useRouter } from "next/navigation";
+import { apiUrl } from "@/lib/apiClient";
+
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+}
 
 export default function OwnerSettingsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -18,10 +26,32 @@ export default function OwnerSettingsPage() {
       return;
     }
 
-    if (user) {
-      setLoading(false);
+    if (user?.id) {
+      loadUserProfile();
     }
   }, [user, authLoading, router]);
+
+  const loadUserProfile = async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`${apiUrl}/users/me`, {
+        headers: { 'x-user-id': user.id },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserProfile(data.user || { id: user.id, email: user.email || '' });
+      } else {
+        // Fallback to auth user data
+        setUserProfile({ id: user.id, email: user.email || '' });
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+      // Fallback to auth user data
+      setUserProfile({ id: user.id, email: user.email || '' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading || authLoading) {
     return (
@@ -46,13 +76,13 @@ export default function OwnerSettingsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email
               </label>
-              <p className="text-gray-900">{user?.email || 'N/A'}</p>
+              <p className="text-gray-900">{userProfile?.email || user?.email || 'N/A'}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Full Name
               </label>
-              <p className="text-gray-900">{user?.full_name || 'N/A'}</p>
+              <p className="text-gray-900">{userProfile?.full_name || 'N/A'}</p>
             </div>
           </div>
         </div>
