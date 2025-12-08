@@ -58,19 +58,15 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
             console.log('Found existing conversation:', existingConv.id);
             setConversationId(existingConv.id);
             await loadMessages(existingConv.id);
+          } else {
+            console.log('No existing conversation found, creating new one...');
+            // Create new support conversation
+            await createSupportConversation();
+          }
         } else {
-          console.log('No existing conversation found, creating new one...');
-          // Create new support conversation
-          await createSupportConversation();
-        }
-      } else {
-        console.error('Failed to load conversations, status:', res.status);
-        const errorText = await res.text();
-        console.error('Error response:', errorText);
-      }
-        } else {
+          console.error('Failed to load conversations, status:', res.status);
           const errorText = await res.text();
-          console.error('Failed to load conversations:', res.status, errorText);
+          console.error('Error response:', errorText);
         }
       } catch (error) {
         console.error('Error loading conversation:', error);
