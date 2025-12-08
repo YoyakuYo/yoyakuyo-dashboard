@@ -92,39 +92,26 @@ export default function OwnerMessagesPage() {
   const loadCustomerThreads = async () => {
     if (!user?.id) return;
     try {
-      // Get owner's shops first
-      const shopsRes = await fetch(`${apiUrl}/api/owner/shops`, {
+      // Get customer_owner conversations
+      const res = await fetch(`${apiUrl}/api/conversations?type=customer_owner`, {
         headers: { 'x-user-id': user.id },
       });
-      if (!shopsRes.ok) {
-        setCustomerThreads([]);
-        return;
-      }
-      const shopsData = await shopsRes.json();
-      const shops = shopsData.shops || [];
-
-      if (shops.length === 0) {
-        setCustomerThreads([]);
-        return;
-      }
-
-      // Get threads for all shops
-      const threadsRes = await fetch(`${apiUrl}/messages/owner/threads`, {
-        headers: { 'x-user-id': user.id },
-      });
-      if (threadsRes.ok) {
-        const threadsData = await threadsRes.json();
-        // Format threads for customer messages
-        const formattedThreads: CustomerThread[] = (threadsData.threads || []).map((t: any) => ({
-          id: t.session_id || t.id,
-          session_id: t.session_id || t.id,
-          shop_id: t.shop_id,
-          shop_name: t.shop?.name,
-          customer_email: t.customer_email,
-          lastMessageAt: t.updated_at || t.created_at,
-          unreadCount: t.unreadCount || 0,
+      if (res.ok) {
+        const data = await res.json();
+        // Format conversations for customer messages
+        const formattedThreads: CustomerThread[] = (data.conversations || []).map((conv: any) => ({
+          id: conv.id,
+          session_id: conv.id,
+          shop_id: conv.shop_id,
+          shop_name: conv.shop?.name,
+          customer_email: conv.customer?.email,
+          lastMessageAt: conv.updated_at || conv.created_at,
+          unreadCount: conv.unread_count || 0,
         }));
         setCustomerThreads(formattedThreads);
+      } else {
+        console.error('Failed to load customer conversations:', await res.text());
+        setCustomerThreads([]);
       }
     } catch (error) {
       console.error('Error loading customer threads:', error);
@@ -135,12 +122,25 @@ export default function OwnerMessagesPage() {
   const loadStaffThreads = async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`${apiUrl}/api/staff/messages/owner/threads`, {
+      // Get owner_staff conversations
+      const res = await fetch(`${apiUrl}/api/conversations?type=owner_staff`, {
         headers: { 'x-user-id': user.id },
       });
       if (res.ok) {
         const data = await res.json();
-        setStaffThreads(data.threads || []);
+        // Format conversations for staff messages
+        const formattedThreads: StaffThread[] = (data.conversations || []).map((conv: any) => ({
+          id: conv.id,
+          shop_id: conv.shop_id,
+          staff_id: conv.staff_id || '',
+          shop: conv.shop,
+          staff: conv.staff,
+          last_message_at: conv.updated_at || conv.created_at,
+        }));
+        setStaffThreads(formattedThreads);
+      } else {
+        console.error('Failed to load staff conversations:', await res.text());
+        setStaffThreads([]);
       }
     } catch (error) {
       console.error('Error loading staff threads:', error);
@@ -148,25 +148,26 @@ export default function OwnerMessagesPage() {
     }
   };
 
-  const loadMessages = async (threadId: string) => {
+  const loadMessages = async (conversationId: string) => {
     if (!user?.id) return;
     try {
-      if (activeTab === 'customers') {
-        const res = await fetch(`${apiUrl}/messages/thread/${threadId}`, {
-          headers: { 'x-user-id': user.id },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setMessages(data || []);
-        }
+      const res = await fetch(`${apiUrl}/api/conversations/${conversationId}`, {
+        headers: { 'x-user-id': user.id },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Format messages for display
+        const formattedMessages: Message[] = (data.messages || []).map((msg: any) => ({
+          id: msg.id,
+          role: msg.sender_role === 'owner' ? 'assistant' : 'user',
+          sender_type: msg.sender_role,
+          content: msg.content,
+          created_at: msg.created_at,
+        }));
+        setMessages(formattedMessages);
       } else {
-        const res = await fetch(`${apiUrl}/api/staff/messages/${threadId}`, {
-          headers: { 'x-user-id': user.id },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setMessages(data.messages || []);
-        }
+        console.error('Failed to load messages:', await res.text());
+        setMessages([]);
       }
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -182,31 +183,24 @@ export default function OwnerMessagesPage() {
     setSending(true);
 
     try {
-      if (activeTab === 'customers') {
-        const res = await fetch(`${apiUrl}/messages/thread/${selectedThread}/send`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-user-id': user.id,
-          },
-          body: JSON.stringify({ message: messageText }),
-        });
-        if (res.ok) {
-          await loadMessages(selectedThread);
-        }
-      } else {
-        const res = await fetch(`${apiUrl}/api/staff/messages/${selectedThread}/send`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-user-id': user.id,
-          },
-          body: JSON.stringify({ message: messageText }),
-        });
-        if (res.ok) {
-          await loadMessages(selectedThread);
+      const res = await fetch(`${apiUrl}/api/conversations/${selectedThread}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user.id,
+        },
+        body: JSON.stringify({ content: messageText }),
+      });
+      if (res.ok) {
+        await loadMessages(selectedThread);
+        // Refresh conversation list to update unread counts
+        if (activeTab === 'customers') {
+          await loadCustomerThreads();
+        } else {
           await loadStaffThreads();
         }
+      } else {
+        console.error('Failed to send message:', await res.text());
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -279,9 +273,9 @@ export default function OwnerMessagesPage() {
                   {customerThreads.map((thread) => (
                     <button
                       key={thread.id}
-                      onClick={() => setSelectedThread(thread.session_id)}
+                      onClick={() => setSelectedThread(thread.id)}
                       className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
-                        selectedThread === thread.session_id ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+                        selectedThread === thread.id ? 'bg-blue-50 border-l-4 border-blue-600' : ''
                       }`}
                     >
                       <p className="font-medium text-sm text-gray-900">
@@ -336,7 +330,7 @@ export default function OwnerMessagesPage() {
               <div className="p-4 border-b border-gray-200">
                 <h2 className="font-semibold text-gray-900">
                   {activeTab === 'customers'
-                    ? customerThreads.find(t => t.session_id === selectedThread)?.customer_email || 'Customer'
+                    ? customerThreads.find(t => t.id === selectedThread)?.customer_email || 'Customer'
                     : staffThreads.find(t => t.id === selectedThread)?.staff?.full_name || 'Staff'}
                 </h2>
               </div>
