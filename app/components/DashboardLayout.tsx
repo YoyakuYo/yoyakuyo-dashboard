@@ -99,12 +99,15 @@ export default function DashboardLayout({
   }
 
   // For owner dashboard routes, apply full dashboard layout with AuthGuard
-  // ALL COMPONENTS REMOVED - BLANK LAYOUT
   return (
     <AuthGuard>
-      <main className="min-h-screen bg-gray-50">
-        {children}
-      </main>
+      <BookingNotificationsWrapper>
+        <Header />
+        <Sidebar />
+        <main className="lg:ml-64 pt-16 min-h-screen bg-gray-50">
+          {children}
+        </main>
+      </BookingNotificationsWrapper>
     </AuthGuard>
   );
 }
