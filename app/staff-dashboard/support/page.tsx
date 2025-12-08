@@ -15,8 +15,10 @@ interface Message {
   created_at: string;
   is_read: boolean;
   sender?: {
+    id: string;
     full_name?: string;
     email?: string;
+    role?: string;
   };
 }
 
@@ -54,6 +56,26 @@ export default function SupportInboxPage() {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
+
+  // Helper function to determine message label based on sender_id and sender.role
+  const getMessageLabel = (msg: Message): string => {
+    const isCurrentUser = msg.sender_id === user?.id;
+    const senderRole = msg.sender?.role || msg.sender_role;
+    
+    if (isCurrentUser) {
+      // Current user's message (staff)
+      return '🛟 You (Staff)';
+    } else {
+      // Other person's message
+      return senderRole === 'owner' ? '👤 Shop Owner' : '🛟 Staff';
+    }
+  };
+
+  // Helper function to determine if message is from staff (for styling)
+  const isStaffMessage = (msg: Message): boolean => {
+    const senderRole = msg.sender?.role || msg.sender_role;
+    return senderRole === 'staff';
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -312,43 +334,46 @@ export default function SupportInboxPage() {
                     <p className="text-sm">No messages yet</p>
                   </div>
                 ) : (
-                  messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex ${msg.sender_role === 'staff' ? 'justify-end' : 'justify-start'}`}
-                    >
+                  messages.map((msg) => {
+                    const isStaff = isStaffMessage(msg);
+                    return (
                       <div
-                        className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                          msg.sender_role === 'staff'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white text-gray-900 border border-gray-200'
-                        }`}
+                        key={msg.id}
+                        className={`flex ${isStaff ? 'justify-end' : 'justify-start'}`}
                       >
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`text-xs font-bold px-2 py-1 rounded ${
-                            msg.sender_role === 'staff'
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-orange-100 text-orange-700'
-                          }`}>
-                            {msg.sender_role === 'staff' ? '🛟 You (Support)' : '👤 Shop Owner'}
-                          </span>
-                          {msg.sender?.full_name && (
-                            <span className={`text-xs font-medium ${
-                              msg.sender_role === 'staff' ? 'opacity-90' : 'text-gray-600'
+                        <div
+                          className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                            isStaff
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white text-gray-900 border border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`text-xs font-bold px-2 py-1 rounded ${
+                              isStaff
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-orange-100 text-orange-700'
                             }`}>
-                              {msg.sender.full_name}
+                              {getMessageLabel(msg)}
                             </span>
-                          )}
+                            {msg.sender?.full_name && (
+                              <span className={`text-xs font-medium ${
+                                isStaff ? 'opacity-90' : 'text-gray-600'
+                              }`}>
+                                {msg.sender.full_name}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                          <p className={`text-xs mt-1 ${
+                            isStaff ? 'opacity-70' : 'text-gray-500'
+                          }`}>
+                            {new Date(msg.created_at).toLocaleString()}
+                          </p>
                         </div>
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                        <p className={`text-xs mt-1 ${
-                          msg.sender_role === 'staff' ? 'opacity-70' : 'text-gray-500'
-                        }`}>
-                          {new Date(msg.created_at).toLocaleString()}
-                        </p>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
                 <div ref={messagesEndRef} />
               </div>

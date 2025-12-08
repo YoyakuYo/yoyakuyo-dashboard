@@ -12,8 +12,10 @@ interface Message {
   sender_role: 'owner' | 'staff';
   created_at: string;
   sender?: {
+    id: string;
     full_name?: string;
     email?: string;
+    role?: string;
   };
 }
 
@@ -32,6 +34,26 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
+
+  // Helper function to determine message label based on sender_id and sender.role
+  const getMessageLabel = (msg: Message): string => {
+    const isCurrentUser = msg.sender_id === user?.id;
+    const senderRole = msg.sender?.role || msg.sender_role;
+    
+    if (isCurrentUser) {
+      // Current user's message
+      return senderRole === 'owner' ? '👤 You (Owner)' : '👤 You (Staff)';
+    } else {
+      // Other person's message
+      return senderRole === 'owner' ? '👤 Shop Owner' : '🛟 Staff';
+    }
+  };
+
+  // Helper function to determine if message is from owner (for styling)
+  const isOwnerMessage = (msg: Message): boolean => {
+    const senderRole = msg.sender?.role || msg.sender_role;
+    return senderRole === 'owner';
+  };
 
   // Load or create support conversation
   useEffect(() => {
@@ -237,39 +259,43 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
                 <p className="text-xs">Send us a message and we'll get back to you soon.</p>
               </div>
             ) : (
-              messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.sender_role === 'owner' ? 'justify-end' : 'justify-start'}`}
-                >
+              messages.map((msg) => {
+                const isOwner = isOwnerMessage(msg);
+                const isCurrentUser = msg.sender_id === user?.id;
+                return (
                   <div
-                    className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                      msg.sender_role === 'owner'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-gray-900 border border-gray-200'
-                    }`}
+                    key={msg.id}
+                    className={`flex ${isOwner ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                        msg.sender_role === 'owner'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-200 text-gray-700'
-                      }`}>
-                        {msg.sender_role === 'owner' ? '👤 You' : '🛟 Support'}
-                      </span>
-                      {msg.sender?.full_name && (
-                        <span className="text-xs opacity-80">
-                          {msg.sender.full_name}
+                    <div
+                      className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                        isOwner
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white text-gray-900 border border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                          isOwner
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-200 text-gray-700'
+                        }`}>
+                          {getMessageLabel(msg)}
                         </span>
-                      )}
+                        {msg.sender?.full_name && (
+                          <span className="text-xs opacity-80">
+                            {msg.sender.full_name}
+                          </span>
+                        )}
+                      </div>
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-xs mt-1 opacity-70">
+                        {new Date(msg.created_at).toLocaleTimeString()}
+                      </p>
                     </div>
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
-                    <p className="text-xs mt-1 opacity-70">
-                      {new Date(msg.created_at).toLocaleTimeString()}
-                    </p>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
             <div ref={messagesEndRef} />
           </div>
@@ -320,43 +346,46 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
             <p className="text-xs">Send us a message and we'll get back to you soon.</p>
           </div>
         ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.sender_role === 'owner' ? 'justify-end' : 'justify-start'}`}
-            >
+          messages.map((msg) => {
+            const isOwner = isOwnerMessage(msg);
+            return (
               <div
-                className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                  msg.sender_role === 'owner'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-900 border border-gray-200'
-                }`}
+                key={msg.id}
+                className={`flex ${isOwner ? 'justify-end' : 'justify-start'}`}
               >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-xs font-bold px-2 py-1 rounded ${
-                    msg.sender_role === 'owner'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-blue-100 text-blue-700'
-                  }`}>
-                    {msg.sender_role === 'owner' ? '👤 You (Owner)' : '🛟 Support Team'}
-                  </span>
-                  {msg.sender?.full_name && (
-                    <span className={`text-xs font-medium ${
-                      msg.sender_role === 'owner' ? 'opacity-90' : 'text-gray-600'
+                <div
+                  className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                    isOwner
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-gray-900 border border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`text-xs font-bold px-2 py-1 rounded ${
+                      isOwner
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-blue-100 text-blue-700'
                     }`}>
-                      {msg.sender.full_name}
+                      {getMessageLabel(msg)}
                     </span>
-                  )}
+                    {msg.sender?.full_name && (
+                      <span className={`text-xs font-medium ${
+                        isOwner ? 'opacity-90' : 'text-gray-600'
+                      }`}>
+                        {msg.sender.full_name}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  <p className={`text-xs mt-1 ${
+                    isOwner ? 'opacity-70' : 'text-gray-500'
+                  }`}>
+                    {new Date(msg.created_at).toLocaleTimeString()}
+                  </p>
                 </div>
-                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                <p className={`text-xs mt-1 ${
-                  msg.sender_role === 'owner' ? 'opacity-70' : 'text-gray-500'
-                }`}>
-                  {new Date(msg.created_at).toLocaleTimeString()}
-                </p>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
