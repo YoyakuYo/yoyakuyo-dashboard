@@ -215,7 +215,26 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 13. Enable realtime for messages table
-ALTER PUBLICATION supabase_realtime ADD TABLE messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE conversations;
+-- 13. Enable realtime for messages and conversations tables
+-- Only add if not already in publication
+DO $$
+BEGIN
+  -- Add messages table to realtime if not already added
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+    AND tablename = 'messages'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+  END IF;
+
+  -- Add conversations table to realtime if not already added
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+    AND tablename = 'conversations'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE conversations;
+  END IF;
+END $$;
 
