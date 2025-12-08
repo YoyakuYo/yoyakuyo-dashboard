@@ -101,13 +101,7 @@ const Sidebar = React.memo(() => {
   const navItems = [
     { href: '/owner/dashboard', label: 'Dashboard', icon: '🏠' },
     { href: '/owner/shop-profile', label: 'My Shop', icon: '🏪' },
-    { href: '/owner/bookings', label: 'Bookings', icon: '📅', badge: unreadBookingsCount > 0 ? unreadBookingsCount : undefined },
-    { href: '/owner/calendar', label: 'Calendar', icon: '📆' },
     { href: '/owner/messages', label: 'Messages', icon: '💬', badge: unreadCount > 0 ? unreadCount : undefined },
-    { href: '/owner/customers', label: 'Customers', icon: '👥' },
-    { href: '/owner/reviews', label: 'Reviews', icon: '⭐' },
-    { href: '/owner/photos', label: 'Photos / Media', icon: '📷' },
-    { href: '/owner/services', label: 'Services', icon: '🔧' },
     { href: '/owner/ai', label: 'AI Assistant', icon: '🤖' },
     { href: '/owner/subscription', label: 'Subscriptions & Billing', icon: '💳' },
     { href: '/owner/settings', label: 'Settings', icon: '⚙️' },
