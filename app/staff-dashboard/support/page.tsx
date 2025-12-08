@@ -19,6 +19,7 @@ interface Message {
     full_name?: string;
     email?: string;
     role?: string;
+    display_name?: string;
   };
 }
 
@@ -60,21 +61,21 @@ export default function SupportInboxPage() {
   // Helper function to determine message label based on sender_id and sender.role
   const getMessageLabel = (msg: Message): string => {
     const isCurrentUser = msg.sender_id === user?.id;
+    const currentUserRole = 'staff'; // Staff dashboard - current user is always staff
     const senderRole = msg.sender?.role || msg.sender_role;
     
     if (isCurrentUser) {
       // Current user's message (staff)
       return '🛟 You (Staff)';
     } else {
-      // Other person's message
+      // Other person's message - use sender's role from database
       return senderRole === 'owner' ? '👤 Shop Owner' : '🛟 Staff';
     }
   };
 
-  // Helper function to determine if message is from staff (for styling)
-  const isStaffMessage = (msg: Message): boolean => {
-    const senderRole = msg.sender?.role || msg.sender_role;
-    return senderRole === 'staff';
+  // Helper function to get sender display name
+  const getSenderDisplayName = (msg: Message): string => {
+    return msg.sender?.display_name || msg.sender?.full_name || msg.sender?.email || 'Unknown';
   };
 
   useEffect(() => {
@@ -335,38 +336,37 @@ export default function SupportInboxPage() {
                   </div>
                 ) : (
                   messages.map((msg) => {
-                    const isStaff = isStaffMessage(msg);
+                    // ALIGNMENT RULE: IF sender_id === currentUser.id → RIGHT, ELSE → LEFT
+                    const isCurrentUser = msg.sender_id === user?.id;
                     return (
                       <div
                         key={msg.id}
-                        className={`flex ${isStaff ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
                       >
                         <div
                           className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                            isStaff
+                            isCurrentUser
                               ? 'bg-blue-600 text-white'
                               : 'bg-white text-gray-900 border border-gray-200'
                           }`}
                         >
                           <div className="flex items-center gap-2 mb-2">
                             <span className={`text-xs font-bold px-2 py-1 rounded ${
-                              isStaff
+                              isCurrentUser
                                 ? 'bg-blue-500 text-white'
                                 : 'bg-orange-100 text-orange-700'
                             }`}>
                               {getMessageLabel(msg)}
                             </span>
-                            {msg.sender?.full_name && (
-                              <span className={`text-xs font-medium ${
-                                isStaff ? 'opacity-90' : 'text-gray-600'
-                              }`}>
-                                {msg.sender.full_name}
-                              </span>
-                            )}
+                            <span className={`text-xs font-medium ${
+                              isCurrentUser ? 'opacity-90' : 'text-gray-600'
+                            }`}>
+                              {getSenderDisplayName(msg)}
+                            </span>
                           </div>
                           <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                           <p className={`text-xs mt-1 ${
-                            isStaff ? 'opacity-70' : 'text-gray-500'
+                            isCurrentUser ? 'opacity-70' : 'text-gray-500'
                           }`}>
                             {new Date(msg.created_at).toLocaleString()}
                           </p>

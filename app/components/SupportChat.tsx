@@ -16,6 +16,7 @@ interface Message {
     full_name?: string;
     email?: string;
     role?: string;
+    display_name?: string;
   };
 }
 
@@ -38,21 +39,21 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
   // Helper function to determine message label based on sender_id and sender.role
   const getMessageLabel = (msg: Message): string => {
     const isCurrentUser = msg.sender_id === user?.id;
+    const currentUserRole = user?.role || 'owner'; // Get from user context
     const senderRole = msg.sender?.role || msg.sender_role;
     
     if (isCurrentUser) {
-      // Current user's message
-      return senderRole === 'owner' ? '👤 You (Owner)' : '👤 You (Staff)';
+      // Current user's message - use current user's role
+      return currentUserRole === 'owner' ? '👤 You (Owner)' : '🛟 You (Staff)';
     } else {
-      // Other person's message
+      // Other person's message - use sender's role from database
       return senderRole === 'owner' ? '👤 Shop Owner' : '🛟 Staff';
     }
   };
 
-  // Helper function to determine if message is from owner (for styling)
-  const isOwnerMessage = (msg: Message): boolean => {
-    const senderRole = msg.sender?.role || msg.sender_role;
-    return senderRole === 'owner';
+  // Helper function to get sender display name
+  const getSenderDisplayName = (msg: Message): string => {
+    return msg.sender?.display_name || msg.sender?.full_name || msg.sender?.email || 'Unknown';
   };
 
   // Load or create support conversation
@@ -260,33 +261,31 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
               </div>
             ) : (
               messages.map((msg) => {
-                const isOwner = isOwnerMessage(msg);
+                // ALIGNMENT RULE: IF sender_id === currentUser.id → RIGHT, ELSE → LEFT
                 const isCurrentUser = msg.sender_id === user?.id;
                 return (
                   <div
                     key={msg.id}
-                    className={`flex ${isOwner ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
                       className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                        isOwner
+                        isCurrentUser
                           ? 'bg-blue-600 text-white'
                           : 'bg-white text-gray-900 border border-gray-200'
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                          isOwner
+                          isCurrentUser
                             ? 'bg-blue-500 text-white'
                             : 'bg-gray-200 text-gray-700'
                         }`}>
                           {getMessageLabel(msg)}
                         </span>
-                        {msg.sender?.full_name && (
-                          <span className="text-xs opacity-80">
-                            {msg.sender.full_name}
-                          </span>
-                        )}
+                        <span className="text-xs opacity-80">
+                          {getSenderDisplayName(msg)}
+                        </span>
                       </div>
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                       <p className="text-xs mt-1 opacity-70">
@@ -347,38 +346,37 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
           </div>
         ) : (
           messages.map((msg) => {
-            const isOwner = isOwnerMessage(msg);
+            // ALIGNMENT RULE: IF sender_id === currentUser.id → RIGHT, ELSE → LEFT
+            const isCurrentUser = msg.sender_id === user?.id;
             return (
               <div
                 key={msg.id}
-                className={`flex ${isOwner ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
               >
                 <div
                   className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                    isOwner
+                    isCurrentUser
                       ? 'bg-blue-600 text-white'
                       : 'bg-white text-gray-900 border border-gray-200'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <span className={`text-xs font-bold px-2 py-1 rounded ${
-                      isOwner
+                      isCurrentUser
                         ? 'bg-blue-500 text-white'
                         : 'bg-blue-100 text-blue-700'
                     }`}>
                       {getMessageLabel(msg)}
                     </span>
-                    {msg.sender?.full_name && (
-                      <span className={`text-xs font-medium ${
-                        isOwner ? 'opacity-90' : 'text-gray-600'
-                      }`}>
-                        {msg.sender.full_name}
-                      </span>
-                    )}
+                    <span className={`text-xs font-medium ${
+                      isCurrentUser ? 'opacity-90' : 'text-gray-600'
+                    }`}>
+                      {getSenderDisplayName(msg)}
+                    </span>
                   </div>
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   <p className={`text-xs mt-1 ${
-                    isOwner ? 'opacity-70' : 'text-gray-500'
+                    isCurrentUser ? 'opacity-70' : 'text-gray-500'
                   }`}>
                     {new Date(msg.created_at).toLocaleTimeString()}
                   </p>
