@@ -1,5 +1,5 @@
 // app/customer/messages/page.tsx
-// Customer messages page - view and send messages to shops
+// Customer messages page - view and send messages to shops using unified conversations system
 
 "use client";
 
@@ -11,22 +11,41 @@ import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-interface Thread {
+interface Conversation {
   id: string;
+  type: string;
   shop_id: string;
-  shop_name?: string;
-  unreadCount: number;
-  lastMessageAt: string;
-  lastMessagePreview?: string | null;
+  customer_id: string;
+  owner_id: string;
+  created_at: string;
+  updated_at: string;
+  unread_count: number;
+  shop?: {
+    id: string;
+    name: string;
+  };
+  owner?: {
+    id: string;
+    email: string;
+    full_name: string;
+  };
 }
 
 interface Message {
   id: string;
-  thread_id: string;
-  sender_type: 'customer' | 'owner' | 'ai';
+  conversation_id: string;
+  sender_id: string;
+  sender_role: 'customer' | 'owner';
   content: string;
   created_at: string;
-  read_by_customer: boolean;
+  is_read: boolean;
+  sender?: {
+    id: string;
+    email: string;
+    full_name: string;
+    role: string;
+    display_name?: string;
+  };
 }
 
 function CustomerMessagesPageContent() {
@@ -34,8 +53,9 @@ function CustomerMessagesPageContent() {
   const t = useTranslations();
   const searchParams = useSearchParams();
   const shopIdParam = searchParams.get('shopId');
-  const [threads, setThreads] = useState<Thread[]>([]);
-  const [selectedThread, setSelectedThread] = useState<string | null>(null);
+  const bookingIdParam = searchParams.get('bookingId');
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -45,36 +65,35 @@ function CustomerMessagesPageContent() {
 
   useEffect(() => {
     if (user) {
-      loadThreads();
+      loadConversations();
     }
   }, [user]);
 
-  // Handle shopId parameter - start or select thread for this shop
+  // Handle shopId parameter - find or create conversation for this shop
   useEffect(() => {
-    if (shopIdParam && user && threads.length > 0) {
-      // Find existing thread for this shop
-      const existingThread = threads.find(t => t.shop_id === shopIdParam);
-      if (existingThread) {
-        setSelectedThread(existingThread.id);
+    if (shopIdParam && user && conversations.length > 0) {
+      // Find existing conversation for this shop
+      const existingConv = conversations.find(c => c.shop_id === shopIdParam);
+      if (existingConv) {
+        setSelectedConversationId(existingConv.id);
       } else {
-        // Start new thread
-        startThreadForShop(shopIdParam);
+        // Create new conversation
+        createConversationForShop(shopIdParam);
       }
     }
-  }, [shopIdParam, user, threads]);
+  }, [shopIdParam, user, conversations]);
 
-  // Handle bookingId parameter - find or create thread for this booking
+  // Handle bookingId parameter - find conversation created by booking trigger
   useEffect(() => {
-    const bookingIdParam = searchParams.get('bookingId');
-    if (bookingIdParam && user && !selectedThread) {
-      loadThreadForBooking(bookingIdParam);
+    if (bookingIdParam && user && !selectedConversationId) {
+      findConversationForBooking(bookingIdParam);
     }
-  }, [searchParams, user]);
+  }, [bookingIdParam, user]);
 
   useEffect(() => {
-    if (selectedThread) {
-      loadMessages(selectedThread);
-      subscribeToMessages(selectedThread);
+    if (selectedConversationId) {
+      loadMessages(selectedConversationId);
+      subscribeToMessages(selectedConversationId);
     }
 
     return () => {
@@ -84,7 +103,7 @@ function CustomerMessagesPageContent() {
         channelRef.current = null;
       }
     };
-  }, [selectedThread]);
+  }, [selectedConversationId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -94,134 +113,129 @@ function CustomerMessagesPageContent() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const loadThreadForBooking = async (bookingId: string) => {
+  const findConversationForBooking = async (bookingId: string) => {
     if (!user?.id) return;
 
     try {
-      const res = await fetch(`${apiUrl}/messages/booking/${bookingId}/thread`, {
-        headers: { 'x-user-id': user.id },
-      });
+      // Get booking details to find shop_id
+      const supabase = getSupabaseClient();
+      const { data: booking } = await supabase
+        .from('bookings')
+        .select('shop_id, customer_id, customer_profile_id')
+        .eq('id', bookingId)
+        .single();
 
-      if (res.ok) {
-        const thread = await res.json();
-        // Backend should return session_id for customer_chat_messages
-        setSelectedThread(thread.session_id || thread.id);
-        await loadThreads(); // Refresh thread list
+      if (booking?.shop_id) {
+        // Find conversation for this shop and customer
+        const { data: conversations } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('shop_id', booking.shop_id)
+          .eq('customer_id', user.id)
+          .eq('type', 'customer_owner')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (conversations) {
+          setSelectedConversationId(conversations.id);
+        } else {
+          // Conversation should have been auto-created, but if not, create it
+          await createConversationForShop(booking.shop_id);
+        }
       }
     } catch (error) {
-      console.error("Error loading thread for booking:", error);
+      console.error("Error finding conversation for booking:", error);
     }
   };
 
-  const startThreadForShop = async (shopId: string) => {
+  const createConversationForShop = async (shopId: string) => {
     if (!user?.id) return;
 
     try {
-      const res = await fetch(`${apiUrl}/messages/customer/start-thread`, {
+      // Get owner_id from shop
+      const supabase = getSupabaseClient();
+      const { data: shop } = await supabase
+        .from('shops')
+        .select('owner_user_id')
+        .eq('id', shopId)
+        .single();
+
+      if (!shop?.owner_user_id) {
+        alert('Shop owner not found');
+        return;
+      }
+
+      // Create conversation using API
+      const res = await fetch(`${apiUrl}/api/conversations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-user-id': user.id,
         },
-        body: JSON.stringify({ shopId }),
+        body: JSON.stringify({
+          type: 'customer_owner',
+          shop_id: shopId,
+          customer_id: user.id,
+          owner_id: shop.owner_user_id,
+        }),
       });
 
       if (res.ok) {
-        const thread = await res.json();
-        setSelectedThread(thread.session_id || thread.id); // Use session_id
-        await loadThreads(); // Refresh thread list
+        const { conversation } = await res.json();
+        setSelectedConversationId(conversation.id);
+        await loadConversations(); // Refresh conversation list
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to create conversation');
       }
     } catch (error) {
-      console.error("Error starting thread:", error);
+      console.error("Error creating conversation:", error);
+      alert('Failed to create conversation');
     }
   };
 
-  const loadThreads = async () => {
+  const loadConversations = async () => {
     if (!user?.id) return;
 
     try {
-      // Get customer profile
-      const supabase = getSupabaseClient();
-      const { data: customerProfile } = await supabase
-        .from("customer_profiles")
-        .select("id")
-        .eq("customer_auth_id", user.id)
-        .single();
+      const res = await fetch(`${apiUrl}/api/conversations?type=customer_owner`, {
+        headers: { 'x-user-id': user.id },
+      });
 
-      if (!customerProfile) return;
-
-      // Get all unique session_ids for this customer from customer_chat_messages
-      // Since session_id is generated from customer_id + shop_id, we need to get all sessions
-      // where this customer has sent messages
-      const { data: customerMessages } = await supabase
-        .from("customer_chat_messages")
-        .select("session_id, created_at")
-        .eq("role", "user") // Customer messages have role='user'
-        .order("created_at", { ascending: false });
-
-      if (!customerMessages || customerMessages.length === 0) {
-        setThreads([]);
-        setLoading(false);
-        return;
+      if (res.ok) {
+        const { conversations: convs } = await res.json();
+        setConversations(convs || []);
+      } else {
+        console.error("Failed to load conversations");
       }
-
-      // Get unique session_ids
-      const uniqueSessionIds = [...new Set(customerMessages.map((m: any) => m.session_id))];
-
-      // For each session, get the last message and shop info
-      // Since we can't directly get shop_id from session_id, we'll need to use the API
-      // or store shop_id in a separate lookup
-      // For now, we'll fetch messages for each session to get shop context
-      const threadsWithDetails = await Promise.all(
-        uniqueSessionIds.map(async (sessionId: string) => {
-          // Get last message for this session
-          const { data: lastMessage } = await supabase
-            .from("customer_chat_messages")
-            .select("*")
-            .eq("session_id", sessionId)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          // Get shop info from API (we'll need to add an endpoint for this)
-          // For now, use sessionId as thread id
-          return {
-            id: sessionId,
-            shop_id: '', // Will be populated from API
-            shop_name: 'Shop', // Will be populated from API
-            unreadCount: 0, // customer_chat_messages doesn't have read flags
-            lastMessageAt: lastMessage?.created_at || new Date().toISOString(),
-            lastMessagePreview: lastMessage?.content?.substring(0, 100) || null,
-          };
-        })
-      );
-
-      setThreads(threadsWithDetails);
     } catch (error) {
-      console.error("Error loading threads:", error);
+      console.error("Error loading conversations:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadMessages = async (threadId: string) => {
+  const loadMessages = async (conversationId: string) => {
     if (!user?.id) return;
 
     try {
-      const res = await fetch(`${apiUrl}/messages/thread/${threadId}`, {
+      const res = await fetch(`${apiUrl}/api/conversations/${conversationId}`, {
         headers: { 'x-user-id': user.id },
       });
 
       if (res.ok) {
-        const data = await res.json();
-        setMessages(data || []);
+        const { messages: msgs } = await res.json();
+        setMessages(msgs || []);
+      } else {
+        console.error("Failed to load messages");
       }
     } catch (error) {
       console.error("Error loading messages:", error);
     }
   };
 
-  const subscribeToMessages = (sessionId: string) => {
+  const subscribeToMessages = (conversationId: string) => {
     const supabase = getSupabaseClient();
 
     if (channelRef.current) {
@@ -229,17 +243,29 @@ function CustomerMessagesPageContent() {
     }
 
     const channel = supabase
-      .channel(`customer-session-${sessionId}`)
+      .channel(`customer-conversation-${conversationId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'customer_chat_messages',
-          filter: `session_id=eq.${sessionId}`,
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`,
         },
         () => {
-          loadMessages(sessionId);
+          loadMessages(conversationId);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        () => {
+          loadMessages(conversationId);
         }
       )
       .subscribe();
@@ -249,28 +275,29 @@ function CustomerMessagesPageContent() {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !selectedThread || sending) return;
+    if (!input.trim() || !selectedConversationId || sending || !user?.id) return;
 
     const content = input.trim();
     setInput("");
     setSending(true);
 
     try {
-      const res = await fetch(`${apiUrl}/messages/thread/${selectedThread}/send`, {
+      const res = await fetch(`${apiUrl}/api/conversations/${selectedConversationId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id || '',
+          'x-user-id': user.id,
         },
         body: JSON.stringify({
           content,
-          senderType: 'customer',
         }),
       });
 
       if (res.ok) {
-        await loadMessages(selectedThread);
-        await loadThreads(); // Refresh thread list
+        const { message } = await res.json();
+        // Add message optimistically
+        setMessages(prev => [...prev, message]);
+        await loadConversations(); // Refresh conversation list to update updated_at
       } else {
         const error = await res.json();
         alert(error.error || 'Failed to send message');
@@ -285,7 +312,7 @@ function CustomerMessagesPageContent() {
     }
   };
 
-  const selectedThreadData = threads.find(t => t.id === selectedThread);
+  const selectedConversation = conversations.find(c => c.id === selectedConversationId);
 
   if (loading) {
     return (
@@ -303,13 +330,13 @@ function CustomerMessagesPageContent() {
       <h1 className="text-3xl font-bold text-gray-900 mb-6">{t('customer.nav.messages') || 'Messages'}</h1>
 
       <div className="flex gap-6 h-[calc(100vh-200px)]">
-        {/* Threads List */}
+        {/* Conversations List */}
         <div className="w-80 bg-white rounded-lg shadow border border-gray-200 flex flex-col">
           <div className="p-4 border-b border-gray-200">
             <h2 className="font-semibold text-gray-900">{t('messages.conversations') || 'Conversations'}</h2>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {threads.length === 0 ? (
+            {conversations.length === 0 ? (
               <div className="p-4 text-center text-gray-500 text-sm">
                 {t('messages.noConversations') || 'No conversations yet'}
                 <br />
@@ -318,46 +345,61 @@ function CustomerMessagesPageContent() {
                 </Link>
               </div>
             ) : (
-              threads.map((thread) => (
-                <button
-                  key={thread.id}
-                  onClick={() => setSelectedThread(thread.id)}
-                  className={`w-full p-4 text-left border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                    selectedThread === thread.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-1">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{thread.shop_name}</p>
-                      {thread.lastMessagePreview && (
-                        <p className="text-sm text-gray-600 truncate mt-1">
-                          {thread.lastMessagePreview}
+              conversations.map((conv) => {
+                // Get last message preview
+                const lastMessage = messages
+                  .filter(m => m.conversation_id === conv.id)
+                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+
+                return (
+                  <button
+                    key={conv.id}
+                    onClick={() => setSelectedConversationId(conv.id)}
+                    className={`w-full p-4 text-left border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                      selectedConversationId === conv.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-1">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">
+                          {conv.shop?.name || 'Shop'}
                         </p>
+                        {lastMessage && (
+                          <p className="text-sm text-gray-600 truncate mt-1">
+                            {lastMessage.content.substring(0, 50)}
+                            {lastMessage.content.length > 50 ? '...' : ''}
+                          </p>
+                        )}
+                      </div>
+                      {conv.unread_count > 0 && (
+                        <span className="ml-2 flex-shrink-0 bg-red-600 text-white text-xs font-semibold rounded-full px-2 py-1">
+                          {conv.unread_count}
+                        </span>
                       )}
                     </div>
-                    {thread.unreadCount > 0 && (
-                      <span className="ml-2 flex-shrink-0 bg-red-600 text-white text-xs font-semibold rounded-full px-2 py-1">
-                        {thread.unreadCount}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {new Date(thread.lastMessageAt).toLocaleDateString()}
-                  </p>
-                </button>
-              ))
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(conv.updated_at).toLocaleDateString()}
+                    </p>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
 
         {/* Messages View */}
         <div className="flex-1 bg-white rounded-lg shadow border border-gray-200 flex flex-col">
-          {selectedThread ? (
+          {selectedConversationId ? (
             <>
               <div className="p-4 border-b border-gray-200">
                 <h2 className="font-semibold text-gray-900">
-                  {selectedThreadData?.shop_name || t('messages.shop') || 'Shop'}
+                  {selectedConversation?.shop?.name || t('messages.shop') || 'Shop'}
                 </h2>
+                {selectedConversation?.owner && (
+                  <p className="text-sm text-gray-600">
+                    {selectedConversation.owner.full_name || selectedConversation.owner.email}
+                  </p>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
@@ -366,27 +408,35 @@ function CustomerMessagesPageContent() {
                     {t('messages.noMessages') || 'No messages yet. Start the conversation!'}
                   </div>
                 ) : (
-                  messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.sender_type === 'customer' ? 'justify-end' : 'justify-start'}`}
-                    >
+                  messages.map((message) => {
+                    const isCustomer = message.sender_role === 'customer';
+                    const displayName = message.sender?.full_name || 
+                                      message.sender?.email || 
+                                      (isCustomer ? 'You' : 'Shop Owner');
+
+                    return (
                       <div
-                        className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                          message.sender_type === 'customer'
-                            ? 'bg-blue-600 text-white'
-                            : message.sender_type === 'ai'
-                            ? 'bg-purple-100 text-purple-900 border border-purple-200'
-                            : 'bg-white text-gray-900 border border-gray-200'
-                        }`}
+                        key={message.id}
+                        className={`flex ${isCustomer ? 'justify-end' : 'justify-start'}`}
                       >
-                        <p className="whitespace-pre-wrap text-sm">{message.content}</p>
-                        <p className="text-xs mt-1 opacity-70">
-                          {new Date(message.created_at).toLocaleTimeString()}
-                        </p>
+                        <div
+                          className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                            isCustomer
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white text-gray-900 border border-gray-200'
+                          }`}
+                        >
+                          {!isCustomer && (
+                            <p className="text-xs font-semibold mb-1 text-gray-600">{displayName}</p>
+                          )}
+                          <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                          <p className={`text-xs mt-1 ${isCustomer ? 'opacity-70' : 'text-gray-500'}`}>
+                            {new Date(message.created_at).toLocaleTimeString()}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
                 <div ref={messagesEndRef} />
               </div>
@@ -436,4 +486,3 @@ export default function CustomerMessagesPage() {
     </Suspense>
   );
 }
-

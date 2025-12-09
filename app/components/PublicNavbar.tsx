@@ -4,7 +4,6 @@
 "use client";
 
 import Link from 'next/link';
-import StaffNavLink from './StaffNavLink';
 
 export default function PublicNavbar() {
   return (
@@ -18,11 +17,6 @@ export default function PublicNavbar() {
           >
             Yoyaku Yo
           </Link>
-          
-          {/* Right: Staff Dashboard Link (only visible to staff) */}
-          <div className="flex items-center gap-4">
-            <StaffNavLink />
-          </div>
         </div>
       </div>
     </nav>
