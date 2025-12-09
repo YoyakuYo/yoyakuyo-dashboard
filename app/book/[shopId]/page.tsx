@@ -65,24 +65,8 @@ export default function PublicBookingPage() {
     }
   }, []);
 
-  // Load LINE QR code on mount
-  useEffect(() => {
-    if (shopId) {
-      const loadQrCode = async () => {
-        try {
-          const res = await fetch(`${apiUrl}/qr/shop/${shopId}/line`);
-          if (res.ok) {
-            const data = await res.json();
-            setLineQrUrl(data.qrImageUrl);
-            setLineDeeplinkUrl(data.deeplinkUrl);
-          }
-        } catch (error) {
-          // Silently handle errors
-        }
-      };
-      loadQrCode();
-    }
-  }, [shopId, apiUrl]);
+  // LINE QR code feature removed - staff features were removed
+  // Keeping state for potential future implementation
 
   useEffect(() => {
     const fetchShopInfo = async () => {
@@ -340,7 +324,7 @@ export default function PublicBookingPage() {
           </button>
         </div>
 
-        {/* Right Column: AI Assistant and LINE QR */}
+        {/* Right Column: AI Assistant */}
         <div className="space-y-6">
           {/* AI Assistant */}
           {shopId && (
@@ -349,35 +333,6 @@ export default function PublicBookingPage() {
                 shops={shopName ? [{ id: shopId, name: shopName }] : []}
                 locale={t('common.locale') || 'en'}
               />
-            </div>
-          )}
-
-          {/* LINE QR Code Section */}
-          {lineQrUrl && lineDeeplinkUrl && (
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold mb-4 text-center">LINEで予約 / LINE でお問い合わせ</h2>
-              <div className="flex flex-col items-center space-y-4">
-                {lineQrUrl && (
-                  <div className="flex flex-col items-center">
-                    <img 
-                      src={lineQrUrl} 
-                      alt="LINE QR Code" 
-                      className="w-48 h-48 border-2 border-gray-200 rounded-lg"
-                    />
-                    <p className="mt-2 text-sm text-gray-600 text-center">LINEで予約はこちら</p>
-                  </div>
-                )}
-                {lineDeeplinkUrl && (
-                  <a
-                    href={lineDeeplinkUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors"
-                  >
-                    LINEで予約はこちら
-                  </a>
-                )}
-              </div>
             </div>
           )}
         </div>
