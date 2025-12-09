@@ -13,11 +13,6 @@ interface Service {
   name: string;
 }
 
-interface Staff {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
 
 interface Timeslot {
   id: string;
@@ -39,10 +34,8 @@ export default function PublicBookingPage() {
   const shopId = params?.shopId as string;
   const t = useTranslations();
   const [services, setServices] = useState<Service[]>([]);
-  const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
   const [timeslots, setTimeslots] = useState<Timeslot[]>([]);
   const [selectedService, setSelectedService] = useState<string | null>(null);
-  const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTimeslot, setSelectedTimeslot] = useState<Timeslot | null>(null);
   const [name, setName] = useState('');
@@ -123,28 +116,8 @@ export default function PublicBookingPage() {
       }
     };
 
-    const fetchStaff = async () => {
-      try {
-        const res = await fetch(`${apiUrl}/shops/${shopId}/staff`);
-        if (res.ok) {
-          const data = await res.json();
-          setStaffMembers(Array.isArray(data) ? data : []);
-        } else {
-          console.error("Failed to fetch staff:", res.status, res.statusText);
-          setStaffMembers([]);
-        }
-      } catch (error: any) {
-        // Silently handle connection errors (API server not running)
-        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-          console.error("Error fetching staff:", error);
-        }
-        setStaffMembers([]);
-      }
-    };
-
     fetchShopInfo();
     fetchServices();
-    fetchStaff();
   }, [shopId, apiUrl]);
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,10 +135,7 @@ export default function PublicBookingPage() {
     setTimeslots([]);
 
     try {
-      let url = `${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`;
-      if (selectedStaff) {
-        url += `&staff_id=${selectedStaff}`;
-      }
+      const url = `${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`;
 
       const res = await fetch(url);
       if (res.ok) {
@@ -232,18 +202,17 @@ export default function PublicBookingPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          shop_id: shopId,
-          service_id: selectedService,
-          staff_id: selectedStaff || null,
-          customer_name: name.trim(),
-          customer_email: email || null,
-          date: selectedDate,
-          time_slot: `${timeslotToUse.start_time}-${timeslotToUse.end_time}`,
-          start_time: startDateTime.toISOString(),
-          end_time: endDateTime.toISOString(),
-          notes: `Booking for ${name}`,
-        }),
+          body: JSON.stringify({
+            shop_id: shopId,
+            service_id: selectedService,
+            customer_name: name.trim(),
+            customer_email: email || null,
+            date: selectedDate,
+            time_slot: `${timeslotToUse.start_time}-${timeslotToUse.end_time}`,
+            start_time: startDateTime.toISOString(),
+            end_time: endDateTime.toISOString(),
+            notes: `Booking for ${name}`,
+          }),
       });
 
       if (res.ok) {
@@ -251,7 +220,6 @@ export default function PublicBookingPage() {
         alert(t('booking.bookingSuccessful') || 'Booking successful!');
         // Reset form
         setSelectedService(null);
-        setSelectedStaff(null);
         setSelectedDate(null);
         setSelectedTimeslot(null);
         setTimeslots([]);
@@ -297,22 +265,6 @@ export default function PublicBookingPage() {
               {services.map((service) => (
                 <option key={service.id} value={service.id}>
                   {service.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">{t('booking.chooseStaff')}</h2>
-            <select
-              value={selectedStaff || ''}
-              onChange={(e) => setSelectedStaff(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            >
-              <option value="">{t('booking.selectStaff')}</option>
-              {staffMembers.map((staff) => (
-                <option key={staff.id} value={staff.id}>
-                  {staff.first_name} {staff.last_name}
                 </option>
               ))}
             </select>
