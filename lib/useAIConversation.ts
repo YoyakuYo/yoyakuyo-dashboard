@@ -101,18 +101,60 @@ export function useAIConversation(identity: ConversationIdentity) {
     }
   }, [identity, getGuestId]);
 
+  // Get shop context for AI prompts
+  const getShopContext = useCallback(async (shopId: string | null | undefined): Promise<string | null> => {
+    if (!shopId) return null;
+    
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('shops')
+        .select('id, name, address, prefecture, city, description, phone, email')
+        .eq('id', shopId)
+        .single();
+      
+      if (error || !data) return null;
+      
+      return `Shop Context: ${data.name} (${data.prefecture || ''} ${data.city || ''}). Address: ${data.address || 'N/A'}. Description: ${data.description || 'N/A'}. Contact: ${data.phone || data.email || 'N/A'}.`;
+    } catch (error) {
+      console.error('Error fetching shop context:', error);
+      return null;
+    }
+  }, []);
+
   // Save conversation to database
   const saveConversation = useCallback(async (newMessages: ConversationMessage[]) => {
     setSaving(true);
     try {
       const supabase = getSupabaseClient();
       
+      // Get shop context if shopId is provided
+      let shopContext: string | null = null;
+      if (identity.shopId) {
+        shopContext = await getShopContext(identity.shopId);
+      }
+      
       // Prepare messages for JSONB storage
-      const messagesToSave = newMessages.map(msg => ({
-        role: msg.role,
-        content: msg.content,
-        timestamp: msg.timestamp || new Date().toISOString(),
-      }));
+      // If shop context exists, inject it as a system message at the beginning
+      const messagesToSave: any[] = [];
+      
+      // Add shop context as system message if available (only once, at the start)
+      if (shopContext && !newMessages.some(msg => msg.content.includes('Shop Context:'))) {
+        messagesToSave.push({
+          role: 'system',
+          content: shopContext,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      
+      // Add all user/assistant messages
+      newMessages.forEach(msg => {
+        messagesToSave.push({
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp || new Date().toISOString(),
+        });
+      });
       
       const conversationData: any = {
         user_type: identity.userType,
@@ -160,7 +202,7 @@ export function useAIConversation(identity: ConversationIdentity) {
     } finally {
       setSaving(false);
     }
-  }, [identity, conversationId]);
+  }, [identity, conversationId, getShopContext]);
 
   // Add a message to the conversation
   const addMessage = useCallback(async (role: 'user' | 'assistant', content: string) => {

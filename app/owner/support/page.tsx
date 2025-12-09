@@ -69,19 +69,15 @@ export default function OwnerSupportPage() {
         <p className="text-gray-600 mt-1">Get help from our support team</p>
       </div>
 
-      {shopId ? (
-        <SupportChat shopId={shopId} />
-      ) : (
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-8 text-center">
-          <p className="text-gray-600 mb-4">You need to have a shop to contact support.</p>
-          <Link
-            href="/owner/shop-profile"
-            className="text-blue-600 hover:text-blue-800 font-medium"
-          >
-            Go to My Shop →
-          </Link>
-        </div>
-      )}
+      <div className="bg-white rounded-lg shadow border border-gray-200 p-8 text-center">
+        <p className="text-gray-600 mb-4">Support feature is currently unavailable.</p>
+        <Link
+          href="/owner/dashboard"
+          className="text-blue-600 hover:text-blue-800 font-medium"
+        >
+          Back to Dashboard →
+        </Link>
+      </div>
     </div>
   );
 }

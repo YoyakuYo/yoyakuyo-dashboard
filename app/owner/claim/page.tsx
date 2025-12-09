@@ -2,7 +2,7 @@
 // Shop claim flow - STRICT 3-STEP PROCESS
 // STEP 1: Owner Identity
 // STEP 2: Legal Documents
-// STEP 3: Staff Review Only
+// STEP 3: Review Only
 
 "use client";
 

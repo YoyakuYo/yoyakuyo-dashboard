@@ -1,5 +1,5 @@
 // app/owner/messages/page.tsx
-// Owner messages page - Customer and Staff messaging tabs
+// Owner messages page - Customer messaging
 
 "use client";
 
@@ -18,19 +18,10 @@ interface CustomerThread {
   unreadCount: number;
 }
 
-interface StaffThread {
-  id: string;
-  shop_id: string;
-  staff_id: string;
-  shop?: { id: string; name: string };
-  staff?: { id: string; email: string; full_name?: string };
-  last_message_at: string;
-}
-
 interface Message {
   id: string;
   role?: string;
-  sender_type?: 'customer' | 'owner' | 'staff';
+  sender_type?: 'customer' | 'owner';
   content: string;
   created_at: string;
 }
@@ -38,9 +29,7 @@ interface Message {
 export default function OwnerMessagesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'customers' | 'staff'>('customers');
   const [customerThreads, setCustomerThreads] = useState<CustomerThread[]>([]);
-  const [staffThreads, setStaffThreads] = useState<StaffThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -57,13 +46,13 @@ export default function OwnerMessagesPage() {
     if (user?.id) {
       loadData();
     }
-  }, [user, authLoading, router, activeTab]);
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     if (selectedThread) {
       loadMessages(selectedThread);
     }
-  }, [selectedThread, activeTab]);
+  }, [selectedThread]);
 
   useEffect(() => {
     scrollToBottom();
@@ -77,11 +66,7 @@ export default function OwnerMessagesPage() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      if (activeTab === 'customers') {
-        await loadCustomerThreads();
-      } else {
-        await loadStaffThreads();
-      }
+      await loadCustomerThreads();
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -121,36 +106,6 @@ export default function OwnerMessagesPage() {
     }
   };
 
-  const loadStaffThreads = async () => {
-    if (!user?.id) return;
-    try {
-      // Get owner_staff conversations
-      const res = await fetch(`${apiUrl}/api/conversations?type=owner_staff`, {
-        headers: { 'x-user-id': user.id },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        console.log('Loaded staff conversations:', data.conversations?.length || 0);
-        // Format conversations for staff messages
-        const formattedThreads: StaffThread[] = (data.conversations || []).map((conv: any) => ({
-          id: conv.id,
-          shop_id: conv.shop_id,
-          staff_id: conv.staff_id || '',
-          shop: conv.shop,
-          staff: conv.staff,
-          last_message_at: conv.updated_at || conv.created_at,
-        }));
-        setStaffThreads(formattedThreads);
-      } else {
-        const errorText = await res.text();
-        console.error('Failed to load staff conversations:', res.status, errorText);
-        setStaffThreads([]);
-      }
-    } catch (error) {
-      console.error('Error loading staff threads:', error);
-      setStaffThreads([]);
-    }
-  };
 
   const loadMessages = async (conversationId: string) => {
     if (!user?.id) return;
@@ -200,11 +155,7 @@ export default function OwnerMessagesPage() {
       if (res.ok) {
         await loadMessages(selectedThread);
         // Refresh conversation list to update unread counts
-        if (activeTab === 'customers') {
-          await loadCustomerThreads();
-        } else {
-          await loadStaffThreads();
-        }
+        await loadCustomerThreads();
       } else {
         console.error('Failed to send message:', await res.text());
       }
@@ -230,100 +181,42 @@ export default function OwnerMessagesPage() {
     <div className="p-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Messages</h1>
 
-      {/* Tabs */}
-      <div className="mb-6 border-b border-gray-200">
-        <div className="flex gap-4">
-          <button
-            onClick={() => {
-              setActiveTab('customers');
-              setSelectedThread(null);
-              setMessages([]);
-            }}
-            className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-              activeTab === 'customers'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Customers
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('staff');
-              setSelectedThread(null);
-              setMessages([]);
-            }}
-            className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-              activeTab === 'staff'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Staff
-          </button>
-        </div>
-      </div>
 
       <div className="flex gap-6 h-[calc(100vh-250px)]">
         {/* Threads List */}
         <div className="w-80 bg-white rounded-lg shadow border border-gray-200 flex flex-col">
           <div className="p-4 border-b border-gray-200">
             <h2 className="font-semibold text-gray-900">
-              {activeTab === 'customers' ? 'Customer Conversations' : 'Staff Conversations'}
+              Customer Conversations
             </h2>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {activeTab === 'customers' ? (
-              customerThreads.length > 0 ? (
-                <div className="divide-y">
-                  {customerThreads.map((thread) => (
-                    <button
-                      key={thread.id}
-                      onClick={() => setSelectedThread(thread.id)}
-                      className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
-                        selectedThread === thread.id ? 'bg-blue-50 border-l-4 border-blue-600' : ''
-                      }`}
-                    >
-                      <p className="font-medium text-sm text-gray-900">
-                        {thread.shop_name || 'Shop'}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {thread.customer_email || 'Customer'}
-                      </p>
-                      {thread.unreadCount > 0 && (
-                        <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">
-                          {thread.unreadCount}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="p-4 text-sm text-gray-500">No customer conversations</p>
-              )
+            {customerThreads.length > 0 ? (
+              <div className="divide-y">
+                {customerThreads.map((thread) => (
+                  <button
+                    key={thread.id}
+                    onClick={() => setSelectedThread(thread.id)}
+                    className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
+                      selectedThread === thread.id ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+                    }`}
+                  >
+                    <p className="font-medium text-sm text-gray-900">
+                      {thread.shop_name || 'Shop'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {thread.customer_email || 'Customer'}
+                    </p>
+                    {thread.unreadCount > 0 && (
+                      <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">
+                        {thread.unreadCount}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             ) : (
-              staffThreads.length > 0 ? (
-                <div className="divide-y">
-                  {staffThreads.map((thread) => (
-                    <button
-                      key={thread.id}
-                      onClick={() => setSelectedThread(thread.id)}
-                      className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
-                        selectedThread === thread.id ? 'bg-blue-50 border-l-4 border-blue-600' : ''
-                      }`}
-                    >
-                      <p className="font-medium text-sm text-gray-900">
-                        {thread.shop?.name || 'Shop'}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {thread.staff?.full_name || thread.staff?.email || 'Staff'}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="p-4 text-sm text-gray-500">No staff conversations</p>
-              )
+              <p className="p-4 text-sm text-gray-500">No customer conversations</p>
             )}
           </div>
         </div>
@@ -335,9 +228,7 @@ export default function OwnerMessagesPage() {
               {/* Header */}
               <div className="p-4 border-b border-gray-200">
                 <h2 className="font-semibold text-gray-900">
-                  {activeTab === 'customers'
-                    ? customerThreads.find(t => t.id === selectedThread)?.customer_email || 'Customer'
-                    : staffThreads.find(t => t.id === selectedThread)?.staff?.full_name || 'Staff'}
+                  {customerThreads.find(t => t.id === selectedThread)?.customer_email || 'Customer'}
                 </h2>
               </div>
 

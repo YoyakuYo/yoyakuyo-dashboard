@@ -15,7 +15,6 @@ interface Claim {
   id: string;
   shop_id: string;
   status: string;
-  staff_note?: string;
   created_at: string;
   updated_at: string;
   shop?: {
@@ -69,7 +68,6 @@ export default function OwnerDashboardPage() {
     }
   }, [user, authLoading, router]);
 
-  // HARD SEPARATION: Block staff from owner dashboard
   const checkUserRole = async () => {
     if (!user?.id) return;
     
@@ -83,13 +81,6 @@ export default function OwnerDashboardPage() {
         const data = await res.json();
         const role = data.user?.role || data.role;
         setUserRole(role);
-        
-        // BLOCK staff from owner dashboard
-        if (role === 'staff' || role === 'super_admin') {
-          console.error('Access denied: Staff user attempted to access owner dashboard');
-          router.push('/staff-dashboard');
-          return;
-        }
         
         // Only allow owner role
         if (role !== 'owner') {
@@ -211,17 +202,7 @@ export default function OwnerDashboardPage() {
         customerUnread = customerData.threads?.length || 0;
       }
       
-      // Load staff messages
-      const staffRes = await fetch(`${apiUrl}/api/owner/messages/threads`, {
-        headers: { 'x-user-id': user.id },
-      });
-      let staffUnread = 0;
-      if (staffRes.ok) {
-        const staffData = await staffRes.json();
-        staffUnread = staffData.threads?.length || 0;
-      }
-      
-      setUnreadMessagesCount(customerUnread + staffUnread);
+      setUnreadMessagesCount(customerUnread);
     } catch (error) {
       console.error('Error loading unread messages:', error);
     }
@@ -379,7 +360,7 @@ export default function OwnerDashboardPage() {
               <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
                 <h3 className="font-semibold text-yellow-900 mb-2">Claim Under Review</h3>
                 <p className="text-yellow-700">
-                  Your shop claim is currently being reviewed by our staff.
+                  Your shop claim is currently being reviewed.
                 </p>
                 {currentClaim && (
                   <>

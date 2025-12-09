@@ -9,9 +9,15 @@ export default function CustomerSettingsPage() {
   const { user } = useCustomAuth();
   const t = useTranslations();
   const [profile, setProfile] = useState({
-    name: "",
+    full_name: "",
     email: "",
     phone: "",
+    date_of_birth: "",
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    prefecture: "",
+    postal_code: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -46,8 +52,14 @@ export default function CustomerSettingsPage() {
         .insert({
           customer_auth_id: user.id,
           email: user.email || "",
-          name: "",
-          phone: "",
+          full_name: user.email || "",
+          phone: null,
+          date_of_birth: null,
+          address_line1: null,
+          address_line2: null,
+          city: null,
+          prefecture: null,
+          postal_code: null,
         })
         .select()
         .single();
@@ -64,9 +76,15 @@ export default function CustomerSettingsPage() {
 
     if (data) {
       setProfile({
-        name: data.name || "",
+        full_name: data.full_name || data.name || "",
         email: data.email || "",
         phone: data.phone || "",
+        date_of_birth: data.date_of_birth || "",
+        address_line1: data.address_line1 || "",
+        address_line2: data.address_line2 || "",
+        city: data.city || "",
+        prefecture: data.prefecture || "",
+        postal_code: data.postal_code || "",
       });
     }
     setLoading(false);
@@ -76,8 +94,8 @@ export default function CustomerSettingsPage() {
     e.preventDefault();
     if (!user) return;
 
-    // Validate name is not empty
-    if (!profile.name.trim()) {
+    // Validate full_name is not empty
+    if (!profile.full_name.trim()) {
       setMessage(t('common.error') + ': ' + t('common.name') + ' ' + t('common.required'));
       return;
     }
@@ -89,8 +107,15 @@ export default function CustomerSettingsPage() {
     const { error } = await supabase
       .from("customer_profiles")
       .update({
-        name: profile.name.trim(),
+        full_name: profile.full_name.trim(),
+        email: profile.email.trim(),
         phone: profile.phone.trim() || null,
+        date_of_birth: profile.date_of_birth || null,
+        address_line1: profile.address_line1.trim() || null,
+        address_line2: profile.address_line2.trim() || null,
+        city: profile.city.trim() || null,
+        prefecture: profile.prefecture.trim() || null,
+        postal_code: profile.postal_code.trim() || null,
         updated_at: new Date().toISOString(),
       })
       .eq("customer_auth_id", user.id);
@@ -125,14 +150,14 @@ export default function CustomerSettingsPage() {
 
         <form onSubmit={handleSave} className="space-y-4">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-              {t('common.name')}
+            <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-2">
+              {t('common.name')} <span className="text-red-500">*</span>
             </label>
             <input
-              id="name"
+              id="full_name"
               type="text"
-              value={profile.name}
-              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+              value={profile.full_name}
+              onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
@@ -140,7 +165,7 @@ export default function CustomerSettingsPage() {
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              {t('common.email')}
+              {t('common.email')} <span className="text-red-500">*</span>
             </label>
             <input
               id="email"
@@ -163,6 +188,92 @@ export default function CustomerSettingsPage() {
               onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+          </div>
+
+          <div>
+            <label htmlFor="date_of_birth" className="block text-sm font-medium text-gray-700 mb-2">
+              Date of Birth
+            </label>
+            <input
+              id="date_of_birth"
+              type="date"
+              value={profile.date_of_birth}
+              onChange={(e) => setProfile({ ...profile, date_of_birth: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          <div className="border-t pt-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Address Information</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="address_line1" className="block text-sm font-medium text-gray-700 mb-2">
+                  Address Line 1
+                </label>
+                <input
+                  id="address_line1"
+                  type="text"
+                  value={profile.address_line1}
+                  onChange={(e) => setProfile({ ...profile, address_line1: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="address_line2" className="block text-sm font-medium text-gray-700 mb-2">
+                  Address Line 2
+                </label>
+                <input
+                  id="address_line2"
+                  type="text"
+                  value={profile.address_line2}
+                  onChange={(e) => setProfile({ ...profile, address_line2: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                    City
+                  </label>
+                  <input
+                    id="city"
+                    type="text"
+                    value={profile.city}
+                    onChange={(e) => setProfile({ ...profile, city: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="prefecture" className="block text-sm font-medium text-gray-700 mb-2">
+                    Prefecture
+                  </label>
+                  <input
+                    id="prefecture"
+                    type="text"
+                    value={profile.prefecture}
+                    onChange={(e) => setProfile({ ...profile, prefecture: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700 mb-2">
+                  Postal Code
+                </label>
+                <input
+                  id="postal_code"
+                  type="text"
+                  value={profile.postal_code}
+                  onChange={(e) => setProfile({ ...profile, postal_code: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
           </div>
 
           {message && (

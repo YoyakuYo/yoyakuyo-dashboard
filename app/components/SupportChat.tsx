@@ -9,7 +9,7 @@ interface Message {
   id: string;
   content: string;
   sender_id: string;
-  sender_role: 'owner' | 'staff';
+  sender_role: 'owner';
   created_at: string;
   sender?: {
     id: string;
@@ -74,11 +74,11 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
     });
     
     if (isCurrentUser) {
-      // Current user's message - label based on current user's role from database
-      return currentUserRole === 'owner' ? '👤 You (Owner)' : '🛟 You (Staff)';
+      // Current user's message
+      return '👤 You (Owner)';
     } else {
-      // Other person's message - label based on sender's role from database
-      return senderRole === 'owner' ? '👤 Shop Owner' : '🛟 Staff';
+      // Other person's message
+      return '👤 Shop Owner';
     }
   };
 
@@ -95,8 +95,9 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
       setLoading(true);
       try {
         console.log('Loading conversation...', { shopId, userId: user.id });
+        // Support chat disabled - staff features removed
         // Try to find existing support conversation
-        const res = await fetch(`${apiUrl}/api/conversations?type=owner_staff`, {
+        const res = await fetch(`${apiUrl}/api/conversations?type=customer_owner`, {
           headers: { 'x-user-id': user.id },
         });
         
@@ -182,10 +183,10 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
           'x-user-id': user.id,
         },
         body: JSON.stringify({
-          type: 'owner_staff',
+          type: 'customer_owner',
           shop_id: shopId,
           owner_id: user.id,
-          staff_id: null, // Will be assigned when staff replies
+          customer_id: user.id, // Using owner as customer for now (support disabled)
         }),
       });
 
