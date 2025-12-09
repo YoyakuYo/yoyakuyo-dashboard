@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
+import { BrowseAIAssistant } from '@/app/browse/components/BrowseAIAssistant';
 
 interface Service {
   id: string;
@@ -43,8 +44,12 @@ export default function PublicBookingPage() {
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedTimeslot, setSelectedTimeslot] = useState<Timeslot | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [shopName, setShopName] = useState<string>('');
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
 
   
   // Anonymous session ID for public visitors
@@ -87,6 +92,18 @@ export default function PublicBookingPage() {
   }, [shopId, apiUrl]);
 
   useEffect(() => {
+    const fetchShopInfo = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/shops/${shopId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setShopName(data.name || '');
+        }
+      } catch (error) {
+        // Silently handle errors
+      }
+    };
+
     const fetchServices = async () => {
       try {
         const res = await fetch(`${apiUrl}/shops/${shopId}/services`);
@@ -125,6 +142,7 @@ export default function PublicBookingPage() {
       }
     };
 
+    fetchShopInfo();
     fetchServices();
     fetchStaff();
   }, [shopId, apiUrl]);
@@ -134,79 +152,122 @@ export default function PublicBookingPage() {
   };
 
   const fetchAvailability = async () => {
-    if (selectedDate && selectedStaff) {
-      try {
-        const res = await fetch(`${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`);
-        if (res.ok) {
-          const data = await res.json();
-          setTimeslots(Array.isArray(data) ? data : []);
-        } else {
-          console.error("Failed to fetch availability:", res.status, res.statusText);
-          setTimeslots([]);
+    if (!selectedDate) {
+      alert(t('booking.selectDate') || 'Please select a date first');
+      return;
+    }
+
+    setLoadingAvailability(true);
+    setSelectedTimeslot(null);
+    setTimeslots([]);
+
+    try {
+      let url = `${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`;
+      if (selectedStaff) {
+        url += `&staff_id=${selectedStaff}`;
+      }
+
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setTimeslots(Array.isArray(data) ? data : []);
+        if (Array.isArray(data) && data.length === 0) {
+          alert(t('booking.noAvailability') || 'No available timeslots for this date');
         }
-      } catch (error: any) {
-        // Silently handle connection errors (API server not running)
-        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-          console.error("Error fetching availability:", error);
-        }
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to fetch availability' }));
+        alert(errorData.error || t('booking.availabilityError') || 'Failed to check availability');
         setTimeslots([]);
       }
+    } catch (error: any) {
+      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
+        console.error("Error fetching availability:", error);
+        alert(t('booking.availabilityError') || 'Failed to check availability');
+      }
+      setTimeslots([]);
+    } finally {
+      setLoadingAvailability(false);
     }
   };
 
   const bookAppointment = async () => {
-    if (selectedService && selectedDate && name) {
-      // Calculate start_time and end_time from date and selected timeslot
-      let startDateTime: Date;
-      let endDateTime: Date;
-      
-      if (timeslots.length > 0 && selectedDate) {
-        // Use first available timeslot if none selected
-        const timeslot = timeslots[0];
-        startDateTime = new Date(`${selectedDate}T${timeslot.start_time}`);
-        endDateTime = new Date(`${selectedDate}T${timeslot.end_time}`);
-      } else if (selectedDate) {
-        // Default to current time if no timeslot
-        startDateTime = new Date(`${selectedDate}T10:00`);
-        endDateTime = new Date(startDateTime.getTime() + 60 * 60000); // 1 hour default
+    // Validation
+    if (!selectedService) {
+      alert(t('booking.selectService') || 'Please select a service');
+      return;
+    }
+    if (!selectedDate) {
+      alert(t('booking.selectDate') || 'Please select a date');
+      return;
+    }
+    if (!selectedTimeslot && timeslots.length === 0) {
+      alert(t('booking.selectTimeslot') || 'Please check availability and select a timeslot');
+      return;
+    }
+    if (!name.trim()) {
+      alert(t('booking.enterName') || 'Please enter your name');
+      return;
+    }
+
+    setBookingLoading(true);
+
+    // Calculate start_time and end_time from date and selected timeslot
+    let startDateTime: Date;
+    let endDateTime: Date;
+    
+    const timeslotToUse = selectedTimeslot || (timeslots.length > 0 ? timeslots[0] : null);
+    
+    if (timeslotToUse && selectedDate) {
+      startDateTime = new Date(`${selectedDate}T${timeslotToUse.start_time}`);
+      endDateTime = new Date(`${selectedDate}T${timeslotToUse.end_time}`);
+    } else {
+      alert(t('booking.selectTimeslot') || 'Please select a timeslot');
+      setBookingLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${apiUrl}/bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          shop_id: shopId,
+          service_id: selectedService,
+          staff_id: selectedStaff || null,
+          customer_name: name.trim(),
+          customer_email: email || null,
+          date: selectedDate,
+          time_slot: `${timeslotToUse.start_time}-${timeslotToUse.end_time}`,
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
+          notes: `Booking for ${name}`,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        alert(t('booking.bookingSuccessful') || 'Booking successful!');
+        // Reset form
+        setSelectedService(null);
+        setSelectedStaff(null);
+        setSelectedDate(null);
+        setSelectedTimeslot(null);
+        setTimeslots([]);
+        setName('');
+        setEmail('');
       } else {
-        alert(t('booking.selectDate') || 'Please select a date');
-        return;
+        const errorData = await res.json().catch(() => ({ error: t('common.unknown') }));
+        alert(`${t('booking.bookingFailed') || 'Booking failed'}: ${errorData.error || t('common.tryAgain') || 'Please try again'}`);
       }
-
-      try {
-        const res = await fetch(`${apiUrl}/bookings`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            shop_id: shopId,
-            service_id: selectedService,
-            staff_id: selectedStaff || null,
-            customer_name: name.trim(),
-            customer_email: email || null,
-            date: selectedDate,
-            start_time: startDateTime.toISOString(),
-            end_time: endDateTime.toISOString(),
-            notes: `Booking for ${name}`,
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          alert(t('booking.bookingSuccessful'));
-        } else {
-          const errorData = await res.json().catch(() => ({ error: t('common.unknown') }));
-          alert(`${t('booking.bookingFailed')}: ${errorData.error || t('common.tryAgain')}`);
-        }
-      } catch (error: any) {
-        // Silently handle connection errors (API server not running)
-        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-          console.error('Error creating booking:', error);
-          alert(t('booking.bookingFailed'));
-        }
+    } catch (error: any) {
+      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
+        console.error('Error creating booking:', error);
+        alert(t('booking.bookingFailed') || 'Failed to create booking');
       }
+    } finally {
+      setBookingLoading(false);
     }
   };
 
@@ -224,7 +285,7 @@ export default function PublicBookingPage() {
 
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Booking Form */}
-        <div>
+        <div className="space-y-6">
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-2">{t('booking.chooseService')}</h2>
             <select
@@ -270,25 +331,34 @@ export default function PublicBookingPage() {
           <div className="mb-6">
             <button
               onClick={fetchAvailability}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              disabled={!selectedDate || loadingAvailability}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {t('booking.checkAvailability')}
+              {loadingAvailability ? (t('booking.checking') || 'Checking...') : (t('booking.checkAvailability') || 'Check Availability')}
             </button>
           </div>
 
           <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">{t('booking.chooseTimeslot')}</h2>
-            <div className="grid grid-cols-2 gap-2">
-              {timeslots.map((timeslot) => (
-                <button
-                  key={timeslot.id}
-                  onClick={() => alert(t('booking.timeslotSelected'))}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  {timeslot.start_time} - {timeslot.end_time}
-                </button>
-              ))}
-            </div>
+            <h2 className="text-xl font-semibold mb-2">{t('booking.chooseTimeslot') || 'Choose Timeslot'}</h2>
+            {timeslots.length === 0 ? (
+              <p className="text-gray-500 text-sm">{t('booking.noTimeslots') || 'Click "Check Availability" to see available timeslots'}</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {timeslots.map((timeslot) => (
+                  <button
+                    key={timeslot.id}
+                    onClick={() => setSelectedTimeslot(timeslot)}
+                    className={`px-4 py-2 border rounded-lg hover:bg-gray-50 ${
+                      selectedTimeslot?.id === timeslot.id
+                        ? 'border-blue-600 bg-blue-50 text-blue-700'
+                        : 'border-gray-300'
+                    }`}
+                  >
+                    {timeslot.start_time} - {timeslot.end_time}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mb-6">
@@ -311,40 +381,54 @@ export default function PublicBookingPage() {
 
           <button
             onClick={bookAppointment}
-            className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700"
+            disabled={bookingLoading}
+            className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {t('booking.submit')}
+            {bookingLoading ? (t('booking.booking') || 'Booking...') : (t('booking.submit') || 'Book Now')}
           </button>
         </div>
 
-        {/* LINE QR Code Section */}
-        {lineQrUrl && lineDeeplinkUrl && (
-          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold mb-4 text-center">LINEで予約 / LINE でお問い合わせ</h2>
-            <div className="flex flex-col items-center space-y-4">
-              {lineQrUrl && (
-                <div className="flex flex-col items-center">
-                  <img 
-                    src={lineQrUrl} 
-                    alt="LINE QR Code" 
-                    className="w-48 h-48 border-2 border-gray-200 rounded-lg"
-                  />
-                  <p className="mt-2 text-sm text-gray-600 text-center">LINEで予約はこちら</p>
-                </div>
-              )}
-              {lineDeeplinkUrl && (
-                <a
-                  href={lineDeeplinkUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors"
-                >
-                  LINEで予約はこちら
-                </a>
-              )}
+        {/* Right Column: AI Assistant and LINE QR */}
+        <div className="space-y-6">
+          {/* AI Assistant */}
+          {shopId && (
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+              <BrowseAIAssistant
+                shops={shopName ? [{ id: shopId, name: shopName }] : []}
+                locale={t('common.locale') || 'en'}
+              />
             </div>
-          </div>
-        )}
+          )}
+
+          {/* LINE QR Code Section */}
+          {lineQrUrl && lineDeeplinkUrl && (
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+              <h2 className="text-xl font-semibold mb-4 text-center">LINEで予約 / LINE でお問い合わせ</h2>
+              <div className="flex flex-col items-center space-y-4">
+                {lineQrUrl && (
+                  <div className="flex flex-col items-center">
+                    <img 
+                      src={lineQrUrl} 
+                      alt="LINE QR Code" 
+                      className="w-48 h-48 border-2 border-gray-200 rounded-lg"
+                    />
+                    <p className="mt-2 text-sm text-gray-600 text-center">LINEで予約はこちら</p>
+                  </div>
+                )}
+                {lineDeeplinkUrl && (
+                  <a
+                    href={lineDeeplinkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors"
+                  >
+                    LINEで予約はこちら
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
       </div>
     </div>
