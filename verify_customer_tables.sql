@@ -188,26 +188,58 @@ FROM notifications
 WHERE recipient_type = 'customer';
 
 -- 13. Sample data from customers table (first 5 records)
+-- Only select columns that exist (id, email, created_at are guaranteed)
 SELECT 
     id,
     email,
-    name,
     created_at
 FROM customers
 ORDER BY created_at DESC
 LIMIT 5;
 
+-- 13b. Check if name column exists in customers and show it if available
+SELECT 
+    CASE 
+        WHEN EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = 'customers' 
+            AND column_name = 'name'
+        ) THEN '✅ name column exists'
+        ELSE '❌ name column does NOT exist'
+    END AS customers_name_column_status;
+
 -- 14. Sample data from customer_profiles (first 5 records)
+-- Select only guaranteed columns first
 SELECT 
     id,
-    name,
     email,
-    customer_auth_id,
-    phone,
     created_at
 FROM customer_profiles
 ORDER BY created_at DESC
 LIMIT 5;
+
+-- 14b. Check which optional columns exist in customer_profiles
+SELECT 
+    column_name,
+    CASE 
+        WHEN column_name IN ('name', 'customer_auth_id', 'phone') THEN '✅ Exists'
+        ELSE 'Standard column'
+    END AS status
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'customer_profiles'
+  AND column_name IN ('name', 'customer_auth_id', 'phone', 'id', 'email', 'created_at')
+ORDER BY 
+    CASE column_name
+        WHEN 'id' THEN 1
+        WHEN 'email' THEN 2
+        WHEN 'name' THEN 3
+        WHEN 'customer_auth_id' THEN 4
+        WHEN 'phone' THEN 5
+        WHEN 'created_at' THEN 6
+        ELSE 7
+    END;
 
 -- 15. Check for customer_profile_id column in bookings
 SELECT 
