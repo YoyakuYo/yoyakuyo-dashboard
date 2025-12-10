@@ -71,18 +71,45 @@ function CustomerBookingsPageContent() {
 
     const supabase = getSupabaseClient();
     
-    // First, get customer_profile_id from customer_auth_id
-    const { data: profile } = await supabase
+    // First, try to find existing profile by customer_auth_id
+    let { data: profile } = await supabase
       .from("customer_profiles")
-      .select("id")
+      .select("id, email")
       .eq("customer_auth_id", user.id)
       .maybeSingle();
 
+    // If no profile exists, try to create one
+    if (!profile) {
+      console.log("Customer profile not found, attempting to create one...");
+      // Try to create profile if it doesn't exist
+      const { data: newProfile, error: createError } = await supabase
+        .from("customer_profiles")
+        .insert({
+          customer_auth_id: user.id,
+          email: user.email || "",
+          name: user.name || user.email?.split('@')[0] || "Customer",
+        })
+        .select("id")
+        .single();
+
+      if (createError) {
+        console.error("Error creating customer profile:", createError);
+        // If creation fails, try to find by email as fallback
+        const { data: profileByEmail } = await supabase
+          .from("customer_profiles")
+          .select("id")
+          .eq("email", user.email || "")
+          .maybeSingle();
+        
+        profile = profileByEmail;
+      } else {
+        profile = newProfile;
+        console.log("✅ Created customer profile:", profile?.id);
+      }
+    }
+
     if (!profile?.id) {
-      console.error("Customer profile not found for user:", user.id);
-      setBookings([]);
-      setLoading(false);
-      return;
+      console.warn("Customer profile not found for user:", user.id, "Attempting to load bookings without profile ID.");
     }
 
     // Try customer_profile_id first, then fallback to customer_id
