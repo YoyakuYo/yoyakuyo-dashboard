@@ -43,6 +43,7 @@ export default function PublicBookingPage() {
   const [shopName, setShopName] = useState<string>('');
   const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [availabilityChecked, setAvailabilityChecked] = useState(false);
 
   
   // Anonymous session ID for public visitors
@@ -117,6 +118,7 @@ export default function PublicBookingPage() {
     setLoadingAvailability(true);
     setSelectedTimeslot(null);
     setTimeslots([]);
+    setAvailabilityChecked(false);
 
     try {
       const url = `${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`;
@@ -124,14 +126,17 @@ export default function PublicBookingPage() {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setTimeslots(Array.isArray(data) ? data : []);
-        if (Array.isArray(data) && data.length === 0) {
+        const availableSlots = Array.isArray(data) ? data : [];
+        setTimeslots(availableSlots);
+        setAvailabilityChecked(true);
+        if (availableSlots.length === 0) {
           alert(t('booking.noAvailability') || 'No available timeslots for this date');
         }
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Failed to fetch availability' }));
         alert(errorData.error || t('booking.availabilityError') || 'Failed to check availability');
         setTimeslots([]);
+        setAvailabilityChecked(true);
       }
     } catch (error: any) {
       if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
@@ -139,6 +144,7 @@ export default function PublicBookingPage() {
         alert(t('booking.availabilityError') || 'Failed to check availability');
       }
       setTimeslots([]);
+      setAvailabilityChecked(true);
     } finally {
       setLoadingAvailability(false);
     }
@@ -207,6 +213,7 @@ export default function PublicBookingPage() {
         setSelectedDate(null);
         setSelectedTimeslot(null);
         setTimeslots([]);
+        setAvailabilityChecked(false);
         setName('');
         setEmail('');
       } else {
@@ -276,17 +283,21 @@ export default function PublicBookingPage() {
 
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-2">{t('booking.chooseTimeslot') || 'Choose Timeslot'}</h2>
-            {timeslots.length === 0 ? (
-              <p className="text-gray-500 text-sm">{t('booking.noTimeslots') || 'Click "Check Availability" to see available timeslots'}</p>
+            {loadingAvailability ? (
+              <p className="text-gray-500 text-sm">{t('booking.checking') || 'Checking availability...'}</p>
+            ) : availabilityChecked && timeslots.length === 0 ? (
+              <p className="text-gray-500 text-sm">{t('booking.noAvailability') || 'No available timeslots for this date. Please try another date.'}</p>
+            ) : !availabilityChecked ? (
+              <p className="text-gray-500 text-sm">{t('booking.clickCheckAvailability') || 'Click "Check Availability" to see available timeslots'}</p>
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 {timeslots.map((timeslot) => (
                   <button
                     key={timeslot.id}
                     onClick={() => setSelectedTimeslot(timeslot)}
-                    className={`px-4 py-2 border rounded-lg hover:bg-gray-50 ${
+                    className={`px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors ${
                       selectedTimeslot?.id === timeslot.id
-                        ? 'border-blue-600 bg-blue-50 text-blue-700'
+                        ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
                         : 'border-gray-300'
                     }`}
                   >
