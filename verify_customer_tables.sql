@@ -281,10 +281,25 @@ SELECT
         ELSE NULL
     END AS customer_name,
     CASE 
-        WHEN cp.customer_auth_id = c.id THEN '✅ Linked'
-        WHEN cp.customer_auth_id IS NULL THEN '⚠️ No auth_id set'
-        ELSE '❌ Not Linked'
-    END AS linkage_status
+        WHEN cp.customer_auth_id = c.id AND cp.id = cp.customer_auth_id THEN 
+            '✅ Linked (IDs match - may be from Supabase Auth migration)'
+        WHEN cp.customer_auth_id = c.id AND cp.id != cp.customer_auth_id THEN 
+            '✅ Linked (Correct structure: profile_id independent)'
+        WHEN cp.customer_auth_id IS NULL THEN 
+            '⚠️ No auth_id set'
+        WHEN cp.customer_auth_id != c.id THEN 
+            '❌ Not Linked (auth_id does not match customer)'
+        ELSE 
+            '❌ Not Linked'
+    END AS linkage_status,
+    CASE 
+        WHEN cp.id = cp.customer_auth_id THEN 
+            '⚠️ profile_id = customer_auth_id (should be different for new records)'
+        WHEN cp.id != cp.customer_auth_id THEN 
+            '✅ profile_id is independent (correct structure)'
+        ELSE 
+            'N/A'
+    END AS structure_note
 FROM customer_profiles cp
 LEFT JOIN customers c ON cp.customer_auth_id = c.id
 ORDER BY cp.created_at DESC
