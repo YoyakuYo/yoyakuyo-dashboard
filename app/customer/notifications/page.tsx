@@ -42,7 +42,7 @@ export default function CustomerNotificationsPage() {
           email: user.email || "",
           name: user.name || user.email?.split('@')[0] || "Customer",
         })
-        .select("id")
+        .select("id, email")
         .single();
 
       if (createError) {
@@ -50,7 +50,7 @@ export default function CustomerNotificationsPage() {
         // If creation fails, try to find by email as fallback
         const { data: profileByEmail } = await supabase
           .from("customer_profiles")
-          .select("id")
+          .select("id, email")
           .eq("email", user.email || "")
           .maybeSingle();
         
