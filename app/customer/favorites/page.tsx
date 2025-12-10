@@ -18,7 +18,27 @@ export default function CustomerFavoritesPage() {
   }, [user]);
 
   const loadFavorites = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     const supabase = getSupabaseClient();
+    
+    // First, get customer_profile_id from customer_auth_id
+    const { data: profile } = await supabase
+      .from("customer_profiles")
+      .select("id")
+      .eq("customer_auth_id", user.id)
+      .maybeSingle();
+
+    if (!profile?.id) {
+      console.warn("Customer profile not found for user:", user.id);
+      setFavorites([]);
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("customer_favorites")
       .select(`
@@ -35,7 +55,7 @@ export default function CustomerFavoritesPage() {
           review_count
         )
       `)
-      .eq("customer_id", user?.id)
+      .eq("customer_id", profile.id) // Use customer_profile.id, not customers.id
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -47,11 +67,26 @@ export default function CustomerFavoritesPage() {
   };
 
   const handleRemoveFavorite = async (shopId: string) => {
+    if (!user?.id) return;
+
     const supabase = getSupabaseClient();
+    
+    // Get customer_profile_id
+    const { data: profile } = await supabase
+      .from("customer_profiles")
+      .select("id")
+      .eq("customer_auth_id", user.id)
+      .maybeSingle();
+
+    if (!profile?.id) {
+      alert("Failed to find customer profile");
+      return;
+    }
+
     const { error } = await supabase
       .from("customer_favorites")
       .delete()
-      .eq("customer_id", user?.id)
+      .eq("customer_id", profile.id) // Use customer_profile.id
       .eq("shop_id", shopId);
 
     if (error) {
