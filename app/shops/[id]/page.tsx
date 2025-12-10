@@ -359,6 +359,7 @@ export default function PublicShopDetailPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(user?.id && { 'x-user-id': user.id }), // Send user ID if logged in
         },
         body: JSON.stringify({
           shop_id: shopId,
