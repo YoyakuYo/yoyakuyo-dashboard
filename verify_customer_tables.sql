@@ -267,13 +267,22 @@ WHERE table_schema = 'public'
 -- 18. Verify customer_auth_id linkage between customers and customer_profiles
 SELECT 
     cp.id AS profile_id,
-    cp.name AS profile_name,
     cp.email AS profile_email,
     cp.customer_auth_id,
     c.id AS customer_id,
     c.email AS customer_email,
     CASE 
+        WHEN EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = 'customers' 
+            AND column_name = 'name'
+        ) THEN c.name
+        ELSE NULL
+    END AS customer_name,
+    CASE 
         WHEN cp.customer_auth_id = c.id THEN '✅ Linked'
+        WHEN cp.customer_auth_id IS NULL THEN '⚠️ No auth_id set'
         ELSE '❌ Not Linked'
     END AS linkage_status
 FROM customer_profiles cp
