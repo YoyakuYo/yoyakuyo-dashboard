@@ -86,40 +86,85 @@ function CustomerBookingsPageContent() {
     }
 
     // Try customer_profile_id first, then fallback to customer_id
-    let query = supabase
-      .from("bookings")
-      .select(`
-        *,
-        shops (
-          id,
-          name,
-          address,
-          phone
-        ),
-        services (
-          id,
-          name,
-          price
-        )
-      `)
-      .or(`customer_profile_id.eq.${profile.id},customer_id.eq.${profile.id}`)
-      .order("created_at", { ascending: false });
+    // Use separate queries and combine results for better reliability
+    const [profileBookings, customerIdBookings] = await Promise.all([
+      // Query by customer_profile_id
+      supabase
+        .from("bookings")
+        .select(`
+          *,
+          shops (
+            id,
+            name,
+            address,
+            phone
+          ),
+          services (
+            id,
+            name,
+            price
+          )
+        `)
+        .eq("customer_profile_id", profile.id)
+        .order("created_at", { ascending: false }),
+      
+      // Query by customer_id (fallback for legacy bookings)
+      supabase
+        .from("bookings")
+        .select(`
+          *,
+          shops (
+            id,
+            name,
+            address,
+            phone
+          ),
+          services (
+            id,
+            name,
+            price
+          )
+        `)
+        .eq("customer_id", profile.id)
+        .order("created_at", { ascending: false })
+    ]);
 
+    // Combine results and remove duplicates
+    const allBookings = [
+      ...(profileBookings.data || []),
+      ...(customerIdBookings.data || []).filter(
+        (b: any) => !profileBookings.data?.some((pb: any) => pb.id === b.id)
+      )
+    ];
+
+    // Apply filter
+    let filteredBookings = allBookings;
     if (filter !== "all") {
       if (filter === "upcoming") {
-        query = query.in("status", ["pending", "confirmed"]);
+        filteredBookings = allBookings.filter((b: any) => 
+          b.status === "pending" || b.status === "confirmed"
+        );
       } else {
-        query = query.eq("status", filter);
+        filteredBookings = allBookings.filter((b: any) => b.status === filter);
       }
     }
 
-    const { data, error } = await query;
+    // Sort by created_at descending
+    filteredBookings.sort((a: any, b: any) => {
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return dateB - dateA;
+    });
 
-    if (error) {
-      console.error("Error loading bookings:", error);
-    } else {
-      setBookings(data || []);
+    if (profileBookings.error) {
+      console.error("Error loading bookings by customer_profile_id:", profileBookings.error);
     }
+    if (customerIdBookings.error) {
+      console.error("Error loading bookings by customer_id:", customerIdBookings.error);
+    }
+
+    console.log(`[Customer Bookings] Found ${filteredBookings.length} bookings for customer_profile_id: ${profile.id}`);
+    setBookings(filteredBookings);
     setLoading(false);
   };
 
