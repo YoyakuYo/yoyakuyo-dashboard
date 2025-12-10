@@ -110,7 +110,12 @@ function CustomerBookingsPageContent() {
 
     if (!profile?.id) {
       console.warn("Customer profile not found for user:", user.id, "Attempting to load bookings without profile ID.");
+      setBookings([]);
+      setLoading(false);
+      return;
     }
+
+    const customerProfileId = profile.id;
 
     // Try customer_profile_id first, then fallback to customer_id
     // Use separate queries and combine results for better reliability
@@ -132,7 +137,7 @@ function CustomerBookingsPageContent() {
             price
           )
         `)
-        .eq("customer_profile_id", profile.id)
+        .eq("customer_profile_id", customerProfileId)
         .order("created_at", { ascending: false }),
       
       // Query by customer_id (fallback for legacy bookings)
@@ -152,7 +157,7 @@ function CustomerBookingsPageContent() {
             price
           )
         `)
-        .eq("customer_id", profile.id)
+        .eq("customer_id", user.id)
         .order("created_at", { ascending: false })
     ]);
 
