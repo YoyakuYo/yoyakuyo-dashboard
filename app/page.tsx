@@ -29,6 +29,7 @@ export default function HomePage() {
 
       {/* Owner Modals for Login/Join */}
       <OwnerModals />
+      </div>
     </div>
   );
 }
