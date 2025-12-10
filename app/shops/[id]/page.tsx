@@ -10,6 +10,7 @@ import dynamic from 'next/dynamic';
 import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
 import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 import ReviewCard from '../../components/ReviewCard';
 import ReviewStats from '../../components/ReviewStats';
 import ReviewForm from '../../components/ReviewForm';
@@ -166,6 +167,7 @@ export default function PublicShopDetailPage() {
   const [bookingDate, setBookingDate] = useState<string>('');
   const [bookingTime, setBookingTime] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
+  const [customerProfile, setCustomerProfile] = useState<{ name: string; email: string } | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState(false);
@@ -365,7 +367,7 @@ export default function PublicShopDetailPage() {
           shop_id: shopId,
           service_id: bookingServiceId,
           staff_id: bookingStaffId || null,
-          customer_name: customerName || 'Guest',
+          customer_name: customerName || customerProfile?.name || user?.email?.split('@')[0] || 'Guest',
           customer_email: user?.email || null,
           date: bookingDate,
           time_slot: bookingTime,
@@ -633,7 +635,15 @@ export default function PublicShopDetailPage() {
         
         {/* Booking Widget (Inline Form - Alternative) */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">{t('booking.title')}</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900">{t('booking.title')}</h2>
+            {user && customerProfile && (
+              <div className="text-sm text-gray-600">
+                <span className="font-medium">Booking as: </span>
+                <span className="text-gray-900">{customerProfile.name}</span>
+              </div>
+            )}
+          </div>
           {bookingSuccess ? (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
               <p className="text-green-700 font-medium">{t('booking.success')}</p>
