@@ -10,11 +10,13 @@ import OwnerModals from './components/OwnerModals';
 export default function HomePage() {
   return (
     <div className="w-full min-h-screen bg-white">
-      {/* Minimal Navbar */}
+      {/* Minimal Navbar - Fixed at top, always visible */}
       <MinimalNavbar />
 
-      {/* Hero Section with Image Carousel */}
-      <HeroCarousel />
+      {/* Add padding-top to account for fixed navbar */}
+      <div className="pt-16">
+        {/* Hero Section with Image Carousel */}
+        <HeroCarousel />
 
       {/* Category Section */}
       <CategorySection />

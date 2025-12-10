@@ -64,13 +64,13 @@ export default function HeroCarousel() {
       ))}
 
       {/* Minimal Overlay - Only for text readability, very subtle */}
-      <div className="absolute inset-0 bg-black/10" />
+      <div className="absolute inset-0 bg-black/10 z-[1]" />
 
       {/* Left Side Gradient Overlay - Very subtle, only where text is */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-black/5 to-transparent z-10" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-black/5 to-transparent z-[2]" />
 
       {/* Hero Content - Left Aligned */}
-      <div className="absolute inset-0 flex items-center z-20">
+      <div className="absolute inset-0 flex items-center z-[3]">
         <div className="text-left pl-10 md:pl-12 lg:pl-16 max-w-4xl">
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 tracking-tight drop-shadow-2xl [text-shadow:_2px_2px_8px_rgb(0_0_0_/_80%)]">
             {t('heroMainTitle')}

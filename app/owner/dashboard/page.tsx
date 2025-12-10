@@ -484,7 +484,7 @@ function AIAssistantCard({ shopId }: { shopId?: string }) {
     <div className="space-y-4">
       <div className="h-32 overflow-y-auto border rounded-lg p-3 bg-gray-50">
         {messages.length === 0 ? (
-          <p className="text-sm text-gray-500">Ask me anything about managing your shop!</p>
+          <p className="text-sm text-gray-500">Start a conversation with your AI assistant</p>
         ) : (
           <div className="space-y-2">
             {messages.slice(-3).map((msg, idx) => (
