@@ -526,10 +526,6 @@ function ServicesPageContent() {
                     <span className="text-indigo-600 mt-1">✓</span>
                     <span>{isJapanese ? 'プレミアム: ¥10,000/月' : 'Premium: ¥10,000/month'}</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-indigo-600 mt-1">✓</span>
-                    <span>{isJapanese ? 'エンタープライズ: ¥20,000/月' : 'Enterprise: ¥20,000/month'}</span>
-                  </li>
                 </ul>
               </div>
             </div>
