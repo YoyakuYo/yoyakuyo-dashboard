@@ -46,15 +46,9 @@ export default function MinimalNavbar() {
             </Link>
           </div>
 
-          {/* Right: Language + Staff + Login + Join */}
+          {/* Right: Language + Login + Join */}
           <div className="flex items-center gap-4">
             <WhiteLanguageSwitcher />
-            <Link
-              href="/staff-dashboard"
-              className="px-4 py-2 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 transition-colors rounded-md shadow-md hover:shadow-lg border-2 border-purple-500"
-            >
-              {t('navStaff') || 'Staff Dashboard'}
-            </Link>
             <button
               onClick={handleLoginClick}
               className="px-4 py-2 text-sm font-medium text-gray-900 hover:text-japanese-red transition-colors"

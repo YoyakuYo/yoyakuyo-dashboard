@@ -38,7 +38,6 @@ export default function ConditionalLayout({
   // Routes that should NEVER use DashboardLayout (they have their own layouts)
   const excludedFromDashboard = [
     "/",                    // Landing page - has MinimalNavbar
-    "/staff-dashboard",     // Staff dashboard - has its own layout
   ];
   
   // Check if route should be excluded
