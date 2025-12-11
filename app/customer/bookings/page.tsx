@@ -78,19 +78,17 @@ function CustomerBookingsPageContent() {
       .eq("customer_auth_id", user.id)
       .maybeSingle();
 
-    // If no profile exists, try to create one
+    // If no profile exists, try to create one using the database function
     if (!profile) {
       console.log("Customer profile not found, attempting to create one...");
-      // Try to create profile if it doesn't exist
-      const { data: newProfile, error: createError } = await supabase
-        .from("customer_profiles")
-        .insert({
-          customer_auth_id: user.id,
-          email: user.email || "",
-          name: user.name || user.email?.split('@')[0] || "Customer",
-        })
-        .select("id, email")
-        .single();
+      // Use the database function to create profile (bypasses RLS)
+      const { data: profileId, error: createError } = await supabase
+        .rpc('create_customer_profile', {
+          p_customer_auth_id: user.id,
+          p_email: user.email || "",
+          p_name: user.name || user.email?.split('@')[0] || "Customer",
+          p_phone: null
+        });
 
       if (createError) {
         console.error("Error creating customer profile:", createError);
@@ -102,8 +100,15 @@ function CustomerBookingsPageContent() {
           .maybeSingle();
         
         profile = profileByEmail;
-      } else {
-        profile = newProfile;
+      } else if (profileId) {
+        // Fetch the newly created profile
+        const { data: newProfile } = await supabase
+          .from("customer_profiles")
+          .select("id, email")
+          .eq("id", profileId)
+          .single();
+        
+        profile = newProfile || null;
         console.log("✅ Created customer profile:", profile?.id);
       }
     }

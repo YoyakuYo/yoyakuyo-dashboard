@@ -44,25 +44,17 @@ export default function CustomerSettingsPage() {
       .eq("customer_auth_id", user.id)
       .maybeSingle();
 
-    // If no profile exists, create one
+    // If no profile exists, create one using the database function
     if (error || !data) {
       console.log("Profile not found, creating new profile...");
-      const { data: newProfile, error: createError } = await supabase
-        .from("customer_profiles")
-        .insert({
-          customer_auth_id: user.id,
-          email: user.email || "",
-          full_name: user.email || "",
-          phone: null,
-          date_of_birth: null,
-          address_line1: null,
-          address_line2: null,
-          city: null,
-          prefecture: null,
-          postal_code: null,
-        })
-        .select()
-        .single();
+      // Use the database function to create profile (bypasses RLS)
+      const { data: profileId, error: createError } = await supabase
+        .rpc('create_customer_profile', {
+          p_customer_auth_id: user.id,
+          p_email: user.email || "",
+          p_name: user.name || user.email?.split('@')[0] || "Customer",
+          p_phone: null
+        });
 
       if (createError) {
         console.error("Error creating profile:", createError);
@@ -71,7 +63,28 @@ export default function CustomerSettingsPage() {
         return;
       }
 
-      data = newProfile;
+      if (profileId) {
+        // Fetch the newly created profile
+        const { data: newProfile } = await supabase
+          .from("customer_profiles")
+          .select("*")
+          .eq("id", profileId)
+          .single();
+
+        if (newProfile) {
+          data = newProfile;
+        } else {
+          console.error("Error fetching newly created profile");
+          setMessage("Failed to fetch newly created profile");
+          setLoading(false);
+          return;
+        }
+      } else {
+        console.error("No profile ID returned from create function");
+        setMessage("Failed to create profile");
+        setLoading(false);
+        return;
+      }
     }
 
     if (data) {
