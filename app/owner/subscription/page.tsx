@@ -91,7 +91,7 @@ export default function SubscriptionPage() {
     }
   };
 
-  const handleSubscribe = async (plan: 'basic' | 'premium' | 'enterprise') => {
+  const handleSubscribe = async (plan: 'basic' | 'premium') => {
     if (!user?.id || !selectedShopId) {
       alert('Please select a shop first');
       return;
@@ -206,20 +206,6 @@ export default function SubscriptionPage() {
       ],
       popular: true,
     },
-    {
-      id: 'enterprise' as const,
-      name: 'Enterprise Plan',
-      price: '¥20,000',
-      period: '/month',
-      features: [
-        'Unlimited shops',
-        'Full feature access',
-        '24/7 priority support',
-        'Advanced analytics',
-        'Custom integrations',
-        'Dedicated account manager',
-      ],
-    },
   ];
 
   return (
@@ -286,7 +272,7 @@ export default function SubscriptionPage() {
 
       {/* Subscription Plans */}
       {!subscriptionStatus?.hasSubscription && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {plans.map((plan) => (
             <div
               key={plan.id}
