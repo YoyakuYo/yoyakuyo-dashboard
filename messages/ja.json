@@ -365,7 +365,13 @@
     "spas_onsen_bathhouses": "スパ・温泉・日帰り入浴",
     "golf_courses_ranges": "ゴルフ場・練習場",
     "private_karaoke_rooms": "カラオケルーム",
-    "unknown": "不明"
+    "unknown": "不明",
+    "activities_and_sports": "アクティビティ・スポーツ",
+    "beauty_services": "美容サービス",
+    "clinics_and_medical_care": "クリニック・医療",
+    "dining_and_izakaya": "飲食・居酒屋",
+    "hotels_and_stays": "ホテル・宿泊",
+    "spa_onsen_and_relaxation": "スパ・温泉・リラクゼーション"
   },
   "prefectures": {
     "hokkaido": "北海道",
@@ -956,7 +962,13 @@
       "onsenDayuse": "温泉・日帰り入浴",
       "onsenDayuseDesc": "伝統的な温泉と日帰り入浴施設",
       "golfCourses": "ゴルフ場",
-      "golfCoursesDesc": "プレミアムゴルフコースと練習場"
+      "golfCoursesDesc": "プレミアムゴルフコースと練習場",
+      "activities_and_sports": "アクティビティ・スポーツ",
+      "beauty_services": "美容サービス",
+      "clinics_and_medical_care": "クリニック・医療",
+      "dining_and_izakaya": "飲食・居酒屋",
+      "hotels_and_stays": "ホテル・宿泊",
+      "spa_onsen_and_relaxation": "スパ・温泉・リラクゼーション"
     },
     "howItWorksTitle": "使い方",
     "step1Title": "日本全国の店舗から検索",
