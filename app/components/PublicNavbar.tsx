@@ -4,6 +4,7 @@
 "use client";
 
 import Link from 'next/link';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 export default function PublicNavbar() {
   return (
@@ -17,6 +18,8 @@ export default function PublicNavbar() {
           >
             Yoyaku Yo
           </Link>
+          {/* Right: Universal Language Selector */}
+          <LanguageSwitcher />
         </div>
       </div>
     </nav>

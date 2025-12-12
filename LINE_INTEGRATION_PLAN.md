@@ -507,3 +507,4 @@ Add persistent menu at bottom of LINE chat:
 
 This plan provides a complete roadmap for integrating LINE as a booking platform. The implementation can be done incrementally, starting with basic bot functionality and gradually adding more features.
 
+
