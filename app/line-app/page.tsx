@@ -189,6 +189,8 @@ function LineAppPageContent() {
                 <option value="spa_onsen_relaxation">Spa & Onsen</option>
                 <option value="hotels_stays">Hotels & Stays</option>
                 <option value="dining_izakaya">Dining & Izakaya</option>
+                <option value="clinics_medical_care">Clinics & Medical Care</option>
+                <option value="activities_sports">Activities & Sports</option>
               </select>
 
               <select
