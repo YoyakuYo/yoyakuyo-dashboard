@@ -601,12 +601,12 @@ const MyShopPage = () => {
       if (res.ok) {
         const data = await res.json();
         setStaff(Array.isArray(data) ? data : []);
+      } else {
+        // Silently handle errors - staff feature may be disabled
+        setStaff([]);
       }
     } catch (error: any) {
       // Silently handle connection errors (API server not running)
-      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-        console.error('Error fetching staff:', error);
-      }
       setStaff([]);
     }
   };
@@ -809,95 +809,22 @@ const MyShopPage = () => {
     });
   };
   
-  // Staff handlers
+  // Staff handlers - DISABLED: Staff management was removed
   const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!shop || !user) return;
-    
-    setStaffError(null);
-    try {
-      const res = await fetch(`${apiUrl}/staff`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user.id,
-        },
-        body: JSON.stringify({
-          shop_id: shop.id,
-          first_name: staffForm.first_name,
-          last_name: staffForm.last_name,
-          phone: staffForm.phone,
-          email: staffForm.email,
-        }),
-      });
-      
-      if (res.ok) {
-        await fetchStaff(shop.id);
-        setStaffForm({ first_name: '', last_name: '', phone: '', email: '' });
-      } else {
-        const errorData = await res.json().catch(() => ({ error: 'Failed to create staff' }));
-        setStaffError(errorData.error || 'Failed to create staff');
-      }
-    } catch (error) {
-      console.error('Error creating staff:', error);
-      setStaffError('Failed to create staff');
-    }
+    // Staff management disabled
+    return;
   };
   
   const handleUpdateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!shop || !user || !editingStaff) return;
-    
-    setStaffError(null);
-    try {
-      const res = await fetch(`${apiUrl}/staff/${editingStaff.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user.id,
-        },
-        body: JSON.stringify({
-          first_name: staffForm.first_name,
-          last_name: staffForm.last_name,
-          phone: staffForm.phone,
-          email: staffForm.email,
-        }),
-      });
-      
-      if (res.ok) {
-        await fetchStaff(shop.id);
-        setEditingStaff(null);
-        setStaffForm({ first_name: '', last_name: '', phone: '', email: '' });
-      } else {
-        const errorData = await res.json().catch(() => ({ error: 'Failed to update staff' }));
-        setStaffError(errorData.error || 'Failed to update staff');
-      }
-    } catch (error) {
-      console.error('Error updating staff:', error);
-      setStaffError('Failed to update staff');
-    }
+    // Staff management disabled
+    return;
   };
   
   const handleDeleteStaff = async (staffId: string) => {
-    if (!shop || !user || !confirm('Are you sure you want to delete this staff member?')) return;
-    
-    try {
-      const res = await fetch(`${apiUrl}/staff/${staffId}`, {
-        method: 'DELETE',
-        headers: {
-          'x-user-id': user.id,
-        },
-      });
-      
-      if (res.ok) {
-        await fetchStaff(shop.id);
-      } else {
-        alert('Failed to delete staff');
-      }
-    } catch (error) {
-      console.error('Error deleting staff:', error);
-      alert('Failed to delete staff');
-    }
+    // Staff management disabled
+    return;
   };
   
   const startEditStaff = (staffMember: Staff) => {
