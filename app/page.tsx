@@ -6,8 +6,13 @@ import CategorySection from './components/landing/CategorySection';
 import ReviewsSection from './components/landing/ReviewsSection';
 import RoleSelectionModal from './components/landing/RoleSelectionModal';
 import OwnerModals from './components/OwnerModals';
+import { BrowseAIAssistant } from './browse/components/BrowseAIAssistant';
+import { BrowseAIProvider } from './components/BrowseAIContext';
+import { useLocale } from 'next-intl';
 
-export default function HomePage() {
+function LandingPageContent() {
+  const locale = useLocale();
+
   return (
     <div className="w-full min-h-screen bg-white">
       {/* Minimal Navbar - Fixed at top, always visible */}
@@ -18,18 +23,36 @@ export default function HomePage() {
         {/* Hero Section with Image Carousel */}
         <HeroCarousel />
 
-      {/* Category Section */}
-      <CategorySection />
+        {/* Category Section */}
+        <CategorySection />
 
-      {/* Reviews Section */}
-      <ReviewsSection />
+        {/* Reviews Section */}
+        <ReviewsSection />
 
-      {/* Role Selection Modal for Login/Join */}
-      <RoleSelectionModal />
+        {/* Role Selection Modal for Login/Join */}
+        <RoleSelectionModal />
 
-      {/* Owner Modals for Login/Join */}
-      <OwnerModals />
+        {/* Owner Modals for Login/Join */}
+        <OwnerModals />
       </div>
+
+      {/* AI Assistant - Global floating chat bubble */}
+      <BrowseAIAssistant
+        shops={[]}
+        selectedPrefecture={undefined}
+        selectedCity={undefined}
+        selectedCategoryId={undefined}
+        searchQuery={undefined}
+        locale={locale as string}
+      />
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <BrowseAIProvider>
+      <LandingPageContent />
+    </BrowseAIProvider>
   );
 }
