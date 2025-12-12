@@ -6,7 +6,7 @@ import { CustomAuthProvider } from "@/lib/useCustomAuth";
 import { NextIntlProviderWrapper } from "./components/NextIntlProvider";
 import { BookingNotificationProvider } from "./components/BookingNotificationContext";
 import ConditionalLayout from "./components/ConditionalLayout";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { LanguageSwitcher } from "./components/LanguageSwitcher";
 
 const inter = Inter({ subsets: ["latin"] });
 
