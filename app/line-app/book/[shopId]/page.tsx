@@ -14,8 +14,9 @@ interface Service {
 }
 
 interface TimeSlot {
-  time: string;
-  available: boolean;
+  id: string;
+  start_time: string;
+  end_time: string;
 }
 
 export default function LineBookingPage() {
@@ -59,15 +60,22 @@ export default function LineBookingPage() {
   const fetchTimeSlots = async () => {
     setLoading(true);
     try {
+      // Use the same endpoint as the main app
       const res = await fetch(
-        `${apiUrl}/timeslots?shop_id=${shopId}&date=${selectedDate}&service_id=${serviceId}`
+        `${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`
       );
       if (res.ok) {
         const data = await res.json();
-        setTimeSlots(data.timeSlots || []);
+        // Map the response to match the expected format
+        const slots = Array.isArray(data) ? data : [];
+        setTimeSlots(slots);
+      } else {
+        console.error("Failed to fetch availability:", res.status);
+        setTimeSlots([]);
       }
     } catch (error) {
       console.error("Error fetching time slots:", error);
+      setTimeSlots([]);
     } finally {
       setLoading(false);
     }
@@ -86,6 +94,24 @@ export default function LineBookingPage() {
         lineUserId = profile.userId;
       }
 
+      // Find the selected timeslot
+      const selectedSlot = timeSlots.find(slot => {
+        const time = slot.start_time.split(':').slice(0, 2).join(':');
+        return time === selectedTime;
+      });
+
+      if (!selectedSlot) {
+        alert("Please select a valid time slot.");
+        setSubmitting(false);
+        return;
+      }
+
+      // Calculate start and end times
+      const startDateTime = new Date(`${selectedDate}T${selectedTime}`);
+      const serviceDuration = service?.duration || 30; // Default 30 minutes
+      const endDateTime = new Date(startDateTime.getTime() + serviceDuration * 60000);
+
+      // Use the same booking endpoint format as the main app
       const res = await fetch(`${apiUrl}/api/line/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -95,13 +121,17 @@ export default function LineBookingPage() {
           service_id: serviceId,
           date: selectedDate,
           time: selectedTime,
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
+          time_slot: `${selectedSlot.start_time}-${selectedSlot.end_time}`,
         }),
       });
 
       if (res.ok) {
         router.push(`/line-app/bookings?success=true`);
       } else {
-        alert("Failed to create booking. Please try again.");
+        const errorData = await res.json().catch(() => ({ error: "Failed to create booking" }));
+        alert(errorData.error || "Failed to create booking. Please try again.");
       }
     } catch (error) {
       console.error("Error creating booking:", error);
@@ -176,23 +206,24 @@ export default function LineBookingPage() {
                 <p className="text-gray-600">No available times for this date</p>
               ) : (
                 <div className="grid grid-cols-4 gap-2">
-                  {timeSlots.map((slot) => (
-                    <button
-                      key={slot.time}
-                      type="button"
-                      onClick={() => setSelectedTime(slot.time)}
-                      disabled={!slot.available}
-                      className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                        selectedTime === slot.time
-                          ? "bg-blue-600 text-white"
-                          : slot.available
-                          ? "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                          : "bg-gray-50 text-gray-400 cursor-not-allowed"
-                      }`}
-                    >
-                      {slot.time}
-                    </button>
-                  ))}
+                  {timeSlots.map((slot) => {
+                    // Extract time from start_time (format: "HH:MM" or "HH:MM:SS")
+                    const time = slot.start_time.split(':').slice(0, 2).join(':');
+                    return (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        onClick={() => setSelectedTime(time)}
+                        className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                          selectedTime === time
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                        }`}
+                      >
+                        {time}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
