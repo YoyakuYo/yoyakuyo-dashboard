@@ -481,6 +481,9 @@
   },
   "reviews": {
     "title": "レビュー",
+    "description": "お客様が体験について語っている声をご覧ください",
+    "browseShops": "店舗を探す",
+    "viewAllShops": "すべての店舗とレビューを見る",
     "writeReview": "レビューを書く",
     "rating": "評価",
     "comment": "コメント",
