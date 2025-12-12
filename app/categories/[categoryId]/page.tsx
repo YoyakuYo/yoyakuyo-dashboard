@@ -88,8 +88,15 @@ function CategoryPageContent() {
         // If subcategory is selected, use subcategory UUID, otherwise use main category UUID
         let categoryUuidSet = false;
         if (filters.subcategory !== 'all') {
-          const subcategory = SUBCATEGORIES.find(c => c.id === filters.subcategory) || 
-                             MAIN_CATEGORIES.find(c => c.id === filters.subcategory);
+          // Legacy ID mapping for backward compatibility
+          const legacyIdMap: Record<string, string> = {
+            'spa_massage': 'spa', // Map old combined ID to new "Spa" subcategory
+            'onsen_ryokan': 'ryokan_onsen', // Map old combined ID to new "Ryokan Onsen" subcategory
+          };
+          const mappedId = legacyIdMap[filters.subcategory] || filters.subcategory;
+          
+          const subcategory = SUBCATEGORIES.find(c => c.id === mappedId) || 
+                             MAIN_CATEGORIES.find(c => c.id === mappedId);
           if (subcategory) {
             const dbSubcategory = categories.find((c: any) => c.name === subcategory.dbName);
             if (dbSubcategory) {
@@ -101,7 +108,7 @@ function CategoryPageContent() {
               console.log('Available categories:', categories.map((c: any) => c.name));
             }
           } else {
-            console.warn(`⚠️ Subcategory ID "${filters.subcategory}" not found, falling back to main category`);
+            console.warn(`⚠️ Subcategory ID "${filters.subcategory}" (mapped: "${mappedId}") not found, falling back to main category`);
           }
         }
         
