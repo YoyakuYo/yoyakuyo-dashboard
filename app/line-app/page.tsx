@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiUrl } from "@/lib/apiClient";
-
-export const dynamic = 'force-dynamic';
 
 // LINE LIFF SDK types
 declare global {
@@ -23,7 +21,7 @@ interface Shop {
   category?: string;
 }
 
-export default function LineAppPage() {
+function LineAppPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [liffInitialized, setLiffInitialized] = useState(false);
