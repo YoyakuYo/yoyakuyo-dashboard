@@ -18,8 +18,6 @@ export default function PublicNavbar() {
           >
             Yoyaku Yo
           </Link>
-          {/* Right: Universal Language Selector */}
-          <LanguageSwitcher />
         </div>
       </div>
     </nav>

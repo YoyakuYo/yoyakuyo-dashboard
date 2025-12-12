@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import WhiteLanguageSwitcher from './WhiteLanguageSwitcher';
 
 export default function MinimalNavbar() {
   const t = useTranslations('landing');
@@ -46,9 +45,8 @@ export default function MinimalNavbar() {
             </Link>
           </div>
 
-          {/* Right: Language + Login + Join */}
+          {/* Right: Login + Join */}
           <div className="flex items-center gap-4">
-            <WhiteLanguageSwitcher />
             <button
               onClick={handleLoginClick}
               className="px-4 py-2 text-sm font-medium text-gray-900 hover:text-japanese-red transition-colors"

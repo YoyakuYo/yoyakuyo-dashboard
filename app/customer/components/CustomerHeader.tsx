@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
-import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 import { useTranslations } from "next-intl";
 
 export default function CustomerHeader() {
@@ -103,10 +102,8 @@ export default function CustomerHeader() {
           {t('home.title')}
         </Link>
 
-        {/* Right side: Language, Notifications, Profile */}
+        {/* Right side: Notifications, Profile */}
         <div className="flex items-center gap-4">
-          <LanguageSwitcher />
-
           {/* Notifications */}
           <Link
             href="/customer/notifications"

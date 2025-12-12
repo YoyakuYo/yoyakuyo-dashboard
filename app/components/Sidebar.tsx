@@ -10,7 +10,6 @@ import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
 import { useBookingNotifications } from './BookingNotificationContext';
 import NotificationDot from './NotificationDot';
-import { LanguageSwitcher } from './LanguageSwitcher';
 
 const Sidebar = React.memo(() => {
   const pathname = usePathname();
@@ -164,9 +163,6 @@ const Sidebar = React.memo(() => {
           })}
         </ul>
         <div className="mt-auto pt-4 border-t border-gray-700 mb-4">
-          <div className="mb-4">
-            <LanguageSwitcher />
-          </div>
           {user && (
             <div className="px-4 py-2 mb-2">
               <p className="text-sm text-gray-400 truncate" title={user.email || undefined}>
@@ -222,9 +218,6 @@ const Sidebar = React.memo(() => {
             })}
           </ul>
           <div className="mt-auto pt-4 border-t border-gray-700">
-            <div className="mb-4">
-              <LanguageSwitcher />
-            </div>
             {user && (
               <div className="px-4 py-2 mb-2">
                 <p className="text-sm text-gray-400 truncate" title={user.email || undefined}>
