@@ -371,7 +371,11 @@
     "clinics_and_medical_care": "クリニック・医療",
     "dining_and_izakaya": "飲食・居酒屋",
     "hotels_and_stays": "ホテル・宿泊",
-    "spa_onsen_and_relaxation": "スパ・温泉・リラクゼーション"
+    "spa_onsen_and_relaxation": "スパ・温泉・リラクゼーション",
+    "spa_onsen_relaxation": "スパ・温泉・リラクゼーション",
+    "spa_onsen": "スパ・温泉・リラクゼーション",
+    "spa_and_onsen_and_relaxation": "スパ・温泉・リラクゼーション",
+    "spa": "スパ・温泉・リラクゼーション"
   },
   "prefectures": {
     "hokkaido": "北海道",
@@ -968,7 +972,11 @@
       "clinics_and_medical_care": "クリニック・医療",
       "dining_and_izakaya": "飲食・居酒屋",
       "hotels_and_stays": "ホテル・宿泊",
-      "spa_onsen_and_relaxation": "スパ・温泉・リラクゼーション"
+      "spa_onsen_and_relaxation": "スパ・温泉・リラクゼーション",
+      "spa_onsen_relaxation": "スパ・温泉・リラクゼーション",
+      "spa_onsen": "スパ・温泉・リラクゼーション",
+      "spa_and_onsen_and_relaxation": "スパ・温泉・リラクゼーション",
+      "spa": "スパ・温泉・リラクゼーション"
     },
     "howItWorksTitle": "使い方",
     "step1Title": "日本全国の店舗から検索",
