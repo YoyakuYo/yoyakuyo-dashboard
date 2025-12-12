@@ -20,7 +20,7 @@ export default function MinimalNavbar() {
   };
 
   return (
-    <nav className="sticky top-[44px] z-[150] bg-white/95 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
+    <nav className="sticky top-[48px] z-[150] bg-white/95 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Left: Logo */}
