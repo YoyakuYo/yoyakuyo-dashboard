@@ -526,5 +526,11 @@
     "lineNotConnected": "LINE未接続",
     "shareOnLine": "LINEでシェア",
     "disconnect": "切断"
-  }
+  },
+  "categoryActivitiesTitle": "アクティビティ・スポーツ",
+  "categoryBeautyTitle": "美容サービス",
+  "categoryClinicsTitle": "クリニック・医療",
+  "categoryDiningTitle": "飲食・居酒屋",
+  "categoryHotelsTitle": "ホテル・宿泊",
+  "categorySpaTitle": "スパ・温泉・リラクゼーション"
 }
