@@ -14,7 +14,7 @@ export default function HomePage() {
       <MinimalNavbar />
 
       {/* Add padding-top to account for fixed navbar */}
-      <div className="pt-16">
+      <div className="pt-[108px] md:pt-[120px]">
         {/* Hero Section with Image Carousel */}
         <HeroCarousel />
 
