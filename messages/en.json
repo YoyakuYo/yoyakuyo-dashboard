@@ -370,7 +370,12 @@
     "spas_onsen_bathhouses": "Spas, Onsen & Day-use Bathhouses",
     "golf_courses_ranges": "Golf Courses & Practice Ranges",
     "private_karaoke_rooms": "Private Karaoke Rooms",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "spa_onsen_and_relaxation": "Spa, Onsen & Relaxation",
+    "spa_onsen_relaxation": "Spa, Onsen & Relaxation",
+    "spa_onsen": "Spa, Onsen & Relaxation",
+    "spa_and_onsen_and_relaxation": "Spa, Onsen & Relaxation",
+    "spa": "Spa, Onsen & Relaxation"
   },
   "prefectures": {
     "hokkaido": "Hokkaido",

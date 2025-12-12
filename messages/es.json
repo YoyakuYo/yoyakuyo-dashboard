@@ -65,7 +65,12 @@
       "golfCoursesModalBenefits": "Verifica disponibilidad del campo, ve tarifas y asegura tu horario de salida al instante.",
       "golfCoursesModalAI": "La IA te ayuda a encontrar campos por ubicación y nivel de dificultad. Reserva horarios de salida que se ajusten a tu horario.",
       "whyBookWithUs": "¿Por qué reservar con nosotros?",
-      "aiSupport": "Soporte IA"
+      "aiSupport": "Soporte IA",
+      "spa_onsen_and_relaxation": "Spa, Onsen y Relajación",
+      "spa_onsen_relaxation": "Spa, Onsen y Relajación",
+      "spa_onsen": "Spa, Onsen y Relajación",
+      "spa_and_onsen_and_relaxation": "Spa, Onsen y Relajación",
+      "spa": "Spa, Onsen y Relajación"
     },
     "title": "Yoyaku Yo",
     "subtitle": "Asistente de reservas con IA para salones en Tokio",
@@ -223,7 +228,12 @@
     "spas_onsen_bathhouses": "Spas, Onsen & Day-use Bathhouses",
     "golf_courses_ranges": "Golf Courses & Practice Ranges",
     "private_karaoke_rooms": "Private Karaoke Rooms",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "spa_onsen_and_relaxation": "Spa, Onsen y Relajación",
+    "spa_onsen_relaxation": "Spa, Onsen y Relajación",
+    "spa_onsen": "Spa, Onsen y Relajación",
+    "spa_and_onsen_and_relaxation": "Spa, Onsen y Relajación",
+    "spa": "Spa, Onsen y Relajación"
   },
   "prefectures": {
     "tokyo": "Tokio",

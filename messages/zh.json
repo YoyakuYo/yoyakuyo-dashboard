@@ -65,7 +65,12 @@
       "golfCoursesModalBenefits": "检查球场可用性，查看价格，并立即确保您的开球时间。",
       "golfCoursesModalAI": "AI帮助您按位置和难度级别找到球场。预订适合您日程的开球时间。",
       "whyBookWithUs": "为什么通过我们预订？",
-      "aiSupport": "AI支持"
+      "aiSupport": "AI支持",
+      "spa_onsen_and_relaxation": "水疗・温泉・放松",
+      "spa_onsen_relaxation": "水疗・温泉・放松",
+      "spa_onsen": "水疗・温泉・放松",
+      "spa_and_onsen_and_relaxation": "水疗・温泉・放松",
+      "spa": "水疗・温泉・放松"
     },
     "title": "Yoyaku Yo",
     "subtitle": "东京美发沙龙AI预约助手",
@@ -223,7 +228,12 @@
     "spas_onsen_bathhouses": "Spas, Onsen & Day-use Bathhouses",
     "golf_courses_ranges": "Golf Courses & Practice Ranges",
     "private_karaoke_rooms": "Private Karaoke Rooms",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "spa_onsen_and_relaxation": "水疗・温泉・放松",
+    "spa_onsen_relaxation": "水疗・温泉・放松",
+    "spa_onsen": "水疗・温泉・放松",
+    "spa_and_onsen_and_relaxation": "水疗・温泉・放松",
+    "spa": "水疗・温泉・放松"
   },
   "prefectures": {
     "tokyo": "东京都",

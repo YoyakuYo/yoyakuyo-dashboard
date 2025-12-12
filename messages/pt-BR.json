@@ -65,7 +65,12 @@
       "golfCoursesModalBenefits": "Verifique disponibilidade do campo, veja tarifas e garanta seu horário de saída instantaneamente.",
       "golfCoursesModalAI": "A IA ajuda você a encontrar campos por localização e nível de dificuldade. Reserve horários de saída que se ajustem à sua agenda.",
       "whyBookWithUs": "Por que reservar conosco?",
-      "aiSupport": "Suporte IA"
+      "aiSupport": "Suporte IA",
+      "spa_onsen_and_relaxation": "Spa, Onsen e Relaxamento",
+      "spa_onsen_relaxation": "Spa, Onsen e Relaxamento",
+      "spa_onsen": "Spa, Onsen e Relaxamento",
+      "spa_and_onsen_and_relaxation": "Spa, Onsen e Relaxamento",
+      "spa": "Spa, Onsen e Relaxamento"
     },
     "title": "Yoyaku Yo",
     "subtitle": "Assistente de reservas com IA para salões em Tóquio",
@@ -223,7 +228,12 @@
     "spas_onsen_bathhouses": "Spas, Onsen & Day-use Bathhouses",
     "golf_courses_ranges": "Golf Courses & Practice Ranges",
     "private_karaoke_rooms": "Private Karaoke Rooms",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "spa_onsen_and_relaxation": "Spa, Onsen e Relaxamento",
+    "spa_onsen_relaxation": "Spa, Onsen e Relaxamento",
+    "spa_onsen": "Spa, Onsen e Relaxamento",
+    "spa_and_onsen_and_relaxation": "Spa, Onsen e Relaxamento",
+    "spa": "Spa, Onsen e Relaxamento"
   },
   "prefectures": {
     "tokyo": "Tóquio",
@@ -864,7 +874,12 @@
       "onsenDayuse": "Onsen e Banho de Dia",
       "onsenDayuseDesc": "Fontes termais tradicionais e instalações de banho de dia",
       "golfCourses": "Campos de Golf",
-      "golfCoursesDesc": "Campos de golfe premium e campos de prática"
+      "golfCoursesDesc": "Campos de golfe premium e campos de prática",
+      "spa_onsen_and_relaxation": "Spa, Onsen e Relaxamento",
+      "spa_onsen_relaxation": "Spa, Onsen e Relaxamento",
+      "spa_onsen": "Spa, Onsen e Relaxamento",
+      "spa_and_onsen_and_relaxation": "Spa, Onsen e Relaxamento",
+      "spa": "Spa, Onsen e Relaxamento"
     },
     "howItWorksTitle": "Como Funciona",
     "step1Title": "Pesquise entre mais de 30.000 estabelecimentos",
