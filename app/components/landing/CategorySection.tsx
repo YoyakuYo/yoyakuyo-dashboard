@@ -89,10 +89,10 @@ export default function CategorySection() {
   ];
 
   return (
-    <section className="py-16 md:py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Row 1: 2 boxes */}
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
+    <section className="py-10 md:py-24 bg-white overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+        {/* Row 1: 2 boxes (mobile: stacks in 1 column) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <CategoryCard
             title={categories[0].title}
             titleJa={categories[0].titleJa}
@@ -110,9 +110,8 @@ export default function CategorySection() {
             categoryId={categories[1].id}
           />
         </div>
-
-        {/* Row 2: 2 boxes */}
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
+        {/* Row 2 and 3: same, use grid-cols-1 for mobile */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <CategoryCard
             title={categories[2].title}
             titleJa={categories[2].titleJa}
@@ -130,9 +129,7 @@ export default function CategorySection() {
             categoryId={categories[3].id}
           />
         </div>
-
-        {/* Row 3: 2 boxes */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <CategoryCard
             title={categories[4].title}
             titleJa={categories[4].titleJa}

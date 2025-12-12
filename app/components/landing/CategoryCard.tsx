@@ -54,9 +54,9 @@ export default function CategoryCard({
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-japanese-sage/20 hover:border-japanese-red/40 hover:shadow-2xl transition-all duration-300">
-      <div className="grid md:grid-cols-2 gap-0">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
         {/* Left Side: Image Slider */}
-        <div className="relative h-72 md:h-full min-h-[300px]">
+        <div className="relative h-48 md:h-full min-h-[200px] md:min-h-[300px]">
           {imageUrls.length > 0 && (
             <>
               {imageUrls.map((url, index) => (
@@ -72,6 +72,7 @@ export default function CategoryCard({
                     fill
                     className="object-cover object-center rounded-xl brightness-100 contrast-100"
                     unoptimized
+                    style={{ minHeight: '190px' }}
                     onLoad={() => {
                       const newLoaded = [...imagesLoaded];
                       newLoaded[index] = true;
@@ -91,12 +92,13 @@ export default function CategoryCard({
                     <button
                       key={index}
                       onClick={() => setCurrentImageIndex(index)}
-                      className={`h-2 rounded-full transition-all ${
+                      className={`h-3 w-6 rounded-full transition-all touch-manipulation ${
                         index === currentImageIndex
-                          ? 'w-8 bg-japanese-red'
-                          : 'w-2 bg-white/50 hover:bg-white/75'
+                          ? 'bg-japanese-red'
+                          : 'bg-white/50 hover:bg-white/75'
                       }`}
                       aria-label={`Go to image ${index + 1}`}
+                      style={{ minHeight: 44 }}
                     />
                   ))}
                 </div>
@@ -106,18 +108,17 @@ export default function CategoryCard({
         </div>
 
         {/* Right Side: Content */}
-        <div className="p-6 md:p-8 flex flex-col justify-center bg-white">
-          <h3 className="text-2xl md:text-3xl font-bold text-japanese-charcoal mb-2">
+        <div className="px-4 py-4 md:p-8 flex flex-col justify-center bg-white">
+          <h3 className="text-xl md:text-3xl font-bold text-japanese-charcoal mb-2">
             {title}
           </h3>
-          <p className="text-sm text-japanese-teal mb-4 font-medium">{titleJa}</p>
-          
-          <p className="text-japanese-charcoal/80 mb-6 leading-relaxed">{description}</p>
+          <p className="text-sm text-japanese-teal mb-2 md:mb-4 font-medium">{titleJa}</p>
+          <p className="text-japanese-charcoal/80 mb-3 md:mb-6 leading-relaxed">{description}</p>
 
           {/* Selling Points */}
-          <ul className="space-y-2 mb-6">
+          <ul className="space-y-2 mb-3 md:mb-6">
             {sellingPoints.map((point, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm text-japanese-charcoal/70">
+              <li key={index} className="flex items-start gap-2 text-sm text-japanese-charcoal/70 min-h-[44px]">
                 <span className="text-japanese-red mt-1 font-bold text-lg">•</span>
                 <span>{point}</span>
               </li>
@@ -128,6 +129,7 @@ export default function CategoryCard({
           <Link
             href={`/categories/${categoryId}`}
             className="inline-block w-full text-center bg-japanese-red hover:bg-japanese-red/90 text-white font-semibold py-3 px-6 rounded-lg transition-all shadow-md hover:shadow-lg hover:scale-[1.02]"
+            style={{ minHeight: 44 }}
           >
             {t('viewShops')}
           </Link>
