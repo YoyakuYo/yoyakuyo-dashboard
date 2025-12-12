@@ -27,10 +27,10 @@ export default function CategorySection() {
       titleJa: t('categorySpaTitleJa'),
       description: t('categorySpaDesc'),
       sellingPoints: [
-        t('categorySpaPoint1'),
-        t('categorySpaPoint2'),
-        t('categorySpaPoint3'),
-        t('categorySpaPoint4'),
+        t('categorySpaPoint1'), // e.g., Spa
+        t('categorySpaPoint2'), // e.g., Massages
+        t('categorySpaPoint3'), // e.g., Onsen
+        t('categorySpaPoint4'), // e.g., Ryokan Onsen
       ],
       imageSearchTerms: getCategoryImages('spa-onsen-relaxation'),
     },
