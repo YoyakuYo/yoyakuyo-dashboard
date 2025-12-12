@@ -6,7 +6,7 @@ import { CustomAuthProvider } from "@/lib/useCustomAuth";
 import { NextIntlProviderWrapper } from "./components/NextIntlProvider";
 import { BookingNotificationProvider } from "./components/BookingNotificationContext";
 import ConditionalLayout from "./components/ConditionalLayout";
-import { LanguageSwitcher } from "./components/LanguageSwitcher";
+import { ConditionalLanguageSwitcher } from "./components/ConditionalLanguageSwitcher";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,10 +27,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {/* Universal Language Selector - sticky, always top */}
-        <div className="sticky top-0 left-0 w-full z-[200] bg-white/95 border-b border-gray-200 shadow-sm flex items-center justify-end px-4 py-2">
-          <LanguageSwitcher />
-        </div>
+        {/* Universal Language Selector - sticky, always top (hidden on LINE app routes) */}
+        <ConditionalLanguageSwitcher />
         <NextIntlProviderWrapper>
           <AuthProvider>
             <CustomAuthProvider>
