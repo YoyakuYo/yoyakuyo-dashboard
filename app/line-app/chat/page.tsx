@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { apiUrl } from "@/lib/apiClient";
 
+export const dynamic = 'force-dynamic';
+
 interface Message {
   id: string;
   role: "user" | "assistant";

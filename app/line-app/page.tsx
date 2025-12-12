@@ -5,6 +5,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiUrl } from "@/lib/apiClient";
 
+export const dynamic = 'force-dynamic';
+
 // LINE LIFF SDK types
 declare global {
   interface Window {

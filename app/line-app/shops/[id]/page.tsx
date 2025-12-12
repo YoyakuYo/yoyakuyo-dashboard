@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiUrl } from "@/lib/apiClient";
 
+export const dynamic = 'force-dynamic';
+
 interface Shop {
   id: string;
   name: string;

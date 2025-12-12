@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { apiUrl } from "@/lib/apiClient";
 
+export const dynamic = 'force-dynamic';
+
 interface Booking {
   id: string;
   start_time: string;

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 
+export const dynamic = 'force-dynamic';
+
 interface Service {
   id: string;
   name: string;
