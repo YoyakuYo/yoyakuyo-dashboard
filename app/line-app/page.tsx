@@ -382,17 +382,20 @@ function LineAppPageContent() {
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="bg-white rounded-xl border border-gray-200 p-6 min-h-[400px]">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">AI Assistant</h2>
-              <BrowseAIAssistant
-                shops={shops}
-                selectedPrefecture={selectedPrefecture !== "all" ? selectedPrefecture : undefined}
-                selectedCity={undefined}
-                selectedCategoryId={selectedCategory !== "all" ? selectedCategory : undefined}
-                searchQuery={searchQuery || undefined}
-                locale="ja"
-              />
+              <p className="text-gray-600 mb-4">Use the floating chat bubble in the bottom right corner to chat with the AI assistant.</p>
             </div>
           </div>
         )}
+
+        {/* AI Assistant - Always visible as floating bubble (outside tab content, above footer) */}
+        <BrowseAIAssistant
+          shops={shops}
+          selectedPrefecture={selectedPrefecture !== "all" ? selectedPrefecture : undefined}
+          selectedCity={undefined}
+          selectedCategoryId={selectedCategory !== "all" ? selectedCategory : undefined}
+          searchQuery={searchQuery || undefined}
+          locale="ja"
+        />
 
         {activeTab === "chat" && (
           <div className="max-w-7xl mx-auto px-4 py-6">
