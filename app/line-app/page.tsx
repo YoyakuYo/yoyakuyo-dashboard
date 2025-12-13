@@ -58,9 +58,13 @@ function LineAppPageContent() {
               
               // Sync with backend
               await syncLineUser(profile.userId, profile.displayName, profile.pictureUrl);
+              setLoading(false);
             } else {
-              // Redirect to LINE Login
-              window.liff.login();
+              // Redirect to LINE Login (this will redirect automatically)
+              // Don't set loading to false here as the redirect will happen
+              window.liff.login({
+                redirectUri: window.location.href
+              });
             }
           } catch (error) {
             console.error("LIFF initialization error:", error);
