@@ -101,7 +101,23 @@ function LineAppPageContent() {
 
         // CRITICAL: Only proceed if in LINE client
         if (!window.liff.isInClient()) {
-          setError("Please open this link in the LINE app");
+          // If opened in browser, try to redirect to LINE app
+          const liffUrl = `https://liff.line.me/${LIFF_ID}${window.location.search}`;
+          setError("Opening in LINE app...");
+          
+          try {
+            // Try to open in LINE app
+            window.liff.openWindow({
+              url: liffUrl,
+              external: false
+            });
+            // If openWindow succeeds, wait a bit then show message
+            setTimeout(() => {
+              setError("Please open this link in the LINE app. If you scanned the QR code, make sure to use LINE's built-in scanner.");
+            }, 2000);
+          } catch (err) {
+            setError("Please open this link in the LINE app. Scan the QR code using LINE app's camera scanner.");
+          }
           setLoading(false);
           return;
         }

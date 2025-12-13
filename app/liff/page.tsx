@@ -96,6 +96,7 @@ function LiffEntryPageContent() {
         }
 
         // Success - redirect to main LIFF app
+        // The /line-app route handles LIFF initialization properly
         setStatus("ready");
         const shopId = searchParams.get("shop_id");
         const tab = searchParams.get("tab");
@@ -103,15 +104,18 @@ function LiffEntryPageContent() {
         // Handle empty shop_id parameter
         const validShopId = shopId && shopId.trim() !== "" ? shopId : null;
         
-        // Use replace instead of push to avoid adding to history
+        // Build redirect URL with query params
+        let redirectUrl = "/line-app";
+        const params = new URLSearchParams();
+        if (tab) params.set("tab", tab);
         if (validShopId) {
-          router.replace(`/line-app/shops/${validShopId}`);
-        } else if (tab) {
-          router.replace(`/line-app?tab=${tab}`);
-        } else {
-          // Default: go to main LINE app page
-          router.replace("/line-app");
+          redirectUrl = `/line-app/shops/${validShopId}`;
+        } else if (params.toString()) {
+          redirectUrl = `/line-app?${params.toString()}`;
         }
+        
+        // Use replace instead of push to avoid adding to history
+        router.replace(redirectUrl);
       } catch (err: any) {
         console.error("LIFF initialization error:", err);
         setError(err.message || "Failed to initialize LINE app. Please make sure you're opening this in the LINE app.");

@@ -21,10 +21,11 @@ export default function LineQRCodeSection() {
       return;
     }
     
-    // LIFF URL format: https://liff.line.me/LIFF_ID/liff
-    // Use /liff entry route which forces LINE client
-    // Remove empty shop_id parameter - just go to main app
-    const liffUrl = `https://liff.line.me/${liffId}/liff`;
+    // LIFF URL format: https://liff.line.me/LIFF_ID/{path}
+    // The endpoint URL in LINE Developers Console should be: https://yourdomain.com/line-app
+    // So the QR code should point to /line-app (or root / which redirects to endpoint)
+    // Using root path - LINE will redirect to the configured endpoint URL
+    const liffUrl = `https://liff.line.me/${liffId}`;
 
     setLineUrl(liffUrl);
 
