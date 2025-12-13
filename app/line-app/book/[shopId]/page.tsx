@@ -6,6 +6,27 @@ import { apiUrl } from "@/lib/apiClient";
 
 export const dynamic = 'force-dynamic';
 
+// Block external navigation in LIFF
+if (typeof window !== "undefined") {
+  const originalOpen = window.open;
+  window.open = function(...args) {
+    console.warn("Blocked window.open in LIFF app");
+    return null;
+  };
+  
+  document.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+    const link = target.closest("a");
+    if (link && link.target === "_blank") {
+      e.preventDefault();
+      const href = link.getAttribute("href");
+      if (href && href.startsWith("/")) {
+        window.location.href = href;
+      }
+    }
+  });
+}
+
 interface Service {
   id: string;
   name: string;
