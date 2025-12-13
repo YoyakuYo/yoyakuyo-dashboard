@@ -21,8 +21,12 @@ function LiffEntryPageContent() {
   const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID || "";
 
   useEffect(() => {
-    if (typeof window === "undefined" || !LIFF_ID) {
-      setError("LIFF ID not configured");
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!LIFF_ID) {
+      setError("LIFF ID not configured. Please check your environment variables.");
       setStatus("error");
       return;
     }
@@ -35,7 +39,7 @@ function LiffEntryPageContent() {
           script.src = "https://static.line-scdn.net/liff/edge/versions/2.24.0/sdk.js";
           await new Promise((resolve, reject) => {
             script.onload = resolve;
-            script.onerror = reject;
+            script.onerror = () => reject(new Error("Failed to load LIFF SDK"));
             document.body.appendChild(script);
           });
         }
@@ -46,27 +50,47 @@ function LiffEntryPageContent() {
         // CRITICAL: Force open inside LINE if not in client
         if (!window.liff.isInClient()) {
           setStatus("redirecting");
-          const currentUrl = window.location.href;
-          const liffUrl = `https://liff.line.me/${LIFF_ID}${window.location.search}`;
+          const liffUrl = `https://liff.line.me/${LIFF_ID}/liff${window.location.search}`;
           
-          window.liff.openWindow({
-            url: liffUrl,
-            external: false
-          });
+          // Try to open in LINE app
+          try {
+            window.liff.openWindow({
+              url: liffUrl,
+              external: false
+            });
+          } catch (openErr) {
+            console.error("Failed to open in LINE:", openErr);
+            setError("Please open this link in the LINE app. Scan the QR code using LINE app.");
+            setStatus("error");
+          }
           return;
         }
 
         // Verify login
         if (!window.liff.isLoggedIn()) {
-          window.liff.login();
+          try {
+            window.liff.login();
+          } catch (loginErr) {
+            console.error("Login error:", loginErr);
+            setError("Failed to login to LINE. Please try again.");
+            setStatus("error");
+          }
           return;
         }
 
         // Get profile to verify LINE context
-        const profile = await window.liff.getProfile();
+        let profile;
+        try {
+          profile = await window.liff.getProfile();
+        } catch (profileErr) {
+          console.error("Profile error:", profileErr);
+          setError("Failed to get LINE profile. Please try again.");
+          setStatus("error");
+          return;
+        }
         
         if (!profile || !profile.userId) {
-          setError("Failed to get LINE profile");
+          setError("Failed to get LINE profile. Please try again.");
           setStatus("error");
           return;
         }
@@ -76,16 +100,21 @@ function LiffEntryPageContent() {
         const shopId = searchParams.get("shop_id");
         const tab = searchParams.get("tab");
         
-        if (shopId) {
-          router.push(`/line-app/shops/${shopId}`);
+        // Handle empty shop_id parameter
+        const validShopId = shopId && shopId.trim() !== "" ? shopId : null;
+        
+        // Use replace instead of push to avoid adding to history
+        if (validShopId) {
+          router.replace(`/line-app/shops/${validShopId}`);
         } else if (tab) {
-          router.push(`/line-app?tab=${tab}`);
+          router.replace(`/line-app?tab=${tab}`);
         } else {
-          router.push("/line-app");
+          // Default: go to main LINE app page
+          router.replace("/line-app");
         }
       } catch (err: any) {
         console.error("LIFF initialization error:", err);
-        setError(err.message || "Failed to initialize LINE app");
+        setError(err.message || "Failed to initialize LINE app. Please make sure you're opening this in the LINE app.");
         setStatus("error");
       }
     };
