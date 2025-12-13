@@ -13,118 +13,6 @@ import ShopCalendar from '../components/ShopCalendar';
 import { useBookingNotifications } from '../components/BookingNotificationContext';
 import NotificationDot from '../components/NotificationDot';
 
-// LINE QR Code Component
-function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | null; user: any }) {
-  const t = useTranslations();
-  const [connecting, setConnecting] = useState(false);
-
-  const deeplinkUrl = shop?.line_destination_id 
-    ? `https://line.me/R/ti/p/${shop.line_destination_id}`
-    : null;
-
-  const handleConnectLine = async () => {
-    if (!user?.id || !shopId) return;
-
-    try {
-      setConnecting(true);
-      const res = await fetch(`${apiUrl}/api/line/shop-auth-url?shopId=${shopId}`, {
-        headers: {
-          'x-user-id': user.id,
-        },
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          // QR code generated successfully - reload page to show it
-          alert('LINE QR code generated successfully!');
-          window.location.reload();
-        } else {
-          alert(data.error || 'Failed to generate LINE QR code');
-        }
-      } else {
-        const error = await res.json().catch(() => ({ error: 'Failed to connect LINE account' }));
-        alert(error.error || 'Failed to connect LINE account');
-      }
-    } catch (error) {
-      console.error('Error connecting LINE:', error);
-      alert('Failed to connect LINE account');
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  const handleCopyLink = () => {
-    if (deeplinkUrl) {
-      navigator.clipboard.writeText(deeplinkUrl);
-      alert(t('line.lineLinkCopied'));
-    }
-  };
-
-  const handleDownloadQr = () => {
-    if (shop?.line_qr_code_url) {
-      const link = document.createElement('a');
-      link.href = shop.line_qr_code_url;
-      link.download = `line-qr-${shopId}.png`;
-      link.click();
-    }
-  };
-
-  // Check for success/error messages in URL
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('line_connected') === 'success') {
-      alert('LINE account connected successfully!');
-      // Remove query param
-      window.history.replaceState({}, '', window.location.pathname);
-      // Reload shop data
-      window.location.reload();
-    } else if (params.get('line_error')) {
-      alert(`LINE connection error: ${params.get('line_error')}`);
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, []);
-
-  if (!shop?.line_qr_code_url || !shop?.line_destination_id) {
-    return (
-      <div className="text-center space-y-4 py-4">
-        <p className="text-gray-500">{t('line.connectLineToGenerate')}</p>
-        <button
-          onClick={handleConnectLine}
-          disabled={connecting}
-          className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {connecting ? t('line.connecting') : t('line.connectLineAccountButton')}
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col items-center space-y-4">
-      <img 
-        src={shop.line_qr_code_url} 
-        alt={t('line.lineQRCode')} 
-        className="w-48 h-48 border-2 border-gray-300 rounded-lg" 
-      />
-      <p className="text-sm text-gray-600 text-center">{t('line.lineReservationText')}</p>
-      <div className="flex gap-2">
-        <button
-          onClick={handleCopyLink}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          {t('line.copyLineLink')}
-        </button>
-        <button
-          onClick={handleDownloadQr}
-          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-        >
-          {t('line.downloadQRCode')}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 interface Shop {
   id: string;
@@ -139,8 +27,6 @@ interface Shop {
   zip_code?: string | null;
   description?: string | null;
   language_code?: string | null;
-  line_qr_code_url?: string | null;
-  line_destination_id?: string | null;
   logo_url?: string | null;
   cover_photo_url?: string | null;
   latitude?: number | null;
@@ -1710,13 +1596,6 @@ const MyShopPage = () => {
             </div>
           )}
 
-          {/* LINE QR Code Section */}
-          {shop && (
-            <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('line.lineQRCode')}</h3>
-              <LineQrSection shopId={shop.id} shop={shop} user={user} />
-            </div>
-          )}
         </div>
       )}
 

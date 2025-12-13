@@ -48,7 +48,6 @@ interface Shop {
   city?: string | null;
   country?: string | null;
   zip_code?: string | null;
-  line_qr_code_url?: string | null;
 }
 
 interface Service {
@@ -462,23 +461,6 @@ export default function PublicShopDetailPage() {
                 <p className="text-gray-600">{shop.description}</p>
               </div>
             )}
-            <div className="mt-4">
-              {/* LINE QR Code */}
-              {shop.line_qr_code_url ? (
-                <div className="flex flex-col items-center space-y-2">
-                  <img 
-                    src={shop.line_qr_code_url} 
-                    alt="LINE QR Code" 
-                    className="w-48 h-48 border-2 border-gray-200 rounded-lg"
-                  />
-                  <p className="text-sm text-gray-600">{t('line.lineReservationText')}</p>
-                </div>
-              ) : (
-                <div className="text-center text-gray-500 text-sm py-4">
-                  {t('line.connectLineToGenerate')}
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Map */}
