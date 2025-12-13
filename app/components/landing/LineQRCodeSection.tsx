@@ -23,7 +23,7 @@ export default function LineQRCodeSection() {
     
     // LIFF URL format: https://liff.line.me/LIFF_ID/liff
     // Use /liff entry route which forces LINE client
-    const liffUrl = `https://liff.line.me/${liffId}/liff`;
+    const liffUrl = `https://liff.line.me/${liffId}/liff?shop_id=`;
 
     setLineUrl(liffUrl);
 

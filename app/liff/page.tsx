@@ -74,8 +74,12 @@ export default function LiffEntryPage() {
         // Success - redirect to main LIFF app
         setStatus("ready");
         const shopId = searchParams.get("shop_id");
+        const tab = searchParams.get("tab");
+        
         if (shopId) {
           router.push(`/line-app/shops/${shopId}`);
+        } else if (tab) {
+          router.push(`/line-app?tab=${tab}`);
         } else {
           router.push("/line-app");
         }
