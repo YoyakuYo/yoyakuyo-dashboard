@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 
@@ -44,7 +44,7 @@ interface TimeSlot {
   end_time: string;
 }
 
-export default function LineBookingPage() {
+function LineBookingPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -412,6 +412,21 @@ export default function LineBookingPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function LineBookingPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading booking page...</p>
+        </div>
+      </div>
+    }>
+      <LineBookingPageContent />
+    </Suspense>
   );
 }
 
