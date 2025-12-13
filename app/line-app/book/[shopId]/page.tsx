@@ -40,10 +40,12 @@ export default function LineBookingPage() {
   }, [serviceId]);
 
   useEffect(() => {
-    if (selectedDate && serviceId) {
+    if (selectedDate) {
       fetchTimeSlots();
+    } else {
+      setTimeSlots([]);
     }
-  }, [selectedDate, serviceId]);
+  }, [selectedDate]);
 
   const fetchService = async () => {
     try {
@@ -58,23 +60,46 @@ export default function LineBookingPage() {
   };
 
   const fetchTimeSlots = async () => {
+    if (!selectedDate) {
+      setTimeSlots([]);
+      return;
+    }
+
     setLoading(true);
     try {
       // Use the same endpoint as the main app
-      const res = await fetch(
-        `${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`
-      );
+      const url = `${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`;
+      console.log("Fetching availability from:", url);
+      
+      const res = await fetch(url);
+      console.log("Availability response status:", res.status);
+      
       if (res.ok) {
         const data = await res.json();
+        console.log("Availability response data:", data);
+        
         // Map the response to match the expected format
         const slots = Array.isArray(data) ? data : [];
         setTimeSlots(slots);
+        
+        // Log for debugging
+        if (slots.length === 0) {
+          console.warn("No timeslots returned for date:", selectedDate, "shopId:", shopId);
+          console.warn("This might mean:");
+          console.warn("1. Shop is closed on this date (holiday)");
+          console.warn("2. Shop has no services");
+          console.warn("3. Shop has services but no timeslots generated");
+          console.warn("4. All timeslots are already booked");
+        } else {
+          console.log(`✅ Found ${slots.length} timeslots for date:`, selectedDate);
+        }
       } else {
-        console.error("Failed to fetch availability:", res.status);
+        const errorData = await res.json().catch(() => ({ error: "Failed to fetch availability" }));
+        console.error("❌ Failed to fetch availability:", res.status, errorData);
         setTimeSlots([]);
       }
     } catch (error) {
-      console.error("Error fetching time slots:", error);
+      console.error("❌ Error fetching time slots:", error);
       setTimeSlots([]);
     } finally {
       setLoading(false);
@@ -83,7 +108,10 @@ export default function LineBookingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedDate || !selectedTime || !serviceId) return;
+    if (!selectedDate || !selectedTime) {
+      alert("Please select a date and time");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -106,10 +134,9 @@ export default function LineBookingPage() {
         return;
       }
 
-      // Calculate start and end times
-      const startDateTime = new Date(`${selectedDate}T${selectedTime}`);
-      const serviceDuration = service?.duration || 30; // Default 30 minutes
-      const endDateTime = new Date(startDateTime.getTime() + serviceDuration * 60000);
+      // Use the timeslot's start_time and end_time directly
+      const startDateTime = new Date(`${selectedDate}T${selectedSlot.start_time}`);
+      const endDateTime = new Date(`${selectedDate}T${selectedSlot.end_time}`);
 
       // Use the same booking endpoint format as the main app
       const res = await fetch(`${apiUrl}/api/line/bookings`, {
@@ -118,7 +145,7 @@ export default function LineBookingPage() {
         body: JSON.stringify({
           line_user_id: lineUserId,
           shop_id: shopId,
-          service_id: serviceId,
+          service_id: serviceId || null, // Optional - allow booking without service
           date: selectedDate,
           time: selectedTime,
           start_time: startDateTime.toISOString(),
@@ -158,13 +185,19 @@ export default function LineBookingPage() {
       <div className="max-w-2xl mx-auto px-4 py-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Book Appointment</h1>
 
-        {service && (
+        {service ? (
           <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">{service.name}</h2>
             <p className="text-gray-600">Duration: {service.duration} minutes</p>
             {service.price && (
               <p className="text-gray-900 font-bold mt-2">Price: ¥{service.price}</p>
             )}
+          </div>
+        ) : (
+          <div className="bg-blue-50 rounded-xl border border-blue-200 p-6 mb-6">
+            <p className="text-blue-800 text-sm">
+              {serviceId ? "Loading service details..." : "You can book an appointment without selecting a specific service."}
+            </p>
           </div>
         )}
 
@@ -203,7 +236,12 @@ export default function LineBookingPage() {
               {loading ? (
                 <p className="text-gray-600">Loading available times...</p>
               ) : timeSlots.length === 0 ? (
-                <p className="text-gray-600">No available times for this date</p>
+                <div className="space-y-2">
+                  <p className="text-gray-600">No available times for this date</p>
+                  <p className="text-gray-500 text-sm">
+                    This shop may be closed on this date, or all timeslots are booked. Please try another date.
+                  </p>
+                </div>
               ) : (
                 <div className="grid grid-cols-4 gap-2">
                   {timeSlots.map((slot) => {
