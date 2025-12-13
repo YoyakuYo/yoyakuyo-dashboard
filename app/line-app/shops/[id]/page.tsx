@@ -7,6 +7,13 @@ import { apiUrl } from "@/lib/apiClient";
 
 export const dynamic = 'force-dynamic';
 
+// LINE LIFF SDK types
+declare global {
+  interface Window {
+    liff: any;
+  }
+}
+
 interface Shop {
   id: string;
   name: string;
@@ -28,6 +35,12 @@ interface Service {
   description?: string;
 }
 
+interface TimeSlot {
+  id: string;
+  start_time: string;
+  end_time: string;
+}
+
 export default function LineShopDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -35,6 +48,16 @@ export default function LineShopDetailPage() {
   const [shop, setShop] = useState<Shop | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Booking form state
+  const [selectedServiceId, setSelectedServiceId] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [loadingTimeSlots, setLoadingTimeSlots] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [bookingError, setBookingError] = useState<string>("");
 
   useEffect(() => {
     if (!shopId) return;
@@ -68,6 +91,131 @@ export default function LineShopDetailPage() {
     fetchShop();
     fetchServices();
   }, [shopId]);
+
+  // Fetch time slots when date is selected
+  useEffect(() => {
+    if (selectedDate && selectedServiceId) {
+      fetchTimeSlots();
+    } else {
+      setTimeSlots([]);
+    }
+  }, [selectedDate, selectedServiceId]);
+
+  const fetchTimeSlots = async () => {
+    if (!selectedDate || !selectedServiceId) {
+      setTimeSlots([]);
+      return;
+    }
+
+    setLoadingTimeSlots(true);
+    try {
+      const url = `${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`;
+      const res = await fetch(url);
+      
+      if (res.ok) {
+        const data = await res.json();
+        const slots = Array.isArray(data) ? data : [];
+        setTimeSlots(slots);
+      } else {
+        setTimeSlots([]);
+      }
+    } catch (error) {
+      console.error("Error fetching time slots:", error);
+      setTimeSlots([]);
+    } finally {
+      setLoadingTimeSlots(false);
+    }
+  };
+
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedServiceId || !selectedDate || !selectedTime) {
+      setBookingError("Please select a service, date, and time");
+      return;
+    }
+
+    setSubmitting(true);
+    setBookingError("");
+    setBookingSuccess(false);
+
+    try {
+      // Get LINE user ID from LIFF
+      let lineUserId = "";
+      if (typeof window !== "undefined" && window.liff) {
+        try {
+          const profile = await window.liff.getProfile();
+          lineUserId = profile.userId;
+        } catch (err) {
+          console.warn("Could not get LINE profile:", err);
+        }
+      }
+
+      // Find the selected timeslot
+      const selectedSlot = timeSlots.find(slot => {
+        const time = slot.start_time.split(':').slice(0, 2).join(':');
+        return time === selectedTime;
+      });
+
+      if (!selectedSlot) {
+        setBookingError("Please select a valid time slot.");
+        setSubmitting(false);
+        return;
+      }
+
+      // Use the timeslot's start_time and end_time directly
+      const startDateTime = new Date(`${selectedDate}T${selectedSlot.start_time}`);
+      const endDateTime = new Date(`${selectedDate}T${selectedSlot.end_time}`);
+
+      const res = await fetch(`${apiUrl}/api/line/bookings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          line_user_id: lineUserId,
+          shop_id: shopId,
+          service_id: selectedServiceId,
+          date: selectedDate,
+          time: selectedTime,
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
+          time_slot: `${selectedSlot.start_time}-${selectedSlot.end_time}`,
+        }),
+      });
+
+      if (res.ok) {
+        setBookingSuccess(true);
+        // Reset form
+        setSelectedServiceId("");
+        setSelectedDate("");
+        setSelectedTime("");
+        setTimeSlots([]);
+        // Redirect to bookings page after 2 seconds
+        setTimeout(() => {
+          router.push(`/line-app/bookings?success=true`);
+        }, 2000);
+      } else {
+        const errorData = await res.json().catch(() => ({ error: "Failed to create booking" }));
+        setBookingError(errorData.error || "Failed to create booking. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      setBookingError("An error occurred. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Get available dates (next 30 days)
+  const getAvailableDates = () => {
+    const dates = [];
+    const today = new Date();
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      dates.push(date.toISOString().split("T")[0]);
+    }
+    return dates;
+  };
 
   if (loading) {
     return (
@@ -140,27 +288,22 @@ export default function LineShopDetailPage() {
           )}
         </div>
 
-        {/* Booking Section */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl border border-blue-500 p-6 mb-6 shadow-lg">
-          <h3 className="text-2xl font-bold text-white mb-2">📅 Book an Appointment</h3>
-          <p className="text-blue-100 mb-4">
-            Select a service and choose your preferred date and time
-          </p>
-          {services.length > 0 ? (
-            <button
-              onClick={() => router.push(`/line-app/book/${shopId}`)}
-              className="w-full text-center bg-white text-blue-600 py-3 px-6 rounded-lg font-bold text-lg hover:bg-blue-50 transition-colors shadow-md"
-            >
-              Book Now →
-            </button>
-          ) : (
-            <p className="text-blue-100 text-sm">Please select a service below to book</p>
+        {/* Booking Section - Full Booking Form */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-lg">
+          <h3 className="text-2xl font-bold text-gray-900 mb-4">📅 Book an Appointment</h3>
+          
+          {bookingSuccess && (
+            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-green-800 font-medium">✅ Booking successful! Redirecting to your bookings...</p>
+            </div>
           )}
-        </div>
 
-        {/* Services */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Services</h3>
+          {bookingError && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800 text-sm">{bookingError}</p>
+            </div>
+          )}
+
           {services.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-600 mb-4">No services available</p>
@@ -169,33 +312,132 @@ export default function LineShopDetailPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {services.map((service) => (
-                <div
-                  key={service.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+            <form onSubmit={handleBookingSubmit} className="space-y-6">
+              {/* Service Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Service *
+                </label>
+                <select
+                  value={selectedServiceId}
+                  onChange={(e) => {
+                    setSelectedServiceId(e.target.value);
+                    setSelectedDate("");
+                    setSelectedTime("");
+                    setTimeSlots([]);
+                  }}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-semibold text-gray-900">{service.name}</h4>
-                    {service.price && (
-                      <span className="text-blue-600 font-bold">¥{service.price}</span>
-                    )}
+                  <option value="">Choose a service</option>
+                  {services.map((service) => (
+                    <option key={service.id} value={service.id}>
+                      {service.name} {service.price ? `- ¥${service.price}` : ''} ({service.duration} min)
+                    </option>
+                  ))}
+                </select>
+                {selectedServiceId && (
+                  <div className="mt-2 p-3 bg-blue-50 rounded-lg">
+                    {(() => {
+                      const service = services.find(s => s.id === selectedServiceId);
+                      return service ? (
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{service.name}</p>
+                          <p className="text-xs text-gray-600">
+                            Duration: {service.duration} minutes
+                            {service.price && ` • Price: ¥${service.price}`}
+                          </p>
+                          {service.description && (
+                            <p className="text-xs text-gray-500 mt-1">{service.description}</p>
+                          )}
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">
-                    Duration: {service.duration} minutes
-                  </p>
-                  {service.description && (
-                    <p className="text-sm text-gray-500 mb-3">{service.description}</p>
-                  )}
-                  <button
-                    onClick={() => router.push(`/line-app/book/${shopId}?service_id=${service.id}`)}
-                    className="w-full text-center bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                )}
+              </div>
+
+              {/* Date Selection */}
+              {selectedServiceId && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Date *
+                  </label>
+                  <select
+                    value={selectedDate}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
+                      setSelectedTime("");
+                      setTimeSlots([]);
+                    }}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    Book This Service
-                  </button>
+                    <option value="">Choose a date</option>
+                    {getAvailableDates().map((date) => (
+                      <option key={date} value={date}>
+                        {new Date(date).toLocaleDateString("en-US", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ))}
-            </div>
+              )}
+
+              {/* Time Selection */}
+              {selectedDate && selectedServiceId && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Time *
+                  </label>
+                  {loadingTimeSlots ? (
+                    <div className="text-center py-4">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                      <p className="text-gray-600 text-sm mt-2">Loading available times...</p>
+                    </div>
+                  ) : timeSlots.length === 0 ? (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-yellow-800 text-sm">
+                        No available times for this date. Please try another date.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-2">
+                      {timeSlots.map((slot) => {
+                        const time = slot.start_time.split(':').slice(0, 2).join(':');
+                        return (
+                          <button
+                            key={slot.id}
+                            type="button"
+                            onClick={() => setSelectedTime(time)}
+                            className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                              selectedTime === time
+                                ? "bg-blue-600 text-white"
+                                : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                            }`}
+                          >
+                            {time}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={!selectedServiceId || !selectedDate || !selectedTime || submitting}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md"
+              >
+                {submitting ? "Booking..." : "Confirm Booking"}
+              </button>
+            </form>
           )}
         </div>
       </div>
