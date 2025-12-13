@@ -14,6 +14,9 @@ interface Shop {
   description?: string;
   phone?: string;
   main_image_url?: string;
+  image_url?: string;
+  cover_photo_url?: string;
+  logo_url?: string;
   category?: string;
 }
 
@@ -100,10 +103,10 @@ export default function LineShopDetailPage() {
       </header>
 
       {/* Shop Image */}
-      {shop.main_image_url && (
+      {(shop.main_image_url || shop.image_url || shop.cover_photo_url || shop.logo_url) && (
         <div className="w-full h-64 bg-gray-200">
           <img
-            src={shop.main_image_url}
+            src={shop.main_image_url || shop.image_url || shop.cover_photo_url || shop.logo_url}
             alt={shop.name}
             className="w-full h-full object-cover"
           />
@@ -137,17 +140,42 @@ export default function LineShopDetailPage() {
           )}
         </div>
 
+        {/* Booking Section */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl border border-blue-500 p-6 mb-6 shadow-lg">
+          <h3 className="text-2xl font-bold text-white mb-2">📅 Book an Appointment</h3>
+          <p className="text-blue-100 mb-4">
+            Select a service and choose your preferred date and time
+          </p>
+          <Link
+            href={`/line-app/book/${shopId}`}
+            className="inline-block w-full text-center bg-white text-blue-600 py-3 px-6 rounded-lg font-bold text-lg hover:bg-blue-50 transition-colors shadow-md"
+          >
+            Book Now →
+          </Link>
+        </div>
+
         {/* Services */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
           <h3 className="text-xl font-bold text-gray-900 mb-4">Services</h3>
           {services.length === 0 ? (
-            <p className="text-gray-600">No services available</p>
+            <div className="text-center py-8">
+              <p className="text-gray-600 mb-4">No services available</p>
+              <p className="text-sm text-gray-500 mb-4">
+                You can still book an appointment by clicking "Book Now" above
+              </p>
+              <Link
+                href={`/line-app/book/${shopId}`}
+                className="inline-block bg-blue-600 text-white py-2 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
+                Book Appointment
+              </Link>
+            </div>
           ) : (
             <div className="space-y-3">
               {services.map((service) => (
                 <div
                   key={service.id}
-                  className="border border-gray-200 rounded-lg p-4"
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-semibold text-gray-900">{service.name}</h4>
@@ -159,11 +187,11 @@ export default function LineShopDetailPage() {
                     Duration: {service.duration} minutes
                   </p>
                   {service.description && (
-                    <p className="text-sm text-gray-500">{service.description}</p>
+                    <p className="text-sm text-gray-500 mb-3">{service.description}</p>
                   )}
                   <Link
                     href={`/line-app/book/${shopId}?service_id=${service.id}`}
-                    className="mt-3 inline-block w-full text-center bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                    className="inline-block w-full text-center bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                   >
                     Book This Service
                   </Link>
