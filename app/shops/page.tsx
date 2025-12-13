@@ -27,7 +27,7 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
 
     try {
       setConnecting(true);
-      const res = await fetch(`${apiUrl}/line/shop-auth-url?shopId=${shopId}`, {
+      const res = await fetch(`${apiUrl}/api/line/shop-auth-url?shopId=${shopId}`, {
         headers: {
           'x-user-id': user.id,
         },
@@ -35,14 +35,15 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
 
       if (res.ok) {
         const data = await res.json();
-        if (data.authUrl) {
-          // Redirect to LINE OAuth
-          window.location.href = data.authUrl;
+        if (data.success) {
+          // QR code generated successfully - reload page to show it
+          alert('LINE QR code generated successfully!');
+          window.location.reload();
         } else {
-          alert('Failed to get LINE OAuth URL');
+          alert(data.error || 'Failed to generate LINE QR code');
         }
       } else {
-        const error = await res.json();
+        const error = await res.json().catch(() => ({ error: 'Failed to connect LINE account' }));
         alert(error.error || 'Failed to connect LINE account');
       }
     } catch (error) {
