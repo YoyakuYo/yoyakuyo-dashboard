@@ -11,21 +11,24 @@ export default function LineQRCodeSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Generate QR code for LINE Official Account
-    // Use LINE Official Account URL to open directly in LINE app (not browser)
-    // Format: https://line.me/R/ti/p/@YOUR_LINE_OFFICIAL_ACCOUNT_ID
-    const lineOfficialAccountId = process.env.NEXT_PUBLIC_LINE_OFFICIAL_ACCOUNT_ID;
+    // Generate QR code for LIFF app (booking platform)
+    // This opens the booking platform directly in LINE app, not the chat
+    const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
     
-    // Use Official Account URL if available, otherwise use generic format
-    // This URL opens directly in LINE app when scanned
-    const lineUrlToEncode = lineOfficialAccountId
-      ? `https://line.me/R/ti/p/@${lineOfficialAccountId.replace('@', '')}` // Remove @ if already included
-      : 'https://line.me/R/ti/p/@yoyakuyo'; // Fallback - user should set NEXT_PUBLIC_LINE_OFFICIAL_ACCOUNT_ID
+    if (!liffId) {
+      console.warn("NEXT_PUBLIC_LIFF_ID is not set. QR code will not work.");
+      setLoading(false);
+      return;
+    }
+    
+    // LIFF URL format: https://liff.line.me/LIFF_ID
+    // This opens directly in LINE app and goes to the booking platform
+    const liffUrl = `https://liff.line.me/${liffId}`;
 
-    setLineUrl(lineUrlToEncode);
+    setLineUrl(liffUrl);
 
     // Generate QR code using QR Server API
-    const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(lineUrlToEncode)}`;
+    const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(liffUrl)}`;
     setQrCodeUrl(qrCodeImageUrl);
     setLoading(false);
   }, []);
@@ -52,7 +55,7 @@ export default function LineQRCodeSection() {
                 {t('landing.lineTitle') || 'Book via LINE'}
               </h2>
               <p className="text-lg text-gray-600 mb-6">
-                {t('landing.lineDescription') || 'Add our LINE bot and book appointments directly from LINE! Search shops, make bookings, and get instant confirmations.'}
+                {t('landing.lineDescription') || 'Scan the QR code to open our booking platform directly in LINE! Search shops, make bookings, and get instant confirmations.'}
               </p>
               <ul className="space-y-3 mb-6">
                 <li className="flex items-start gap-3">
@@ -94,10 +97,10 @@ export default function LineQRCodeSection() {
                     />
                   </div>
                   <p className="text-center text-gray-600 mb-2 font-medium">
-                    {t('landing.scanToAddLine') || 'Scan to add LINE bot'}
+                    {t('landing.scanToAddLine') || 'Scan to open booking platform'}
                   </p>
                   <p className="text-center text-sm text-gray-500">
-                    {t('landing.scanInstructions') || 'Open LINE app and scan this QR code'}
+                    {t('landing.scanInstructions') || 'Open LINE app and scan this QR code to access the booking platform'}
                   </p>
                 </>
               ) : (
