@@ -4,6 +4,8 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiUrl } from "@/lib/apiClient";
+import { BrowseAIAssistant } from "@/app/browse/components/BrowseAIAssistant";
+import { BrowseAIProvider } from "@/app/components/BrowseAIContext";
 
 // LINE LIFF SDK types
 declare global {
@@ -31,8 +33,46 @@ function LineAppPageContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<string>("search");
 
   const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID || "";
+
+  // Get tab from URL
+  useEffect(() => {
+    const tab = searchParams.get("tab") || "search";
+    setActiveTab(tab);
+  }, [searchParams]);
+
+  // Block external navigation
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    // Prevent window.open
+    const originalOpen = window.open;
+    window.open = function(...args) {
+      console.warn("Blocked window.open in LIFF app");
+      return null;
+    };
+
+    // Prevent target="_blank" links
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link = target.closest("a");
+      if (link && link.target === "_blank") {
+        e.preventDefault();
+        const href = link.getAttribute("href");
+        if (href && href.startsWith("/")) {
+          router.push(href);
+        }
+      }
+    };
+
+    document.addEventListener("click", handleClick);
+    return () => {
+      window.open = originalOpen;
+      document.removeEventListener("click", handleClick);
+    };
+  }, [router]);
 
   // Initialize LIFF
   useEffect(() => {
@@ -56,15 +96,12 @@ function LineAppPageContent() {
               const profile = await window.liff.getProfile();
               setLineUser(profile);
               
-              // Sync with backend
+              // Sync with backend - upsert LINE user
               await syncLineUser(profile.userId, profile.displayName, profile.pictureUrl);
               setLoading(false);
             } else {
-              // Redirect to LINE Login (this will redirect automatically)
-              // Don't set loading to false here as the redirect will happen
-              window.liff.login({
-                redirectUri: window.location.href
-              });
+              // Force login
+              window.liff.login();
             }
           } catch (error) {
             console.error("LIFF initialization error:", error);
@@ -85,14 +122,25 @@ function LineAppPageContent() {
     initLiff();
   }, [LIFF_ID]);
 
-  // Sync LINE user with backend
+  // Sync LINE user with backend - upsert permanently
   const syncLineUser = async (userId: string, displayName?: string, pictureUrl?: string) => {
     try {
-      await fetch(`${apiUrl}/api/line/user`, {
+      const response = await fetch(`${apiUrl}/api/line/user`, {
+        method: "POST",
         headers: {
+          "Content-Type": "application/json",
           "x-line-user-id": userId,
         },
+        body: JSON.stringify({
+          line_user_id: userId,
+          line_display_name: displayName,
+          line_picture_url: pictureUrl,
+        }),
       });
+      
+      if (!response.ok) {
+        console.error("Failed to sync LINE user");
+      }
     } catch (error) {
       console.error("Error syncing LINE user:", error);
     }
@@ -118,10 +166,15 @@ function LineAppPageContent() {
   };
 
   useEffect(() => {
-    if (liffInitialized && lineUser) {
+    if (liffInitialized && lineUser && activeTab === "search") {
       searchShops();
     }
-  }, [liffInitialized, lineUser, selectedCategory, selectedPrefecture]);
+  }, [liffInitialized, lineUser, selectedCategory, selectedPrefecture, activeTab]);
+
+  // Navigate to tab
+  const navigateToTab = (tab: string) => {
+    router.push(`/line-app?tab=${tab}`);
+  };
 
   if (!liffInitialized && loading) {
     return (
@@ -145,147 +198,193 @@ function LineAppPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-gray-900">Yoyaku Yo</h1>
-            {lineUser && (
-              <div className="flex items-center gap-2">
-                {lineUser.pictureUrl && (
-                  <img
-                    src={lineUser.pictureUrl}
-                    alt={lineUser.displayName}
-                    className="w-8 h-8 rounded-full"
-                  />
-                )}
-                <span className="text-sm text-gray-700">{lineUser.displayName}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Search Section */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="space-y-3">
-            {/* Search Bar */}
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && searchShops()}
-              placeholder="Search shops by name, location..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-
-            {/* Filters */}
-            <div className="grid grid-cols-2 gap-3">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Categories</option>
-                <option value="beauty_services">Beauty Services</option>
-                <option value="spa_onsen_relaxation">Spa & Onsen</option>
-                <option value="hotels_stays">Hotels & Stays</option>
-                <option value="dining_izakaya">Dining & Izakaya</option>
-                <option value="clinics_medical_care">Clinics & Medical Care</option>
-                <option value="activities_sports">Activities & Sports</option>
-              </select>
-
-              <select
-                value={selectedPrefecture}
-                onChange={(e) => setSelectedPrefecture(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Prefectures</option>
-                <option value="tokyo">Tokyo</option>
-                <option value="osaka">Osaka</option>
-                <option value="kyoto">Kyoto</option>
-                <option value="hokkaido">Hokkaido</option>
-              </select>
-            </div>
-
-            <button
-              onClick={searchShops}
-              className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-            >
-              Search
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Shop Results */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Searching shops...</p>
-          </div>
-        ) : shops.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">No shops found. Try adjusting your filters.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {shops.map((shop) => (
-              <Link
-                key={shop.id}
-                href={`/line-app/shops/${shop.id}`}
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
-              >
-                {shop.main_image_url && (
-                  <div className="w-full h-48 overflow-hidden bg-gray-100">
+    <BrowseAIProvider>
+      <div className="min-h-screen bg-gray-50 pb-20">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold text-gray-900">Yoyaku Yo</h1>
+              {lineUser && (
+                <div className="flex items-center gap-2">
+                  {lineUser.pictureUrl && (
                     <img
-                      src={shop.main_image_url}
-                      alt={shop.name}
-                      className="w-full h-full object-cover"
+                      src={lineUser.pictureUrl}
+                      alt={lineUser.displayName}
+                      className="w-8 h-8 rounded-full"
                     />
+                  )}
+                  <span className="text-sm text-gray-700">{lineUser.displayName}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Tab Content */}
+        {activeTab === "search" && (
+          <>
+            {/* Search Section */}
+            <div className="bg-white border-b border-gray-200">
+              <div className="max-w-7xl mx-auto px-4 py-4">
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && searchShops()}
+                    placeholder="Search shops by name, location..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="all">All Categories</option>
+                      <option value="beauty_services">Beauty Services</option>
+                      <option value="spa_onsen_relaxation">Spa & Onsen</option>
+                      <option value="hotels_stays">Hotels & Stays</option>
+                      <option value="dining_izakaya">Dining & Izakaya</option>
+                      <option value="clinics_medical_care">Clinics & Medical Care</option>
+                      <option value="activities_sports">Activities & Sports</option>
+                    </select>
+                    <select
+                      value={selectedPrefecture}
+                      onChange={(e) => setSelectedPrefecture(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="all">All Prefectures</option>
+                      <option value="tokyo">Tokyo</option>
+                      <option value="osaka">Osaka</option>
+                      <option value="kyoto">Kyoto</option>
+                      <option value="hokkaido">Hokkaido</option>
+                    </select>
                   </div>
-                )}
-                <div className="p-4">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{shop.name}</h3>
-                  {shop.address && (
-                    <p className="text-sm text-gray-600 mb-2">{shop.address}</p>
-                  )}
-                  {shop.description && (
-                    <p className="text-sm text-gray-500 line-clamp-2">{shop.description}</p>
-                  )}
-                  <button className="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-                    Book Now
+                  <button
+                    onClick={searchShops}
+                    className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Search
                   </button>
                 </div>
+              </div>
+            </div>
+
+            {/* Shop Results */}
+            <main className="max-w-7xl mx-auto px-4 py-6">
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">Searching shops...</p>
+                </div>
+              ) : shops.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-600">No shops found. Try adjusting your filters.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {shops.map((shop) => (
+                    <Link
+                      key={shop.id}
+                      href={`/line-app/shops/${shop.id}`}
+                      className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
+                    >
+                      {shop.main_image_url && (
+                        <div className="w-full h-48 overflow-hidden bg-gray-100">
+                          <img
+                            src={shop.main_image_url}
+                            alt={shop.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="p-4">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">{shop.name}</h3>
+                        {shop.address && (
+                          <p className="text-sm text-gray-600 mb-2">{shop.address}</p>
+                        )}
+                        {shop.description && (
+                          <p className="text-sm text-gray-500 line-clamp-2">{shop.description}</p>
+                        )}
+                        <button className="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                          Book Now
+                        </button>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </main>
+          </>
+        )}
+
+        {activeTab === "booking" && (
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">My Bookings</h2>
+              <p className="text-gray-600">View and manage your bookings</p>
+              <Link href="/line-app/bookings" className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                View All Bookings
               </Link>
-            ))}
+            </div>
           </div>
         )}
-      </main>
 
-      {/* Navigation Footer */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-2">
-          <div className="flex justify-around">
-            <Link href="/line-app" className="flex flex-col items-center py-2 text-blue-600">
-              <span className="text-2xl">🔍</span>
-              <span className="text-xs mt-1">Search</span>
-            </Link>
-            <Link href="/line-app/bookings" className="flex flex-col items-center py-2 text-gray-600">
-              <span className="text-2xl">📋</span>
-              <span className="text-xs mt-1">Bookings</span>
-            </Link>
-            <Link href="/line-app/chat" className="flex flex-col items-center py-2 text-gray-600">
-              <span className="text-2xl">💬</span>
-              <span className="text-xs mt-1">Chat</span>
-            </Link>
+        {activeTab === "ai" && (
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 min-h-[400px]">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">AI Assistant</h2>
+              <BrowseAIAssistant
+                shops={shops}
+                selectedPrefecture={selectedPrefecture !== "all" ? selectedPrefecture : undefined}
+                selectedCity={undefined}
+                selectedCategoryId={selectedCategory !== "all" ? selectedCategory : undefined}
+                searchQuery={searchQuery || undefined}
+                locale="ja"
+              />
+            </div>
           </div>
-        </div>
-      </nav>
-    </div>
+        )}
+
+        {/* Navigation Footer */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20">
+          <div className="max-w-7xl mx-auto px-4 py-2">
+            <div className="flex justify-around">
+              <button
+                onClick={() => navigateToTab("search")}
+                className={`flex flex-col items-center py-2 ${activeTab === "search" ? "text-blue-600" : "text-gray-600"}`}
+              >
+                <span className="text-2xl">🔍</span>
+                <span className="text-xs mt-1">検索</span>
+              </button>
+              <button
+                onClick={() => navigateToTab("booking")}
+                className={`flex flex-col items-center py-2 ${activeTab === "booking" ? "text-blue-600" : "text-gray-600"}`}
+              >
+                <span className="text-2xl">📋</span>
+                <span className="text-xs mt-1">予約</span>
+              </button>
+              <button
+                onClick={() => navigateToTab("ai")}
+                className={`flex flex-col items-center py-2 ${activeTab === "ai" ? "text-blue-600" : "text-gray-600"}`}
+              >
+                <span className="text-2xl">🤖</span>
+                <span className="text-xs mt-1">AI相談</span>
+              </button>
+              <button
+                onClick={() => navigateToTab("chat")}
+                className={`flex flex-col items-center py-2 ${activeTab === "chat" ? "text-blue-600" : "text-gray-600"}`}
+              >
+                <span className="text-2xl">💬</span>
+                <span className="text-xs mt-1">チャット</span>
+              </button>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </BrowseAIProvider>
   );
 }
 
@@ -303,4 +402,3 @@ export default function LineAppPage() {
     </Suspense>
   );
 }
-
