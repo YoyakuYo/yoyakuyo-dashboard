@@ -84,9 +84,20 @@ Add to your `.env.local`:
 # LINE LIFF
 NEXT_PUBLIC_LIFF_ID=your_liff_id
 
+# LINE Official Account ID (for QR codes that open directly in LINE app)
+# Found in LINE Official Account Manager, format: @xxxxx (without the @ symbol)
+NEXT_PUBLIC_LINE_OFFICIAL_ACCOUNT_ID=your_official_account_id
+
 # API URL
 NEXT_PUBLIC_API_URL=https://your-api-domain.com
 ```
+
+**Note:** To find your LINE Official Account ID:
+1. Go to [LINE Official Account Manager](https://manager.line.biz/)
+2. Select your Official Account
+3. Go to Settings → Account Information
+4. Find your "LINE ID" (format: `@xxxxx`)
+5. Use only the ID part (without `@`) for the environment variable
 
 ---
 

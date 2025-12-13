@@ -12,11 +12,15 @@ export default function LineQRCodeSection() {
 
   useEffect(() => {
     // Generate QR code for LINE Official Account
-    // Use LIFF URL or LINE Official Account URL
-    const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-    const lineUrlToEncode = liffId 
-      ? `https://liff.line.me/${liffId}`
-      : 'https://line.me/R/ti/p/@yoyakuyo'; // Fallback to generic LINE URL
+    // Use LINE Official Account URL to open directly in LINE app (not browser)
+    // Format: https://line.me/R/ti/p/@YOUR_LINE_OFFICIAL_ACCOUNT_ID
+    const lineOfficialAccountId = process.env.NEXT_PUBLIC_LINE_OFFICIAL_ACCOUNT_ID;
+    
+    // Use Official Account URL if available, otherwise use generic format
+    // This URL opens directly in LINE app when scanned
+    const lineUrlToEncode = lineOfficialAccountId
+      ? `https://line.me/R/ti/p/@${lineOfficialAccountId.replace('@', '')}` // Remove @ if already included
+      : 'https://line.me/R/ti/p/@yoyakuyo'; // Fallback - user should set NEXT_PUBLIC_LINE_OFFICIAL_ACCOUNT_ID
 
     setLineUrl(lineUrlToEncode);
 
