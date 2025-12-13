@@ -6,7 +6,7 @@ import { apiUrl } from "@/lib/apiClient";
 
 export const dynamic = 'force-dynamic';
 
-// Block external navigation in LIFF
+// Block external navigation in LIFF - use router.push only
 if (typeof window !== "undefined") {
   const originalOpen = window.open;
   window.open = function(...args) {
@@ -14,15 +14,12 @@ if (typeof window !== "undefined") {
     return null;
   };
   
-  document.addEventListener("click", (e) => {
-    const target = e.target as HTMLElement;
-    const link = target.closest("a");
-    if (link && link.target === "_blank") {
-      e.preventDefault();
-      const href = link.getAttribute("href");
-      if (href && href.startsWith("/")) {
-        window.location.href = href;
-      }
+  // Prevent all full page reloads
+  const originalLocation = window.location;
+  Object.defineProperty(window, 'location', {
+    get: () => originalLocation,
+    set: () => {
+      console.warn("Blocked window.location assignment in LIFF app");
     }
   });
 }
@@ -129,6 +126,13 @@ export default function LineBookingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // ENFORCE service selection
+    if (!serviceId || !service) {
+      alert("Please select a service to book an appointment");
+      return;
+    }
+    
     if (!selectedDate || !selectedTime) {
       alert("Please select a date and time");
       return;
@@ -166,7 +170,7 @@ export default function LineBookingPage() {
         body: JSON.stringify({
           line_user_id: lineUserId,
           shop_id: shopId,
-          service_id: serviceId || null, // Optional - allow booking without service
+          service_id: serviceId, // REQUIRED - service selection enforced
           date: selectedDate,
           time: selectedTime,
           start_time: startDateTime.toISOString(),
@@ -215,9 +219,9 @@ export default function LineBookingPage() {
             )}
           </div>
         ) : (
-          <div className="bg-blue-50 rounded-xl border border-blue-200 p-6 mb-6">
-            <p className="text-blue-800 text-sm">
-              {serviceId ? "Loading service details..." : "You can book an appointment without selecting a specific service."}
+          <div className="bg-yellow-50 rounded-xl border border-yellow-200 p-6 mb-6">
+            <p className="text-yellow-800 text-sm font-medium">
+              {serviceId ? "Loading service details..." : "Please select a service to book an appointment."}
             </p>
           </div>
         )}

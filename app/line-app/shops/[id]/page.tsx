@@ -146,12 +146,16 @@ export default function LineShopDetailPage() {
           <p className="text-blue-100 mb-4">
             Select a service and choose your preferred date and time
           </p>
-          <Link
-            href={`/line-app/book/${shopId}`}
-            className="inline-block w-full text-center bg-white text-blue-600 py-3 px-6 rounded-lg font-bold text-lg hover:bg-blue-50 transition-colors shadow-md"
-          >
-            Book Now →
-          </Link>
+          {services.length > 0 ? (
+            <button
+              onClick={() => router.push(`/line-app/book/${shopId}`)}
+              className="w-full text-center bg-white text-blue-600 py-3 px-6 rounded-lg font-bold text-lg hover:bg-blue-50 transition-colors shadow-md"
+            >
+              Book Now →
+            </button>
+          ) : (
+            <p className="text-blue-100 text-sm">Please select a service below to book</p>
+          )}
         </div>
 
         {/* Services */}
@@ -160,15 +164,9 @@ export default function LineShopDetailPage() {
           {services.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-600 mb-4">No services available</p>
-              <p className="text-sm text-gray-500 mb-4">
-                You can still book an appointment by clicking "Book Now" above
+              <p className="text-sm text-gray-500">
+                Please contact the shop directly to book an appointment.
               </p>
-              <Link
-                href={`/line-app/book/${shopId}`}
-                className="inline-block bg-blue-600 text-white py-2 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Book Appointment
-              </Link>
             </div>
           ) : (
             <div className="space-y-3">
@@ -189,12 +187,12 @@ export default function LineShopDetailPage() {
                   {service.description && (
                     <p className="text-sm text-gray-500 mb-3">{service.description}</p>
                   )}
-                  <Link
-                    href={`/line-app/book/${shopId}?service_id=${service.id}`}
-                    className="inline-block w-full text-center bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  <button
+                    onClick={() => router.push(`/line-app/book/${shopId}?service_id=${service.id}`)}
+                    className="w-full text-center bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                   >
                     Book This Service
-                  </Link>
+                  </button>
                 </div>
               ))}
             </div>

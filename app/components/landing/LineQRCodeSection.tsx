@@ -21,9 +21,9 @@ export default function LineQRCodeSection() {
       return;
     }
     
-    // LIFF URL format: https://liff.line.me/LIFF_ID
-    // This opens directly in LINE app and goes to the booking platform
-    const liffUrl = `https://liff.line.me/${liffId}`;
+    // LIFF URL format: https://liff.line.me/LIFF_ID/liff
+    // Use /liff entry route which forces LINE client
+    const liffUrl = `https://liff.line.me/${liffId}/liff`;
 
     setLineUrl(liffUrl);
 

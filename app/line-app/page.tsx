@@ -2,7 +2,6 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { apiUrl } from "@/lib/apiClient";
 import { BrowseAIAssistant } from "@/app/browse/components/BrowseAIAssistant";
 import { BrowseAIProvider } from "@/app/components/BrowseAIContext";
@@ -30,6 +29,7 @@ function LineAppPageContent() {
   const [lineUser, setLineUser] = useState<any>(null);
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>("all");
@@ -74,47 +74,61 @@ function LineAppPageContent() {
     };
   }, [router]);
 
-  // Initialize LIFF
+  // Initialize LIFF - ONLY after liff.init success and isInClient() === true
   useEffect(() => {
     if (typeof window === "undefined" || !LIFF_ID) {
-      console.warn("LIFF ID not configured");
+      setError("LIFF ID not configured");
       setLoading(false);
       return;
     }
 
     const initLiff = async () => {
       try {
-        // Dynamically load LIFF SDK
-        const script = document.createElement("script");
-        script.src = "https://static.line-scdn.net/liff/edge/versions/2.24.0/sdk.js";
-        script.onload = async () => {
-          try {
-            await window.liff.init({ liffId: LIFF_ID });
-            setLiffInitialized(true);
+        // Load LIFF SDK if not already loaded
+        if (!window.liff) {
+          const script = document.createElement("script");
+          script.src = "https://static.line-scdn.net/liff/edge/versions/2.24.0/sdk.js";
+          await new Promise((resolve, reject) => {
+            script.onload = resolve;
+            script.onerror = () => reject(new Error("Failed to load LIFF SDK"));
+            document.body.appendChild(script);
+          });
+        }
 
-            if (window.liff.isLoggedIn()) {
-              const profile = await window.liff.getProfile();
-              setLineUser(profile);
-              
-              // Sync with backend - upsert LINE user
-              await syncLineUser(profile.userId, profile.displayName, profile.pictureUrl);
-              setLoading(false);
-            } else {
-              // Force login
-              window.liff.login();
-            }
-          } catch (error) {
-            console.error("LIFF initialization error:", error);
-            setLoading(false);
-          }
-        };
-        script.onerror = () => {
-          console.error("Failed to load LIFF SDK");
+        // Initialize LIFF
+        await window.liff.init({ liffId: LIFF_ID });
+        setLiffInitialized(true);
+
+        // CRITICAL: Only proceed if in LINE client
+        if (!window.liff.isInClient()) {
+          setError("Please open this link in the LINE app");
           setLoading(false);
-        };
-        document.body.appendChild(script);
-      } catch (error) {
-        console.error("Error loading LIFF SDK:", error);
+          return;
+        }
+
+        // Verify login
+        if (!window.liff.isLoggedIn()) {
+          window.liff.login();
+          return;
+        }
+
+        // Get profile ONLY after init success and isInClient check
+        const profile = await window.liff.getProfile();
+        
+        if (!profile || !profile.userId) {
+          setError("Failed to get LINE profile");
+          setLoading(false);
+          return;
+        }
+
+        setLineUser(profile);
+        
+        // Sync with backend - upsert LINE user
+        await syncLineUser(profile.userId, profile.displayName, profile.pictureUrl);
+        setLoading(false);
+      } catch (error: any) {
+        console.error("LIFF initialization error:", error);
+        setError(error.message || "Failed to initialize LINE app");
         setLoading(false);
       }
     };
@@ -187,11 +201,24 @@ function LineAppPageContent() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="text-red-600 text-4xl mb-4">⚠️</div>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">LINE App Required</h1>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!lineUser) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">Please log in with LINE</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading LINE profile...</p>
         </div>
       </div>
     );
@@ -286,10 +313,10 @@ function LineAppPageContent() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {shops.map((shop) => (
-                    <Link
+                    <button
                       key={shop.id}
-                      href={`/line-app/shops/${shop.id}`}
-                      className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
+                      onClick={() => router.push(`/line-app/shops/${shop.id}`)}
+                      className="w-full text-left bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
                     >
                       {shop.main_image_url && (
                         <div className="w-full h-48 overflow-hidden bg-gray-100">
@@ -308,12 +335,12 @@ function LineAppPageContent() {
                         {shop.description && (
                           <p className="text-sm text-gray-500 line-clamp-2">{shop.description}</p>
                         )}
-                        <button className="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-                          Book Now
-                        </button>
-                      </div>
-                    </Link>
-                  ))}
+                      <span className="mt-4 inline-block w-full text-center bg-blue-600 text-white py-2 rounded-lg font-semibold">
+                        Book Now
+                      </span>
+                    </div>
+                  </button>
+                ))}
                 </div>
               )}
             </main>
@@ -325,9 +352,12 @@ function LineAppPageContent() {
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">My Bookings</h2>
               <p className="text-gray-600">View and manage your bookings</p>
-              <Link href="/line-app/bookings" className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+              <button
+                onClick={() => router.push("/line-app/bookings")}
+                className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+              >
                 View All Bookings
-              </Link>
+              </button>
             </div>
           </div>
         )}
@@ -353,9 +383,12 @@ function LineAppPageContent() {
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">チャット</h2>
               <p className="text-gray-600 mb-4">LINEチャットでAIアシスタントと会話できます</p>
-              <Link href="/line-app/chat" className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+              <button
+                onClick={() => router.push("/line-app/chat")}
+                className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+              >
                 Open Chat
-              </Link>
+              </button>
             </div>
           </div>
         )}

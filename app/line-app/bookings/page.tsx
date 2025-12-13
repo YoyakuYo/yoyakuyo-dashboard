@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 
 interface Booking {
@@ -15,6 +15,7 @@ interface Booking {
 }
 
 function LineBookingsPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,12 +84,12 @@ function LineBookingsPageContent() {
         {bookings.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <p className="text-gray-600 mb-4">You have no bookings yet.</p>
-            <Link
-              href="/line-app"
+            <button
+              onClick={() => router.push("/line-app")}
               className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
             >
               Search Shops
-            </Link>
+            </button>
           </div>
         ) : (
           <div className="space-y-4">
