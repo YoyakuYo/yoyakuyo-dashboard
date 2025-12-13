@@ -11,7 +11,6 @@ declare global {
 }
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 function LiffEntryPageContent() {
   const router = useRouter();
