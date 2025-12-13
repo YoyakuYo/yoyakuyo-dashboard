@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 // LINE LIFF SDK types
@@ -11,8 +11,9 @@ declare global {
 }
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-export default function LiffEntryPage() {
+function LiffEntryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"initializing" | "redirecting" | "ready" | "error">("initializing");
