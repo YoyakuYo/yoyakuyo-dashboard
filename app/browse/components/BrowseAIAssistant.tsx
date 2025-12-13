@@ -59,13 +59,14 @@ export function BrowseAIAssistant({
   const [hasSentShopGreeting, setHasSentShopGreeting] = useState(false);
 
   // Use ai_conversations with user_type='guest'
-  const conversationIdentity: ConversationIdentity = {
+  // Memoize conversationIdentity to prevent unnecessary reloads
+  const conversationIdentity: ConversationIdentity = React.useMemo(() => ({
     userType: 'guest',
     userId: null,
     contextKey: 'public_landing',
     shopId: shopContext?.shopId || (shops.length > 0 ? shops[0].id : null),
     guestId: typeof window !== 'undefined' ? localStorage.getItem('yoyakuyo_guest_id') || undefined : undefined,
-  };
+  }), [shopContext?.shopId, shops.length > 0 ? shops[0]?.id : null]);
 
   const { messages: conversationMessages, addMessage, setMessages, saveConversation } = useAIConversation(conversationIdentity);
 
@@ -163,18 +164,23 @@ export function BrowseAIAssistant({
     e.preventDefault();
     if (!input.trim() || loading) return;
 
+    // Store input value before clearing
+    const userMessageContent = input.trim();
+    
+    // Clear input immediately to prevent it from disappearing
+    setInput('');
+    setLoading(true);
+    setError(null);
+
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content: input.trim(),
+      content: userMessageContent,
       timestamp: new Date(),
     };
 
     // Add user message to conversation (will be saved to ai_conversations)
-    await addMessage('user', userMessage.content);
-    setInput('');
-    setLoading(true);
-    setError(null);
+    await addMessage('user', userMessageContent);
 
     try {
       // Build conversation history from previous messages (last 10 for context)

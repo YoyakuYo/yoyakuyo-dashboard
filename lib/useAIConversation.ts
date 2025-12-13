@@ -1,7 +1,7 @@
 // Utility hook for loading and saving AI conversations using ai_conversations table
 // Supports customer, owner, and guest conversations
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 
 export interface ConversationMessage {
@@ -219,10 +219,26 @@ export function useAIConversation(identity: ConversationIdentity) {
     await saveConversation(updatedMessages);
   }, [messages, saveConversation]);
 
-  // Load conversation on mount
+  // Load conversation on mount and when identity changes
+  // Use a ref to track if we've already loaded to prevent unnecessary reloads
+  const hasLoadedRef = useRef(false);
+  const identityRef = useRef(identity);
+  
   useEffect(() => {
-    loadConversation();
-  }, [loadConversation]);
+    // Only reload if identity actually changed (deep comparison of key fields)
+    const identityChanged = 
+      identityRef.current.userType !== identity.userType ||
+      identityRef.current.userId !== identity.userId ||
+      identityRef.current.contextKey !== identity.contextKey ||
+      identityRef.current.shopId !== identity.shopId ||
+      identityRef.current.guestId !== identity.guestId;
+    
+    if (!hasLoadedRef.current || identityChanged) {
+      identityRef.current = identity;
+      hasLoadedRef.current = true;
+      loadConversation();
+    }
+  }, [identity.userType, identity.userId, identity.contextKey, identity.shopId, identity.guestId, loadConversation]);
 
   return {
     messages,
