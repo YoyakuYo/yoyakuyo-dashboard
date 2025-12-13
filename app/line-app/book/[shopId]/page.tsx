@@ -6,6 +6,13 @@ import { apiUrl } from "@/lib/apiClient";
 
 export const dynamic = 'force-dynamic';
 
+// LINE LIFF SDK types
+declare global {
+  interface Window {
+    liff: any;
+  }
+}
+
 // Block external navigation in LIFF - use router.push only
 if (typeof window !== "undefined") {
   const originalOpen = window.open;
@@ -50,10 +57,61 @@ export default function LineBookingPage() {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [liffInitialized, setLiffInitialized] = useState(false);
+  const [error, setError] = useState<string>("");
+
+  const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID || "";
+
+  // Initialize LIFF
+  useEffect(() => {
+    if (typeof window === "undefined" || !LIFF_ID) {
+      // If no LIFF ID, allow the page to work anyway (for testing)
+      setLiffInitialized(true);
+      return;
+    }
+
+    const initLiff = async () => {
+      try {
+        // Load LIFF SDK if not already loaded
+        if (!window.liff) {
+          const script = document.createElement("script");
+          script.src = "https://static.line-scdn.net/liff/edge/versions/2.24.0/sdk.js";
+          await new Promise((resolve, reject) => {
+            script.onload = resolve;
+            script.onerror = () => reject(new Error("Failed to load LIFF SDK"));
+            document.body.appendChild(script);
+          });
+        }
+
+        // Initialize LIFF
+        await window.liff.init({ liffId: LIFF_ID });
+        setLiffInitialized(true);
+
+        // Check if in LINE client (optional - allow browser for testing)
+        if (!window.liff.isInClient()) {
+          console.warn("Not in LINE client - page may not work correctly");
+        }
+
+        // Verify login (optional - allow without login for testing)
+        if (!window.liff.isLoggedIn()) {
+          console.warn("Not logged in to LINE");
+        }
+      } catch (err: any) {
+        console.error("LIFF initialization error:", err);
+        // Don't block the page - allow it to work even if LIFF fails
+        setLiffInitialized(true);
+      }
+    };
+
+    initLiff();
+  }, [LIFF_ID]);
 
   useEffect(() => {
     if (serviceId) {
       fetchService();
+    } else {
+      // If no serviceId, show message
+      setService(null);
     }
   }, [serviceId]);
 
@@ -66,14 +124,20 @@ export default function LineBookingPage() {
   }, [selectedDate]);
 
   const fetchService = async () => {
+    if (!serviceId) return;
+    
     try {
       const res = await fetch(`${apiUrl}/services/${serviceId}`);
       if (res.ok) {
         const data = await res.json();
         setService(data);
+      } else {
+        console.error("Failed to fetch service:", res.status);
+        setService(null);
       }
     } catch (error) {
       console.error("Error fetching service:", error);
+      setService(null);
     }
   };
 
@@ -205,10 +269,55 @@ export default function LineBookingPage() {
     return dates;
   };
 
+  // Debug logging
+  useEffect(() => {
+    console.log("LineBookingPage - shopId:", shopId, "serviceId:", serviceId);
+    console.log("LineBookingPage - liffInitialized:", liffInitialized);
+  }, [shopId, serviceId, liffInitialized]);
+
+  // Show loading while LIFF initializes (but allow page to render if LIFF_ID is not set)
+  if (!liffInitialized && LIFF_ID) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Initializing LINE app...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if shopId is missing
+  if (!shopId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="text-red-600 text-4xl mb-4">⚠️</div>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Invalid Shop</h1>
+          <p className="text-gray-600 mb-4">Shop ID is missing. Please go back and try again.</p>
+          <button
+            onClick={() => router.push("/line-app")}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Go to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-2xl mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Book Appointment</h1>
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            onClick={() => router.back()}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            ← Back
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900">Book Appointment</h1>
+        </div>
 
         {service ? (
           <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
