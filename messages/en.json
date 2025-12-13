@@ -1354,6 +1354,17 @@
     "featured": "Featured",
     "trending": "Trending",
     "footerSupport": "Support",
-    "footerHelp": "Help Center"
+    "footerHelp": "Help Center",
+    "lineTitle": "Book via LINE",
+    "lineDescription": "Add our LINE bot and book appointments directly from LINE! Search shops, make bookings, and get instant confirmations.",
+    "lineFeature1": "Search shops by category and location",
+    "lineFeature2": "Book appointments with AI assistant",
+    "lineFeature3": "Get booking confirmations instantly",
+    "lineFeature4": "View and manage your bookings",
+    "copyLineLink": "Copy LINE Link",
+    "lineQRCode": "LINE QR Code",
+    "scanToAddLine": "Scan to add LINE bot",
+    "scanInstructions": "Open LINE app and scan this QR code",
+    "loadingQR": "Loading QR code..."
   }
 }
