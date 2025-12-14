@@ -410,21 +410,6 @@ function LineAppPageContent() {
           lineCustomerProfileId={lineCustomerProfileId}
         />
 
-        {activeTab === "chat" && (
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">チャット</h2>
-              <p className="text-gray-600 mb-4">右下のチャットバブルをクリックしてAIアシスタントと会話できます</p>
-              <p className="text-sm text-gray-500 mb-4">または、専用のチャットページに移動:</p>
-              <button
-                onClick={() => router.push("/line-app/chat")}
-                className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-              >
-                チャットページを開く
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Navigation Footer */}
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20">
@@ -450,13 +435,6 @@ function LineAppPageContent() {
               >
                 <span className="text-2xl">🤖</span>
                 <span className="text-xs mt-1">AI相談</span>
-              </button>
-              <button
-                onClick={() => navigateToTab("chat")}
-                className={`flex flex-col items-center py-2 ${activeTab === "chat" ? "text-blue-600" : "text-gray-600"}`}
-              >
-                <span className="text-2xl">💬</span>
-                <span className="text-xs mt-1">チャット</span>
               </button>
             </div>
           </div>
