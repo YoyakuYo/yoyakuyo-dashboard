@@ -60,15 +60,29 @@ export function BrowseAIAssistant({
   // Track if we've sent the initial shop greeting
   const [hasSentShopGreeting, setHasSentShopGreeting] = useState(false);
 
-  // Use ai_conversations with user_type='guest'
+  // Use customer mode for LINE users, guest mode for others
   // Memoize conversationIdentity to prevent unnecessary reloads
-  const conversationIdentity: ConversationIdentity = React.useMemo(() => ({
-    userType: 'guest',
-    userId: null,
-    contextKey: 'public_landing',
-    shopId: shopContext?.shopId || (shops.length > 0 ? shops[0].id : null),
-    guestId: typeof window !== 'undefined' ? localStorage.getItem('yoyakuyo_guest_id') || undefined : undefined,
-  }), [shopContext?.shopId, shops.length > 0 ? shops[0]?.id : null]);
+  const conversationIdentity: ConversationIdentity = React.useMemo(() => {
+    // If LINE customer profile ID is provided, use customer mode with unique context
+    if (lineCustomerProfileId) {
+      return {
+        userType: 'customer',
+        userId: lineCustomerProfileId, // Use customer profile ID for LINE users
+        contextKey: 'line_app', // Different context key for LINE app to isolate conversations
+        shopId: shopContext?.shopId || (shops.length > 0 ? shops[0].id : null),
+        guestId: undefined,
+      };
+    }
+    
+    // Otherwise, use guest mode for regular web users
+    return {
+      userType: 'guest',
+      userId: null,
+      contextKey: 'public_landing',
+      shopId: shopContext?.shopId || (shops.length > 0 ? shops[0].id : null),
+      guestId: typeof window !== 'undefined' ? localStorage.getItem('yoyakuyo_guest_id') || undefined : undefined,
+    };
+  }, [lineCustomerProfileId, shopContext?.shopId, shops.length > 0 ? shops[0]?.id : null]);
 
   const { messages: conversationMessages, addMessage, setMessages, saveConversation } = useAIConversation(conversationIdentity);
 

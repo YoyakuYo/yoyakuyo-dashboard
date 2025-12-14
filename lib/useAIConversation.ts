@@ -50,16 +50,20 @@ export function useAIConversation(identity: ConversationIdentity) {
         .eq('context_key', identity.contextKey);
       
       if (identity.userType === 'guest') {
-        // For guests, we need to match by guest_id stored in messages metadata
-        // Since we can't filter by guest_id directly, we'll load all guest conversations
-        // and filter client-side (or use a different approach)
-        // For now, we'll use a placeholder shop_id or create a unique identifier
+        // For guests, filter by guest_id and context_key
         const guestId = getGuestId();
-        // Store guest_id in a separate field or use shop_id as a placeholder
-        // Actually, let's use a combination: context_key + guest_id stored in messages
-        query = query.is('user_id', null);
+        if (guestId) {
+          query = query
+            .is('user_id', null)
+            .eq('context_key', identity.contextKey)
+            .eq('guest_id', guestId); // Filter by guest_id to isolate conversations
+        } else {
+          // No guest ID yet, only filter by context (will create new conversation)
+          query = query.is('user_id', null).eq('context_key', identity.contextKey);
+        }
       } else if (identity.userId) {
-        query = query.eq('user_id', identity.userId);
+        // For customers/owners, filter by user_id and context_key
+        query = query.eq('user_id', identity.userId).eq('context_key', identity.contextKey);
       }
       
       if (identity.shopId) {
@@ -79,6 +83,19 @@ export function useAIConversation(identity: ConversationIdentity) {
       }
       
       if (data) {
+        // For guests, double-check guest_id matches (extra security check)
+        if (identity.userType === 'guest' && identity.guestId) {
+          const dataGuestId = (data as any).guest_id;
+          if (dataGuestId && dataGuestId !== identity.guestId) {
+            // This conversation belongs to a different guest, start fresh
+            console.warn('Guest ID mismatch - conversation belongs to different guest');
+            setConversationId(null);
+            setMessages([]);
+            setLoading(false);
+            return;
+          }
+        }
+        
         setConversationId(data.id);
         // Parse messages from JSONB
         const parsedMessages = Array.isArray(data.messages) 
@@ -164,6 +181,11 @@ export function useAIConversation(identity: ConversationIdentity) {
         updated_at: new Date().toISOString(),
       };
       
+      // Add guest_id for guest conversations
+      if (identity.userType === 'guest' && identity.guestId) {
+        conversationData.guest_id = identity.guestId;
+      }
+      
       if (identity.shopId) {
         conversationData.shop_id = identity.shopId;
       }
@@ -191,8 +213,9 @@ export function useAIConversation(identity: ConversationIdentity) {
           console.error('Error creating conversation:', error);
         } else if (data) {
           setConversationId(data.id);
-          // For guest conversations, we might want to store the conversation ID
-          if (identity.userType === 'guest') {
+          // For guest conversations, store the conversation ID with guest ID to prevent cross-guest access
+          if (identity.userType === 'guest' && identity.guestId) {
+            localStorage.setItem(`yoyakuyo_guest_conversation_${data.id}`, identity.guestId);
             localStorage.setItem('yoyakuyo_guest_conversation_id', data.id);
           }
         }
