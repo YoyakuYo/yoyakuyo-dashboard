@@ -6,24 +6,22 @@ import { useRouter } from "next/navigation";
 import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { useTranslations } from "next-intl";
+import NotificationBell from "@/app/components/NotificationBell";
 
 export default function CustomerHeader() {
   const { user, signOut } = useCustomAuth();
   const router = useRouter();
   const t = useTranslations();
   const [profile, setProfile] = useState<any>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
     if (!user) return;
 
     const supabase = getSupabaseClient();
-    let channel: any = null;
     
-    // Load profile and notifications
-    const loadData = async () => {
-      // Get customer_profile_id from customer_auth_id
+    // Load profile
+    const loadProfile = async () => {
       const { data: profileData } = await supabase
         .from("customer_profiles")
         .select("*")
@@ -32,49 +30,10 @@ export default function CustomerHeader() {
       
       if (profileData) {
         setProfile(profileData);
-        
-        // Load unread notifications using customer_profile_id
-        const { data: notifications } = await supabase
-          .from("notifications")
-          .select("id", { count: "exact" })
-          .eq("recipient_type", "customer")
-          .eq("recipient_id", profileData.id)
-          .eq("is_read", false);
-        setUnreadCount(notifications?.length || 0);
-
-        // Subscribe to notification changes
-        channel = supabase
-          .channel("customer-notifications")
-          .on(
-            "postgres_changes",
-            {
-              event: "*",
-              schema: "public",
-              table: "notifications",
-              filter: `recipient_type=eq.customer&recipient_id=eq.${profileData.id}`,
-            },
-            async () => {
-              // Reload unread count
-              const { data: updatedNotifications } = await supabase
-                .from("notifications")
-                .select("id", { count: "exact" })
-                .eq("recipient_type", "customer")
-                .eq("recipient_id", profileData.id)
-                .eq("is_read", false);
-              setUnreadCount(updatedNotifications?.length || 0);
-            }
-          )
-          .subscribe();
       }
     };
     
-    loadData();
-    
-    return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
+    loadProfile();
   }, [user]);
 
   const handleSignOut = async () => {
@@ -105,29 +64,9 @@ export default function CustomerHeader() {
         {/* Right side: Notifications, Profile */}
         <div className="flex items-center gap-4">
           {/* Notifications */}
-          <Link
-            href="/customer/notifications"
-            className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-              />
-            </svg>
-            {unreadCount > 0 && (
-              <span className="absolute top-0 right-0 block h-5 w-5 text-xs text-white bg-red-500 rounded-full flex items-center justify-center">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
-          </Link>
+          {profile && (
+            <NotificationBell userType="customer" userId={profile.id} />
+          )}
 
           {/* Profile Dropdown */}
           <div className="relative">
