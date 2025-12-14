@@ -70,19 +70,41 @@ export default function LineChatPage() {
         }
       }
 
-      // Call AI endpoint
-      const res = await fetch(`${apiUrl}/ai`, {
+      // Build conversation history from previous messages (last 10 for context)
+      const conversationHistory = messages.slice(-10).map(msg => ({
+        role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+        content: msg.content,
+      }));
+
+      // Build messages array for unified endpoint
+      const messagesForAPI = [
+        ...conversationHistory,
+        { role: 'user' as const, content: userMessage.content },
+      ];
+
+      // Call AI endpoint with correct format
+      const res = await fetch(`${apiUrl}/ai/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           role: "customer",
-          message: input,
+          messages: messagesForAPI,
           userId: customerProfileId || lineUserId,
-          context: "line_bot",
+          locale: "ja", // LINE app is primarily Japanese
+          customerId: customerProfileId || lineUserId,
         }),
       });
 
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `AI API returned ${res.status}: ${res.statusText}`);
+      }
+
       const data = await res.json();
+      
+      if (!data || !data.response) {
+        throw new Error("Invalid response from AI API");
+      }
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),

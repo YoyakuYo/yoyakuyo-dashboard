@@ -21,44 +21,67 @@ function LineBookingsPageContent() {
   const [loading, setLoading] = useState(true);
   const [lineUserId, setLineUserId] = useState<string>("");
 
-  useEffect(() => {
-    const loadBookings = async () => {
-      // Get LINE user ID from LIFF
-      if (typeof window !== "undefined" && window.liff) {
-        try {
-          const profile = await window.liff.getProfile();
-          setLineUserId(profile.userId);
+  const loadBookings = async () => {
+    // Get LINE user ID from LIFF
+    if (typeof window !== "undefined" && window.liff) {
+      try {
+        const profile = await window.liff.getProfile();
+        setLineUserId(profile.userId);
 
-          // Fetch user profile to get customer_profile_id
-          const userRes = await fetch(`${apiUrl}/api/line/user`, {
-            headers: { "x-line-user-id": profile.userId },
-          });
+        // Fetch user profile to get customer_profile_id
+        const userRes = await fetch(`${apiUrl}/api/line/user`, {
+          headers: { "x-line-user-id": profile.userId },
+        });
 
-          if (userRes.ok) {
-            const userData = await userRes.json();
-            
-            // Fetch bookings
-            const bookingsRes = await fetch(
-              `${apiUrl}/api/customer/bookings?customer_profile_id=${userData.id}`
-            );
-
-            if (bookingsRes.ok) {
-              const bookingsData = await bookingsRes.json();
-              setBookings(bookingsData.bookings || []);
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          
+          // Fetch bookings using customer bookings history endpoint
+          let bookingsData = [];
+          
+          // Try customer bookings history endpoint
+          const bookingsRes = await fetch(
+            `${apiUrl}/api/customer/bookings/history`,
+            {
+              headers: {
+                'x-user-id': userData.id || profile.userId,
+              }
             }
+          );
+
+          if (bookingsRes.ok) {
+            const data = await bookingsRes.json();
+            bookingsData = data.bookings || data || [];
+          } else {
+            console.error("Failed to fetch bookings:", await bookingsRes.text());
           }
-        } catch (error) {
-          console.error("Error loading bookings:", error);
-        } finally {
-          setLoading(false);
+          
+          setBookings(bookingsData);
         }
-      } else {
+      } catch (error) {
+        console.error("Error loading bookings:", error);
+      } finally {
         setLoading(false);
       }
-    };
+    } else {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadBookings();
   }, []);
+
+  // Reload bookings when success parameter changes
+  useEffect(() => {
+    const success = searchParams.get("success");
+    if (success === "true") {
+      // Reload bookings after a short delay to ensure backend has processed the booking
+      setTimeout(() => {
+        loadBookings();
+      }, 1000);
+    }
+  }, [searchParams]);
 
   if (loading) {
     return (
