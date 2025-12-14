@@ -43,14 +43,24 @@ export default function PushNotificationButton({ userType, className = '' }: Pus
       if (isSubscribed) {
         await unsubscribe(userType);
       } else {
-        const success = await subscribe(userType);
-        if (!success) {
-          alert('Failed to enable push notifications. Please check your browser settings.');
+        // Check permission before attempting subscription
+        if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+          alert(
+            'Notifications are blocked. To enable:\n\n' +
+            '1. Click the lock/info icon (🔒 or ℹ️) next to the URL\n' +
+            '2. Find "Notifications" and change to "Allow"\n' +
+            '3. Refresh the page and try again'
+          );
+          setIsToggling(false);
+          return;
         }
+        
+        const success = await subscribe(userType);
+        // Error messages are already shown in the subscribe function
       }
     } catch (error) {
       console.error('Error toggling push notifications:', error);
-      alert('An error occurred. Please try again.');
+      // Error messages are already shown in subscribe/unsubscribe functions
     } finally {
       setIsToggling(false);
     }

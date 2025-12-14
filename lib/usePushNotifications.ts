@@ -128,6 +128,19 @@ export function usePushNotifications() {
         )
       ]);
 
+      // Check notification permission first
+      if (Notification.permission === 'denied') {
+        throw new Error('PERMISSION_DENIED');
+      }
+
+      if (Notification.permission === 'default') {
+        // Request permission first
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          throw new Error('PERMISSION_DENIED');
+        }
+      }
+
       // Convert VAPID key to BufferSource
       const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
 
@@ -176,9 +189,21 @@ export function usePushNotifications() {
     } catch (error: any) {
       console.error('[Push] Subscription error:', error);
       
-      // Handle permission denied
-      if (error.name === 'NotAllowedError' || error.message?.includes('permission')) {
-        alert('Please allow notifications in your browser settings to receive push notifications.');
+      // Handle permission denied or blocked
+      if (error.name === 'NotAllowedError' || error.message?.includes('permission') || error.message === 'PERMISSION_DENIED') {
+        const isBlocked = Notification.permission === 'denied';
+        
+        if (isBlocked) {
+          alert(
+            'Notifications have been blocked. To enable push notifications:\n\n' +
+            '1. Click the lock/info icon (🔒 or ℹ️) next to the URL in your browser\n' +
+            '2. Find "Notifications" in the permissions list\n' +
+            '3. Change it from "Block" to "Allow"\n' +
+            '4. Refresh this page and try again'
+          );
+        } else {
+          alert('Please allow notifications when prompted to receive push notifications.');
+        }
       } else if (error.message?.includes('timeout')) {
         alert('Service worker took too long to initialize. Please refresh the page and try again.');
       } else {
