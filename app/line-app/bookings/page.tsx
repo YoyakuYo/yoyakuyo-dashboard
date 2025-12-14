@@ -51,8 +51,10 @@ function LineBookingsPageContent() {
 
           if (bookingsRes.ok) {
             const data = await bookingsRes.json();
-            bookingsData = data.bookings || data || [];
-            console.log(`[LINE Bookings] Loaded ${bookingsData.length} bookings`);
+            // Handle both response formats: { bookings: [...] } or direct array
+            bookingsData = Array.isArray(data) ? data : (data.bookings || []);
+            console.log(`[LINE Bookings] Loaded ${bookingsData.length} bookings for LINE user ${profile.userId}`);
+            console.log(`[LINE Bookings] Response data:`, data);
           } else {
             const errorText = await bookingsRes.text();
             console.error("Failed to fetch LINE bookings:", bookingsRes.status, errorText);
