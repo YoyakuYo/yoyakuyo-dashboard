@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/lib/useNotifications';
 import { apiUrl } from '@/lib/apiClient';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 
 interface NotificationBellProps {
   userType: 'owner' | 'customer';

@@ -149,11 +149,13 @@ export function useNotifications(userType: 'owner' | 'customer', userId: string)
             setUnreadCount((prev) => prev + 1);
 
             // Show toast notification
-            toast.success(newNotification.title, {
-              description: newNotification.body,
-              duration: 5000,
-              icon: '🔔',
-            });
+            toast.success(
+              `${newNotification.title}\n${newNotification.body}`,
+              {
+                duration: 5000,
+                icon: '🔔',
+              }
+            );
           }
         )
         .on(
