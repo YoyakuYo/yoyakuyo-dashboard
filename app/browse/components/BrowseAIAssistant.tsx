@@ -60,6 +60,17 @@ export function BrowseAIAssistant({
   // Track if we've sent the initial shop greeting
   const [hasSentShopGreeting, setHasSentShopGreeting] = useState(false);
 
+  // Get or create guest ID from localStorage (ensure it's consistent across renders)
+  const [guestId, setGuestId] = React.useState<string | undefined>(() => {
+    if (typeof window === 'undefined') return undefined;
+    const stored = localStorage.getItem('yoyakuyo_guest_id');
+    if (stored) return stored;
+    // Create new guest ID if it doesn't exist
+    const newGuestId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('yoyakuyo_guest_id', newGuestId);
+    return newGuestId;
+  });
+
   // Use customer mode for LINE users, guest mode for others
   // Memoize conversationIdentity to prevent unnecessary reloads
   const conversationIdentity: ConversationIdentity = React.useMemo(() => {
@@ -69,7 +80,7 @@ export function BrowseAIAssistant({
         userType: 'customer',
         userId: lineCustomerProfileId, // Use customer profile ID for LINE users
         contextKey: 'line_app', // Different context key for LINE app to isolate conversations
-        shopId: shopContext?.shopId || (shops.length > 0 ? shops[0].id : null),
+        shopId: shopContext?.shopId || (shops.length > 0 ? shops[0]?.id : null),
         guestId: undefined,
       };
     }
@@ -79,10 +90,10 @@ export function BrowseAIAssistant({
       userType: 'guest',
       userId: null,
       contextKey: 'public_landing',
-      shopId: shopContext?.shopId || (shops.length > 0 ? shops[0].id : null),
-      guestId: typeof window !== 'undefined' ? localStorage.getItem('yoyakuyo_guest_id') || undefined : undefined,
+      shopId: shopContext?.shopId || (shops.length > 0 ? shops[0]?.id : null),
+      guestId: guestId, // Use the state value which is guaranteed to be set
     };
-  }, [lineCustomerProfileId, shopContext?.shopId, shops.length > 0 ? shops[0]?.id : null]);
+  }, [lineCustomerProfileId, shopContext?.shopId, shops.length > 0 ? shops[0]?.id : null, guestId]);
 
   const { messages: conversationMessages, addMessage, setMessages, saveConversation } = useAIConversation(conversationIdentity);
 

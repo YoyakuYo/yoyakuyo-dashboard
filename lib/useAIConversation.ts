@@ -25,8 +25,20 @@ export function useAIConversation(identity: ConversationIdentity) {
   const [saving, setSaving] = useState(false);
 
   // Get or create guest ID from localStorage
+  // Prefer the guestId from identity if provided, otherwise get/create from localStorage
   const getGuestId = useCallback((): string => {
     if (identity.userType !== 'guest') return '';
+    
+    // If guestId is provided in identity, use it (and ensure it's in localStorage)
+    if (identity.guestId) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('yoyakuyo_guest_id', identity.guestId);
+      }
+      return identity.guestId;
+    }
+    
+    // Otherwise, get or create from localStorage
+    if (typeof window === 'undefined') return '';
     
     const stored = localStorage.getItem('yoyakuyo_guest_id');
     if (stored) return stored;
@@ -34,7 +46,7 @@ export function useAIConversation(identity: ConversationIdentity) {
     const newGuestId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     localStorage.setItem('yoyakuyo_guest_id', newGuestId);
     return newGuestId;
-  }, [identity.userType]);
+  }, [identity.userType, identity.guestId]);
 
   // Load conversation from database
   const loadConversation = useCallback(async () => {
