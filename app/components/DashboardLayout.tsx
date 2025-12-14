@@ -145,7 +145,7 @@ function MessagesPanelWrapper() {
 
 // Wrapper component to initialize booking notifications hook and show pop-ups
 function BookingNotificationsWrapper({ children }: { children: React.ReactNode }) {
-  useBookingNotificationsHook();
+  // Real-time subscription is now handled in BookingNotificationProvider
   const { newBookingNotification, setNewBookingNotification } = useBookingNotifications();
   const router = useRouter();
 

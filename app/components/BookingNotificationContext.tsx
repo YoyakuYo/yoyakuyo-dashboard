@@ -4,6 +4,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { useBookingNotificationsHook } from '@/lib/useBookingNotifications';
 
 interface BookingNotification {
   id: string;
@@ -26,6 +27,9 @@ const BookingNotificationContext = createContext<BookingNotificationContextType 
 export function BookingNotificationProvider({ children }: { children: ReactNode }) {
   const [unreadBookingsCount, setUnreadBookingsCount] = useState(0);
   const [newBookingNotification, setNewBookingNotification] = useState<BookingNotification | null>(null);
+
+  // Initialize real-time subscription hook
+  useBookingNotificationsHook();
 
   return (
     <BookingNotificationContext.Provider
