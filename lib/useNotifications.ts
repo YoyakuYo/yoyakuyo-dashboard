@@ -22,14 +22,38 @@ export function useNotifications(userType: 'owner' | 'customer', userId: string)
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const subscriptionRef = useRef<any>(null);
+  const actualRecipientIdRef = useRef<string | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!userId) return;
 
     try {
+      // For customers, we need to get the actual auth ID to send to API
+      let authUserId = userId;
+      
+      if (userType === 'customer') {
+        // userId is customer_profile_id, but API needs customer_auth_id
+        const supabase = getSupabaseClient();
+        const { data: profile } = await supabase
+          .from("customer_profiles")
+          .select("customer_auth_id")
+          .eq("id", userId)
+          .single();
+        
+        if (profile?.customer_auth_id) {
+          authUserId = profile.customer_auth_id;
+          actualRecipientIdRef.current = userId; // Store the profile ID for real-time subscription
+        } else {
+          setLoading(false);
+          return;
+        }
+      } else {
+        actualRecipientIdRef.current = userId;
+      }
+
       const res = await fetch(`${apiUrl}/notifications?recipient_type=${userType}`, {
         headers: {
-          'x-user-id': userId,
+          'x-user-id': authUserId,
         },
       });
 
@@ -99,13 +123,16 @@ export function useNotifications(userType: 'owner' | 'customer', userId: string)
       let recipientId = userId;
 
       if (userType === 'customer') {
-        // For customers, use the profile ID directly (userId is already profile ID)
+        // For customers, userId is already customer_profile_id (passed from CustomerHeader)
         recipientId = userId;
+        actualRecipientIdRef.current = userId;
+      } else {
+        actualRecipientIdRef.current = userId;
       }
 
       // Subscribe to new notifications
       const channel = supabase
-        .channel('notifications_realtime')
+        .channel(`notifications_realtime_${userType}_${recipientId}`)
         .on(
           'postgres_changes',
           {
