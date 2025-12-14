@@ -96,15 +96,25 @@ export default function LineChatPage() {
       });
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
+        const errorText = await res.text();
+        let errorData: any = {};
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText || `AI API returned ${res.status}: ${res.statusText}` };
+        }
+        console.error("[LINE Chat] AI API error:", res.status, errorData);
         throw new Error(errorData.error || `AI API returned ${res.status}: ${res.statusText}`);
       }
 
       const data = await res.json();
       
       if (!data || !data.response) {
+        console.error("[LINE Chat] Invalid AI response:", data);
         throw new Error("Invalid response from AI API");
       }
+      
+      console.log("[LINE Chat] AI response received successfully");
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),

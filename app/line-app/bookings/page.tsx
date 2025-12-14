@@ -36,15 +36,15 @@ function LineBookingsPageContent() {
         if (userRes.ok) {
           const userData = await userRes.json();
           
-          // Fetch bookings using customer bookings history endpoint
+          // Fetch bookings using LINE bookings endpoint (direct query by line_user_id)
           let bookingsData = [];
           
-          // Try customer bookings history endpoint
+          // Use LINE bookings endpoint which queries via line_bookings table
           const bookingsRes = await fetch(
-            `${apiUrl}/api/customer/bookings/history`,
+            `${apiUrl}/api/line/bookings?line_user_id=${profile.userId}`,
             {
               headers: {
-                'x-user-id': userData.id || profile.userId,
+                'x-line-user-id': profile.userId,
               }
             }
           );
@@ -52,8 +52,28 @@ function LineBookingsPageContent() {
           if (bookingsRes.ok) {
             const data = await bookingsRes.json();
             bookingsData = data.bookings || data || [];
+            console.log(`[LINE Bookings] Loaded ${bookingsData.length} bookings`);
           } else {
-            console.error("Failed to fetch bookings:", await bookingsRes.text());
+            const errorText = await bookingsRes.text();
+            console.error("Failed to fetch LINE bookings:", bookingsRes.status, errorText);
+            
+            // Fallback: try customer bookings history endpoint
+            if (userData.id) {
+              const fallbackRes = await fetch(
+                `${apiUrl}/api/customer/bookings/history`,
+                {
+                  headers: {
+                    'x-user-id': userData.id,
+                  }
+                }
+              );
+              
+              if (fallbackRes.ok) {
+                const fallbackData = await fallbackRes.json();
+                bookingsData = fallbackData.bookings || fallbackData || [];
+                console.log(`[LINE Bookings] Fallback loaded ${bookingsData.length} bookings`);
+              }
+            }
           }
           
           setBookings(bookingsData);
