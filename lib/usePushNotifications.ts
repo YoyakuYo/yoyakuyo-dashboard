@@ -15,42 +15,71 @@ export function usePushNotifications() {
 
   // Check if push notifications are supported
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
     
     const checkSupport = async () => {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        setIsSupported(false);
+      try {
+        // Check browser support
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+          setIsSupported(false);
+          setLoading(false);
+          return;
+        }
+
+        setIsSupported(true);
+
+        // Get VAPID public key
+        try {
+          const res = await fetch(`${apiUrl}/api/push/vapid-key`);
+          if (res.ok) {
+            const data = await res.json();
+            setVapidPublicKey(data.publicKey);
+          } else {
+            console.warn('[Push] VAPID key not available:', res.status);
+          }
+        } catch (error) {
+          console.error('[Push] Error fetching VAPID key:', error);
+        }
+
+        // Register service worker first, then check subscription
+        try {
+          // Register service worker if not already registered
+          let registration = await navigator.serviceWorker.getRegistration('/');
+          
+          if (!registration) {
+            registration = await navigator.serviceWorker.register('/sw.js', {
+              scope: '/',
+            });
+            console.log('[Push] Service Worker registered');
+          }
+
+          // Wait for service worker to be ready (with timeout)
+          const readyRegistration = await Promise.race([
+            navigator.serviceWorker.ready,
+            new Promise<ServiceWorkerRegistration>((_, reject) => 
+              setTimeout(() => reject(new Error('Service worker ready timeout')), 5000)
+            )
+          ]);
+
+          // Check existing subscription
+          const existingSubscription = await readyRegistration.pushManager.getSubscription();
+          
+          if (existingSubscription) {
+            setSubscription(existingSubscription);
+            setIsSubscribed(true);
+          }
+        } catch (error: any) {
+          console.error('[Push] Error checking subscription:', error);
+          // Continue even if service worker check fails
+        }
+      } catch (error) {
+        console.error('[Push] Error in checkSupport:', error);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      setIsSupported(true);
-
-      // Get VAPID public key
-      try {
-        const res = await fetch(`${apiUrl}/api/push/vapid-key`);
-        if (res.ok) {
-          const data = await res.json();
-          setVapidPublicKey(data.publicKey);
-        }
-      } catch (error) {
-        console.error('Error fetching VAPID key:', error);
-      }
-
-      // Check existing subscription
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        const existingSubscription = await registration.pushManager.getSubscription();
-        
-        if (existingSubscription) {
-          setSubscription(existingSubscription);
-          setIsSubscribed(true);
-        }
-      } catch (error) {
-        console.error('Error checking subscription:', error);
-      }
-
-      setLoading(false);
     };
 
     checkSupport();
