@@ -13,6 +13,7 @@ import ShopCalendar from '../components/ShopCalendar';
 import { useBookingNotifications } from '../components/BookingNotificationContext';
 import NotificationDot from '../components/NotificationDot';
 import PushNotificationButton from '../components/PushNotificationButton';
+import { useNotifications } from '@/lib/useNotifications';
 
 
 interface Shop {
@@ -159,6 +160,12 @@ const MyShopPage = () => {
   const router = useRouter();
   const t = useTranslations();
   const { unreadBookingsCount } = useBookingNotifications();
+  const { notifications, markAsRead } = useNotifications('owner', user?.id || '');
+  
+  // Count unread review notifications
+  const unreadReviewsCount = notifications.filter(
+    (n) => !n.is_read && n.type === 'new_review'
+  ).length;
 
   const [shop, setShop] = useState<Shop | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
@@ -1411,7 +1418,7 @@ const MyShopPage = () => {
           {(['overview', 'services', 'bookings', 'photos', 'reviews', 'calendar'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => {
+              onClick={async () => {
                 setActiveTab(tab);
                 // Fetch data when tab is clicked
                 if (shop && user) {
@@ -1423,6 +1430,13 @@ const MyShopPage = () => {
                     fetchPhotos(shop.id);
                   } else if (tab === 'reviews') {
                     fetchReviews(shop.id);
+                    // Mark all review notifications as read when viewing reviews tab
+                    const reviewNotifications = notifications.filter(
+                      (n) => !n.is_read && n.type === 'new_review'
+                    );
+                    for (const notification of reviewNotifications) {
+                      await markAsRead(notification.id);
+                    }
                   }
                 }
               }}
@@ -1434,6 +1448,9 @@ const MyShopPage = () => {
             >
               {t(`myShop.${tab}`)}
               {tab === 'bookings' && unreadBookingsCount > 0 && (
+                <NotificationDot className="absolute top-1 right-1" />
+              )}
+              {tab === 'reviews' && unreadReviewsCount > 0 && (
                 <NotificationDot className="absolute top-1 right-1" />
               )}
               {activeTab === tab && (
