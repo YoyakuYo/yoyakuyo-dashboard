@@ -12,6 +12,7 @@ import ReviewStats from '../components/ReviewStats';
 import ShopCalendar from '../components/ShopCalendar';
 import { useBookingNotifications } from '../components/BookingNotificationContext';
 import NotificationDot from '../components/NotificationDot';
+import PushNotificationButton from '../components/PushNotificationButton';
 
 
 interface Shop {
@@ -1395,8 +1396,13 @@ const MyShopPage = () => {
     <div className="max-w-5xl mx-auto px-4 py-6">
       {/* Section Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('myShop.title')}</h1>
-        <p className="text-lg text-gray-600">{shop.name}</p>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('myShop.title')}</h1>
+            <p className="text-lg text-gray-600">{shop.name}</p>
+          </div>
+          <PushNotificationButton userType="owner" />
+        </div>
       </div>
 
       {/* Tabs */}
