@@ -204,11 +204,13 @@ function LineBookingPageContent() {
 
     setSubmitting(true);
     try {
-      // Get LINE user ID from LIFF
+      // Get LINE user ID and display name from LIFF
       let lineUserId = "";
+      let lineDisplayName = "";
       if (typeof window !== "undefined" && window.liff) {
         const profile = await window.liff.getProfile();
         lineUserId = profile.userId;
+        lineDisplayName = profile.displayName || "";
       }
 
       // Find the selected timeslot
@@ -233,6 +235,7 @@ function LineBookingPageContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           line_user_id: lineUserId,
+          line_display_name: lineDisplayName, // Send display name from LIFF
           shop_id: shopId,
           service_id: serviceId, // REQUIRED - service selection enforced
           date: selectedDate,

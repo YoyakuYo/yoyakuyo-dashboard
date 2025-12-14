@@ -140,12 +140,14 @@ export default function LineShopDetailPage() {
     setBookingSuccess(false);
 
     try {
-      // Get LINE user ID from LIFF
+      // Get LINE user ID and display name from LIFF
       let lineUserId = "";
+      let lineDisplayName = "";
       if (typeof window !== "undefined" && window.liff) {
         try {
           const profile = await window.liff.getProfile();
           lineUserId = profile.userId;
+          lineDisplayName = profile.displayName || "";
         } catch (err) {
           console.warn("Could not get LINE profile:", err);
         }
@@ -172,6 +174,7 @@ export default function LineShopDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           line_user_id: lineUserId,
+          line_display_name: lineDisplayName, // Send display name from LIFF
           shop_id: shopId,
           service_id: selectedServiceId,
           date: selectedDate,
