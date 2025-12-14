@@ -112,7 +112,7 @@ export function usePushNotifications() {
 
     try {
       // Register service worker if not already registered
-      let registration = await navigator.serviceWorker.getRegistration('/');
+      let registration: ServiceWorkerRegistration | null | undefined = await navigator.serviceWorker.getRegistration('/');
       if (!registration) {
         registration = await registerServiceWorker();
         if (!registration) {
