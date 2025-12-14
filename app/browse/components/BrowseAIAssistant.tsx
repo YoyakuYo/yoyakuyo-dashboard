@@ -57,8 +57,6 @@ export function BrowseAIAssistant({
   const inputRef = useRef<HTMLInputElement>(null);
   // Track conversation history for context
   const [rememberedLocation, setRememberedLocation] = useState<string | null>(null);
-  // Track if we've sent the initial shop greeting
-  const [hasSentShopGreeting, setHasSentShopGreeting] = useState(false);
 
   // Get or create guest ID from localStorage (ensure it's consistent across renders)
   const [guestId, setGuestId] = React.useState<string | undefined>(() => {
@@ -122,25 +120,8 @@ export function BrowseAIAssistant({
   // Conversation history is loaded automatically by useAIConversation hook
   // No need for manual loading
 
-  // Auto-greet with shop name when shop context is available and chat opens
-  useEffect(() => {
-    // Get shop info from context or props
-    const shopId = shopContext?.shopId || (shops.length > 0 ? shops[0].id : null);
-    const shopName = shopContext?.shopName || (shops.length > 0 ? shops[0].name : null);
-    
-    if (isOpen && shopId && shopName && !hasSentShopGreeting) {
-      // Only show greeting if there are no messages yet
-      if (conversationMessages.length === 0) {
-        const greetingContent = `Welcome to **${shopName}**${shopContext?.prefecture ? ` in ${shopContext.prefecture}` : ''}${shopContext?.category ? ` - ${shopContext.category}` : ''}.\n\nHow can I help you with booking, services, or schedule availability today?`;
-        // Use addMessage to add greeting (will be saved to ai_conversations)
-        addMessage('assistant', greetingContent);
-        setHasSentShopGreeting(true);
-      }
-    } else if (!shopId) {
-      // Reset greeting flag when shop context is cleared
-      setHasSentShopGreeting(false);
-    }
-  }, [isOpen, shopContext?.shopId, shopContext?.shopName, shopContext?.prefecture, shopContext?.category, shops, hasSentShopGreeting, conversationMessages.length, addMessage]);
+  // Note: Auto-greeting removed - let the AI handle greetings naturally based on user input
+  // This prevents duplicate greetings and ensures consistent responses
 
   const loadConversationHistory = async () => {
     // BrowseAIAssistant uses ai_conversations with user_type='guest'
