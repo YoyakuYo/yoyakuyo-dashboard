@@ -212,11 +212,15 @@ export function useAIConversation(identity: ConversationIdentity) {
       timestamp: new Date().toISOString(),
     };
     
-    const updatedMessages = [...messages, newMessage];
-    setMessages(updatedMessages);
+    // Optimistically update UI immediately (don't wait for database save)
+    setMessages(prev => [...prev, newMessage]);
     
-    // Save to database asynchronously
-    await saveConversation(updatedMessages);
+    // Save to database asynchronously (don't await - let it happen in background)
+    // Use the updated messages array for saving
+    saveConversation([...messages, newMessage]).catch(err => {
+      console.error('Error saving conversation (non-blocking):', err);
+      // Don't revert the UI update if save fails - keep the message visible
+    });
   }, [messages, saveConversation]);
 
   // Load conversation on mount and when identity changes

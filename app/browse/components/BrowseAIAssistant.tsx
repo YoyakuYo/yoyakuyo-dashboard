@@ -174,15 +174,9 @@ export function BrowseAIAssistant({
     setLoading(true);
     setError(null);
 
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: userMessageContent,
-      timestamp: new Date(),
-    };
-
-    // Add user message to conversation (will be saved to ai_conversations)
-    await addMessage('user', userMessageContent);
+    // Add user message to conversation immediately (optimistic update)
+    // This ensures the message appears in the UI right away
+    addMessage('user', userMessageContent);
 
     try {
       // Build conversation history from previous messages (last 10 for context)
@@ -194,7 +188,7 @@ export function BrowseAIAssistant({
       // Build messages array for unified endpoint
       const messagesForAPI = [
         ...conversationHistory,
-        { role: 'user' as const, content: userMessage.content },
+        { role: 'user' as const, content: userMessageContent },
       ];
 
       const requestBody: any = {
@@ -265,8 +259,8 @@ export function BrowseAIAssistant({
         timestamp: new Date(),
       };
 
-      // Add AI message to conversation (will be saved to ai_conversations)
-      await addMessage('assistant', messageContent);
+      // Add AI message to conversation (optimistic update)
+      addMessage('assistant', messageContent);
     } catch (err: any) {
       console.error('[BrowseAIAssistant] Error sending message to AI:', err);
       console.error('[BrowseAIAssistant] Error details:', {
@@ -280,7 +274,7 @@ export function BrowseAIAssistant({
         ? 'AI service is currently unavailable. Please try again later.'
         : 'Sorry, I encountered an error. Please try again.';
       
-      await addMessage('assistant', errorMessage);
+      addMessage('assistant', errorMessage);
     } finally {
       setLoading(false);
     }
