@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/useAuth";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
+import PushNotificationButton from "@/app/components/PushNotificationButton";
 
 interface UserProfile {
   id: string;
@@ -94,7 +95,17 @@ export default function OwnerSettingsPage() {
 
         <div className="border-t pt-6">
           <h2 className="text-xl font-semibold mb-4">Notifications</h2>
-          <p className="text-gray-600">Notification settings coming soon...</p>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Push Notifications
+              </label>
+              <p className="text-sm text-gray-600 mb-3">
+                Receive push notifications for new bookings, messages, and reviews even when the app is closed.
+              </p>
+              <PushNotificationButton userType="owner" />
+            </div>
+          </div>
         </div>
       </div>
     </div>

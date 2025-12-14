@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { useTranslations } from "next-intl";
+import PushNotificationButton from "@/app/components/PushNotificationButton";
 
 export default function CustomerSettingsPage() {
   const { user } = useCustomAuth();
@@ -309,6 +310,21 @@ export default function CustomerSettingsPage() {
             {saving ? t('common.updating') : t('common.save')}
           </button>
         </form>
+
+        <div className="border-t pt-6 mt-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Notifications</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Push Notifications
+              </label>
+              <p className="text-sm text-gray-600 mb-3">
+                Receive push notifications for booking confirmations, messages, and updates even when the app is closed.
+              </p>
+              <PushNotificationButton userType="customer" />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
