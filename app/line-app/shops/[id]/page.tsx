@@ -148,9 +148,13 @@ export default function LineShopDetailPage() {
           const profile = await window.liff.getProfile();
           lineUserId = profile.userId;
           lineDisplayName = profile.displayName || "";
+          console.log("[LINE Booking] LINE User ID:", lineUserId);
+          console.log("[LINE Booking] LINE Display Name:", lineDisplayName);
         } catch (err) {
-          console.warn("Could not get LINE profile:", err);
+          console.error("[LINE Booking] ❌ Could not get LINE profile:", err);
         }
+      } else {
+        console.warn("[LINE Booking] ⚠️ LIFF not available - LINE notifications may not work");
       }
 
       // Find the selected timeslot

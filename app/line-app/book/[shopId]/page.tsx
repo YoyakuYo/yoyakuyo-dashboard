@@ -208,9 +208,17 @@ function LineBookingPageContent() {
       let lineUserId = "";
       let lineDisplayName = "";
       if (typeof window !== "undefined" && window.liff) {
-        const profile = await window.liff.getProfile();
-        lineUserId = profile.userId;
-        lineDisplayName = profile.displayName || "";
+        try {
+          const profile = await window.liff.getProfile();
+          lineUserId = profile.userId;
+          lineDisplayName = profile.displayName || "";
+          console.log("[LINE Booking] LINE User ID:", lineUserId);
+          console.log("[LINE Booking] LINE Display Name:", lineDisplayName);
+        } catch (err) {
+          console.error("[LINE Booking] ❌ Could not get LINE profile:", err);
+        }
+      } else {
+        console.warn("[LINE Booking] ⚠️ LIFF not available - LINE notifications may not work");
       }
 
       // Find the selected timeslot
