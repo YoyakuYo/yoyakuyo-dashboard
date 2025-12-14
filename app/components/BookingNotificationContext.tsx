@@ -24,12 +24,15 @@ interface BookingNotificationContextType {
 
 const BookingNotificationContext = createContext<BookingNotificationContextType | undefined>(undefined);
 
+// Separate component to initialize the hook (client-side only)
+function BookingNotificationsInitializer() {
+  useBookingNotificationsHook();
+  return null;
+}
+
 export function BookingNotificationProvider({ children }: { children: ReactNode }) {
   const [unreadBookingsCount, setUnreadBookingsCount] = useState(0);
   const [newBookingNotification, setNewBookingNotification] = useState<BookingNotification | null>(null);
-
-  // Initialize real-time subscription hook
-  useBookingNotificationsHook();
 
   return (
     <BookingNotificationContext.Provider
@@ -40,6 +43,7 @@ export function BookingNotificationProvider({ children }: { children: ReactNode 
         setNewBookingNotification,
       }}
     >
+      <BookingNotificationsInitializer />
       {children}
     </BookingNotificationContext.Provider>
   );
