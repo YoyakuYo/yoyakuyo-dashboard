@@ -43,7 +43,9 @@ export function BrowseAIAssistant({
   selectedCategoryId,
   searchQuery,
   locale = 'en',
-}: BrowseAIAssistantProps) {
+  lineUserId,
+  lineCustomerProfileId,
+}: BrowseAIAssistantProps & { lineUserId?: string; lineCustomerProfileId?: string }) {
   const t = useTranslations();
   const browseContext = useBrowseAIContext();
   const shopContext = browseContext?.shopContext;
@@ -202,7 +204,9 @@ export function BrowseAIAssistant({
         prefecture: selectedPrefecture || null,
         category: selectedCategoryId || null,
         searchQuery: searchQuery || null,
-        customerId: conversationIdentity.guestId || undefined, // Send guest ID for persistent storage
+        // For LINE users, use customer profile ID; otherwise use guest ID
+        userId: lineCustomerProfileId || undefined,
+        customerId: lineCustomerProfileId || conversationIdentity.guestId || undefined,
         shops: shops.map(s => ({
           id: s.id,
           name: s.name,
@@ -264,10 +268,19 @@ export function BrowseAIAssistant({
       // Add AI message to conversation (will be saved to ai_conversations)
       await addMessage('assistant', messageContent);
     } catch (err: any) {
-      console.error('Error sending message to AI:', err);
+      console.error('[BrowseAIAssistant] Error sending message to AI:', err);
+      console.error('[BrowseAIAssistant] Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      });
       setError(err.message || 'Failed to send message. Please try again.');
       
-      await addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+      const errorMessage = err.message?.includes('OpenAI API key') 
+        ? 'AI service is currently unavailable. Please try again later.'
+        : 'Sorry, I encountered an error. Please try again.';
+      
+      await addMessage('assistant', errorMessage);
     } finally {
       setLoading(false);
     }

@@ -71,16 +71,27 @@ export default function LineChatPage() {
       }
 
       // Build conversation history from previous messages (last 10 for context)
-      const conversationHistory = messages.slice(-10).map(msg => ({
-        role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
-        content: msg.content,
-      }));
+      // Exclude welcome message from history
+      const conversationHistory = messages
+        .filter(msg => msg.id !== "welcome")
+        .slice(-10)
+        .map(msg => ({
+          role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+          content: msg.content,
+        }));
 
       // Build messages array for unified endpoint
       const messagesForAPI = [
         ...conversationHistory,
         { role: 'user' as const, content: userMessage.content },
       ];
+
+      console.log("[LINE Chat] Sending to AI:", {
+        role: "customer",
+        messageCount: messagesForAPI.length,
+        userId: customerProfileId || lineUserId,
+        locale: "ja"
+      });
 
       // Call AI endpoint with correct format
       const res = await fetch(`${apiUrl}/ai/chat`, {

@@ -27,6 +27,8 @@ function LineAppPageContent() {
   const router = useRouter();
   const [liffInitialized, setLiffInitialized] = useState(false);
   const [lineUser, setLineUser] = useState<any>(null);
+  const [lineUserId, setLineUserId] = useState<string>("");
+  const [lineCustomerProfileId, setLineCustomerProfileId] = useState<string>("");
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
@@ -138,9 +140,13 @@ function LineAppPageContent() {
         }
 
         setLineUser(profile);
+        setLineUserId(profile.userId);
         
-        // Sync with backend - upsert LINE user
-        await syncLineUser(profile.userId, profile.displayName, profile.pictureUrl);
+        // Sync with backend - upsert LINE user and get customer profile ID
+        const syncResult = await syncLineUser(profile.userId, profile.displayName, profile.pictureUrl);
+        if (syncResult?.customerProfileId) {
+          setLineCustomerProfileId(syncResult.customerProfileId);
+        }
         setLoading(false);
       } catch (error: any) {
         console.error("LIFF initialization error:", error);
@@ -168,11 +174,16 @@ function LineAppPageContent() {
         }),
       });
       
-      if (!response.ok) {
+      if (response.ok) {
+        const userData = await response.json();
+        return { customerProfileId: userData.id };
+      } else {
         console.error("Failed to sync LINE user");
+        return null;
       }
     } catch (error) {
       console.error("Error syncing LINE user:", error);
+      return null;
     }
   };
 
@@ -387,7 +398,7 @@ function LineAppPageContent() {
           </div>
         )}
 
-        {/* AI Assistant - Always visible as floating bubble (outside tab content, above footer) */}
+        {/* AI Assistant - Only show floating bubble, remove duplicate chat tab */}
         <BrowseAIAssistant
           shops={shops}
           selectedPrefecture={selectedPrefecture !== "all" ? selectedPrefecture : undefined}
@@ -395,18 +406,21 @@ function LineAppPageContent() {
           selectedCategoryId={selectedCategory !== "all" ? selectedCategory : undefined}
           searchQuery={searchQuery || undefined}
           locale="ja"
+          lineUserId={lineUserId}
+          lineCustomerProfileId={lineCustomerProfileId}
         />
 
         {activeTab === "chat" && (
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">チャット</h2>
-              <p className="text-gray-600 mb-4">LINEチャットでAIアシスタントと会話できます</p>
+              <p className="text-gray-600 mb-4">右下のチャットバブルをクリックしてAIアシスタントと会話できます</p>
+              <p className="text-sm text-gray-500 mb-4">または、専用のチャットページに移動:</p>
               <button
                 onClick={() => router.push("/line-app/chat")}
                 className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
               >
-                Open Chat
+                チャットページを開く
               </button>
             </div>
           </div>
