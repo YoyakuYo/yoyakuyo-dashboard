@@ -106,35 +106,45 @@ export function usePushNotifications() {
   // Subscribe to push notifications
   const subscribe = useCallback(async (userType: 'owner' | 'customer') => {
     if (!isSupported || !vapidPublicKey || !user?.id) {
-      console.warn('[Push] Cannot subscribe: missing requirements');
+      console.warn('[Push] Cannot subscribe: missing requirements', { isSupported, hasKey: !!vapidPublicKey, hasUser: !!user?.id });
       return false;
     }
 
     try {
       // Register service worker if not already registered
-      const registration = await registerServiceWorker();
+      let registration = await navigator.serviceWorker.getRegistration('/');
       if (!registration) {
-        throw new Error('Service Worker registration failed');
+        registration = await registerServiceWorker();
+        if (!registration) {
+          throw new Error('Service Worker registration failed');
+        }
       }
 
-      // Convert VAPID key to Uint8Array
+      // Wait for service worker to be ready
+      const readyRegistration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise<ServiceWorkerRegistration>((_, reject) => 
+          setTimeout(() => reject(new Error('Service worker ready timeout')), 10000)
+        )
+      ]);
+
+      // Convert VAPID key to BufferSource
       const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
 
       // Subscribe to push
-      const newSubscription = await registration.pushManager.subscribe({
+      const newSubscription = await readyRegistration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey,
       });
 
-      setSubscription(newSubscription);
-      setIsSubscribed(true);
-
       // Send subscription to backend
       const subscriptionData = {
-        endpoint: newSubscription.endpoint,
-        keys: {
-          p256dh: arrayBufferToBase64(newSubscription.getKey('p256dh')!),
-          auth: arrayBufferToBase64(newSubscription.getKey('auth')!),
+        subscription: {
+          endpoint: newSubscription.endpoint,
+          keys: {
+            p256dh: arrayBufferToBase64(newSubscription.getKey('p256dh')!),
+            auth: arrayBufferToBase64(newSubscription.getKey('auth')!),
+          },
         },
         userAgent: navigator.userAgent,
       };
@@ -153,17 +163,26 @@ export function usePushNotifications() {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to save subscription');
+        const errorText = await res.text();
+        console.error('[Push] Subscription API error:', res.status, errorText);
+        throw new Error(`Failed to save subscription: ${res.status}`);
       }
 
+      // Only update state after successful backend save
+      setSubscription(newSubscription);
+      setIsSubscribed(true);
       console.log('[Push] Successfully subscribed to push notifications');
       return true;
     } catch (error: any) {
       console.error('[Push] Subscription error:', error);
       
       // Handle permission denied
-      if (error.name === 'NotAllowedError') {
+      if (error.name === 'NotAllowedError' || error.message?.includes('permission')) {
         alert('Please allow notifications in your browser settings to receive push notifications.');
+      } else if (error.message?.includes('timeout')) {
+        alert('Service worker took too long to initialize. Please refresh the page and try again.');
+      } else {
+        alert(`Failed to enable push notifications: ${error.message || 'Unknown error'}`);
       }
       
       return false;
@@ -173,14 +192,12 @@ export function usePushNotifications() {
   // Unsubscribe from push notifications
   const unsubscribe = useCallback(async (userType: 'owner' | 'customer') => {
     if (!subscription || !user?.id) {
+      console.warn('[Push] Cannot unsubscribe: missing subscription or user');
       return false;
     }
 
     try {
-      // Unsubscribe from push manager
-      await subscription.unsubscribe();
-
-      // Remove from backend
+      // Remove from backend first
       const endpoint = userType === 'owner'
         ? '/api/push/unsubscribe/owner'
         : '/api/push/unsubscribe/customer';
@@ -197,15 +214,21 @@ export function usePushNotifications() {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to remove subscription');
+        const errorText = await res.text();
+        console.error('[Push] Unsubscribe API error:', res.status, errorText);
+        throw new Error(`Failed to remove subscription: ${res.status}`);
       }
+
+      // Unsubscribe from push manager
+      await subscription.unsubscribe();
 
       setSubscription(null);
       setIsSubscribed(false);
       console.log('[Push] Successfully unsubscribed from push notifications');
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Push] Unsubscription error:', error);
+      alert(`Failed to disable push notifications: ${error.message || 'Unknown error'}`);
       return false;
     }
   }, [subscription, user?.id]);
