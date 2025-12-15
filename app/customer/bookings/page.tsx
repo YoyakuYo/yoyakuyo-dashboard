@@ -32,35 +32,26 @@ function CustomerBookingsPageContent() {
 
     const supabase = getSupabaseClient();
     
-    // Get customer_profile_id for subscription
-    supabase
-      .from("customer_profiles")
-      .select("id")
-      .eq("customer_auth_id", user.id)
-      .maybeSingle()
-      .then(({ data: profile }) => {
-        if (!profile?.id) return;
+    // Subscribe to bookings by canonical user_id
+    const channel = supabase
+      .channel("customer-bookings-subscription")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "bookings",
+          filter: `user_id.eq.${user.id}`,
+        },
+        () => {
+          loadBookings();
+        }
+      )
+      .subscribe();
 
-        const channel = supabase
-          .channel("customer-bookings-subscription")
-          .on(
-            "postgres_changes",
-            {
-              event: "*",
-              schema: "public",
-              table: "bookings",
-              filter: `or(customer_profile_id.eq.${profile.id},customer_id.eq.${profile.id})`,
-            },
-            () => {
-              loadBookings();
-            }
-          )
-          .subscribe();
-
-        return () => {
-          supabase.removeChannel(channel);
-        };
-      });
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const loadBookings = async () => {
@@ -71,81 +62,9 @@ function CustomerBookingsPageContent() {
 
     const supabase = getSupabaseClient();
     
-    // First, try to find existing profile by customer_auth_id
-    let { data: profile } = await supabase
-      .from("customer_profiles")
-      .select("id, email")
-      .eq("customer_auth_id", user.id)
-      .maybeSingle();
-
-    // If no profile exists, try to create one using the database function
-    if (!profile) {
-      console.log("Customer profile not found, attempting to create one...");
-      // Use the database function to create profile (bypasses RLS)
-      const { data: profileId, error: createError } = await supabase
-        .rpc('create_customer_profile', {
-          p_customer_auth_id: user.id,
-          p_email: user.email || "",
-          p_name: user.name || user.email?.split('@')[0] || "Customer",
-          p_phone: null
-        });
-
-      if (createError) {
-        console.error("Error creating customer profile:", createError);
-        // If creation fails, try to find by email as fallback
-        const { data: profileByEmail } = await supabase
-          .from("customer_profiles")
-          .select("id, email")
-          .eq("email", user.email || "")
-          .maybeSingle();
-        
-        profile = profileByEmail;
-      } else if (profileId) {
-        // Fetch the newly created profile
-        const { data: newProfile } = await supabase
-          .from("customer_profiles")
-          .select("id, email")
-          .eq("id", profileId)
-          .single();
-        
-        profile = newProfile || null;
-        console.log("✅ Created customer profile:", profile?.id);
-      }
-    }
-
-    if (!profile?.id) {
-      console.warn("Customer profile not found for user:", user.id, "Attempting to load bookings without profile ID.");
-      setBookings([]);
-      setLoading(false);
-      return;
-    }
-
-    const customerProfileId = profile.id;
-
-    // CRITICAL: Query by canonical user_id - this is the ONLY way to get all bookings
-    // Get canonical user_id from user_identities if LINE user, otherwise use profile.id
-    let canonicalUserId: string | null = null;
-    
-    // Check if this is a LINE user
-    if (profile?.line_user_id) {
-      const { data: identity } = await supabase
-        .from("user_identities")
-        .select("user_id")
-        .eq("provider", "line")
-        .eq("provider_user_id", profile.line_user_id)
-        .maybeSingle();
-      
-      if (identity) {
-        canonicalUserId = identity.user_id;
-      }
-    }
-    
-    // If not LINE user or identity not found, use profile.id as canonical user_id
-    if (!canonicalUserId) {
-      canonicalUserId = customerProfileId;
-    }
-    
-    // Query bookings by canonical user_id (CRITICAL - this is the only reliable way)
+    // CRITICAL: user.id from useCustomAuth() IS the canonical users.id
+    // Query bookings directly by canonical user_id - this is the ONLY way to get all bookings
+    const canonicalUserId = user.id;
     const { data: bookings, error: bookingsError } = await supabase
       .from("bookings")
       .select(`
