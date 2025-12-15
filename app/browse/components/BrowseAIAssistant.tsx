@@ -180,9 +180,12 @@ export function BrowseAIAssistant({
     setLoading(true);
     setError(null);
 
-    // Add user message to conversation immediately (optimistic update)
-    // This ensures the message appears in the UI right away
-    addMessage('user', userMessageContent);
+    // CRITICAL: Save user message IMMEDIATELY before calling API
+    // This ensures user messages are persisted even if API call fails
+    await addMessage('user', userMessageContent);
+    
+    // Small delay to ensure save completes (non-blocking but helps with race conditions)
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
       // Build conversation history from previous messages (last 10 for context)
@@ -207,6 +210,8 @@ export function BrowseAIAssistant({
         // For LINE users, use customer profile ID; otherwise use guest ID
         userId: lineCustomerProfileId || undefined,
         customerId: lineCustomerProfileId || conversationIdentity.guestId || undefined,
+        // CRITICAL: Send guestId explicitly for guest conversations
+        guestId: conversationIdentity.userType === 'guest' ? conversationIdentity.guestId : undefined,
         shops: shops.map(s => ({
           id: s.id,
           name: s.name,

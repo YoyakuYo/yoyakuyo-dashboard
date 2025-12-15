@@ -117,7 +117,18 @@ export function useAIConversation(identity: ConversationIdentity) {
               timestamp: msg.timestamp || msg.created_at || new Date().toISOString(),
             }))
           : [];
-        setMessages(parsedMessages);
+        
+        // DEBUG ASSERTION: Check for orphaned assistant messages
+        const userMessageCount = parsedMessages.filter((m: any) => m.role === 'user').length;
+        const assistantMessageCount = parsedMessages.filter((m: any) => m.role === 'assistant').length;
+        if (assistantMessageCount > userMessageCount && parsedMessages.length > 0) {
+          console.error(`[AI CHAT BUG DETECTED] Orphaned assistant message on load! User messages: ${userMessageCount}, Assistant messages: ${assistantMessageCount}`);
+          console.error(`[AI CHAT BUG] Conversation ID: ${data.id}, Guest ID: ${identity.guestId || 'none'}, User ID: ${identity.userId || 'none'}`);
+        }
+        
+        // CRITICAL: Filter out system messages from display (they're for AI context only)
+        const displayMessages = parsedMessages.filter((msg: any) => msg.role !== 'system');
+        setMessages(displayMessages);
       } else {
         // No conversation found, start fresh
         setConversationId(null);
@@ -203,6 +214,30 @@ export function useAIConversation(identity: ConversationIdentity) {
       }
       
       if (conversationId) {
+        // CRITICAL: When updating, we need to merge with existing messages to avoid overwriting
+        // Get current messages first
+        const { data: currentConv } = await supabase
+          .from('ai_conversations')
+          .select('messages')
+          .eq('id', conversationId)
+          .single();
+        
+        if (currentConv && Array.isArray(currentConv.messages)) {
+          // Merge: keep existing messages, add new ones that don't exist
+          const existingTimestamps = new Set(
+            currentConv.messages.map((m: any) => `${m.role}:${m.content}:${m.timestamp}`)
+          );
+          
+          // Add new messages that don't already exist
+          const newMessagesToAdd = messagesToSave.filter((msg: any) => {
+            const key = `${msg.role}:${msg.content}:${msg.timestamp}`;
+            return !existingTimestamps.has(key);
+          });
+          
+          // Combine: existing + new
+          conversationData.messages = [...currentConv.messages, ...newMessagesToAdd];
+        }
+        
         // Update existing conversation
         const { error } = await supabase
           .from('ai_conversations')
@@ -247,16 +282,30 @@ export function useAIConversation(identity: ConversationIdentity) {
       timestamp: new Date().toISOString(),
     };
     
-    // Optimistically update UI immediately (don't wait for database save)
-    setMessages(prev => [...prev, newMessage]);
-    
-    // Save to database asynchronously (don't await - let it happen in background)
-    // Use the updated messages array for saving
-    saveConversation([...messages, newMessage]).catch(err => {
-      console.error('Error saving conversation (non-blocking):', err);
-      // Don't revert the UI update if save fails - keep the message visible
-    });
-  }, [messages, saveConversation]);
+    // CRITICAL: For user messages, save IMMEDIATELY before continuing
+    // This ensures user messages are persisted before API calls
+    if (role === 'user') {
+      // Update UI optimistically
+      setMessages(prev => {
+        const updated = [...prev, newMessage];
+        // Save immediately using the updated array
+        saveConversation(updated).catch(err => {
+          console.error('Error saving user message (non-blocking):', err);
+        });
+        return updated;
+      });
+    } else {
+      // For assistant messages, update UI and save asynchronously
+      setMessages(prev => {
+        const updated = [...prev, newMessage];
+        // Save using the updated array
+        saveConversation(updated).catch(err => {
+          console.error('Error saving assistant message (non-blocking):', err);
+        });
+        return updated;
+      });
+    }
+  }, [saveConversation]);
 
   // Load conversation on mount and when identity changes
   // Use a ref to track if we've already loaded to prevent unnecessary reloads
