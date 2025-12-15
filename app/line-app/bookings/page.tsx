@@ -54,8 +54,16 @@ function LineBookingsPageContent() {
             // Handle both response formats: { bookings: [...] } or direct array
             bookingsData = Array.isArray(data) ? data : (data.bookings || []);
             console.log(`[LINE Bookings] ✅ API returned ${bookingsData.length} bookings for LINE user ${profile.userId}`);
+            console.log(`[LINE Bookings] API URL used: ${apiUrl}`);
             console.log(`[LINE Bookings] Response data:`, data);
             console.log(`[LINE Bookings] First booking (if any):`, bookingsData[0]);
+            
+            if (bookingsData.length === 0) {
+              console.warn(`[LINE Bookings] ⚠️ API returned 0 bookings. This might mean:`);
+              console.warn(`[LINE Bookings] 1. The booking was just created and hasn't been committed yet`);
+              console.warn(`[LINE Bookings] 2. The API is pointing to production (Render) which hasn't deployed the fix yet`);
+              console.warn(`[LINE Bookings] 3. Check if NEXT_PUBLIC_API_URL is set correctly`);
+            }
             
             // DEBUG: Verify bookings have required fields
             if (bookingsData.length > 0) {
@@ -71,10 +79,20 @@ function LineBookingsPageContent() {
             }
           } else {
             const errorText = await bookingsRes.text();
-            console.error("Failed to fetch LINE bookings:", bookingsRes.status, errorText);
+            console.error(`[LINE Bookings] ❌ Failed to fetch LINE bookings:`, bookingsRes.status, errorText);
+            console.error(`[LINE Bookings] API URL: ${apiUrl}`);
+            console.error(`[LINE Bookings] Endpoint: ${apiUrl}/api/line/bookings?line_user_id=${profile.userId}`);
+            
+            // Check if error is the duration column issue
+            if (errorText.includes('duration') || errorText.includes('column services')) {
+              console.error(`[LINE Bookings] ⚠️ CRITICAL: API is still using old code with 'duration' column bug.`);
+              console.error(`[LINE Bookings] ⚠️ The production API (Render) needs to be deployed with the fix.`);
+              console.error(`[LINE Bookings] ⚠️ Fix: Changed services.duration to services.duration_minutes`);
+            }
             
             // Fallback: try customer bookings history endpoint
             if (userData.id) {
+              console.log(`[LINE Bookings] Trying fallback endpoint with user_id: ${userData.id}`);
               const fallbackRes = await fetch(
                 `${apiUrl}/api/customer/bookings/history`,
                 {
@@ -87,7 +105,10 @@ function LineBookingsPageContent() {
               if (fallbackRes.ok) {
                 const fallbackData = await fallbackRes.json();
                 bookingsData = fallbackData.bookings || fallbackData || [];
-                console.log(`[LINE Bookings] Fallback loaded ${bookingsData.length} bookings`);
+                console.log(`[LINE Bookings] ✅ Fallback loaded ${bookingsData.length} bookings`);
+              } else {
+                const fallbackError = await fallbackRes.text();
+                console.error(`[LINE Bookings] ❌ Fallback also failed:`, fallbackError);
               }
             }
           }
@@ -112,10 +133,12 @@ function LineBookingsPageContent() {
   useEffect(() => {
     const success = searchParams.get("success");
     if (success === "true") {
-      // Reload bookings after a short delay to ensure backend has processed the booking
+      // Reload bookings after a delay to ensure backend has processed the booking
+      // Increased delay to 2 seconds to allow database transaction to commit
       setTimeout(() => {
+        console.log("[LINE Bookings] Reloading bookings after successful booking creation...");
         loadBookings();
-      }, 1000);
+      }, 2000);
     }
   }, [searchParams]);
 
