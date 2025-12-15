@@ -7,11 +7,16 @@ import { apiUrl } from "@/lib/apiClient";
 
 interface Booking {
   id: string;
+  customer_id?: string;
+  source?: string;
+  booking_type?: string; // Legacy field for backward compatibility
+  line_user_id?: string; // Legacy field
   start_time: string;
   end_time: string;
+  booked_for?: string; // New canonical field
   status: string;
-  shops: { name: string; address?: string };
-  services: { name: string };
+  shops: { name: string; address?: string } | Array<{ name: string; address?: string }>;
+  services: { name: string; price?: number; duration_minutes?: number } | Array<{ name: string; price?: number; duration_minutes?: number }>;
 }
 
 function LineBookingsPageContent() {
@@ -86,8 +91,10 @@ function LineBookingsPageContent() {
               bookingsData.forEach((booking: any, index: number) => {
                 console.log(`[LINE Bookings] Booking ${index}:`, {
                   id: booking.id,
-                  booking_type: booking.booking_type,
-                  line_user_id: booking.line_user_id,
+                  customer_id: booking.customer_id,
+                  source: booking.source,
+                  booking_type: booking.booking_type, // Legacy
+                  line_user_id: booking.line_user_id, // Legacy
                   shop: booking.shops?.name || (Array.isArray(booking.shops) ? booking.shops[0]?.name : 'N/A'),
                   service: booking.services?.name || (Array.isArray(booking.services) ? booking.services[0]?.name : 'N/A'),
                 });
@@ -138,6 +145,19 @@ function LineBookingsPageContent() {
                   const { getSupabaseClient } = await import('@/lib/supabaseClient');
                   const supabase = getSupabaseClient();
                   
+                  // Get customer_id from line_accounts first
+                  const { data: lineAccount } = await supabase
+                    .from('line_accounts')
+                    .select('customer_id')
+                    .eq('line_user_id', profile.userId)
+                    .single();
+                  
+                  if (!lineAccount?.customer_id) {
+                    console.error(`[LINE Bookings] ❌ No line_account found for line_user_id: ${profile.userId}`);
+                    setError(`No account found for LINE user. Please try again.`);
+                    return;
+                  }
+                  
                   const { data: directBookings, error: directError } = await supabase
                     .from('bookings')
                     .select(`
@@ -145,8 +165,8 @@ function LineBookingsPageContent() {
                       shops:shop_id (id, name, address, phone),
                       services:service_id (id, name, price, duration_minutes)
                     `)
-                    .eq('booking_type', 'line')
-                    .eq('line_user_id', profile.userId)
+                    .eq('customer_id', lineAccount.customer_id)
+                    .eq('source', 'line')
                     .order('created_at', { ascending: false });
                   
                   if (!directError && directBookings) {
