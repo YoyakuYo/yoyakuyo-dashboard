@@ -47,6 +47,7 @@ export function useBookingNotificationsHook() {
         console.error('Error loading notification count:', notificationsError);
         setUnreadBookingsCount(0);
       } else {
+        console.log(`[Notification Count] Found ${count || 0} unread notifications for shops:`, shopIds);
         setUnreadBookingsCount(count || 0);
       }
     } catch (error: any) {
@@ -76,13 +77,25 @@ export function useBookingNotificationsHook() {
         async (payload: any) => {
           const newNotification = payload.new;
           
+          console.log('[Notification Realtime] INSERT event received:', {
+            notification_id: newNotification?.id,
+            shop_id: newNotification?.shop_id,
+            type: newNotification?.type,
+            is_read: newNotification?.is_read,
+            owner_shops: shopIdsRef.current
+          });
+          
           // Check if notification belongs to owner's shop
           if (newNotification && shopIdsRef.current.includes(newNotification.shop_id)) {
+            console.log('[Notification Realtime] ✅ Notification belongs to owner - reloading count');
             // Reload count immediately
             await reloadPendingCount();
           } else if (shopIdsRef.current.length === 0) {
             // If shop IDs not loaded yet, reload to get them and check
+            console.log('[Notification Realtime] Shop IDs not loaded - reloading to get shops');
             await reloadPendingCount();
+          } else {
+            console.log('[Notification Realtime] ⚠️ Notification does not belong to owner shops');
           }
         }
       )

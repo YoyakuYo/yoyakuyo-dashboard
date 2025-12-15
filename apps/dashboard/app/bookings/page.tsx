@@ -87,7 +87,8 @@ const BookingsPage = () => {
     } | null>(null);
     const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-    // Mark all notifications as read when page loads
+    // CRITICAL: Mark notifications as read ONLY when owner explicitly views bookings page
+    // This ensures badge appears on dashboard and only clears when bookings are viewed
     useEffect(() => {
         const markNotificationsAsRead = async () => {
             if (!user?.id) return;
@@ -102,13 +103,13 @@ const BookingsPage = () => {
                     .eq('owner_user_id', user.id);
                 
                 if (shopsError || !shops || shops.length === 0) {
-                    setUnreadBookingsCount(0);
                     return;
                 }
                 
                 const shopIds = shops.map(s => s.id);
                 
                 // Mark all unread notifications as read for owner's shops
+                // This happens when owner explicitly opens the bookings page
                 const { error: updateError } = await supabase
                     .from('shop_notifications')
                     .update({ is_read: true })
@@ -118,16 +119,20 @@ const BookingsPage = () => {
                 if (updateError) {
                     console.error('Error marking notifications as read:', updateError);
                 } else {
-                    // Reset count after marking as read
+                    // Reset count after marking as read (owner has viewed bookings)
                     setUnreadBookingsCount(0);
+                    console.log('[Bookings Page] Marked notifications as read for shops:', shopIds);
                 }
             } catch (error) {
                 console.error('Error marking notifications as read:', error);
             }
         };
         
-        markNotificationsAsRead();
-    }, [user?.id, setUnreadBookingsCount]);
+        // Only mark as read when bookings are actually loaded (owner is viewing the page)
+        if (bookings.length > 0 || !loading) {
+            markNotificationsAsRead();
+        }
+    }, [user?.id, bookings.length, loading, setUnreadBookingsCount]);
 
     // Subscribe to ALL new bookings (not just AI-created)
     useEffect(() => {
