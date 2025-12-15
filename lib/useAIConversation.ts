@@ -144,11 +144,57 @@ export function useAIConversation(identity: ConversationIdentity) {
         if (assistantMessageCount > userMessageCount && deduplicatedMessages.length > 0) {
           console.error(`[AI CHAT BUG DETECTED] Orphaned assistant message on load! User messages: ${userMessageCount}, Assistant messages: ${assistantMessageCount}`);
           console.error(`[AI CHAT BUG] Conversation ID: ${data.id}, Guest ID: ${identity.guestId || 'none'}, User ID: ${identity.userId || 'none'}`);
+          
+          // CLEANUP: Remove orphaned assistant messages (assistant messages without preceding user message)
+          // This fixes existing corrupted conversations
+          const cleanedMessages: any[] = [];
+          for (let i = 0; i < deduplicatedMessages.length; i++) {
+            const msg = deduplicatedMessages[i];
+            const prevMsg = i > 0 ? deduplicatedMessages[i - 1] : null;
+            
+            // Keep system messages
+            if (msg.role === 'system') {
+              cleanedMessages.push(msg);
+            }
+            // Keep user messages
+            else if (msg.role === 'user') {
+              cleanedMessages.push(msg);
+            }
+            // Only keep assistant messages if the previous message is a user message
+            else if (msg.role === 'assistant') {
+              if (prevMsg && prevMsg.role === 'user') {
+                cleanedMessages.push(msg);
+              } else {
+                console.warn(`[AI Chat Cleanup] Removing orphaned assistant message: ${msg.content.substring(0, 50)}...`);
+              }
+            }
+          }
+          
+          // Update the conversation in database if we removed messages
+          if (cleanedMessages.length < deduplicatedMessages.length) {
+            console.log(`[AI Chat Cleanup] Removed ${deduplicatedMessages.length - cleanedMessages.length} orphaned messages`);
+            // Save cleaned messages back to database (async, non-blocking)
+            supabase
+              .from('ai_conversations')
+              .update({ messages: cleanedMessages })
+              .eq('id', data.id)
+              .then(({ error }) => {
+                if (error) {
+                  console.error('[AI Chat Cleanup] Error saving cleaned messages:', error);
+                } else {
+                  console.log('[AI Chat Cleanup] ✅ Successfully cleaned conversation');
+                }
+              });
+          }
+          
+          // Use cleaned messages for display
+          const displayMessages = cleanedMessages.filter((msg: any) => msg.role !== 'system');
+          setMessages(displayMessages);
+        } else {
+          // CRITICAL: Filter out system messages from display (they're for AI context only)
+          const displayMessages = deduplicatedMessages.filter((msg: any) => msg.role !== 'system');
+          setMessages(displayMessages);
         }
-        
-        // CRITICAL: Filter out system messages from display (they're for AI context only)
-        const displayMessages = deduplicatedMessages.filter((msg: any) => msg.role !== 'system');
-        setMessages(displayMessages);
       } else {
         // No conversation found, start fresh
         setConversationId(null);
