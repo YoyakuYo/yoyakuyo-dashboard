@@ -53,8 +53,22 @@ function LineBookingsPageContent() {
             const data = await bookingsRes.json();
             // Handle both response formats: { bookings: [...] } or direct array
             bookingsData = Array.isArray(data) ? data : (data.bookings || []);
-            console.log(`[LINE Bookings] Loaded ${bookingsData.length} bookings for LINE user ${profile.userId}`);
+            console.log(`[LINE Bookings] ✅ API returned ${bookingsData.length} bookings for LINE user ${profile.userId}`);
             console.log(`[LINE Bookings] Response data:`, data);
+            console.log(`[LINE Bookings] First booking (if any):`, bookingsData[0]);
+            
+            // DEBUG: Verify bookings have required fields
+            if (bookingsData.length > 0) {
+              bookingsData.forEach((booking: any, index: number) => {
+                console.log(`[LINE Bookings] Booking ${index}:`, {
+                  id: booking.id,
+                  booking_type: booking.booking_type,
+                  line_user_id: booking.line_user_id,
+                  shop: booking.shops?.name || (Array.isArray(booking.shops) ? booking.shops[0]?.name : 'N/A'),
+                  service: booking.services?.name || (Array.isArray(booking.services) ? booking.services[0]?.name : 'N/A'),
+                });
+              });
+            }
           } else {
             const errorText = await bookingsRes.text();
             console.error("Failed to fetch LINE bookings:", bookingsRes.status, errorText);
