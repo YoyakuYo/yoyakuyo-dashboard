@@ -269,10 +269,10 @@ function LineBookingsPageContent() {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">
-                      {booking.shops?.name || "Shop"}
+                      {Array.isArray(booking.shops) ? booking.shops[0]?.name : booking.shops?.name || "Shop"}
                     </h3>
                     <p className="text-sm text-gray-600">
-                      {booking.shops?.address || ""}
+                      {Array.isArray(booking.shops) ? booking.shops[0]?.address : booking.shops?.address || ""}
                     </p>
                   </div>
                   <span
@@ -290,7 +290,7 @@ function LineBookingsPageContent() {
 
                 <div className="space-y-2 mb-4">
                   <p className="text-sm text-gray-600">
-                    <span className="font-medium">Service:</span> {booking.services?.name || "N/A"}
+                    <span className="font-medium">Service:</span> {Array.isArray(booking.services) ? booking.services[0]?.name : booking.services?.name || "N/A"}
                   </p>
                   <p className="text-sm text-gray-600">
                     <span className="font-medium">Date:</span>{" "}
