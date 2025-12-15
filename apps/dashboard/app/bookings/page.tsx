@@ -699,6 +699,7 @@ const BookingsPage = () => {
                                     const canReschedule = booking.status !== 'cancelled' && booking.status !== 'completed';
                                     const canCancel = booking.status !== 'cancelled' && booking.status !== 'completed';
                                     const canConfirm = booking.status === 'pending';
+                                    const canReject = booking.status === 'pending';
 
                                     const getStatusBadge = (status: string) => {
                                         const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full inline-flex items-center gap-1";
