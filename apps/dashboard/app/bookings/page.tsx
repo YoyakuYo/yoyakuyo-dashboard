@@ -129,10 +129,10 @@ const BookingsPage = () => {
         };
         
         // Only mark as read when bookings are actually loaded (owner is viewing the page)
-        if (bookings.length > 0 || !loading) {
+        if (bookings.length > 0) {
             markNotificationsAsRead();
         }
-    }, [user?.id, bookings.length, loading, setUnreadBookingsCount]);
+    }, [user?.id, bookings.length, setUnreadBookingsCount]);
 
     // Subscribe to ALL new bookings (not just AI-created)
     useEffect(() => {
@@ -376,7 +376,7 @@ const BookingsPage = () => {
         if (!user?.id) return;
         setUpdatingStatus(bookingId);
         try {
-            const res = await fetch(`${apiUrl}/bookings/${bookingId}`, {
+            const res = await fetch(`${apiUrl}/bookings/${bookingId}/status`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -401,6 +401,37 @@ const BookingsPage = () => {
             setUpdatingStatus(null);
         }
     };
+    
+    const rejectBooking = async (bookingId: string) => {
+        if (!user?.id) return;
+        if (!confirm('Are you sure you want to reject this booking?')) return;
+        setUpdatingStatus(bookingId);
+        try {
+            const res = await fetch(`${apiUrl}/bookings/${bookingId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': user.id,
+                },
+                body: JSON.stringify({ status: 'rejected' }),
+            });
+
+            if (res.ok) {
+                await refreshBookings();
+            } else {
+                const errorData = await res.json().catch(() => ({}));
+                alert(errorData.error || 'Failed to reject booking');
+            }
+        } catch (error: any) {
+            // Silently handle connection errors (API server not running)
+            if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
+                console.error('Error rejecting booking:', error);
+                alert('Failed to reject booking');
+            }
+        } finally {
+            setUpdatingStatus(null);
+        }
+    };
 
     const cancelBooking = async (bookingId: string) => {
         if (!user?.id) return;
@@ -408,9 +439,11 @@ const BookingsPage = () => {
         
         setUpdatingStatus(bookingId);
         try {
-            const res = await fetch(`${apiUrl}/bookings/${bookingId}`, {
-                method: 'DELETE',
+            // Use POST /bookings/:id/cancel endpoint
+            const res = await fetch(`${apiUrl}/bookings/${bookingId}/cancel`, {
+                method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     'x-user-id': user.id,
                 },
             });
@@ -452,8 +485,9 @@ const BookingsPage = () => {
 
         setUpdatingStatus(editingBooking.id);
         try {
-            const res = await fetch(`${apiUrl}/bookings/${editingBooking.id}`, {
-                method: 'PATCH',
+            // Use the reschedule endpoint
+            const res = await fetch(`${apiUrl}/bookings/${editingBooking.id}/reschedule`, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-user-id': user.id,
@@ -790,6 +824,21 @@ const BookingsPage = () => {
                                                             Confirm
                                                         </button>
                                                     )}
+                                                    {canReject && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setOpenDropdown(null);
+                                                                rejectBooking(booking.id);
+                                                            }}
+                                                            disabled={isUpdating}
+                                                            className="flex-1 px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                            Reject
+                                                        </button>
+                                                    )}
                                                     {canCancel && (
                                                         <button
                                                             onClick={() => {
@@ -802,7 +851,7 @@ const BookingsPage = () => {
                                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                                             </svg>
-                                                            Cancel
+                                                            Cancel Booking
                                                         </button>
                                                     )}
                                                 </div>
