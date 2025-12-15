@@ -118,16 +118,36 @@ export function useAIConversation(identity: ConversationIdentity) {
             }))
           : [];
         
+        // CRITICAL: Deduplicate messages by role + content (ignore timestamp differences)
+        // This prevents duplicate assistant messages from appearing
+        const seenMessages = new Map<string, number>();
+        const deduplicatedMessages: any[] = [];
+        
+        for (const msg of parsedMessages) {
+          // Create a key based on role and content (not timestamp)
+          const messageKey = `${msg.role}:${msg.content}`;
+          const lastSeenIndex = seenMessages.get(messageKey);
+          
+          // Only add if we haven't seen this exact message before, or if it's a different position
+          // (allows same message in different contexts, but prevents immediate duplicates)
+          if (lastSeenIndex === undefined || lastSeenIndex < deduplicatedMessages.length - 1) {
+            deduplicatedMessages.push(msg);
+            seenMessages.set(messageKey, deduplicatedMessages.length - 1);
+          } else {
+            console.log(`[AI Chat] Skipping duplicate message on load: ${messageKey.substring(0, 50)}`);
+          }
+        }
+        
         // DEBUG ASSERTION: Check for orphaned assistant messages
-        const userMessageCount = parsedMessages.filter((m: any) => m.role === 'user').length;
-        const assistantMessageCount = parsedMessages.filter((m: any) => m.role === 'assistant').length;
-        if (assistantMessageCount > userMessageCount && parsedMessages.length > 0) {
+        const userMessageCount = deduplicatedMessages.filter((m: any) => m.role === 'user').length;
+        const assistantMessageCount = deduplicatedMessages.filter((m: any) => m.role === 'assistant').length;
+        if (assistantMessageCount > userMessageCount && deduplicatedMessages.length > 0) {
           console.error(`[AI CHAT BUG DETECTED] Orphaned assistant message on load! User messages: ${userMessageCount}, Assistant messages: ${assistantMessageCount}`);
           console.error(`[AI CHAT BUG] Conversation ID: ${data.id}, Guest ID: ${identity.guestId || 'none'}, User ID: ${identity.userId || 'none'}`);
         }
         
         // CRITICAL: Filter out system messages from display (they're for AI context only)
-        const displayMessages = parsedMessages.filter((msg: any) => msg.role !== 'system');
+        const displayMessages = deduplicatedMessages.filter((msg: any) => msg.role !== 'system');
         setMessages(displayMessages);
       } else {
         // No conversation found, start fresh
@@ -224,14 +244,15 @@ export function useAIConversation(identity: ConversationIdentity) {
         
         if (currentConv && Array.isArray(currentConv.messages)) {
           // Merge: keep existing messages, add new ones that don't exist
-          const existingTimestamps = new Set(
-            currentConv.messages.map((m: any) => `${m.role}:${m.content}:${m.timestamp}`)
+          // Use role + content (not timestamp) to detect duplicates, as timestamps may differ
+          const existingMessages = new Set(
+            currentConv.messages.map((m: any) => `${m.role}:${m.content}`)
           );
           
-          // Add new messages that don't already exist
+          // Add new messages that don't already exist (by role + content)
           const newMessagesToAdd = messagesToSave.filter((msg: any) => {
-            const key = `${msg.role}:${msg.content}:${msg.timestamp}`;
-            return !existingTimestamps.has(key);
+            const key = `${msg.role}:${msg.content}`;
+            return !existingMessages.has(key);
           });
           
           // Combine: existing + new
