@@ -142,11 +142,52 @@ function LineAppPageContent() {
         setLineUser(profile);
         setLineUserId(profile.userId);
         
-        // Sync with backend - upsert LINE user and get customer profile ID
-        const syncResult = await syncLineUser(profile.userId, profile.displayName, profile.pictureUrl);
-        if (syncResult?.customerProfileId) {
-          setLineCustomerProfileId(syncResult.customerProfileId);
+        // CRITICAL: Get ID token and verify to get canonical user_id
+        try {
+          const idToken = await window.liff.getIDToken();
+          if (idToken) {
+            const verifyResponse = await fetch(`${apiUrl}/api/line/liff/verify`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ id_token: idToken }),
+            });
+            
+            if (verifyResponse.ok) {
+              const userData = await verifyResponse.json();
+              // Store canonical user_id for booking creation
+              if (userData.user_id) {
+                // Store in sessionStorage for use in booking creation
+                sessionStorage.setItem('canonical_user_id', userData.user_id);
+                if (userData.customer_profile_id) {
+                  setLineCustomerProfileId(userData.customer_profile_id);
+                }
+              }
+            } else {
+              console.warn('ID token verification failed, falling back to legacy sync');
+              // Fallback to legacy sync
+              const syncResult = await syncLineUser(profile.userId, profile.displayName, profile.pictureUrl);
+              if (syncResult?.customerProfileId) {
+                setLineCustomerProfileId(syncResult.customerProfileId);
+              }
+            }
+          } else {
+            // No ID token available, use legacy sync
+            const syncResult = await syncLineUser(profile.userId, profile.displayName, profile.pictureUrl);
+            if (syncResult?.customerProfileId) {
+              setLineCustomerProfileId(syncResult.customerProfileId);
+            }
+          }
+        } catch (tokenError) {
+          console.error('Error getting ID token:', tokenError);
+          // Fallback to legacy sync
+          const syncResult = await syncLineUser(profile.userId, profile.displayName, profile.pictureUrl);
+          if (syncResult?.customerProfileId) {
+            setLineCustomerProfileId(syncResult.customerProfileId);
+          }
         }
+        
         setLoading(false);
       } catch (error: any) {
         console.error("LIFF initialization error:", error);

@@ -204,16 +204,45 @@ function LineBookingPageContent() {
 
     setSubmitting(true);
     try {
-      // Get LINE user ID and display name from LIFF
+      // Get LINE user ID, display name, and canonical user_id from LIFF
       let lineUserId = "";
       let lineDisplayName = "";
+      let canonicalUserId: string | undefined = undefined;
+      
       if (typeof window !== "undefined" && window.liff) {
         try {
           const profile = await window.liff.getProfile();
           lineUserId = profile.userId;
           lineDisplayName = profile.displayName || "";
+          
+          // CRITICAL: Get ID token and canonical user_id
+          try {
+            const idToken = await window.liff.getIDToken();
+            if (idToken) {
+              const verifyResponse = await fetch(`${apiUrl}/api/line/liff/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id_token: idToken }),
+              });
+              
+              if (verifyResponse.ok) {
+                const userData = await verifyResponse.json();
+                canonicalUserId = userData.user_id;
+                console.log("[LINE Booking] ✅ Canonical user_id:", canonicalUserId);
+              }
+            }
+          } catch (tokenError) {
+            console.warn("[LINE Booking] ⚠️ Could not get ID token:", tokenError);
+          }
+          
+          // Also check sessionStorage for canonical user_id (set during LIFF init)
+          if (!canonicalUserId) {
+            canonicalUserId = sessionStorage.getItem('canonical_user_id') || undefined;
+          }
+          
           console.log("[LINE Booking] LINE User ID:", lineUserId);
           console.log("[LINE Booking] LINE Display Name:", lineDisplayName);
+          console.log("[LINE Booking] Canonical User ID:", canonicalUserId);
         } catch (err) {
           console.error("[LINE Booking] ❌ Could not get LINE profile:", err);
         }
@@ -240,7 +269,11 @@ function LineBookingPageContent() {
       // Use the same booking endpoint format as the main app
       const res = await fetch(`${apiUrl}/api/line/bookings`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "x-line-user-id": lineUserId,
+          "x-canonical-user-id": canonicalUserId || "", // CRITICAL: Pass canonical user_id
+        },
         body: JSON.stringify({
           line_user_id: lineUserId,
           line_display_name: lineDisplayName, // Send display name from LIFF

@@ -87,10 +87,47 @@ const BookingsPage = () => {
     } | null>(null);
     const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-    // Reset unread count when page loads
+    // Mark all notifications as read when page loads
     useEffect(() => {
-        setUnreadBookingsCount(0);
-    }, [setUnreadBookingsCount]);
+        const markNotificationsAsRead = async () => {
+            if (!user?.id) return;
+            
+            try {
+                const supabase = getSupabaseClient();
+                
+                // Get shop IDs for this owner
+                const { data: shops, error: shopsError } = await supabase
+                    .from('shops')
+                    .select('id')
+                    .eq('owner_user_id', user.id);
+                
+                if (shopsError || !shops || shops.length === 0) {
+                    setUnreadBookingsCount(0);
+                    return;
+                }
+                
+                const shopIds = shops.map(s => s.id);
+                
+                // Mark all unread notifications as read for owner's shops
+                const { error: updateError } = await supabase
+                    .from('shop_notifications')
+                    .update({ is_read: true })
+                    .in('shop_id', shopIds)
+                    .eq('is_read', false);
+                
+                if (updateError) {
+                    console.error('Error marking notifications as read:', updateError);
+                } else {
+                    // Reset count after marking as read
+                    setUnreadBookingsCount(0);
+                }
+            } catch (error) {
+                console.error('Error marking notifications as read:', error);
+            }
+        };
+        
+        markNotificationsAsRead();
+    }, [user?.id, setUnreadBookingsCount]);
 
     // Subscribe to ALL new bookings (not just AI-created)
     useEffect(() => {

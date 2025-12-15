@@ -122,57 +122,57 @@ function CustomerBookingsPageContent() {
 
     const customerProfileId = profile.id;
 
-    // Try customer_profile_id first, then fallback to customer_id
-    // Use separate queries and combine results for better reliability
-    const [profileBookings, customerIdBookings] = await Promise.all([
-      // Query by customer_profile_id
-      supabase
-        .from("bookings")
-        .select(`
-          *,
-          shops (
-            id,
-            name,
-            address,
-            phone
-          ),
-          services (
-            id,
-            name,
-            price
-          )
-        `)
-        .eq("customer_profile_id", customerProfileId)
-        .order("created_at", { ascending: false }),
+    // CRITICAL: Query by canonical user_id - this is the ONLY way to get all bookings
+    // Get canonical user_id from user_identities if LINE user, otherwise use profile.id
+    let canonicalUserId: string | null = null;
+    
+    // Check if this is a LINE user
+    if (profile?.line_user_id) {
+      const { data: identity } = await supabase
+        .from("user_identities")
+        .select("user_id")
+        .eq("provider", "line")
+        .eq("provider_user_id", profile.line_user_id)
+        .maybeSingle();
       
-      // Query by customer_id (fallback for legacy bookings)
-      supabase
-        .from("bookings")
-        .select(`
-          *,
-          shops (
-            id,
-            name,
-            address,
-            phone
-          ),
-          services (
-            id,
-            name,
-            price
-          )
-        `)
-        .eq("customer_id", user.id)
-        .order("created_at", { ascending: false })
-    ]);
-
-    // Combine results and remove duplicates
-    const allBookings = [
-      ...(profileBookings.data || []),
-      ...(customerIdBookings.data || []).filter(
-        (b: any) => !profileBookings.data?.some((pb: any) => pb.id === b.id)
-      )
-    ];
+      if (identity) {
+        canonicalUserId = identity.user_id;
+      }
+    }
+    
+    // If not LINE user or identity not found, use profile.id as canonical user_id
+    if (!canonicalUserId) {
+      canonicalUserId = customerProfileId;
+    }
+    
+    // Query bookings by canonical user_id (CRITICAL - this is the only reliable way)
+    const { data: bookings, error: bookingsError } = await supabase
+      .from("bookings")
+      .select(`
+        *,
+        shops (
+          id,
+          name,
+          address,
+          phone
+        ),
+        services (
+          id,
+          name,
+          price
+        )
+      `)
+      .eq("user_id", canonicalUserId)
+      .order("created_at", { ascending: false });
+    
+    if (bookingsError) {
+      console.error("Error fetching bookings:", bookingsError);
+      setBookings([]);
+      setLoading(false);
+      return;
+    }
+    
+    const allBookings = bookings || [];
 
     // Apply filter
     let filteredBookings = allBookings;
@@ -193,14 +193,11 @@ function CustomerBookingsPageContent() {
       return dateB - dateA;
     });
 
-    if (profileBookings.error) {
-      console.error("Error loading bookings by customer_profile_id:", profileBookings.error);
-    }
-    if (customerIdBookings.error) {
-      console.error("Error loading bookings by customer_id:", customerIdBookings.error);
+    if (bookingsError) {
+      console.error("Error loading bookings:", bookingsError);
     }
 
-    console.log(`[Customer Bookings] Found ${filteredBookings.length} bookings for customer_profile_id: ${profile.id}`);
+    console.log(`[Customer Bookings] Found ${allBookings.length} bookings for canonical user_id: ${canonicalUserId}`);
     setBookings(filteredBookings);
     setLoading(false);
   };
