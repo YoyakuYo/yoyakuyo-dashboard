@@ -46,14 +46,79 @@ function LineBookingsPageContent() {
           let bookingsData = [];
           
           // Use LINE bookings endpoint which queries via line_bookings table
-          const bookingsRes = await fetch(
-            `${apiUrl}/api/line/bookings?line_user_id=${profile.userId}`,
-            {
-              headers: {
-                'x-line-user-id': profile.userId,
+          console.log(`[LINE Bookings Frontend] 📤 Calling API: ${apiUrl}/api/line/bookings?line_user_id=${profile.userId}`);
+          console.log(`[LINE Bookings Frontend] 📤 API URL env:`, process.env.NEXT_PUBLIC_API_URL);
+          
+          let bookingsRes;
+          try {
+            bookingsRes = await fetch(
+              `${apiUrl}/api/line/bookings?line_user_id=${profile.userId}`,
+              {
+                headers: {
+                  'x-line-user-id': profile.userId,
+                },
+                // Add timeout and better error handling
+                signal: AbortSignal.timeout(30000), // 30 second timeout
               }
+            );
+            console.log(`[LINE Bookings Frontend] ✅ API responded with status: ${bookingsRes.status}`);
+          } catch (fetchError: any) {
+            console.error(`[LINE Bookings Frontend] ❌ Fetch failed:`, fetchError);
+            console.error(`[LINE Bookings Frontend] ❌ Error name:`, fetchError?.name);
+            console.error(`[LINE Bookings Frontend] ❌ Error message:`, fetchError?.message);
+            
+            // Check if it's a network error
+            if (fetchError?.name === 'AbortError' || fetchError?.message?.includes('timeout')) {
+              setError(`Request timed out. The API might be slow or unavailable.`);
+            } else if (fetchError?.message?.includes('Failed to fetch') || fetchError?.message?.includes('NetworkError')) {
+              setError(`Cannot reach the API server. Please check your internet connection or try again later.`);
+            } else {
+              setError(`Network error: ${fetchError?.message || 'Unknown error'}`);
             }
-          );
+            
+            // Try fallback
+            bookingsRes = null;
+          }
+          
+          if (!bookingsRes) {
+            // Fallback to direct Supabase query
+            console.log(`[LINE Bookings Frontend] 🔄 Attempting direct Supabase query as fallback...`);
+            try {
+              const { getSupabaseClient } = await import('@/lib/supabaseClient');
+              const supabase = getSupabaseClient();
+              
+              const { data: lineAccount } = await supabase
+                .from('line_accounts')
+                .select('customer_id')
+                .eq('line_user_id', profile.userId)
+                .maybeSingle();
+              
+              if (lineAccount?.customer_id) {
+                const { data: directBookings, error: directError } = await supabase
+                  .from('bookings')
+                  .select(`
+                    *,
+                    shops:shop_id (id, name, address, phone),
+                    services:service_id (id, name, price, duration_minutes)
+                  `)
+                  .eq('customer_id', lineAccount.customer_id)
+                  .eq('source', 'line')
+                  .order('created_at', { ascending: false });
+                
+                if (!directError && directBookings) {
+                  setBookings(directBookings);
+                  setError("");
+                  setLoading(false);
+                  return;
+                }
+              }
+            } catch (supabaseError: any) {
+              console.error(`[LINE Bookings Frontend] ❌ Supabase fallback failed:`, supabaseError);
+            }
+            
+            setLoading(false);
+            return;
+          }
 
           if (bookingsRes.ok) {
             let data;
