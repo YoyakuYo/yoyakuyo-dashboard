@@ -20,6 +20,7 @@ function LineBookingsPageContent() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [lineUserId, setLineUserId] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
   const loadBookings = async () => {
     // Get LINE user ID from LIFF
@@ -50,12 +51,27 @@ function LineBookingsPageContent() {
           );
 
           if (bookingsRes.ok) {
-            const data = await bookingsRes.json();
-            // Handle both response formats: { bookings: [...] } or direct array
-            bookingsData = Array.isArray(data) ? data : (data.bookings || []);
+            let data;
+            try {
+              const responseText = await bookingsRes.text();
+              console.log(`[LINE Bookings] Raw API response:`, responseText.substring(0, 500));
+              
+              if (!responseText || responseText.trim() === '') {
+                console.warn(`[LINE Bookings] ⚠️ API returned empty response`);
+                bookingsData = [];
+              } else {
+                data = JSON.parse(responseText);
+                // Handle both response formats: { bookings: [...] } or direct array
+                bookingsData = Array.isArray(data) ? data : (data.bookings || []);
+              }
+            } catch (parseError) {
+              console.error(`[LINE Bookings] ❌ Failed to parse API response:`, parseError);
+              bookingsData = [];
+            }
+            
             console.log(`[LINE Bookings] ✅ API returned ${bookingsData.length} bookings for LINE user ${profile.userId}`);
             console.log(`[LINE Bookings] API URL used: ${apiUrl}`);
-            console.log(`[LINE Bookings] Response data:`, data);
+            console.log(`[LINE Bookings] Response data type:`, Array.isArray(data) ? 'array' : typeof data);
             console.log(`[LINE Bookings] First booking (if any):`, bookingsData[0]);
             
             if (bookingsData.length === 0) {
@@ -85,9 +101,13 @@ function LineBookingsPageContent() {
             
             // Check if error is the duration column issue
             if (errorText.includes('duration') || errorText.includes('column services')) {
+              const errorMsg = `API Error: Production API needs update. Using fallback query...`;
               console.error(`[LINE Bookings] ⚠️ CRITICAL: API is still using old code with 'duration' column bug.`);
               console.error(`[LINE Bookings] ⚠️ The production API (Render) needs to be deployed with the fix.`);
               console.error(`[LINE Bookings] ⚠️ Fix: Changed services.duration to services.duration_minutes`);
+              setError(errorMsg);
+            } else {
+              setError(`Failed to load bookings (${bookingsRes.status}). Trying fallback...`);
             }
             
             // Fallback: try customer bookings history endpoint
@@ -106,17 +126,58 @@ function LineBookingsPageContent() {
                 const fallbackData = await fallbackRes.json();
                 bookingsData = fallbackData.bookings || fallbackData || [];
                 console.log(`[LINE Bookings] ✅ Fallback loaded ${bookingsData.length} bookings`);
+                setError(""); // Clear error on success
               } else {
                 const fallbackError = await fallbackRes.text();
                 console.error(`[LINE Bookings] ❌ Fallback also failed:`, fallbackError);
+                
+                // Last resort: Try direct Supabase query via frontend
+                console.log(`[LINE Bookings] Attempting direct Supabase query as last resort...`);
+                setError("API unavailable. Trying direct database query...");
+                try {
+                  const { getSupabaseClient } = await import('@/lib/supabaseClient');
+                  const supabase = getSupabaseClient();
+                  
+                  const { data: directBookings, error: directError } = await supabase
+                    .from('bookings')
+                    .select(`
+                      *,
+                      shops:shop_id (id, name, address, phone),
+                      services:service_id (id, name, price, duration_minutes)
+                    `)
+                    .eq('booking_type', 'line')
+                    .eq('line_user_id', profile.userId)
+                    .order('created_at', { ascending: false });
+                  
+                  if (!directError && directBookings) {
+                    bookingsData = directBookings;
+                    console.log(`[LINE Bookings] ✅ Direct Supabase query loaded ${bookingsData.length} bookings`);
+                    setError(""); // Clear error on success
+                  } else {
+                    console.error(`[LINE Bookings] ❌ Direct Supabase query failed:`, directError);
+                    setError(`Database query failed: ${directError?.message || 'Unknown error'}`);
+                  }
+                } catch (supabaseError: any) {
+                  console.error(`[LINE Bookings] ❌ Direct Supabase query error:`, supabaseError);
+                  setError(`Query error: ${supabaseError?.message || 'Unknown error'}`);
+                }
               }
             }
           }
           
           setBookings(bookingsData);
+          
+          // Clear error if we got bookings
+          if (bookingsData.length > 0) {
+            setError("");
+          } else if (!error) {
+            // Only set error if we didn't already set one above
+            setError("No bookings found. If you just created a booking, wait a few seconds and refresh.");
+          }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error loading bookings:", error);
+        setError(`Error: ${error?.message || 'Failed to load bookings'}`);
       } finally {
         setLoading(false);
       }
@@ -163,6 +224,11 @@ function LineBookingsPageContent() {
           </div>
         )}
 
+        {error && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 mx-4">
+            <p className="text-yellow-800 text-sm font-medium">⚠️ {error}</p>
+          </div>
+        )}
         {bookings.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <p className="text-gray-600 mb-4">You have no bookings yet.</p>
