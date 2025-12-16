@@ -3,6 +3,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
 import { useBookingNotifications } from '../components/BookingNotificationContext';
 import BookingCalendar from '../components/BookingCalendar';
