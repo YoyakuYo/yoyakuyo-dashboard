@@ -97,9 +97,24 @@ function LineAppPageContent() {
           });
         }
 
-        // Initialize LIFF
-        await window.liff.init({ liffId: LIFF_ID });
+        // Initialize LIFF with proper configuration
+        await window.liff.init({ 
+          liffId: LIFF_ID,
+          // Enable automatic login redirect
+          withLoginOnExternalBrowser: true,
+        });
         setLiffInitialized(true);
+        
+        // STEP 4: Detect entry point (QR, Rich Menu, or Chat)
+        const urlParams = new URLSearchParams(window.location.search);
+        const entryPoint = urlParams.get('entry') || 
+                          (urlParams.get('liff.state') ? 'richmenu' : 'direct');
+        console.log('[LIFF] Entry point detected:', entryPoint);
+        
+        // Store entry point for analytics/debugging
+        if (entryPoint) {
+          sessionStorage.setItem('liff_entry_point', entryPoint);
+        }
 
         // CRITICAL: Only proceed if in LINE client
         if (!window.liff.isInClient()) {
@@ -124,11 +139,33 @@ function LineAppPageContent() {
           return;
         }
 
-        // Verify login
+        // STEP 4: FIX LIFF LOGIN FLOW - Proper persistence
+        // Call liff.login() if not logged in - this persists the session
         if (!window.liff.isLoggedIn()) {
-          window.liff.login();
-          return;
+          console.log('[LIFF] User not logged in, calling liff.login()...');
+          try {
+            // liff.login() will redirect to LINE login page if needed
+            // After login, LINE will redirect back to this LIFF app
+            window.liff.login({
+              redirectUri: window.location.href, // Return to same URL after login
+            });
+            return; // Will redirect, so don't continue
+          } catch (loginErr: any) {
+            console.error('[LIFF] Login error:', loginErr);
+            // If login fails, try without redirectUri (default behavior)
+            try {
+              window.liff.login();
+              return;
+            } catch (fallbackErr) {
+              console.error('[LIFF] Fallback login error:', fallbackErr);
+              setError("Failed to login to LINE. Please try again.");
+              setLoading(false);
+              return;
+            }
+          }
         }
+        
+        console.log('[LIFF] User is logged in, continuing...');
 
         // Get profile ONLY after init success and isInClient check
         const profile = await window.liff.getProfile();

@@ -11,26 +11,41 @@ export default function LineQRCodeSection() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Generate QR code for LIFF app (booking platform)
-    // This opens the booking platform directly in LINE app, not the chat
+    // STEP 2: QR CODE ROLE - Onboarding ONLY
+    // QR code should force add-friend first, then redirect to LIFF
+    // This follows LINE's intended persistence model
+    
+    const lineOfficialAccountId = process.env.NEXT_PUBLIC_LINE_OFFICIAL_ACCOUNT_ID;
     const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
     
-    if (!liffId) {
-      console.warn("NEXT_PUBLIC_LIFF_ID is not set. QR code will not work.");
+    if (!lineOfficialAccountId && !liffId) {
+      console.warn("NEXT_PUBLIC_LINE_OFFICIAL_ACCOUNT_ID or NEXT_PUBLIC_LIFF_ID is not set. QR code will not work.");
       setLoading(false);
       return;
     }
     
-    // LIFF URL format: https://liff.line.me/LIFF_ID/{path}
-    // The endpoint URL in LINE Developers Console should be: https://yourdomain.com/line-app
-    // So the QR code should point to /line-app (or root / which redirects to endpoint)
-    // Using root path - LINE will redirect to the configured endpoint URL
-    const liffUrl = `https://liff.line.me/${liffId}`;
+    // QR code points to LINE Official Account add-friend URL
+    // Format: https://line.me/R/ti/p/@ACCOUNT_ID
+    // After adding friend, user will be redirected to LIFF via welcome message or rich menu
+    let qrUrl: string;
+    
+    if (lineOfficialAccountId) {
+      // Use Official Account add-friend URL (preferred)
+      // This forces add-friend before accessing LIFF
+      qrUrl = `https://line.me/R/ti/p/@${lineOfficialAccountId.replace('@', '')}`;
+    } else if (liffId) {
+      // Fallback: Direct LIFF URL (not ideal, but works)
+      // Note: This bypasses add-friend requirement
+      qrUrl = `https://liff.line.me/${liffId}?entry=qr`;
+    } else {
+      setLoading(false);
+      return;
+    }
 
-    setLineUrl(liffUrl);
+    setLineUrl(qrUrl);
 
     // Generate QR code using QR Server API
-    const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(liffUrl)}`;
+    const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`;
     setQrCodeUrl(qrCodeImageUrl);
     setLoading(false);
   }, []);
@@ -99,10 +114,10 @@ export default function LineQRCodeSection() {
                     />
                   </div>
                   <p className="text-center text-gray-600 mb-2 font-medium">
-                    {t('landing.scanToAddLine') || 'Scan to open booking platform'}
+                    {t('landing.scanToAddLine') || 'Scan to add LINE Official Account'}
                   </p>
                   <p className="text-center text-sm text-gray-500">
-                    {t('landing.scanInstructions') || 'Open LINE app and scan this QR code to access the booking platform'}
+                    {t('landing.scanInstructions') || 'Scan with LINE app to add us as a friend and access the booking platform'}
                   </p>
                 </>
               ) : (
