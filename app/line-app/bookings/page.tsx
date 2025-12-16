@@ -251,13 +251,28 @@ Booking Details:
         }
       }
 
-      // Cancel booking - use customer_id for ownership validation
+      // PART 5: Cancel booking - send both customer_id and ID token for LINE users
+      const cancelHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (customerId) {
+        cancelHeaders['x-user-id'] = customerId;
+      }
+      
+      if (idToken) {
+        cancelHeaders['x-id-token'] = idToken;
+      }
+      
+      if (lineUserId) {
+        cancelHeaders['x-line-user-id'] = lineUserId;
+      }
+      
+      console.log("[LINE Bookings] Cancelling with headers:", Object.keys(cancelHeaders));
+      
       const cancelRes = await fetch(`${apiUrl}/bookings/${bookingId}/cancel`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(customerId ? { 'x-user-id': customerId } : {}),
-        },
+        headers: cancelHeaders,
       });
 
       if (cancelRes.ok) {
@@ -302,17 +317,19 @@ Booking Details:
       return;
     }
 
-    // Create LINE deep link to open shop's Official Account chat
-    // Format: https://line.me/R/ti/p/@ACCOUNT_ID
-    // Can include booking context in message or URL params
-    const lineChatUrl = `https://line.me/R/ti/p/@${lineOfficialAccountId.replace('@', '')}?booking_id=${booking.id}`;
+    // PART 4: Create LINE deep link to open shop's Official Account chat DIRECTLY
+    // Format: https://line.me/R/oaMessage/{OFFICIAL_ACCOUNT_ID}
+    // This opens the chat directly, not the profile page
+    const accountId = lineOfficialAccountId.replace('@', '').trim();
+    const lineChatUrl = `https://line.me/R/oaMessage/${accountId}`;
     
-    console.log("[LINE Bookings] Opening LINE chat:", lineChatUrl);
+    console.log("[LINE Bookings] Opening LINE chat directly:", lineChatUrl);
+    console.log("[LINE Bookings] Account ID:", accountId);
     
     // Open LINE chat in LINE app (if in LIFF) or external browser
     if (typeof window !== "undefined" && window.liff) {
       try {
-        // Use liff.openWindow to open LINE chat
+        // Use liff.openWindow to open LINE chat directly
         window.liff.openWindow({
           url: lineChatUrl,
           external: true, // Open in LINE app (not external browser)
