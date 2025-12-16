@@ -106,6 +106,35 @@ BEGIN
     END IF;
 END $$;
 
+-- Clean up existing invalid data before adding constraint
+DO $$
+DECLARE
+    row_count INTEGER;
+BEGIN
+    -- Delete rows with empty or NULL customer_ref (invalid data)
+    DELETE FROM conversations 
+    WHERE customer_ref IS NULL OR customer_ref = '';
+    
+    GET DIAGNOSTICS row_count = ROW_COUNT;
+    IF row_count > 0 THEN
+        RAISE NOTICE 'Deleted % rows with invalid customer_ref', row_count;
+    END IF;
+    
+    -- Delete duplicate rows, keeping only the first one
+    DELETE FROM conversations c1
+    WHERE EXISTS (
+        SELECT 1 FROM conversations c2
+        WHERE c2.shop_id = c1.shop_id
+        AND c2.customer_ref = c1.customer_ref
+        AND c2.id < c1.id
+    );
+    
+    GET DIAGNOSTICS row_count = ROW_COUNT;
+    IF row_count > 0 THEN
+        RAISE NOTICE 'Deleted % duplicate rows', row_count;
+    END IF;
+END $$;
+
 -- Add unique constraint if it doesn't exist
 DO $$
 BEGIN
@@ -113,6 +142,11 @@ BEGIN
         SELECT 1 FROM pg_constraint 
         WHERE conname = 'conversations_shop_id_customer_ref_key'
     ) THEN
+        -- First ensure customer_ref is NOT NULL
+        ALTER TABLE conversations 
+        ALTER COLUMN customer_ref SET NOT NULL;
+        
+        -- Then add unique constraint
         ALTER TABLE conversations 
         ADD CONSTRAINT conversations_shop_id_customer_ref_key 
         UNIQUE(shop_id, customer_ref);
