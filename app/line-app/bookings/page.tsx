@@ -313,8 +313,8 @@ Booking Details:
     }
   };
 
-  // TASK 4: Message Shop handler - opens LINE chat
-  const handleMessageShop = (booking: Booking) => {
+  // PART 3: Message Shop handler - opens internal messaging page (NOT LINE chat)
+  const handleMessageShop = async (booking: Booking) => {
     console.log("[LINE Bookings] Message Shop clicked for booking:", booking.id);
     
     // Get shop data (handle both array and single object)
@@ -327,50 +327,45 @@ Booking Details:
       return;
     }
 
-    // PROBLEM B FIX: Get LINE Official Account ID from shop (MUST be from database, not env)
-    // DO NOT use environment variable as fallback - each shop has its own Official Account
-    const lineOfficialAccountId = shopData?.line_official_account_id;
-    
-    if (!lineOfficialAccountId) {
-      console.warn("[LINE Bookings] ⚠️ No LINE Official Account ID found for shop:", shopId);
-      alert('LINE chat is not available for this shop. Please contact the shop directly.');
-      return;
+    // Get LINE user ID for customer_ref
+    let lineUserId: string | null = null;
+    if (typeof window !== "undefined" && window.liff) {
+      try {
+        const profile = await window.liff.getProfile();
+        lineUserId = profile.userId;
+      } catch (error) {
+        console.error("[LINE Bookings] Failed to get LINE user ID:", error);
+        alert('Failed to identify user. Please try again.');
+        return;
+      }
     }
-    
-    // PROBLEM B FIX: Verify account ID format (should start with @)
-    if (!lineOfficialAccountId.startsWith('@')) {
-      console.error("[LINE Bookings] ❌ Invalid LINE Official Account ID format:", lineOfficialAccountId);
-      alert('LINE chat configuration error. Please contact support.');
+
+    if (!lineUserId) {
+      alert('LINE user identification failed. Please try again.');
       return;
     }
 
-    // PROBLEM B FIX: Create LINE deep link using CORRECT format
-    // Format: https://line.me/R/oaMessage/{OFFICIAL_ACCOUNT_ID}
-    // Account ID should include @ symbol
-    // Example: https://line.me/R/oaMessage/@barbersow
-    const accountId = lineOfficialAccountId.trim(); // Keep @ symbol
-    const lineChatUrl = `https://line.me/R/oaMessage/${accountId}`;
+    // Build internal messaging URL
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const messagesUrl = `${appUrl}/messages?shop_id=${shopId}&booking_id=${booking.id}`;
     
-    console.log("[LINE Bookings] Opening LINE chat directly:", lineChatUrl);
-    console.log("[LINE Bookings] Account ID from shop:", accountId);
-    console.log("[LINE Bookings] Shop data:", { shopId, line_official_account_id: lineOfficialAccountId });
+    console.log("[LINE Bookings] Opening internal messaging:", messagesUrl);
     
-    // Open LINE chat in LINE app (if in LIFF) or external browser
+    // Open internal messaging page in LIFF (not external)
     if (typeof window !== "undefined" && window.liff) {
       try {
-        // Use liff.openWindow to open LINE chat directly
         window.liff.openWindow({
-          url: lineChatUrl,
-          external: true, // Open in LINE app (not external browser)
+          url: messagesUrl,
+          external: false, // Open inside LIFF (leaf)
         });
       } catch (openError) {
-        console.error("[LINE Bookings] Failed to open LINE chat:", openError);
-        // Fallback: try opening in same window
-        window.open(lineChatUrl, '_blank');
+        console.error("[LINE Bookings] Failed to open messaging page:", openError);
+        // Fallback: navigate in same window
+        window.location.href = messagesUrl;
       }
     } else {
       // Fallback for non-LIFF environments
-      window.open(lineChatUrl, '_blank');
+      window.location.href = messagesUrl;
     }
   };
 
