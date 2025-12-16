@@ -62,67 +62,96 @@ export default function LineQRCodeSection() {
   }
 
   return (
-    <section className="py-16 bg-gradient-to-br from-green-50 to-blue-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12">
-          <div className="grid md:grid-cols-2 gap-8 items-center">
+    <section className="relative py-12 md:py-16 bg-gradient-to-br from-green-500 via-green-600 to-blue-600 overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-1/2 translate-y-1/2"></div>
+      </div>
+      
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 md:p-10 lg:p-12 border border-white/20">
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Left: Content */}
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <div className="order-2 md:order-1">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-semibold mb-4">
+                <span className="text-lg">📱</span>
+                <span>{t('landing.lineBadge') || 'LINE Official Account'}</span>
+              </div>
+              
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-4 leading-tight">
                 {t('landing.lineTitle') || 'Book via LINE'}
               </h2>
-              <p className="text-lg text-gray-600 mb-6">
-                {t('landing.lineDescription') || 'Scan the QR code to open our booking platform directly in LINE! Search shops, make bookings, and get instant confirmations.'}
+              
+              <p className="text-xl md:text-2xl text-gray-700 mb-8 leading-relaxed">
+                {t('landing.lineDescription') || 'Add our LINE bot and book appointments directly from LINE! Search shops, make bookings, and get instant confirmations.'}
               </p>
-              <ul className="space-y-3 mb-6">
-                <li className="flex items-start gap-3">
-                  <span className="text-green-600 text-xl mt-1">✓</span>
-                  <span className="text-gray-700">{t('landing.lineFeature1') || 'Search shops by category and location'}</span>
+              
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-center gap-4 group">
+                  <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                    <span className="text-green-600 text-lg font-bold">✓</span>
+                  </div>
+                  <span className="text-lg text-gray-800 font-medium">{t('landing.lineFeature1') || 'Search shops by category and location'}</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-600 text-xl mt-1">✓</span>
-                  <span className="text-gray-700">{t('landing.lineFeature2') || 'Book appointments with AI assistant'}</span>
+                <li className="flex items-center gap-4 group">
+                  <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                    <span className="text-green-600 text-lg font-bold">✓</span>
+                  </div>
+                  <span className="text-lg text-gray-800 font-medium">{t('landing.lineFeature2') || 'Book appointments with AI assistant'}</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-600 text-xl mt-1">✓</span>
-                  <span className="text-gray-700">{t('landing.lineFeature3') || 'Get booking confirmations instantly'}</span>
+                <li className="flex items-center gap-4 group">
+                  <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                    <span className="text-green-600 text-lg font-bold">✓</span>
+                  </div>
+                  <span className="text-lg text-gray-800 font-medium">{t('landing.lineFeature3') || 'Get booking confirmations instantly'}</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-green-600 text-xl mt-1">✓</span>
-                  <span className="text-gray-700">{t('landing.lineFeature4') || 'View and manage your bookings'}</span>
+                <li className="flex items-center gap-4 group">
+                  <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                    <span className="text-green-600 text-lg font-bold">✓</span>
+                  </div>
+                  <span className="text-lg text-gray-800 font-medium">{t('landing.lineFeature4') || 'View and manage your bookings'}</span>
                 </li>
               </ul>
+              
               {lineUrl && (
                 <button
                   onClick={handleCopyLink}
-                  className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-md hover:shadow-lg"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-green-600 text-white font-bold text-lg rounded-xl hover:bg-green-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
-                  {t('landing.copyLineLink') || 'Copy LINE Link'}
+                  <span>🔗</span>
+                  <span>{t('landing.copyLineLink') || 'Copy LINE Link'}</span>
                 </button>
               )}
             </div>
 
             {/* Right: QR Code */}
-            <div className="flex flex-col items-center justify-center">
+            <div className="flex flex-col items-center justify-center order-1 md:order-2">
               {qrCodeUrl ? (
                 <>
-                  <div className="bg-white p-4 rounded-xl shadow-lg mb-4">
+                  <div className="relative bg-white p-6 rounded-2xl shadow-2xl mb-6 transform hover:scale-105 transition-transform duration-300">
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full animate-pulse"></div>
                     <img
                       src={qrCodeUrl}
                       alt={t('landing.lineQRCode') || 'LINE QR Code'}
-                      className="w-64 h-64"
+                      className="w-72 h-72 md:w-80 md:h-80"
                     />
                   </div>
-                  <p className="text-center text-gray-600 mb-2 font-medium">
-                    {t('landing.scanToAddLine') || 'Scan to add LINE Official Account'}
-                  </p>
-                  <p className="text-center text-sm text-gray-500">
-                    {t('landing.scanInstructions') || 'Scan with LINE app to add us as a friend and access the booking platform'}
-                  </p>
+                  <div className="text-center space-y-2">
+                    <p className="text-xl font-bold text-white mb-2">
+                      {t('landing.scanToAddLine') || 'LINE QR Code'}
+                    </p>
+                    <p className="text-base text-white/90 font-medium">
+                      {t('landing.scanInstructions') || 'Scan to add LINE bot'}
+                    </p>
+                    <p className="text-sm text-white/80 mt-2">
+                      {t('landing.scanSubtext') || 'Open LINE app and scan this QR code'}
+                    </p>
+                  </div>
                 </>
               ) : (
-                <div className="w-64 h-64 bg-gray-100 rounded-xl flex items-center justify-center">
-                  <p className="text-gray-500">{t('landing.loadingQR') || 'Loading QR code...'}</p>
+                <div className="w-72 h-72 md:w-80 md:h-80 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                  <p className="text-white font-medium">{t('landing.loadingQR') || 'Loading QR code...'}</p>
                 </div>
               )}
             </div>

@@ -21,14 +21,14 @@ function LandingPageContent() {
 
       {/* Add padding-top to account for fixed navbar */}
       <div className="pt-[108px] md:pt-[120px]">
+        {/* LINE QR Code Section - Moved to top for visibility */}
+        <LineQRCodeSection />
+
         {/* Hero Section with Image Carousel */}
         <HeroCarousel />
 
         {/* Category Section */}
         <CategorySection />
-
-        {/* LINE QR Code Section */}
-        <LineQRCodeSection />
 
         {/* Reviews Section */}
         <ReviewsSection />
