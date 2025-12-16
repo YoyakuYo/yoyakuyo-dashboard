@@ -35,7 +35,8 @@ const Sidebar = React.memo(() => {
 
   const loadUnreadSummary = async () => {
     try {
-      const res = await fetch(`${apiUrl}/messages/owner/unread-summary`, {
+      // PART 4: Use new internal messaging endpoint
+      const res = await fetch(`${apiUrl}/api/internal-messaging/owner/unread-count`, {
         headers: {
           'x-user-id': user?.id || '',
         },
@@ -43,7 +44,7 @@ const Sidebar = React.memo(() => {
 
       if (res.ok) {
         const data = await res.json();
-        setUnreadCount(data.unreadCount || 0);
+        setUnreadCount(data.unread_count || 0);
       }
     } catch (error: any) {
       // Silently handle connection errors (API server not running)
@@ -62,8 +63,7 @@ const Sidebar = React.memo(() => {
 
     const supabase = getSupabaseClient();
     
-    // Subscribe to shop_messages for the owner's shops
-    // We'll need to get shop IDs first, but for now, subscribe to all and filter client-side
+    // PART 4: Subscribe to messages table for the owner's shops
     const channel = supabase
       .channel('unread_messages_updates')
       .on(
@@ -71,7 +71,7 @@ const Sidebar = React.memo(() => {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'shop_messages',
+          table: 'messages',
           filter: 'sender_type=eq.customer',
         },
         () => {
@@ -84,8 +84,8 @@ const Sidebar = React.memo(() => {
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'shop_messages',
-          filter: 'read_by_owner=eq.true',
+          table: 'messages',
+          filter: 'is_read=eq.true',
         },
         () => {
           // Reload unread summary when messages are marked as read
