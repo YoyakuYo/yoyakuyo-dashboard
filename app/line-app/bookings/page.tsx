@@ -225,11 +225,17 @@ Booking Details:
     console.log("[LINE Bookings] Cancelling booking:", bookingId);
 
     try {
-      // Get ID token for authentication
+      // PART 5: Get ID token and LINE user ID for authentication
       let idToken: string | null = null;
+      let currentLineUserId: string | null = lineUserId || null;
+      
       if (typeof window !== "undefined" && window.liff) {
         try {
           idToken = await window.liff.getIDToken();
+          // Get LINE user ID directly from profile
+          const profile = await window.liff.getProfile();
+          currentLineUserId = profile.userId;
+          console.log("[LINE Bookings] Got ID token and LINE user ID");
         } catch (idTokenError) {
           console.error("[LINE Bookings] Failed to get ID token:", idTokenError);
         }
@@ -264,8 +270,8 @@ Booking Details:
         cancelHeaders['x-id-token'] = idToken;
       }
       
-      if (lineUserId) {
-        cancelHeaders['x-line-user-id'] = lineUserId;
+      if (currentLineUserId) {
+        cancelHeaders['x-line-user-id'] = currentLineUserId;
       }
       
       console.log("[LINE Bookings] Cancelling with headers:", Object.keys(cancelHeaders));
