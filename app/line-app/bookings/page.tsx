@@ -274,9 +274,23 @@ Booking Details:
         cancelHeaders['x-line-user-id'] = currentLineUserId;
       }
       
+      // PROBLEM A FIX: Add required logging before fetch
+      console.log("CANCEL REQUEST", bookingId, apiUrl);
       console.log("[LINE Bookings] Cancelling with headers:", Object.keys(cancelHeaders));
+      console.log("[LINE Bookings] Full cancel URL:", `${apiUrl}/bookings/${bookingId}/cancel`);
       
-      const cancelRes = await fetch(`${apiUrl}/bookings/${bookingId}/cancel`, {
+      // PROBLEM A FIX: Ensure absolute URL and proper error handling
+      if (!apiUrl) {
+        console.error("[LINE Bookings] ❌ CRITICAL: apiUrl is undefined!");
+        alert('API URL is not configured. Please check environment variables.');
+        setCancellingBookingId(null);
+        return;
+      }
+      
+      const cancelUrl = `${apiUrl}/bookings/${bookingId}/cancel`;
+      console.log("[LINE Bookings] Making cancel request to:", cancelUrl);
+      
+      const cancelRes = await fetch(cancelUrl, {
         method: 'POST',
         headers: cancelHeaders,
       });
