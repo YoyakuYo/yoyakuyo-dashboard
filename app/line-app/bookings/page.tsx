@@ -327,24 +327,33 @@ Booking Details:
       return;
     }
 
-    // Get LINE Official Account ID from shop or use default
-    const lineOfficialAccountId = shopData?.line_official_account_id || 
-                                   process.env.NEXT_PUBLIC_LINE_OFFICIAL_ACCOUNT_ID;
+    // PROBLEM B FIX: Get LINE Official Account ID from shop (MUST be from database, not env)
+    // DO NOT use environment variable as fallback - each shop has its own Official Account
+    const lineOfficialAccountId = shopData?.line_official_account_id;
     
     if (!lineOfficialAccountId) {
-      console.warn("[LINE Bookings] ⚠️ No LINE Official Account ID found");
+      console.warn("[LINE Bookings] ⚠️ No LINE Official Account ID found for shop:", shopId);
       alert('LINE chat is not available for this shop. Please contact the shop directly.');
       return;
     }
+    
+    // PROBLEM B FIX: Verify account ID format (should start with @)
+    if (!lineOfficialAccountId.startsWith('@')) {
+      console.error("[LINE Bookings] ❌ Invalid LINE Official Account ID format:", lineOfficialAccountId);
+      alert('LINE chat configuration error. Please contact support.');
+      return;
+    }
 
-    // PART 4: Create LINE deep link to open shop's Official Account chat DIRECTLY
+    // PROBLEM B FIX: Create LINE deep link using CORRECT format
     // Format: https://line.me/R/oaMessage/{OFFICIAL_ACCOUNT_ID}
-    // This opens the chat directly, not the profile page
-    const accountId = lineOfficialAccountId.replace('@', '').trim();
+    // Account ID should include @ symbol
+    // Example: https://line.me/R/oaMessage/@barbersow
+    const accountId = lineOfficialAccountId.trim(); // Keep @ symbol
     const lineChatUrl = `https://line.me/R/oaMessage/${accountId}`;
     
     console.log("[LINE Bookings] Opening LINE chat directly:", lineChatUrl);
-    console.log("[LINE Bookings] Account ID:", accountId);
+    console.log("[LINE Bookings] Account ID from shop:", accountId);
+    console.log("[LINE Bookings] Shop data:", { shopId, line_official_account_id: lineOfficialAccountId });
     
     // Open LINE chat in LINE app (if in LIFF) or external browser
     if (typeof window !== "undefined" && window.liff) {
