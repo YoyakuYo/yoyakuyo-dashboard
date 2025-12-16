@@ -15,7 +15,20 @@ interface Booking {
   end_time: string;
   booked_for?: string; // New canonical field
   status: string;
-  shops: { name: string; address?: string } | Array<{ name: string; address?: string }>;
+  shop_id?: string;
+  shops: { 
+    id?: string;
+    name: string; 
+    address?: string;
+    phone?: string;
+    line_official_account_id?: string;
+  } | Array<{ 
+    id?: string;
+    name: string; 
+    address?: string;
+    phone?: string;
+    line_official_account_id?: string;
+  }>;
   services: { name: string; price?: number; duration_minutes?: number } | Array<{ name: string; price?: number; duration_minutes?: number }>;
 }
 
@@ -26,6 +39,8 @@ function LineBookingsPageContent() {
   const [loading, setLoading] = useState(true);
   const [lineUserId, setLineUserId] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
+  const [viewingBookingId, setViewingBookingId] = useState<string | null>(null);
 
   const loadBookings = async () => {
     // BUG 1 FIX: Use ID token-based endpoint for LIFF
@@ -150,18 +165,168 @@ function LineBookingsPageContent() {
     loadBookings();
   }, []);
 
-  // Reload bookings when success parameter changes
+  // BUG 1 FIX: Reload bookings when success parameter changes
+  // Use ID token endpoint which will show the new booking immediately
   useEffect(() => {
     const success = searchParams.get("success");
-    if (success === "true") {
-      // Reload bookings after a delay to ensure backend has processed the booking
-      // Increased delay to 2 seconds to allow database transaction to commit
+    const refresh = searchParams.get("refresh");
+    if (success === "true" || refresh) {
+      // Reload bookings immediately (ID token endpoint should have latest data)
+      // Small delay to ensure backend transaction is committed
       setTimeout(() => {
         console.log("[LINE Bookings] Reloading bookings after successful booking creation...");
         loadBookings();
-      }, 2000);
+      }, 500); // Reduced delay since we're using ID token endpoint
     }
   }, [searchParams]);
+
+  // TASK 3: View Details handler
+  const handleViewDetails = (booking: Booking) => {
+    console.log("[LINE Bookings] View Details clicked for booking:", booking.id);
+    setViewingBookingId(booking.id);
+    
+    // Get shop data (handle both array and single object)
+    const shopData = Array.isArray(booking.shops) ? booking.shops[0] : booking.shops;
+    const serviceData = Array.isArray(booking.services) ? booking.services[0] : booking.services;
+    
+    // Show booking details in alert/modal (simple implementation)
+    const details = `
+Booking Details:
+- Shop: ${shopData?.name || 'N/A'}
+- Service: ${serviceData?.name || 'N/A'}
+- Date: ${new Date(booking.start_time).toLocaleDateString('en-US', { 
+  weekday: 'long', 
+  year: 'numeric', 
+  month: 'long', 
+  day: 'numeric' 
+})}
+- Time: ${new Date(booking.start_time).toLocaleTimeString('en-US', { 
+  hour: '2-digit', 
+  minute: '2-digit' 
+})} - ${new Date(booking.end_time).toLocaleTimeString('en-US', { 
+  hour: '2-digit', 
+  minute: '2-digit' 
+})}
+- Status: ${booking.status}
+- Booking ID: ${booking.id}
+    `.trim();
+    
+    alert(details);
+    setViewingBookingId(null);
+  };
+
+  // TASK 3: Cancel booking handler
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!confirm('Are you sure you want to cancel this booking?')) {
+      return;
+    }
+
+    setCancellingBookingId(bookingId);
+    console.log("[LINE Bookings] Cancelling booking:", bookingId);
+
+    try {
+      // Get ID token for authentication
+      let idToken: string | null = null;
+      if (typeof window !== "undefined" && window.liff) {
+        try {
+          idToken = await window.liff.getIDToken();
+        } catch (idTokenError) {
+          console.error("[LINE Bookings] Failed to get ID token:", idTokenError);
+        }
+      }
+
+      // Verify ID token and get customer_id
+      let customerId: string | null = null;
+      if (idToken) {
+        const verifyRes = await fetch(`${apiUrl}/api/line/liff/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id_token: idToken }),
+        });
+
+        if (verifyRes.ok) {
+          const verifyData = await verifyRes.json();
+          customerId = verifyData.customer_id;
+          console.log("[LINE Bookings] Verified customer_id:", customerId);
+        }
+      }
+
+      // Cancel booking - use customer_id for ownership validation
+      const cancelRes = await fetch(`${apiUrl}/bookings/${bookingId}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(customerId ? { 'x-user-id': customerId } : {}),
+        },
+      });
+
+      if (cancelRes.ok) {
+        console.log("[LINE Bookings] ✅ Booking cancelled successfully");
+        // Refresh bookings list immediately
+        await loadBookings();
+        alert('Booking cancelled successfully.');
+      } else {
+        const errorData = await cancelRes.json().catch(() => ({ error: 'Failed to cancel booking' }));
+        console.error("[LINE Bookings] ❌ Cancel failed:", errorData);
+        alert(`Failed to cancel booking: ${errorData.error || errorData.details || 'Unknown error'}`);
+      }
+    } catch (error: any) {
+      console.error("[LINE Bookings] ❌ Error cancelling booking:", error);
+      alert(`Error: ${error?.message || 'Failed to cancel booking'}`);
+    } finally {
+      setCancellingBookingId(null);
+    }
+  };
+
+  // TASK 4: Message Shop handler - opens LINE chat
+  const handleMessageShop = (booking: Booking) => {
+    console.log("[LINE Bookings] Message Shop clicked for booking:", booking.id);
+    
+    // Get shop data (handle both array and single object)
+    const shopData = Array.isArray(booking.shops) ? booking.shops[0] : booking.shops;
+    const shopId = booking.shop_id || shopData?.id;
+    
+    if (!shopId) {
+      console.error("[LINE Bookings] ❌ No shop_id found for booking");
+      alert('Shop information not available.');
+      return;
+    }
+
+    // Get LINE Official Account ID from shop or use default
+    const lineOfficialAccountId = shopData?.line_official_account_id || 
+                                   process.env.NEXT_PUBLIC_LINE_OFFICIAL_ACCOUNT_ID;
+    
+    if (!lineOfficialAccountId) {
+      console.warn("[LINE Bookings] ⚠️ No LINE Official Account ID found");
+      alert('LINE chat is not available for this shop. Please contact the shop directly.');
+      return;
+    }
+
+    // Create LINE deep link to open shop's Official Account chat
+    // Format: https://line.me/R/ti/p/@ACCOUNT_ID
+    // Can include booking context in message or URL params
+    const lineChatUrl = `https://line.me/R/ti/p/@${lineOfficialAccountId.replace('@', '')}?booking_id=${booking.id}`;
+    
+    console.log("[LINE Bookings] Opening LINE chat:", lineChatUrl);
+    
+    // Open LINE chat in LINE app (if in LIFF) or external browser
+    if (typeof window !== "undefined" && window.liff) {
+      try {
+        // Use liff.openWindow to open LINE chat
+        window.liff.openWindow({
+          url: lineChatUrl,
+          external: true, // Open in LINE app (not external browser)
+        });
+      } catch (openError) {
+        console.error("[LINE Bookings] Failed to open LINE chat:", openError);
+        // Fallback: try opening in same window
+        window.open(lineChatUrl, '_blank');
+      }
+    } else {
+      // Fallback for non-LIFF environments
+      window.open(lineChatUrl, '_blank');
+    }
+  };
 
   if (loading) {
     return (
@@ -250,15 +415,33 @@ function LineBookingsPageContent() {
                   </p>
                 </div>
 
-                <div className="flex gap-2">
-                  <button className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-                    View Details
-                  </button>
-                  {booking.status === "pending" && (
-                    <button className="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors">
-                      Cancel
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleViewDetails(booking)}
+                      disabled={viewingBookingId === booking.id}
+                      className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {viewingBookingId === booking.id ? 'Loading...' : 'View Details'}
                     </button>
-                  )}
+                    {booking.status === "pending" && (
+                      <button 
+                        onClick={() => handleCancelBooking(booking.id)}
+                        disabled={cancellingBookingId === booking.id}
+                        className="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {cancellingBookingId === booking.id ? 'Cancelling...' : 'Cancel'}
+                      </button>
+                    )}
+                  </div>
+                  {/* TASK 4: Message Shop button - opens LINE chat */}
+                  <button
+                    onClick={() => handleMessageShop(booking)}
+                    className="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span>💬</span>
+                    Message Shop
+                  </button>
                 </div>
               </div>
             ))}

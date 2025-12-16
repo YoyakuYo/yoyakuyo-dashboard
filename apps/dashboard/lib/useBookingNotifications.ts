@@ -85,10 +85,11 @@ export function useBookingNotificationsHook() {
             owner_shops: shopIdsRef.current
           });
           
+          // TASK 2: Refetch on realtime booking event
           // Check if notification belongs to owner's shop
           if (newNotification && shopIdsRef.current.includes(newNotification.shop_id)) {
             console.log('[Notification Realtime] ✅ Notification belongs to owner - reloading count');
-            // Reload count immediately
+            // TASK 2: Refetch badge count on realtime booking event
             await reloadPendingCount();
           } else if (shopIdsRef.current.length === 0) {
             // If shop IDs not loaded yet, reload to get them and check
@@ -125,7 +126,8 @@ export function useBookingNotificationsHook() {
     subscriptionRef.current = channel;
   }, [user?.id, reloadPendingCount]);
 
-  // Load initial pending bookings count and get shop IDs
+  // TASK 2: Load initial pending bookings count and get shop IDs
+  // BUG 2 FIX: Fetch badge count on login
   useEffect(() => {
     if (!user?.id) {
       setUnreadBookingsCount(0);
@@ -133,7 +135,9 @@ export function useBookingNotificationsHook() {
     }
 
     const loadPendingBookingsCount = async () => {
-      // Use reloadPendingCount which queries shop_notifications
+      // TASK 2: Fetch badge count on login
+      // Use reloadPendingCount which queries shop_notifications (single source of truth)
+      console.log('[Notification Hook] Loading badge count on login/user change');
       await reloadPendingCount();
     };
 
@@ -146,6 +150,6 @@ export function useBookingNotificationsHook() {
         supabase.removeChannel(subscriptionRef.current);
       }
     };
-  }, [user, setUnreadBookingsCount, subscribeToBookingUpdates]);
+  }, [user, setUnreadBookingsCount, subscribeToBookingUpdates, reloadPendingCount]);
 }
 
