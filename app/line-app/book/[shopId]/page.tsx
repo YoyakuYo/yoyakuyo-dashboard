@@ -288,7 +288,25 @@ function LineBookingPageContent() {
       });
 
       if (res.ok) {
-        router.push(`/line-app/bookings?success=true`);
+        // BUG 1 FIX: After booking success, immediately fetch bookings using ID token
+        // This ensures the new booking appears without refresh
+        try {
+          if (typeof window !== "undefined" && window.liff) {
+            const idToken = await window.liff.getIDToken();
+            if (idToken) {
+              // Trigger bookings refresh by navigating with success flag
+              // The bookings page will use the ID token endpoint
+              router.push(`/line-app/bookings?success=true&refresh=${Date.now()}`);
+            } else {
+              router.push(`/line-app/bookings?success=true`);
+            }
+          } else {
+            router.push(`/line-app/bookings?success=true`);
+          }
+        } catch (idTokenError) {
+          console.error("[LINE Booking] Failed to get ID token for refresh:", idTokenError);
+          router.push(`/line-app/bookings?success=true`);
+        }
       } else {
         const errorData = await res.json().catch(() => ({ error: "Failed to create booking" }));
         alert(errorData.error || "Failed to create booking. Please try again.");

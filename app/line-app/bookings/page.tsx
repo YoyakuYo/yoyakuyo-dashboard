@@ -28,245 +28,120 @@ function LineBookingsPageContent() {
   const [error, setError] = useState<string>("");
 
   const loadBookings = async () => {
-    // Get LINE user ID from LIFF
+    // BUG 1 FIX: Use ID token-based endpoint for LIFF
     if (typeof window !== "undefined" && window.liff) {
       try {
         const profile = await window.liff.getProfile();
         setLineUserId(profile.userId);
 
-        // Fetch user profile to get customer_profile_id
-        const userRes = await fetch(`${apiUrl}/api/line/user`, {
-          headers: { "x-line-user-id": profile.userId },
-        });
+        // Get ID token from LIFF (required for LIFF-specific endpoint)
+        let idToken: string | null = null;
+        try {
+          idToken = await window.liff.getIDToken();
+          console.log(`[LINE Bookings Frontend] ✅ Got ID token from LIFF`);
+        } catch (idTokenError: any) {
+          console.error(`[LINE Bookings Frontend] ❌ Failed to get ID token:`, idTokenError);
+          setError(`Failed to get LINE authentication token. Please try again.`);
+          setLoading(false);
+          return;
+        }
 
-        if (userRes.ok) {
-          const userData = await userRes.json();
+        if (!idToken) {
+          console.error(`[LINE Bookings Frontend] ❌ ID token is null`);
+          setError(`LINE authentication token is missing. Please try again.`);
+          setLoading(false);
+          return;
+        }
+
+        // BUG 1 FIX: Use dedicated LIFF endpoint with ID token
+        console.log(`[LINE Bookings Frontend] 📤 Calling LIFF-specific endpoint: ${apiUrl}/api/line/liff/bookings`);
+        
+        let bookingsRes;
+        let bookingsData: Booking[] = [];
+        
+        try {
+          bookingsRes = await fetch(`${apiUrl}/api/line/liff/bookings`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ id_token: idToken }),
+            signal: AbortSignal.timeout(30000), // 30 second timeout
+          });
           
-          // Fetch bookings using LINE bookings endpoint (direct query by line_user_id)
-          let bookingsData = [];
+          console.log(`[LINE Bookings Frontend] ✅ API responded with status: ${bookingsRes.status}`);
+        } catch (fetchError: any) {
+          console.error(`[LINE Bookings Frontend] ❌ Fetch failed:`, fetchError);
+          console.error(`[LINE Bookings Frontend] ❌ Error name:`, fetchError?.name);
+          console.error(`[LINE Bookings Frontend] ❌ Error message:`, fetchError?.message);
           
-          // Use LINE bookings endpoint which queries via line_bookings table
-          console.log(`[LINE Bookings Frontend] 📤 Calling API: ${apiUrl}/api/line/bookings?line_user_id=${profile.userId}`);
-          console.log(`[LINE Bookings Frontend] 📤 API URL env:`, process.env.NEXT_PUBLIC_API_URL);
+          // BUG 1 FIX: Better error visibility - do NOT silently set empty bookings
+          if (fetchError?.name === 'AbortError' || fetchError?.message?.includes('timeout')) {
+            setError(`Request timed out. The API might be slow or unavailable.`);
+          } else if (fetchError?.message?.includes('Failed to fetch') || fetchError?.message?.includes('NetworkError')) {
+            setError(`Cannot reach the API server. Please check your internet connection or try again later.`);
+          } else {
+            setError(`Network error: ${fetchError?.message || 'Unknown error'}`);
+          }
           
-          let bookingsRes;
+          setLoading(false);
+          return; // Don't continue if fetch fails
+        }
+
+        if (bookingsRes.ok) {
           try {
-            bookingsRes = await fetch(
-              `${apiUrl}/api/line/bookings?line_user_id=${profile.userId}`,
-              {
-                headers: {
-                  'x-line-user-id': profile.userId,
-                },
-                // Add timeout and better error handling
-                signal: AbortSignal.timeout(30000), // 30 second timeout
-              }
-            );
-            console.log(`[LINE Bookings Frontend] ✅ API responded with status: ${bookingsRes.status}`);
-          } catch (fetchError: any) {
-            console.error(`[LINE Bookings Frontend] ❌ Fetch failed:`, fetchError);
-            console.error(`[LINE Bookings Frontend] ❌ Error name:`, fetchError?.name);
-            console.error(`[LINE Bookings Frontend] ❌ Error message:`, fetchError?.message);
+            const data = await bookingsRes.json();
+            // Response is always an array from LIFF endpoint
+            bookingsData = Array.isArray(data) ? data : [];
             
-            // Check if it's a network error
-            if (fetchError?.name === 'AbortError' || fetchError?.message?.includes('timeout')) {
-              setError(`Request timed out. The API might be slow or unavailable.`);
-            } else if (fetchError?.message?.includes('Failed to fetch') || fetchError?.message?.includes('NetworkError')) {
-              setError(`Cannot reach the API server. Please check your internet connection or try again later.`);
-            } else {
-              setError(`Network error: ${fetchError?.message || 'Unknown error'}`);
-            }
+            console.log(`[LINE Bookings Frontend] ✅ Loaded ${bookingsData.length} bookings`);
             
-            // Try fallback
-            bookingsRes = null;
-          }
-          
-          if (!bookingsRes) {
-            // Fallback to direct Supabase query
-            console.log(`[LINE Bookings Frontend] 🔄 Attempting direct Supabase query as fallback...`);
-            try {
-              const { getSupabaseClient } = await import('@/lib/supabaseClient');
-              const supabase = getSupabaseClient();
-              
-              const { data: lineAccount } = await supabase
-                .from('line_accounts')
-                .select('customer_id')
-                .eq('line_user_id', profile.userId)
-                .maybeSingle();
-              
-              if (lineAccount?.customer_id) {
-                const { data: directBookings, error: directError } = await supabase
-                  .from('bookings')
-                  .select(`
-                    *,
-                    shops:shop_id (id, name, address, phone),
-                    services:service_id (id, name, price, duration_minutes)
-                  `)
-                  .eq('customer_id', lineAccount.customer_id)
-                  .eq('source', 'line')
-                  .order('created_at', { ascending: false });
-                
-                if (!directError && directBookings) {
-                  setBookings(directBookings);
-                  setError("");
-                  setLoading(false);
-                  return;
-                }
-              }
-            } catch (supabaseError: any) {
-              console.error(`[LINE Bookings Frontend] ❌ Supabase fallback failed:`, supabaseError);
-            }
-            
-            setLoading(false);
-            return;
-          }
-
-          if (bookingsRes.ok) {
-            let data;
-            try {
-              const responseText = await bookingsRes.text();
-              console.log(`[LINE Bookings] Raw API response:`, responseText.substring(0, 500));
-              
-              if (!responseText || responseText.trim() === '') {
-                console.warn(`[LINE Bookings] ⚠️ API returned empty response`);
-                bookingsData = [];
-              } else {
-                data = JSON.parse(responseText);
-                // Handle both response formats: { bookings: [...] } or direct array
-                bookingsData = Array.isArray(data) ? data : (data.bookings || []);
-              }
-            } catch (parseError) {
-              console.error(`[LINE Bookings] ❌ Failed to parse API response:`, parseError);
-              bookingsData = [];
-            }
-            
-            console.log(`[LINE Bookings] ✅ API returned ${bookingsData.length} bookings for LINE user ${profile.userId}`);
-            console.log(`[LINE Bookings] API URL used: ${apiUrl}`);
-            console.log(`[LINE Bookings] Response data type:`, Array.isArray(data) ? 'array' : typeof data);
-            console.log(`[LINE Bookings] First booking (if any):`, bookingsData[0]);
-            
-            if (bookingsData.length === 0) {
-              console.warn(`[LINE Bookings] ⚠️ API returned 0 bookings. This might mean:`);
-              console.warn(`[LINE Bookings] 1. The booking was just created and hasn't been committed yet`);
-              console.warn(`[LINE Bookings] 2. The API is pointing to production (Render) which hasn't deployed the fix yet`);
-              console.warn(`[LINE Bookings] 3. Check if NEXT_PUBLIC_API_URL is set correctly`);
-            }
-            
-            // DEBUG: Verify bookings have required fields
             if (bookingsData.length > 0) {
               bookingsData.forEach((booking: any, index: number) => {
-                console.log(`[LINE Bookings] Booking ${index}:`, {
+                console.log(`[LINE Bookings Frontend] Booking ${index + 1}:`, {
                   id: booking.id,
                   customer_id: booking.customer_id,
                   source: booking.source,
-                  booking_type: booking.booking_type, // Legacy
-                  line_user_id: booking.line_user_id, // Legacy
                   shop: booking.shops?.name || (Array.isArray(booking.shops) ? booking.shops[0]?.name : 'N/A'),
                   service: booking.services?.name || (Array.isArray(booking.services) ? booking.services[0]?.name : 'N/A'),
+                  status: booking.status,
                 });
               });
             }
-          } else {
-            const errorText = await bookingsRes.text();
-            console.error(`[LINE Bookings] ❌ Failed to fetch LINE bookings:`, bookingsRes.status, errorText);
-            console.error(`[LINE Bookings] API URL: ${apiUrl}`);
-            console.error(`[LINE Bookings] Endpoint: ${apiUrl}/api/line/bookings?line_user_id=${profile.userId}`);
             
-            // Check if error is the duration column issue
-            if (errorText.includes('duration') || errorText.includes('column services')) {
-              const errorMsg = `API Error: Production API needs update. Using fallback query...`;
-              console.error(`[LINE Bookings] ⚠️ CRITICAL: API is still using old code with 'duration' column bug.`);
-              console.error(`[LINE Bookings] ⚠️ The production API (Render) needs to be deployed with the fix.`);
-              console.error(`[LINE Bookings] ⚠️ Fix: Changed services.duration to services.duration_minutes`);
-              setError(errorMsg);
-            } else {
-              setError(`Failed to load bookings (${bookingsRes.status}). Trying fallback...`);
-            }
-            
-            // Fallback: try customer bookings history endpoint
-            if (userData.id) {
-              console.log(`[LINE Bookings] Trying fallback endpoint with user_id: ${userData.id}`);
-              const fallbackRes = await fetch(
-                `${apiUrl}/api/customer/bookings/history`,
-                {
-                  headers: {
-                    'x-user-id': userData.id,
-                  }
-                }
-              );
-              
-              if (fallbackRes.ok) {
-                const fallbackData = await fallbackRes.json();
-                bookingsData = fallbackData.bookings || fallbackData || [];
-                console.log(`[LINE Bookings] ✅ Fallback loaded ${bookingsData.length} bookings`);
-                setError(""); // Clear error on success
-              } else {
-                const fallbackError = await fallbackRes.text();
-                console.error(`[LINE Bookings] ❌ Fallback also failed:`, fallbackError);
-                
-                // Last resort: Try direct Supabase query via frontend
-                console.log(`[LINE Bookings] Attempting direct Supabase query as last resort...`);
-                setError("API unavailable. Trying direct database query...");
-                try {
-                  const { getSupabaseClient } = await import('@/lib/supabaseClient');
-                  const supabase = getSupabaseClient();
-                  
-                  // Get customer_id from line_accounts first
-                  const { data: lineAccount } = await supabase
-                    .from('line_accounts')
-                    .select('customer_id')
-                    .eq('line_user_id', profile.userId)
-                    .single();
-                  
-                  if (!lineAccount?.customer_id) {
-                    console.error(`[LINE Bookings] ❌ No line_account found for line_user_id: ${profile.userId}`);
-                    setError(`No account found for LINE user. Please try again.`);
-                    return;
-                  }
-                  
-                  const { data: directBookings, error: directError } = await supabase
-                    .from('bookings')
-                    .select(`
-                      *,
-                      shops:shop_id (id, name, address, phone),
-                      services:service_id (id, name, price, duration_minutes)
-                    `)
-                    .eq('customer_id', lineAccount.customer_id)
-                    .eq('source', 'line')
-                    .order('created_at', { ascending: false });
-                  
-                  if (!directError && directBookings) {
-                    bookingsData = directBookings;
-                    console.log(`[LINE Bookings] ✅ Direct Supabase query loaded ${bookingsData.length} bookings`);
-                    setError(""); // Clear error on success
-                  } else {
-                    console.error(`[LINE Bookings] ❌ Direct Supabase query failed:`, directError);
-                    setError(`Database query failed: ${directError?.message || 'Unknown error'}`);
-                  }
-                } catch (supabaseError: any) {
-                  console.error(`[LINE Bookings] ❌ Direct Supabase query error:`, supabaseError);
-                  setError(`Query error: ${supabaseError?.message || 'Unknown error'}`);
-                }
-              }
-            }
+            setBookings(bookingsData);
+            setError(""); // Clear error on success
+          } catch (parseError: any) {
+            console.error(`[LINE Bookings Frontend] ❌ Failed to parse response:`, parseError);
+            setError(`Failed to parse server response: ${parseError?.message || 'Unknown error'}`);
+            setBookings([]);
+          }
+        } else {
+          // BUG 1 FIX: Error visibility - log exact error message
+          const errorText = await bookingsRes.text();
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { error: errorText || `HTTP ${bookingsRes.status}` };
           }
           
-          setBookings(bookingsData);
+          console.error(`[LINE Bookings Frontend] ❌ API error (${bookingsRes.status}):`, errorData);
+          console.error(`[LINE Bookings Frontend] ❌ Error details:`, errorData.details || errorData.error);
           
-          // Clear error if we got bookings
-          if (bookingsData.length > 0) {
-            setError("");
-          } else if (!error) {
-            // Only set error if we didn't already set one above
-            setError("No bookings found. If you just created a booking, wait a few seconds and refresh.");
-          }
+          // Do NOT silently set empty bookings - show error
+          setError(`Failed to load bookings: ${errorData.details || errorData.error || `HTTP ${bookingsRes.status}`}`);
+          setBookings([]);
         }
       } catch (error: any) {
-        console.error("Error loading bookings:", error);
+        console.error(`[LINE Bookings Frontend] ❌ Unexpected error:`, error);
         setError(`Error: ${error?.message || 'Failed to load bookings'}`);
+        setBookings([]);
       } finally {
         setLoading(false);
       }
     } else {
+      setError("LINE app is not available. Please open this page in the LINE app.");
       setLoading(false);
     }
   };

@@ -198,7 +198,9 @@ export default function LineShopDetailPage() {
         setTimeSlots([]);
         // Redirect to bookings page after 2 seconds
         setTimeout(() => {
-          router.push(`/line-app/bookings?success=true`);
+          // BUG 1 FIX: After booking success, navigate with refresh flag
+          // The bookings page will use ID token endpoint to fetch immediately
+          router.push(`/line-app/bookings?success=true&refresh=${Date.now()}`);
         }, 2000);
       } else {
         const errorData = await res.json().catch(() => ({ error: "Failed to create booking" }));

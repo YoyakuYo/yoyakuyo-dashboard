@@ -55,6 +55,7 @@ interface Timeslot {
 const BookingsPage = () => {
     const { user } = useAuth();
     const { setUnreadBookingsCount } = useBookingNotifications();
+    const pathname = usePathname();
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [shops, setShops] = useState<Shop[]>([]);
     const [services, setServices] = useState<Service[]>([]);
@@ -87,12 +88,31 @@ const BookingsPage = () => {
     } | null>(null);
     const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-    // CRITICAL: Mark notifications as read ONLY when owner explicitly views bookings page
-    // This ensures badge appears on dashboard and only clears when bookings are viewed
+    // BUG 2 FIX: Mark notifications as read ONLY when owner explicitly opens bookings page
+    // DO NOT auto-mark on mount, login, or websocket connect
+    // Only mark when owner is actually viewing the bookings page
+    const [hasMarkedAsRead, setHasMarkedAsRead] = useState(false);
+    const isFirstRender = useRef(true);
+    
     useEffect(() => {
-        const markNotificationsAsRead = async () => {
-            if (!user?.id) return;
-            
+        // BUG 2 FIX 5: Remove auto-read logic
+        // Only mark as read when owner explicitly views the page (not on mount)
+        if (!user?.id || hasMarkedAsRead) return;
+        
+        // Skip on first render (prevents auto-marking on mount/login)
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+        
+        // Only mark as read when owner is on the bookings page
+        if (pathname !== '/bookings') {
+            return;
+        }
+        
+        // Only mark as read after owner has been on the page for a moment
+        // This ensures they're actually viewing the page, not just passing through
+        const timer = setTimeout(async () => {
             try {
                 const supabase = getSupabaseClient();
                 
@@ -108,7 +128,7 @@ const BookingsPage = () => {
                 
                 const shopIds = shops.map(s => s.id);
                 
-                // Mark all unread notifications as read for owner's shops
+                // BUG 2 FIX: Mark all unread notifications as read
                 // This happens when owner explicitly opens the bookings page
                 const { error: updateError } = await supabase
                     .from('shop_notifications')
@@ -117,22 +137,21 @@ const BookingsPage = () => {
                     .eq('is_read', false);
                 
                 if (updateError) {
-                    console.error('Error marking notifications as read:', updateError);
+                    console.error('[Bookings Page] ❌ Error marking notifications as read:', updateError);
                 } else {
-                    // Reset count after marking as read (owner has viewed bookings)
+                    // BUG 2 FIX 6: Force badge refresh after marking as read
+                    // The useBookingNotifications hook will reload the count via realtime
                     setUnreadBookingsCount(0);
-                    console.log('[Bookings Page] Marked notifications as read for shops:', shopIds);
+                    console.log('[Bookings Page] ✅ Marked notifications as read for shops:', shopIds);
+                    setHasMarkedAsRead(true);
                 }
             } catch (error) {
-                console.error('Error marking notifications as read:', error);
+                console.error('[Bookings Page] ❌ Error marking notifications as read:', error);
             }
-        };
+        }, 2000); // 2 second delay to ensure owner is actually viewing the page
         
-        // Only mark as read when bookings are actually loaded (owner is viewing the page)
-        if (bookings.length > 0) {
-            markNotificationsAsRead();
-        }
-    }, [user?.id, bookings.length, setUnreadBookingsCount]);
+        return () => clearTimeout(timer);
+    }, [user?.id, pathname, setUnreadBookingsCount, hasMarkedAsRead]);
 
     // Subscribe to ALL new bookings (not just AI-created)
     useEffect(() => {
