@@ -47,11 +47,124 @@ CREATE TABLE IF NOT EXISTS conversations (
     UNIQUE(shop_id, customer_ref)
 );
 
+-- Add missing columns if table exists without them (for existing tables from partial runs)
+DO $$
+BEGIN
+    -- Add booking_id if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'conversations' 
+        AND column_name = 'booking_id'
+    ) THEN
+        ALTER TABLE conversations 
+        ADD COLUMN booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL;
+        RAISE NOTICE 'Added booking_id column to conversations';
+    END IF;
+    
+    -- Add customer_type if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'conversations' 
+        AND column_name = 'customer_type'
+    ) THEN
+        ALTER TABLE conversations 
+        ADD COLUMN customer_type customer_type_enum NOT NULL DEFAULT 'web';
+        RAISE NOTICE 'Added customer_type column to conversations';
+    END IF;
+    
+    -- Add customer_ref if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'conversations' 
+        AND column_name = 'customer_ref'
+    ) THEN
+        ALTER TABLE conversations 
+        ADD COLUMN customer_ref TEXT NOT NULL DEFAULT '';
+        RAISE NOTICE 'Added customer_ref column to conversations';
+    END IF;
+    
+    -- Add last_message_at if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'conversations' 
+        AND column_name = 'last_message_at'
+    ) THEN
+        ALTER TABLE conversations 
+        ADD COLUMN last_message_at TIMESTAMPTZ;
+        RAISE NOTICE 'Added last_message_at column to conversations';
+    END IF;
+    
+    -- Add created_at if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'conversations' 
+        AND column_name = 'created_at'
+    ) THEN
+        ALTER TABLE conversations 
+        ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+        RAISE NOTICE 'Added created_at column to conversations';
+    END IF;
+END $$;
+
+-- Add unique constraint if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'conversations_shop_id_customer_ref_key'
+    ) THEN
+        ALTER TABLE conversations 
+        ADD CONSTRAINT conversations_shop_id_customer_ref_key 
+        UNIQUE(shop_id, customer_ref);
+        RAISE NOTICE 'Added unique constraint on (shop_id, customer_ref)';
+    END IF;
+END $$;
+
 -- Create indexes
 CREATE INDEX IF NOT EXISTS conversations_shop_id_idx ON conversations(shop_id);
-CREATE INDEX IF NOT EXISTS conversations_booking_id_idx ON conversations(booking_id) WHERE booking_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS conversations_customer_ref_idx ON conversations(customer_ref);
-CREATE INDEX IF NOT EXISTS conversations_last_message_at_idx ON conversations(last_message_at DESC);
+
+-- Only create booking_id index if column exists
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'conversations' 
+        AND column_name = 'booking_id'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS conversations_booking_id_idx 
+        ON conversations(booking_id) 
+        WHERE booking_id IS NOT NULL;
+        RAISE NOTICE 'Created booking_id index';
+    END IF;
+END $$;
+
+-- Only create customer_ref index if column exists
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'conversations' 
+        AND column_name = 'customer_ref'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS conversations_customer_ref_idx 
+        ON conversations(customer_ref);
+        RAISE NOTICE 'Created customer_ref index';
+    END IF;
+END $$;
+
+-- Only create last_message_at index if column exists
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'conversations' 
+        AND column_name = 'last_message_at'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS conversations_last_message_at_idx 
+        ON conversations(last_message_at DESC);
+        RAISE NOTICE 'Created last_message_at index';
+    END IF;
+END $$;
 
 -- ============================================
 -- STEP 4: Create messages table
