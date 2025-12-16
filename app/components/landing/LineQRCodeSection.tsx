@@ -68,7 +68,7 @@ export default function LineQRCodeSection() {
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
             {/* Left: Content - Compact */}
             <div className="flex-1 text-center md:text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold mb-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
                 <span>📱</span>
                 <span>{t('landing.lineBadge') || 'LINE Official Account'}</span>
               </div>
