@@ -212,10 +212,95 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Create indexes
-CREATE INDEX IF NOT EXISTS messages_conversation_id_idx ON messages(conversation_id);
-CREATE INDEX IF NOT EXISTS messages_is_read_idx ON messages(is_read) WHERE is_read = false;
-CREATE INDEX IF NOT EXISTS messages_created_at_idx ON messages(created_at);
+-- Add missing columns if table exists without them (for existing tables from partial runs)
+DO $$
+BEGIN
+    -- Add conversation_id if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'messages' 
+        AND column_name = 'conversation_id'
+    ) THEN
+        ALTER TABLE messages 
+        ADD COLUMN conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE;
+        RAISE NOTICE 'Added conversation_id column to messages';
+    END IF;
+    
+    -- Add sender_type if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'messages' 
+        AND column_name = 'sender_type'
+    ) THEN
+        ALTER TABLE messages 
+        ADD COLUMN sender_type sender_type_enum NOT NULL DEFAULT 'customer';
+        RAISE NOTICE 'Added sender_type column to messages';
+    END IF;
+    
+    -- Add body if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'messages' 
+        AND column_name = 'body'
+    ) THEN
+        ALTER TABLE messages 
+        ADD COLUMN body TEXT NOT NULL DEFAULT '';
+        RAISE NOTICE 'Added body column to messages';
+    END IF;
+    
+    -- Add is_read if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'messages' 
+        AND column_name = 'is_read'
+    ) THEN
+        ALTER TABLE messages 
+        ADD COLUMN is_read BOOLEAN NOT NULL DEFAULT false;
+        RAISE NOTICE 'Added is_read column to messages';
+    END IF;
+    
+    -- Add created_at if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'messages' 
+        AND column_name = 'created_at'
+    ) THEN
+        ALTER TABLE messages 
+        ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+        RAISE NOTICE 'Added created_at column to messages';
+    END IF;
+END $$;
+
+-- Create indexes (only if columns exist)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'messages' 
+        AND column_name = 'conversation_id'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS messages_conversation_id_idx ON messages(conversation_id);
+        RAISE NOTICE 'Created conversation_id index';
+    END IF;
+    
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'messages' 
+        AND column_name = 'is_read'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS messages_is_read_idx ON messages(is_read) WHERE is_read = false;
+        RAISE NOTICE 'Created is_read index';
+    END IF;
+    
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'messages' 
+        AND column_name = 'created_at'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS messages_created_at_idx ON messages(created_at);
+        RAISE NOTICE 'Created created_at index';
+    END IF;
+END $$;
 
 -- ============================================
 -- STEP 5: Enable RLS
