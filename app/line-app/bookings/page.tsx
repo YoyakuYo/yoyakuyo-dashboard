@@ -5,6 +5,162 @@ import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 
+// PART 5: Reviews section component for LINE dashboard
+function ReviewsSection({ shopId, lineUserId }: { shopId: string; lineUserId: string }) {
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [content, setContent] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/reviews?shop_id=${shopId}&limit=10`);
+        if (res.ok) {
+          const data = await res.json();
+          setReviews(Array.isArray(data) ? data : []);
+        }
+      } catch (error) {
+        console.error('Error fetching reviews:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (shopId) {
+      fetchReviews();
+    }
+  }, [shopId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rating === 0 || !content.trim()) return;
+
+    setSubmitting(true);
+    try {
+      // Get ID token for LINE user
+      let idToken: string | null = null;
+      if (typeof window !== "undefined" && window.liff) {
+        idToken = await window.liff.getIDToken();
+      }
+
+      const res = await fetch(`${apiUrl}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(idToken && { 'x-id-token': idToken }),
+          ...(lineUserId && { 'x-line-user-id': lineUserId }),
+        },
+        body: JSON.stringify({
+          shop_id: shopId,
+          rating,
+          content: content.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        setShowForm(false);
+        setRating(0);
+        setContent('');
+        // Reload reviews
+        const reviewsRes = await fetch(`${apiUrl}/reviews?shop_id=${shopId}&limit=10`);
+        if (reviewsRes.ok) {
+          const data = await reviewsRes.json();
+          setReviews(Array.isArray(data) ? data : []);
+        }
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div>
+      <h4 className="font-semibold mb-3">Reviews</h4>
+      {showForm ? (
+        <form onSubmit={handleSubmit} className="mb-4 space-y-3">
+          <div>
+            <label className="block text-sm font-medium mb-1">Rating *</label>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  className={`text-2xl ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Your review *</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={3}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={submitting || rating === 0 || !content.trim()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50"
+            >
+              {submitting ? 'Submitting...' : 'Submit'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button
+          onClick={() => setShowForm(true)}
+          className="mb-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          Write Review
+        </button>
+      )}
+      {loading ? (
+        <p className="text-gray-500 text-sm">Loading reviews...</p>
+      ) : reviews.length === 0 ? (
+        <p className="text-gray-500 text-sm">No reviews yet.</p>
+      ) : (
+        <div className="space-y-3">
+          {reviews.map((review) => (
+            <div key={review.id} className="border-b border-gray-200 pb-3">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="flex">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span key={star} className={`text-sm ${star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}`}>
+                      ★
+                    </span>
+                  ))}
+                </div>
+                <span className="text-xs text-gray-500">
+                  {review.guest_name || 'Customer'} • {new Date(review.created_at).toLocaleDateString()}
+                </span>
+              </div>
+              <p className="text-sm text-gray-700">{review.content || review.comment}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface Booking {
   id: string;
   customer_id?: string;
