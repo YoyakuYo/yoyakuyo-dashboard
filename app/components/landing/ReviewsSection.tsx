@@ -16,15 +16,19 @@ export default function ReviewsSection() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (rating === 0) {
-      setError('Please select a rating');
+    // Rating is optional - allow submission with just a comment
+    if (rating === 0 && (!comment || comment.trim().length === 0)) {
+      setError('Please provide a rating or comment');
       return;
     }
 
-    if (comment.length > 2000) {
+    if (comment && comment.length > 2000) {
       setError('Review must be 2000 characters or less');
       return;
     }
+
+    // If no rating provided, default to 3 (neutral)
+    const finalRating = rating === 0 ? 3 : rating;
 
     setSubmitting(true);
     setError(null);
@@ -37,7 +41,7 @@ export default function ReviewsSection() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          rating,
+          rating: finalRating,
           comment: comment.trim() || undefined,
           platform: 'yoyakuyo',
         }),
@@ -156,7 +160,7 @@ export default function ReviewsSection() {
             <div className="text-center">
               <button
                 type="submit"
-                disabled={submitting || rating === 0}
+                disabled={submitting}
                 className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {submitting ? 'Submitting...' : 'Submit Review'}
