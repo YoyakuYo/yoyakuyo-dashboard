@@ -345,27 +345,59 @@ Booking Details:
       return;
     }
 
-    // Build internal messaging URL
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-    const messagesUrl = `${appUrl}/messages?shop_id=${shopId}&booking_id=${booking.id}`;
-    
-    console.log("[LINE Bookings] Opening internal messaging:", messagesUrl);
-    
-    // Open internal messaging page in LIFF (not external)
-    if (typeof window !== "undefined" && window.liff) {
-      try {
-        window.liff.openWindow({
-          url: messagesUrl,
-          external: false, // Open inside LIFF (leaf)
-        });
-      } catch (openError) {
-        console.error("[LINE Bookings] Failed to open messaging page:", openError);
-        // Fallback: navigate in same window
+    // PART 1.3: Create or get conversation first, then redirect with conversation_id
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:10000';
+      const idToken = await window.liff.getIDToken();
+      
+      // Create or get conversation
+      const convRes = await fetch(`${apiUrl}/api/internal-messaging/conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-line-user-id': lineUserId,
+          'x-id-token': idToken,
+        },
+        body: JSON.stringify({
+          shop_id: shopId,
+          booking_id: booking.id || null,
+          customer_type: 'line',
+          customer_ref: lineUserId, // PART 1.1: Normalize using line_user_id
+        }),
+      });
+      
+      if (!convRes.ok) {
+        throw new Error('Failed to create conversation');
+      }
+      
+      const convData = await convRes.json();
+      const conversationId = convData.conversation_id;
+      
+      // Build internal messaging URL with conversation_id
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      const messagesUrl = `${appUrl}/messages?conversation_id=${conversationId}`;
+      
+      console.log("[LINE Bookings] Opening internal messaging:", messagesUrl);
+      
+      // Open internal messaging page in LIFF (not external)
+      if (typeof window !== "undefined" && window.liff) {
+        try {
+          window.liff.openWindow({
+            url: messagesUrl,
+            external: false, // Open inside LIFF (leaf)
+          });
+        } catch (openError) {
+          console.error("[LINE Bookings] Failed to open messaging page:", openError);
+          // Fallback: navigate in same window
+          window.location.href = messagesUrl;
+        }
+      } else {
+        // Fallback for non-LIFF environments
         window.location.href = messagesUrl;
       }
-    } else {
-      // Fallback for non-LIFF environments
-      window.location.href = messagesUrl;
+    } catch (error) {
+      console.error("[LINE Bookings] Error creating conversation:", error);
+      alert('Failed to start conversation. Please try again.');
     }
   };
 
