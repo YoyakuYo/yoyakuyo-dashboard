@@ -156,14 +156,17 @@ DECLARE
     v_close_time TEXT;
     v_hours_text TEXT := '';
 BEGIN
-    -- Get shop profile
-    SELECT * INTO v_shop FROM shops WHERE id = p_shop_id;
+    -- Get shop profile (only needed columns to reduce memory)
+    SELECT id, name, description, address, phone, email, opening_hours 
+    INTO v_shop.id, v_shop.name, v_shop.description, v_shop.address, v_shop.phone, v_shop.email, v_shop.opening_hours
+    FROM shops 
+    WHERE id = p_shop_id;
     
     IF v_shop.id IS NULL THEN
         RAISE EXCEPTION 'Shop not found: %', p_shop_id;
     END IF;
     
-    -- Delete existing knowledge for this shop
+    -- Delete existing knowledge for this shop (more efficient than checking)
     DELETE FROM shop_ai_knowledge WHERE shop_id = p_shop_id;
     
     -- Insert shop profile knowledge
