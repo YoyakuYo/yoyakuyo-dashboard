@@ -23,22 +23,26 @@ export default function ReviewsSection() {
   const [reviews, setReviews] = useState<PlatformReview[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
 
-  useEffect(() => {
-    const fetchReviews = async () => {
-      try {
-        setLoadingReviews(true);
-        const response = await fetch(`${apiUrl}/reviews/platform-reviews?limit=10`);
-        if (response.ok) {
-          const data = await response.json();
-          setReviews(data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching platform reviews:', error);
-      } finally {
-        setLoadingReviews(false);
+  const fetchReviews = async () => {
+    try {
+      setLoadingReviews(true);
+      const response = await fetch(`${apiUrl}/reviews/platform-reviews?limit=10`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[ReviewsSection] Fetched reviews:', data);
+        setReviews(data || []);
+      } else {
+        const errorText = await response.text();
+        console.error('[ReviewsSection] Failed to fetch reviews:', response.status, errorText);
       }
-    };
+    } catch (error) {
+      console.error('[ReviewsSection] Error fetching platform reviews:', error);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
 
+  useEffect(() => {
     fetchReviews();
   }, []);
 
@@ -81,20 +85,16 @@ export default function ReviewsSection() {
         throw new Error(errorData.error || 'Failed to submit review');
       }
 
+      // Refresh reviews list to show the new review
+      await fetchReviews();
+      
       setSubmitted(true);
       setRating(0);
       setComment('');
       
-      // Refresh reviews list to show the new review
-      const refreshResponse = await fetch(`${apiUrl}/reviews/platform-reviews?limit=10`);
-      if (refreshResponse.ok) {
-        const refreshData = await refreshResponse.json();
-        setReviews(refreshData || []);
-      }
-      
       setTimeout(() => {
         setSubmitted(false);
-      }, 5000);
+      }, 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to submit review');
     } finally {
@@ -127,6 +127,15 @@ export default function ReviewsSection() {
             How was your experience using Yoyaku Yo? We'd love to hear from you!
           </p>
         </div>
+
+        {/* Success Message */}
+        {submitted && (
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+            <div className="text-4xl mb-2">✓</div>
+            <h3 className="text-lg font-semibold text-green-800 mb-1">Thank you for your review!</h3>
+            <p className="text-green-700 text-sm">Your feedback helps us improve Yoyaku Yo.</p>
+          </div>
+        )}
 
         <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8">
           <form onSubmit={handleSubmit}>
