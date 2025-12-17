@@ -646,8 +646,7 @@ export default function LineShopDetailPage() {
       </div>
     </div>
   );
-  
-  const handleReviewSubmit = async (e: React.FormEvent) => {
+}
     e.preventDefault();
     if (reviewRating === 0 || !reviewContent.trim()) return;
 
