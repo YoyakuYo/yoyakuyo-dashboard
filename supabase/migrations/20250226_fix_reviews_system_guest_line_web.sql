@@ -129,11 +129,12 @@ CREATE POLICY "Owners can respond to reviews"
   );
 
 -- Add constraint to ensure proper author_type usage
+-- Note: We use customer_id (existing) for user reviews, user_id is optional for future use
 ALTER TABLE reviews DROP CONSTRAINT IF EXISTS reviews_author_type_constraint;
 ALTER TABLE reviews ADD CONSTRAINT reviews_author_type_constraint CHECK (
-  (author_type = 'guest' AND guest_name IS NOT NULL AND (user_id IS NULL OR customer_id IS NULL) AND line_user_id IS NULL) OR
-  (author_type = 'user' AND (user_id IS NOT NULL OR customer_id IS NOT NULL) AND line_user_id IS NULL AND guest_name IS NULL) OR
-  (author_type = 'line' AND line_user_id IS NOT NULL AND (user_id IS NULL OR customer_id IS NULL) AND guest_name IS NULL) OR
+  (author_type = 'guest' AND guest_name IS NOT NULL AND customer_id IS NULL AND (user_id IS NULL OR user_id IS NULL) AND line_user_id IS NULL) OR
+  (author_type = 'user' AND (customer_id IS NOT NULL OR user_id IS NOT NULL) AND line_user_id IS NULL AND guest_name IS NULL) OR
+  (author_type = 'line' AND line_user_id IS NOT NULL AND customer_id IS NULL AND (user_id IS NULL OR user_id IS NULL) AND guest_name IS NULL) OR
   (author_type IS NULL) -- Allow NULL for backward compatibility during migration
 );
 
