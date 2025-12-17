@@ -73,6 +73,7 @@ export default function CategoryCard({
                     className="object-cover object-center rounded-xl brightness-100 contrast-100"
                     unoptimized
                     style={{ minHeight: '190px' }}
+                    referrerPolicy="no-referrer"
                     onLoad={() => {
                       const newLoaded = [...imagesLoaded];
                       newLoaded[index] = true;

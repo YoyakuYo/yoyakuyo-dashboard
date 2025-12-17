@@ -59,6 +59,7 @@ export default function HeroCarousel() {
             priority={index === 0}
             unoptimized
             quality={100}
+            referrerPolicy="no-referrer"
           />
         </div>
       ))}
