@@ -41,6 +41,17 @@ interface TimeSlot {
   end_time: string;
 }
 
+interface Review {
+  id: string;
+  rating: number;
+  content?: string;
+  comment?: string; // Legacy field
+  customer_name?: string;
+  guest_name?: string;
+  author_type?: 'guest' | 'user' | 'line';
+  created_at: string;
+}
+
 export default function LineShopDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -58,6 +69,15 @@ export default function LineShopDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingError, setBookingError] = useState<string>("");
+  
+  // Reviews state
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewContent, setReviewContent] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [lineUserId, setLineUserId] = useState<string>("");
 
   useEffect(() => {
     if (!shopId) return;
@@ -90,6 +110,41 @@ export default function LineShopDetailPage() {
 
     fetchShop();
     fetchServices();
+    
+    // Get LINE user ID for reviews
+    const getLineUserId = async () => {
+      if (typeof window !== "undefined" && window.liff) {
+        try {
+          const profile = await window.liff.getProfile();
+          setLineUserId(profile.userId);
+        } catch (err) {
+          console.error("Error getting LINE profile:", err);
+        }
+      }
+    };
+    getLineUserId();
+  }, [shopId]);
+  
+  // Fetch reviews
+  useEffect(() => {
+    if (!shopId) return;
+    
+    const fetchReviews = async () => {
+      try {
+        setLoadingReviews(true);
+        const res = await fetch(`${apiUrl}/reviews?shop_id=${shopId}&limit=10`);
+        if (res.ok) {
+          const data = await res.json();
+          setReviews(Array.isArray(data) ? data : []);
+        }
+      } catch (error) {
+        console.error('Error fetching reviews:', error);
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+    
+    fetchReviews();
   }, [shopId]);
 
   // Fetch time slots when date is selected
@@ -449,8 +504,147 @@ export default function LineShopDetailPage() {
             </form>
           )}
         </div>
+
+        {/* Reviews Section */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+          <h3 className="text-2xl font-bold text-gray-900 mb-4">⭐ Reviews</h3>
+          
+          {showReviewForm ? (
+            <div className="mb-6">
+              <form onSubmit={handleReviewSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Rating *</label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewRating(star)}
+                        className={`text-3xl ${star <= reviewRating ? 'text-yellow-400' : 'text-gray-300'}`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Your review *</label>
+                  <textarea
+                    value={reviewContent}
+                    onChange={(e) => setReviewContent(e.target.value)}
+                    rows={4}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="Share your experience..."
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={submittingReview || reviewRating === 0 || !reviewContent.trim()}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50"
+                  >
+                    {submittingReview ? 'Submitting...' : 'Submit Review'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowReviewForm(false);
+                      setReviewRating(0);
+                      setReviewContent('');
+                    }}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowReviewForm(true)}
+              className="mb-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Write Review
+            </button>
+          )}
+          
+          {loadingReviews ? (
+            <p className="text-gray-500 text-sm">Loading reviews...</p>
+          ) : reviews.length === 0 ? (
+            <p className="text-gray-500 text-sm">No reviews yet. Be the first to review!</p>
+          ) : (
+            <div className="space-y-4">
+              {reviews.map((review) => (
+                <div key={review.id} className="border-b border-gray-200 pb-4 last:border-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span key={star} className={`text-sm ${star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}`}>
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {review.guest_name || review.customer_name || 'Customer'} • {new Date(review.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700">{review.content || review.comment}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
+  
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (reviewRating === 0 || !reviewContent.trim()) return;
+
+    setSubmittingReview(true);
+    try {
+      // Get ID token for LINE user
+      let idToken: string | null = null;
+      if (typeof window !== "undefined" && window.liff) {
+        idToken = await window.liff.getIDToken();
+      }
+
+      const res = await fetch(`${apiUrl}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(idToken && { 'x-id-token': idToken }),
+          ...(lineUserId && { 'x-line-user-id': lineUserId }),
+        },
+        body: JSON.stringify({
+          shop_id: shopId,
+          rating: reviewRating,
+          content: reviewContent.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        setShowReviewForm(false);
+        setReviewRating(0);
+        setReviewContent('');
+        // Reload reviews
+        const reviewsRes = await fetch(`${apiUrl}/reviews?shop_id=${shopId}&limit=10`);
+        if (reviewsRes.ok) {
+          const data = await reviewsRes.json();
+          setReviews(Array.isArray(data) ? data : []);
+        }
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to submit review' }));
+        alert(errorData.error || 'Failed to submit review');
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert('Failed to submit review. Please try again.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 }
 
