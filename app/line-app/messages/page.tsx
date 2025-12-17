@@ -6,9 +6,19 @@ import { apiUrl } from "@/lib/apiClient";
 import { createClient } from "@supabase/supabase-js";
 
 // Initialize Supabase client for realtime
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+// PART 4: Realtime subscription for live message updates
+let supabase: ReturnType<typeof createClient> | null = null;
+try {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  if (supabaseUrl && supabaseAnonKey) {
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+  } else {
+    console.warn('[Messages] Supabase env vars not configured, realtime disabled');
+  }
+} catch (error) {
+  console.error('[Messages] Failed to initialize Supabase client:', error);
+}
 
 interface Message {
   id: string;
