@@ -96,7 +96,7 @@ export default function ReviewsSection() {
             {/* Rating Selection */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Rate your experience *
+                Rate your experience (optional)
               </label>
               <div className="flex gap-2 justify-center">
                 {[1, 2, 3, 4, 5].map((star) => (
