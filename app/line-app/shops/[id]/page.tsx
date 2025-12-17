@@ -281,6 +281,54 @@ export default function LineShopDetailPage() {
     return dates;
   };
 
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (reviewRating === 0 || !reviewContent.trim()) return;
+
+    setSubmittingReview(true);
+    try {
+      // Get ID token for LINE user
+      let idToken: string | null = null;
+      if (typeof window !== "undefined" && window.liff) {
+        idToken = await window.liff.getIDToken();
+      }
+
+      const res = await fetch(`${apiUrl}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(idToken && { 'x-id-token': idToken }),
+          ...(lineUserId && { 'x-line-user-id': lineUserId }),
+        },
+        body: JSON.stringify({
+          shop_id: shopId,
+          rating: reviewRating,
+          content: reviewContent.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        setShowReviewForm(false);
+        setReviewRating(0);
+        setReviewContent('');
+        // Reload reviews
+        const reviewsRes = await fetch(`${apiUrl}/reviews?shop_id=${shopId}&limit=10`);
+        if (reviewsRes.ok) {
+          const data = await reviewsRes.json();
+          setReviews(Array.isArray(data) ? data : []);
+        }
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to submit review' }));
+        alert(errorData.error || 'Failed to submit review');
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert('Failed to submit review. Please try again.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
