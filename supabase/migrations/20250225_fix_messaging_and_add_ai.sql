@@ -149,7 +149,12 @@ AS $$
 DECLARE
     v_shop shops%ROWTYPE;
     v_service services%ROWTYPE;
-    v_hours shop_opening_hours%ROWTYPE;
+    v_opening_hours JSONB;
+    v_day TEXT;
+    v_day_data JSONB;
+    v_open_time TEXT;
+    v_close_time TEXT;
+    v_hours_text TEXT := '';
 BEGIN
     -- Get shop profile
     SELECT * INTO v_shop FROM shops WHERE id = p_shop_id;
@@ -199,23 +204,47 @@ BEGIN
         );
     END LOOP;
     
-    -- Insert opening hours knowledge
-    FOR v_hours IN SELECT * FROM shop_opening_hours WHERE shop_id = p_shop_id
-    LOOP
+    -- Insert opening hours knowledge (from shops.opening_hours JSONB)
+    v_opening_hours := v_shop.opening_hours;
+    
+    IF v_opening_hours IS NOT NULL THEN
+        -- Parse JSONB opening_hours structure: {"monday": {"open": "10:00", "close": "19:00"}, ...}
+        FOR v_day IN SELECT unnest(ARRAY['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'])
+        LOOP
+            v_day_data := v_opening_hours->v_day;
+            
+            IF v_day_data IS NOT NULL AND jsonb_typeof(v_day_data) = 'object' THEN
+                v_open_time := v_day_data->>'open';
+                v_close_time := v_day_data->>'close';
+                
+                IF v_open_time IS NOT NULL AND v_close_time IS NOT NULL THEN
+                    v_hours_text := v_hours_text || initcap(v_day) || ': ' || v_open_time || ' - ' || v_close_time || E'\n';
+                ELSIF v_open_time IS NULL AND v_close_time IS NULL THEN
+                    v_hours_text := v_hours_text || initcap(v_day) || ': Closed' || E'\n';
+                END IF;
+            END IF;
+        END LOOP;
+        
+        -- Insert opening hours knowledge
+        IF length(v_hours_text) > 0 THEN
+            INSERT INTO shop_ai_knowledge (shop_id, knowledge_type, content, metadata)
+            VALUES (
+                p_shop_id,
+                'hours',
+                trim(v_hours_text),
+                jsonb_build_object('opening_hours', v_opening_hours)
+            );
+        END IF;
+    ELSE
+        -- No opening hours data, insert default message
         INSERT INTO shop_ai_knowledge (shop_id, knowledge_type, content, metadata)
         VALUES (
             p_shop_id,
             'hours',
-            v_hours.day_of_week || ': ' || 
-            COALESCE(v_hours.open_time::text, 'Closed') || ' - ' || 
-            COALESCE(v_hours.close_time::text, 'Closed'),
-            jsonb_build_object(
-                'day_of_week', v_hours.day_of_week,
-                'open_time', v_hours.open_time,
-                'close_time', v_hours.close_time
-            )
+            'Opening hours: Please contact the shop for hours.',
+            jsonb_build_object('opening_hours', 'null'::jsonb)
         );
-    END LOOP;
+    END IF;
     
     -- Insert booking rules knowledge
     INSERT INTO shop_ai_knowledge (shop_id, knowledge_type, content, metadata)
