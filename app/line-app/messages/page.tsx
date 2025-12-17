@@ -7,6 +7,7 @@ import { apiUrl } from "@/lib/apiClient";
 interface Message {
   id: string;
   conversation_id: string;
+  sender_role?: 'customer' | 'shop' | 'ai';
   sender_type: 'customer' | 'shop';
   body: string;
   is_read: boolean;
