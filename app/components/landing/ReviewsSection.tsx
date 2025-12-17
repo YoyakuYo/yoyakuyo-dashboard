@@ -110,20 +110,6 @@ export default function ReviewsSection() {
     }
   };
 
-  if (submitted) {
-    return (
-      <section className="py-16 md:py-24 bg-gray-50">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-8 text-center">
-            <div className="text-4xl mb-4">✓</div>
-            <h3 className="text-xl font-semibold text-green-800 mb-2">Thank you for your review!</h3>
-            <p className="text-green-700">Your feedback helps us improve Yoyaku Yo.</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className="py-16 md:py-24 bg-gray-50">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -223,12 +209,18 @@ export default function ReviewsSection() {
           </form>
         </div>
 
-        {/* Display Submitted Reviews */}
-        {reviews.length > 0 && (
-          <div className="mt-12">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-              What Others Are Saying
-            </h3>
+        {/* Display Submitted Reviews - ALWAYS VISIBLE */}
+        <div className="mt-12">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+            {reviews.length > 0 ? 'What Others Are Saying' : 'Reviews'}
+          </h3>
+          
+          {loadingReviews ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Loading reviews...</p>
+            </div>
+          ) : reviews.length > 0 ? (
             <div className="space-y-4">
               {reviews.map((review) => (
                 <div
@@ -281,24 +273,15 @@ export default function ReviewsSection() {
               ))}
             </div>
           ) : (
-            <>
-              {loadingReviews ? (
-                <div className="text-center py-8">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <p className="mt-4 text-gray-600">Loading reviews...</p>
-                </div>
-              ) : (
-                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                  <div className="text-4xl mb-4">💬</div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    No reviews yet
-                  </h3>
-                  <p className="text-gray-600 text-lg">
-                    Be the first to share your experience!
-                  </p>
-                </div>
-              )}
-            </>
+            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+              <div className="text-4xl mb-4">💬</div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                No reviews yet
+              </h3>
+              <p className="text-gray-600 text-lg">
+                Be the first to share your experience!
+              </p>
+            </div>
           )}
         </div>
       </div>
