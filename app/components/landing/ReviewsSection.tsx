@@ -1,8 +1,16 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
+
+interface PlatformReview {
+  id: string;
+  rating: number;
+  comment?: string;
+  customer_name?: string;
+  created_at: string;
+}
 
 export default function ReviewsSection() {
   const t = useTranslations();
@@ -12,6 +20,27 @@ export default function ReviewsSection() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [reviews, setReviews] = useState<PlatformReview[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        setLoadingReviews(true);
+        const response = await fetch(`${apiUrl}/reviews/platform-reviews?limit=10`);
+        if (response.ok) {
+          const data = await response.json();
+          setReviews(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching platform reviews:', error);
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+
+    fetchReviews();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +84,14 @@ export default function ReviewsSection() {
       setSubmitted(true);
       setRating(0);
       setComment('');
+      
+      // Refresh reviews list to show the new review
+      const refreshResponse = await fetch(`${apiUrl}/reviews/platform-reviews?limit=10`);
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json();
+        setReviews(refreshData || []);
+      }
+      
       setTimeout(() => {
         setSubmitted(false);
       }, 5000);
@@ -168,6 +205,79 @@ export default function ReviewsSection() {
             </div>
           </form>
         </div>
+
+        {/* Display Submitted Reviews */}
+        {reviews.length > 0 && (
+          <div className="mt-12">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+              What Others Are Saying
+            </h3>
+            <div className="space-y-4">
+              {reviews.map((review) => (
+                <div
+                  key={review.id}
+                  className="bg-white rounded-lg border border-gray-200 p-6"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <span
+                            key={star}
+                            className={`text-lg ${
+                              star <= review.rating
+                                ? 'text-yellow-400'
+                                : 'text-gray-300'
+                            }`}
+                          >
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-sm font-medium text-gray-700">
+                        {review.rating === 5 && 'Excellent'}
+                        {review.rating === 4 && 'Great'}
+                        {review.rating === 3 && 'Good'}
+                        {review.rating === 2 && 'Fair'}
+                        {review.rating === 1 && 'Poor'}
+                      </span>
+                    </div>
+                    <span className="text-sm text-gray-500">
+                      {new Date(review.created_at).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                  {review.comment && (
+                    <p className="text-gray-700 whitespace-pre-wrap">
+                      {review.comment}
+                    </p>
+                  )}
+                  {review.customer_name && (
+                    <p className="text-sm text-gray-500 mt-3">
+                      — {review.customer_name}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {loadingReviews && (
+          <div className="mt-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-gray-600">Loading reviews...</p>
+          </div>
+        )}
+
+        {!loadingReviews && reviews.length === 0 && (
+          <div className="mt-12 text-center">
+            <p className="text-gray-600">No reviews yet. Be the first to share your experience!</p>
+          </div>
+        )}
       </div>
     </section>
   );
