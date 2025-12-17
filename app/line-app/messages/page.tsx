@@ -188,32 +188,43 @@ export default function MessagesPage() {
             <p>No messages yet. Start the conversation!</p>
           </div>
         ) : (
-          messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.sender_type === 'customer' ? 'justify-end' : 'justify-start'}`}
-            >
+          messages.map((message) => {
+            const senderRole = message.sender_role || (message.sender_type === 'shop' ? 'shop' : 'customer');
+            const isCustomer = senderRole === 'customer';
+            const isAI = senderRole === 'ai';
+            
+            return (
               <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  message.sender_type === 'customer'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-white text-gray-900 border border-gray-200'
-                }`}
+                key={message.id}
+                className={`flex ${isCustomer ? 'justify-end' : 'justify-start'}`}
               >
-                <p className="text-sm whitespace-pre-wrap">{message.body}</p>
-                <p
-                  className={`text-xs mt-1 ${
-                    message.sender_type === 'customer' ? 'text-green-100' : 'text-gray-500'
+                <div
+                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    isCustomer
+                      ? 'bg-green-600 text-white'
+                      : isAI
+                      ? 'bg-purple-100 text-purple-900 border border-purple-300'
+                      : 'bg-white text-gray-900 border border-gray-200'
                   }`}
                 >
-                  {new Date(message.created_at).toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </p>
+                  {isAI && (
+                    <p className="text-xs font-semibold text-purple-700 mb-1">AI Assistant</p>
+                  )}
+                  <p className="text-sm whitespace-pre-wrap">{message.body}</p>
+                  <p
+                    className={`text-xs mt-1 ${
+                      isCustomer ? 'text-green-100' : isAI ? 'text-purple-600' : 'text-gray-500'
+                    }`}
+                  >
+                    {new Date(message.created_at).toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
