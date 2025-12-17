@@ -3,101 +3,176 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
-import ReviewCard from '../ReviewCard';
-import ReviewStats from '../ReviewStats';
+import ReviewForm from '../ReviewForm';
 import Link from 'next/link';
 
-interface Review {
+interface Shop {
   id: string;
-  shop_id: string;
-  rating: number;
-  comment?: string;
-  customer_name?: string;
-  created_at: string;
-  shops?: {
-    id: string;
-    name: string;
-  };
+  name: string;
 }
 
 export default function ReviewsSection() {
   const t = useTranslations();
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<any>(null);
+  const [shops, setShops] = useState<Shop[]>([]);
+  const [selectedShopId, setSelectedShopId] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchRecentReviews = async () => {
+    const fetchShops = async () => {
       try {
         setLoading(true);
-        // Fetch recent reviews from multiple shops
-        // Since we don't have a global reviews endpoint, we'll fetch from a few popular shops
-        // For now, we'll show a message that reviews are available on shop pages
-        setReviews([]);
-        setStats({
-          averageRating: null,
-          totalReviews: 0,
-        });
+        const response = await fetch(`${apiUrl}/shops?limit=100`);
+        if (response.ok) {
+          const data = await response.json();
+          setShops(data.shops || []);
+        }
       } catch (error) {
-        console.error('Error fetching reviews:', error);
+        console.error('Error fetching shops:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRecentReviews();
+    fetchShops();
   }, []);
+
+  const handleReviewSubmit = async (review: {
+    shop_id: string;
+    booking_id?: string | null;
+    customer_id?: string | null;
+    rating: number;
+    comment?: string;
+    photos?: string[];
+  }) => {
+    try {
+      setError(null);
+      const response = await fetch(`${apiUrl}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(review),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to submit review' }));
+        throw new Error(errorData.error || 'Failed to submit review');
+      }
+
+      setSubmitted(true);
+      setSelectedShopId('');
+      setTimeout(() => {
+        setSubmitted(false);
+      }, 5000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to submit review');
+      throw err;
+    }
+  };
+
+  if (submitted) {
+    return (
+      <section className="py-16 md:py-24 bg-gray-50">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-8 text-center">
+            <div className="text-4xl mb-4">✓</div>
+            <h3 className="text-xl font-semibold text-green-800 mb-2">Thank you for your review!</h3>
+            <p className="text-green-700">Your review has been submitted successfully.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-16 md:py-24 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-8">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            {t('reviews.title') === 'reviews.title' ? 'Customer Reviews' : t('reviews.title')}
+            {t('reviews.title') === 'reviews.title' ? 'Leave a Review' : t('reviews.title')}
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            {t('reviews.description') === 'reviews.description' ? 'See what our customers are saying about their experiences' : t('reviews.description')}
+          <p className="text-lg text-gray-600">
+            {t('reviews.description') === 'reviews.description' 
+              ? 'Share your experience and help others discover great shops' 
+              : t('reviews.description')}
           </p>
         </div>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">{t('common.loading')}</p>
-          </div>
-        ) : reviews.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600 mb-4">
-              {t('reviews.noReviews') === 'reviews.noReviews' ? 'No reviews yet. Be the first to review a shop!' : t('reviews.noReviews')}
-            </p>
-            <Link
-              href="/browse"
-              className="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {t('reviews.browseShops') === 'reviews.browseShops' ? 'Browse Shops' : t('reviews.browseShops')}
-            </Link>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {reviews.map((review) => (
-              <div key={review.id} className="bg-white rounded-xl border border-gray-200 p-6">
-                <ReviewCard review={review} />
+        <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8">
+          {!selectedShopId ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select a Shop *
+              </label>
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="mt-4 text-gray-600">Loading shops...</p>
+                </div>
+              ) : shops.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 mb-4">No shops available yet.</p>
+                  <Link
+                    href="/browse"
+                    className="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Browse Shops
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <select
+                    value={selectedShopId}
+                    onChange={(e) => setSelectedShopId(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+                  >
+                    <option value="">-- Select a shop --</option>
+                    {shops.map((shop) => (
+                      <option key={shop.id} value={shop.id}>
+                        {shop.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Can't find the shop? <Link href="/browse" className="text-blue-600 hover:underline">Browse all shops</Link>
+                  </p>
+                </>
+              )}
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <p className="text-sm text-gray-600">Reviewing:</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {shops.find(s => s.id === selectedShopId)?.name}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedShopId('')}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  Change shop
+                </button>
               </div>
-            ))}
-          </div>
-        )}
 
-        <div className="text-center mt-12">
-          <Link
-            href="/browse"
-            className="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            {t('reviews.viewAllShops') === 'reviews.viewAllShops' ? 'View All Shops & Reviews' : t('reviews.viewAllShops')}
-          </Link>
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <ReviewForm
+                shopId={selectedShopId}
+                onSubmit={handleReviewSubmit}
+                onCancel={() => setSelectedShopId('')}
+              />
+            </div>
+          )}
         </div>
       </div>
     </section>
   );
 }
-
-
