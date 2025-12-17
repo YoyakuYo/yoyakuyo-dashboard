@@ -30,17 +30,22 @@ export default function ReviewsSection() {
   const fetchReviews = async () => {
     try {
       setLoadingReviews(true);
+      console.log('[ReviewsSection] Fetching reviews from:', `${apiUrl}/reviews/platform-reviews?limit=10`);
       const response = await fetch(`${apiUrl}/reviews/platform-reviews?limit=10`);
+      console.log('[ReviewsSection] Response status:', response.status);
       if (response.ok) {
         const data = await response.json();
         console.log('[ReviewsSection] Fetched reviews:', data);
-        setReviews(data || []);
+        console.log('[ReviewsSection] Number of reviews:', Array.isArray(data) ? data.length : 0);
+        setReviews(Array.isArray(data) ? data : []);
       } else {
         const errorText = await response.text();
         console.error('[ReviewsSection] Failed to fetch reviews:', response.status, errorText);
+        setReviews([]); // Ensure empty array on error
       }
     } catch (error) {
       console.error('[ReviewsSection] Error fetching platform reviews:', error);
+      setReviews([]); // Ensure empty array on error
     } finally {
       setLoadingReviews(false);
     }
