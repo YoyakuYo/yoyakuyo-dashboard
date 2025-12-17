@@ -688,14 +688,19 @@ Booking Details:
                   </button>
                 </div>
                 {/* PART 5: Reviews section */}
-                {showReviews === (Array.isArray(booking.shops) ? booking.shops[0]?.id : booking.shops?.id || booking.shop_id) && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <ReviewsSection 
-                      shopId={Array.isArray(booking.shops) ? booking.shops[0]?.id : booking.shops?.id || booking.shop_id || ''}
-                      lineUserId={lineUserId}
-                    />
-                  </div>
-                )}
+                {showReviews === (Array.isArray(booking.shops) ? booking.shops[0]?.id : booking.shops?.id || booking.shop_id) && (() => {
+                  const shopId = Array.isArray(booking.shops) 
+                    ? booking.shops[0]?.id 
+                    : booking.shops?.id || booking.shop_id;
+                  return shopId ? (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <ReviewsSection 
+                        shopId={shopId}
+                        lineUserId={lineUserId}
+                      />
+                    </div>
+                  ) : null;
+                })()}
               </div>
             ))}
           </div>
