@@ -36,13 +36,23 @@ function LineAppPageContent() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("search");
-  // PART 5: Language selector state
+  // PART 5: Language selector state - with global state management
   const [language, setLanguage] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('line_app_language') || 'ja';
     }
     return 'ja';
   });
+
+  // Update language and trigger rerender
+  const updateLanguage = (newLang: string) => {
+    setLanguage(newLang);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('line_app_language', newLang);
+      // Dispatch custom event to trigger rerenders in child components
+      window.dispatchEvent(new CustomEvent('lineAppLanguageChanged', { detail: { language: newLang } }));
+    }
+  };
 
   const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID || "";
 
@@ -359,15 +369,12 @@ function LineAppPageContent() {
             </div>
             {/* PART 5: Language Selector */}
             <div className="flex items-center gap-3">
-              <label className="text-sm text-gray-600">Language:</label>
+              <label className="text-sm text-gray-600">{language === 'ja' ? '言語:' : 'Language:'}</label>
               <select
                 value={language}
                 onChange={(e) => {
                   const newLang = e.target.value;
-                  setLanguage(newLang);
-                  if (typeof window !== 'undefined') {
-                    localStorage.setItem('line_app_language', newLang);
-                  }
+                  updateLanguage(newLang);
                 }}
                 className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500"
               >
@@ -390,7 +397,7 @@ function LineAppPageContent() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyPress={(e) => e.key === "Enter" && searchShops()}
-                    placeholder="Search shops by name, location..."
+                    placeholder={language === 'ja' ? '店舗名、場所で検索...' : 'Search shops by name, location...'}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <div className="grid grid-cols-2 gap-3">
@@ -399,31 +406,31 @@ function LineAppPageContent() {
                       onChange={(e) => setSelectedCategory(e.target.value)}
                       className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="all">All Categories</option>
-                      <option value="beauty_services">Beauty Services</option>
-                      <option value="spa_onsen_relaxation">Spa & Onsen</option>
-                      <option value="hotels_stays">Hotels & Stays</option>
-                      <option value="dining_izakaya">Dining & Izakaya</option>
-                      <option value="clinics_medical_care">Clinics & Medical Care</option>
-                      <option value="activities_sports">Activities & Sports</option>
+                      <option value="all">{language === 'ja' ? 'すべてのカテゴリ' : 'All Categories'}</option>
+                      <option value="beauty_services">{language === 'ja' ? '美容サービス' : 'Beauty Services'}</option>
+                      <option value="spa_onsen_relaxation">{language === 'ja' ? 'スパ・温泉・リラクゼーション' : 'Spa & Onsen'}</option>
+                      <option value="hotels_stays">{language === 'ja' ? 'ホテル・宿泊' : 'Hotels & Stays'}</option>
+                      <option value="dining_izakaya">{language === 'ja' ? '飲食・居酒屋' : 'Dining & Izakaya'}</option>
+                      <option value="clinics_medical_care">{language === 'ja' ? 'クリニック・医療' : 'Clinics & Medical Care'}</option>
+                      <option value="activities_sports">{language === 'ja' ? 'アクティビティ・スポーツ' : 'Activities & Sports'}</option>
                     </select>
                     <select
                       value={selectedPrefecture}
                       onChange={(e) => setSelectedPrefecture(e.target.value)}
                       className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="all">All Prefectures</option>
-                      <option value="tokyo">Tokyo</option>
-                      <option value="osaka">Osaka</option>
-                      <option value="kyoto">Kyoto</option>
-                      <option value="hokkaido">Hokkaido</option>
+                      <option value="all">{language === 'ja' ? 'すべての都道府県' : 'All Prefectures'}</option>
+                      <option value="tokyo">{language === 'ja' ? '東京' : 'Tokyo'}</option>
+                      <option value="osaka">{language === 'ja' ? '大阪' : 'Osaka'}</option>
+                      <option value="kyoto">{language === 'ja' ? '京都' : 'Kyoto'}</option>
+                      <option value="hokkaido">{language === 'ja' ? '北海道' : 'Hokkaido'}</option>
                     </select>
                   </div>
                   <button
                     onClick={searchShops}
                     className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                   >
-                    Search
+                    {language === 'ja' ? '検索' : 'Search'}
                   </button>
                 </div>
               </div>
@@ -438,7 +445,7 @@ function LineAppPageContent() {
                 </div>
               ) : shops.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-gray-600">No shops found. Try adjusting your filters.</p>
+                  <p className="text-gray-600">{language === 'ja' ? '店舗が見つかりませんでした。フィルターを調整してください。' : 'No shops found. Try adjusting your filters.'}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -466,7 +473,7 @@ function LineAppPageContent() {
                           <p className="text-sm text-gray-500 line-clamp-2">{shop.description}</p>
                         )}
                       <span className="mt-4 inline-block w-full text-center bg-blue-600 text-white py-2 rounded-lg font-semibold">
-                        Book Now
+                        {language === 'ja' ? '今すぐ予約' : 'Book Now'}
                       </span>
                     </div>
                   </button>
@@ -480,13 +487,28 @@ function LineAppPageContent() {
         {activeTab === "booking" && (
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">My Bookings</h2>
-              <p className="text-gray-600">View and manage your bookings</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">{language === 'ja' ? '予約一覧' : 'My Bookings'}</h2>
+              <p className="text-gray-600">{language === 'ja' ? '予約を表示・管理する' : 'View and manage your bookings'}</p>
               <button
                 onClick={() => router.push("/line-app/bookings")}
                 className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
               >
-                View All Bookings
+                {language === 'ja' ? 'すべての予約を表示' : 'View All Bookings'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "inbox" && (
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 min-h-[400px]">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">{language === 'ja' ? '受信箱' : 'Inbox'}</h2>
+              <p className="text-gray-600 mb-4">{language === 'ja' ? 'メッセージを管理するには、受信箱ページに移動してください。' : 'Navigate to the inbox page to manage your messages.'}</p>
+              <button
+                onClick={() => router.push("/line-app/inbox")}
+                className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+              >
+                {language === 'ja' ? '受信箱を開く' : 'Open Inbox'}
               </button>
             </div>
           </div>
@@ -495,8 +517,8 @@ function LineAppPageContent() {
         {activeTab === "ai" && (
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="bg-white rounded-xl border border-gray-200 p-6 min-h-[400px]">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">AI Assistant</h2>
-              <p className="text-gray-600 mb-4">Use the floating chat bubble in the bottom right corner to chat with the AI assistant.</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">{language === 'ja' ? 'AIアシスタント' : 'AI Assistant'}</h2>
+              <p className="text-gray-600 mb-4">{language === 'ja' ? '右下のチャットバブルを使用してAIアシスタントとチャットしてください。' : 'Use the floating chat bubble in the bottom right corner to chat with the AI assistant.'}</p>
             </div>
           </div>
         )}
@@ -523,21 +545,28 @@ function LineAppPageContent() {
                 className={`flex flex-col items-center py-2 ${activeTab === "search" ? "text-blue-600" : "text-gray-600"}`}
               >
                 <span className="text-2xl">🔍</span>
-                <span className="text-xs mt-1">検索</span>
+                <span className="text-xs mt-1">{language === 'ja' ? '検索' : 'Search'}</span>
               </button>
               <button
                 onClick={() => navigateToTab("booking")}
                 className={`flex flex-col items-center py-2 ${activeTab === "booking" ? "text-blue-600" : "text-gray-600"}`}
               >
                 <span className="text-2xl">📋</span>
-                <span className="text-xs mt-1">予約</span>
+                <span className="text-xs mt-1">{language === 'ja' ? '予約' : 'Booking'}</span>
+              </button>
+              <button
+                onClick={() => navigateToTab("inbox")}
+                className={`flex flex-col items-center py-2 ${activeTab === "inbox" ? "text-blue-600" : "text-gray-600"}`}
+              >
+                <span className="text-2xl">📬</span>
+                <span className="text-xs mt-1">{language === 'ja' ? '受信箱' : 'Inbox'}</span>
               </button>
               <button
                 onClick={() => navigateToTab("ai")}
                 className={`flex flex-col items-center py-2 ${activeTab === "ai" ? "text-blue-600" : "text-gray-600"}`}
               >
                 <span className="text-2xl">🤖</span>
-                <span className="text-xs mt-1">AI相談</span>
+                <span className="text-xs mt-1">{language === 'ja' ? 'AI相談' : 'AI Help'}</span>
               </button>
             </div>
           </div>

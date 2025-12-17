@@ -35,22 +35,57 @@ function ReviewsSection({ shopId, lineUserId }: { shopId: string; lineUserId: st
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (rating === 0 || !content.trim()) return;
+    if (rating === 0 || !content.trim()) {
+      console.error('[Reviews] Validation failed: rating or content missing');
+      alert('Please provide both a rating and review content.');
+      return;
+    }
+
+    if (!shopId) {
+      console.error('[Reviews] ❌ CRITICAL: shop_id is missing');
+      alert('Shop information is missing. Cannot submit review.');
+      return;
+    }
+
+    if (!lineUserId) {
+      console.error('[Reviews] ❌ CRITICAL: line_user_id is missing');
+      alert('User identification failed. Please try again.');
+      return;
+    }
 
     setSubmitting(true);
     try {
       // Get ID token for LINE user
       let idToken: string | null = null;
       if (typeof window !== "undefined" && window.liff) {
-        idToken = await window.liff.getIDToken();
+        try {
+          idToken = await window.liff.getIDToken();
+          console.log('[Reviews] ✅ Got ID token for LINE user');
+        } catch (tokenError) {
+          console.error('[Reviews] ❌ Failed to get ID token:', tokenError);
+          throw new Error('Failed to authenticate. Please try again.');
+        }
       }
+
+      if (!idToken) {
+        console.error('[Reviews] ❌ ID token is missing');
+        throw new Error('Authentication failed. Please try again.');
+      }
+
+      console.log('[Reviews] Submitting review:', {
+        shop_id: shopId,
+        rating,
+        content_length: content.trim().length,
+        line_user_id: lineUserId,
+        has_id_token: !!idToken,
+      });
 
       const res = await fetch(`${apiUrl}/reviews`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(idToken && { 'x-id-token': idToken }),
-          ...(lineUserId && { 'x-line-user-id': lineUserId }),
+          'x-id-token': idToken,
+          'x-line-user-id': lineUserId,
         },
         body: JSON.stringify({
           shop_id: shopId,
@@ -59,19 +94,39 @@ function ReviewsSection({ shopId, lineUserId }: { shopId: string; lineUserId: st
         }),
       });
 
-      if (res.ok) {
-        setShowForm(false);
-        setRating(0);
-        setContent('');
-        // Reload reviews
-        const reviewsRes = await fetch(`${apiUrl}/reviews?shop_id=${shopId}&limit=10`);
-        if (reviewsRes.ok) {
-          const data = await reviewsRes.json();
-          setReviews(Array.isArray(data) ? data : []);
-        }
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to submit review' }));
+        console.error('[Reviews] ❌ Review submission failed:', {
+          status: res.status,
+          error: errorData.error || errorData.details || 'Unknown error',
+        });
+        throw new Error(errorData.error || errorData.details || 'Failed to submit review');
       }
-    } catch (error) {
-      console.error('Error submitting review:', error);
+
+      const reviewData = await res.json();
+      console.log('[Reviews] ✅ Review submitted successfully:', reviewData);
+
+      // Success feedback
+      setShowForm(false);
+      setRating(0);
+      setContent('');
+      
+      // Show success message
+      alert('Review submitted successfully! Thank you for your feedback.');
+      
+      // Reload reviews
+      const reviewsRes = await fetch(`${apiUrl}/reviews?shop_id=${shopId}&limit=10`);
+      if (reviewsRes.ok) {
+        const data = await reviewsRes.json();
+        setReviews(Array.isArray(data) ? data : []);
+        console.log('[Reviews] ✅ Reloaded reviews:', data.length || 0);
+      } else {
+        console.warn('[Reviews] ⚠️ Failed to reload reviews, but submission succeeded');
+      }
+    } catch (error: any) {
+      console.error('[Reviews] ❌ Error submitting review:', error);
+      const errorMessage = error.message || 'Failed to submit review. Please try again.';
+      alert(`Error: ${errorMessage}`);
     } finally {
       setSubmitting(false);
     }
@@ -471,9 +526,9 @@ Booking Details:
     }
   };
 
-  // PART 3: Message Shop handler - opens internal messaging page (NOT LINE chat)
+  // PART 3: Message Shop handler - navigates to Inbox with preselected shop
   const handleMessageShop = async (booking: Booking) => {
-    console.log("[LINE Bookings] Message Shop clicked for booking:", booking.id);
+    console.log("[LINE Bookings] Send message clicked for booking:", booking.id);
     
     // Get shop data (handle both array and single object)
     const shopData = Array.isArray(booking.shops) ? booking.shops[0] : booking.shops;
@@ -491,72 +546,25 @@ Booking Details:
       try {
         const profile = await window.liff.getProfile();
         lineUserId = profile.userId;
+        console.log("[LINE Bookings] ✅ Got LINE user ID:", lineUserId);
       } catch (error) {
-        console.error("[LINE Bookings] Failed to get LINE user ID:", error);
+        console.error("[LINE Bookings] ❌ Failed to get LINE user ID:", error);
         alert('Failed to identify user. Please try again.');
         return;
       }
     }
 
     if (!lineUserId) {
+      console.error("[LINE Bookings] ❌ LINE user ID is missing");
       alert('LINE user identification failed. Please try again.');
       return;
     }
 
-    // PART 1.3: Create or get conversation first, then redirect with conversation_id
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:10000';
-      const idToken = await window.liff.getIDToken();
-      
-      // Create or get conversation
-      const convRes = await fetch(`${apiUrl}/api/internal-messaging/conversations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-line-user-id': lineUserId,
-          'x-id-token': idToken,
-        },
-        body: JSON.stringify({
-          shop_id: shopId,
-          booking_id: booking.id || null,
-          customer_type: 'line',
-          customer_ref: lineUserId, // PART 1.1: Normalize using line_user_id
-        }),
-      });
-      
-      if (!convRes.ok) {
-        throw new Error('Failed to create conversation');
-      }
-      
-      const convData = await convRes.json();
-      const conversationId = convData.conversation_id;
-      
-      // Build internal messaging URL with conversation_id
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-      const messagesUrl = `${appUrl}/messages?conversation_id=${conversationId}`;
-      
-      console.log("[LINE Bookings] Opening internal messaging:", messagesUrl);
-      
-      // Open internal messaging page in LIFF (not external)
-      if (typeof window !== "undefined" && window.liff) {
-        try {
-          window.liff.openWindow({
-            url: messagesUrl,
-            external: false, // Open inside LIFF (leaf)
-          });
-        } catch (openError) {
-          console.error("[LINE Bookings] Failed to open messaging page:", openError);
-          // Fallback: navigate in same window
-          window.location.href = messagesUrl;
-        }
-      } else {
-        // Fallback for non-LIFF environments
-        window.location.href = messagesUrl;
-      }
-    } catch (error) {
-      console.error("[LINE Bookings] Error creating conversation:", error);
-      alert('Failed to start conversation. Please try again.');
-    }
+    // Navigate to Inbox page with preselected shop_id
+    // The inbox page will resolve/create the conversation automatically
+    const inboxUrl = `/line-app/inbox?shop_id=${shopId}`;
+    console.log("[LINE Bookings] Navigating to inbox:", inboxUrl);
+    router.push(inboxUrl);
   };
 
   if (loading) {

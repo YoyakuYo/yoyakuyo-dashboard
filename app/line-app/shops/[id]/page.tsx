@@ -283,22 +283,57 @@ export default function LineShopDetailPage() {
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (reviewRating === 0 || !reviewContent.trim()) return;
+    if (reviewRating === 0 || !reviewContent.trim()) {
+      console.error('[Shop Reviews] Validation failed: rating or content missing');
+      alert('Please provide both a rating and review content.');
+      return;
+    }
+
+    if (!shopId) {
+      console.error('[Shop Reviews] ❌ CRITICAL: shop_id is missing');
+      alert('Shop information is missing. Cannot submit review.');
+      return;
+    }
+
+    if (!lineUserId) {
+      console.error('[Shop Reviews] ❌ CRITICAL: line_user_id is missing');
+      alert('User identification failed. Please try again.');
+      return;
+    }
 
     setSubmittingReview(true);
     try {
       // Get ID token for LINE user
       let idToken: string | null = null;
       if (typeof window !== "undefined" && window.liff) {
-        idToken = await window.liff.getIDToken();
+        try {
+          idToken = await window.liff.getIDToken();
+          console.log('[Shop Reviews] ✅ Got ID token for LINE user');
+        } catch (tokenError) {
+          console.error('[Shop Reviews] ❌ Failed to get ID token:', tokenError);
+          throw new Error('Failed to authenticate. Please try again.');
+        }
       }
+
+      if (!idToken) {
+        console.error('[Shop Reviews] ❌ ID token is missing');
+        throw new Error('Authentication failed. Please try again.');
+      }
+
+      console.log('[Shop Reviews] Submitting review:', {
+        shop_id: shopId,
+        rating: reviewRating,
+        content_length: reviewContent.trim().length,
+        line_user_id: lineUserId,
+        has_id_token: !!idToken,
+      });
 
       const res = await fetch(`${apiUrl}/reviews`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(idToken && { 'x-id-token': idToken }),
-          ...(lineUserId && { 'x-line-user-id': lineUserId }),
+          'x-id-token': idToken,
+          'x-line-user-id': lineUserId,
         },
         body: JSON.stringify({
           shop_id: shopId,
@@ -307,23 +342,39 @@ export default function LineShopDetailPage() {
         }),
       });
 
-      if (res.ok) {
-        setShowReviewForm(false);
-        setReviewRating(0);
-        setReviewContent('');
-        // Reload reviews
-        const reviewsRes = await fetch(`${apiUrl}/reviews?shop_id=${shopId}&limit=10`);
-        if (reviewsRes.ok) {
-          const data = await reviewsRes.json();
-          setReviews(Array.isArray(data) ? data : []);
-        }
-      } else {
+      if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Failed to submit review' }));
-        alert(errorData.error || 'Failed to submit review');
+        console.error('[Shop Reviews] ❌ Review submission failed:', {
+          status: res.status,
+          error: errorData.error || errorData.details || 'Unknown error',
+        });
+        throw new Error(errorData.error || errorData.details || 'Failed to submit review');
       }
-    } catch (error) {
-      console.error('Error submitting review:', error);
-      alert('Failed to submit review. Please try again.');
+
+      const reviewData = await res.json();
+      console.log('[Shop Reviews] ✅ Review submitted successfully:', reviewData);
+
+      // Success feedback
+      setShowReviewForm(false);
+      setReviewRating(0);
+      setReviewContent('');
+      
+      // Show success message
+      alert('Review submitted successfully! Thank you for your feedback.');
+      
+      // Reload reviews
+      const reviewsRes = await fetch(`${apiUrl}/reviews?shop_id=${shopId}&limit=10`);
+      if (reviewsRes.ok) {
+        const data = await reviewsRes.json();
+        setReviews(Array.isArray(data) ? data : []);
+        console.log('[Shop Reviews] ✅ Reloaded reviews:', data.length || 0);
+      } else {
+        console.warn('[Shop Reviews] ⚠️ Failed to reload reviews, but submission succeeded');
+      }
+    } catch (error: any) {
+      console.error('[Shop Reviews] ❌ Error submitting review:', error);
+      const errorMessage = error.message || 'Failed to submit review. Please try again.';
+      alert(`Error: ${errorMessage}`);
     } finally {
       setSubmittingReview(false);
     }
