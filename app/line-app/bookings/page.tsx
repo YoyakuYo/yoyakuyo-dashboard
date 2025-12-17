@@ -41,6 +41,14 @@ function LineBookingsPageContent() {
   const [error, setError] = useState<string>("");
   const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
   const [viewingBookingId, setViewingBookingId] = useState<string | null>(null);
+  // PART 5: Language selector and review state
+  const [language, setLanguage] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('line_app_language') || 'ja';
+    }
+    return 'ja';
+  });
+  const [showReviews, setShowReviews] = useState<string | null>(null); // shop_id for which to show reviews
 
   const loadBookings = async () => {
     // BUG 1 FIX: Use ID token-based endpoint for LIFF
@@ -515,7 +523,29 @@ Booking Details:
                     <span>💬</span>
                     Message Shop
                   </button>
+                  {/* PART 5: Review button */}
+                  <button
+                    onClick={() => {
+                      const shopId = Array.isArray(booking.shops) ? booking.shops[0]?.id : booking.shops?.id || booking.shop_id;
+                      if (shopId) {
+                        setShowReviews(showReviews === shopId ? null : shopId);
+                      }
+                    }}
+                    className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span>⭐</span>
+                    {showReviews === (Array.isArray(booking.shops) ? booking.shops[0]?.id : booking.shops?.id || booking.shop_id) ? 'Hide Reviews' : 'Reviews'}
+                  </button>
                 </div>
+                {/* PART 5: Reviews section */}
+                {showReviews === (Array.isArray(booking.shops) ? booking.shops[0]?.id : booking.shops?.id || booking.shop_id) && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <ReviewsSection 
+                      shopId={Array.isArray(booking.shops) ? booking.shops[0]?.id : booking.shops?.id || booking.shop_id || ''}
+                      lineUserId={lineUserId}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>

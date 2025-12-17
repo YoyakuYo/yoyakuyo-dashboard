@@ -8,14 +8,19 @@ import { useTranslations } from 'next-intl';
 interface Review {
   id: string;
   rating: number;
-  comment?: string | null;
+  comment?: string | null; // Legacy field
+  content?: string | null; // New field (preferred)
   photos?: string[] | null;
   is_verified?: boolean;
   owner_response?: string | null;
   owner_response_at?: string | null;
   created_at: string;
   customer_id?: string | null;
-  customers?: { id: string } | null;
+  customers?: { id: string; name?: string } | null;
+  // PART 6: Author type fields
+  author_type?: 'guest' | 'user' | 'line' | null;
+  guest_name?: string | null;
+  line_user_id?: string | null;
 }
 
 interface ReviewCardProps {
@@ -64,10 +69,20 @@ export default function ReviewCard({ review }: ReviewCardProps) {
         </span>
       </div>
 
-      {/* Comment */}
-      {review.comment && (
+      {/* Author Name - PART 6: Show name based on author_type */}
+      <div className="mb-2">
+        <p className="text-sm font-medium text-gray-800">
+          {review.guest_name || 
+           (review.author_type === 'line' && review.line_user_id ? 'LINE User' : null) ||
+           (review.customers?.name) || 
+           'Customer'}
+        </p>
+      </div>
+
+      {/* Comment/Content - PART 6: Support both comment and content */}
+      {(review.content || review.comment) && (
         <p className="text-gray-700 mb-4 whitespace-pre-wrap">
-          {review.comment}
+          {review.content || review.comment}
         </p>
       )}
 

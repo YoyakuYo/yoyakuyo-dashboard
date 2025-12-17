@@ -36,6 +36,13 @@ function LineAppPageContent() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("search");
+  // PART 5: Language selector state
+  const [language, setLanguage] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('line_app_language') || 'ja';
+    }
+    return 'ja';
+  });
 
   const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID || "";
 
@@ -335,7 +342,7 @@ function LineAppPageContent() {
         {/* Header */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
           <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-3">
               <h1 className="text-xl font-bold text-gray-900">Yoyaku Yo</h1>
               {lineUser && (
                 <div className="flex items-center gap-2">
@@ -349,6 +356,24 @@ function LineAppPageContent() {
                   <span className="text-sm text-gray-700">{lineUser.displayName}</span>
                 </div>
               )}
+            </div>
+            {/* PART 5: Language Selector */}
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-gray-600">Language:</label>
+              <select
+                value={language}
+                onChange={(e) => {
+                  const newLang = e.target.value;
+                  setLanguage(newLang);
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('line_app_language', newLang);
+                  }
+                }}
+                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+              </select>
             </div>
           </div>
         </header>

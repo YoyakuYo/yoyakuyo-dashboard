@@ -576,6 +576,7 @@ export default function PublicShopDetailPage() {
                   <div className="mb-6">
                     <ReviewForm
                       shopId={shopId}
+                      isGuest={!user} // PART 1: Show guest name field if not logged in
                       onSubmit={handleReviewSubmit}
                       onCancel={() => setShowReviewForm(false)}
                     />

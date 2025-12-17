@@ -9,12 +9,14 @@ interface ReviewFormProps {
   shopId: string;
   bookingId?: string | null;
   customerId?: string | null;
+  isGuest?: boolean; // PART 1: Flag to show guest name field
   onSubmit: (review: {
     shop_id: string;
     booking_id?: string | null;
     customer_id?: string | null;
     rating: number;
-    comment?: string;
+    content?: string; // Changed from comment to content
+    guest_name?: string; // PART 1: Guest name for guest reviews
     photos?: string[];
   }) => Promise<void>;
   onCancel?: () => void;
@@ -24,6 +26,7 @@ export default function ReviewForm({
   shopId,
   bookingId,
   customerId,
+  isGuest = false, // PART 1: Default to false (logged-in user)
   onSubmit,
   onCancel,
 }: ReviewFormProps) {
@@ -31,6 +34,7 @@ export default function ReviewForm({
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [guestName, setGuestName] = useState(''); // PART 1: Guest name field
   const [photos, setPhotos] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +42,12 @@ export default function ReviewForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // PART 1: Validate guest name if guest
+    if (isGuest && !guestName.trim()) {
+      setError('Please enter your name');
+      return;
+    }
+
     if (rating === 0) {
       setError('Please select a rating');
       return;
@@ -57,7 +67,8 @@ export default function ReviewForm({
         booking_id: bookingId || null,
         customer_id: customerId || null,
         rating,
-        comment: comment.trim() || undefined,
+        content: comment.trim() || undefined, // Changed from comment to content
+        guest_name: isGuest ? guestName.trim() : undefined, // PART 1: Include guest name
         photos: photos.length > 0 ? photos : undefined,
       });
     } catch (err: any) {
@@ -96,6 +107,24 @@ export default function ReviewForm({
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <h3 className="text-xl font-semibold mb-4">{t('reviews.writeReview')}</h3>
+
+      {/* PART 1: Guest Name Field - Only show for guests */}
+      {isGuest && (
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Your name *
+          </label>
+          <input
+            type="text"
+            value={guestName}
+            onChange={(e) => setGuestName(e.target.value)}
+            required
+            maxLength={100}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter your name"
+          />
+        </div>
+      )}
 
       {/* Rating Selection */}
       <div className="mb-4">
