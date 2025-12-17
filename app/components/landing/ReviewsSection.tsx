@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
+import { useAuth } from '@/lib/useAuth';
 
 interface PlatformReview {
   id: string;
@@ -14,9 +15,12 @@ interface PlatformReview {
 
 export default function ReviewsSection() {
   const t = useTranslations();
+  const { user } = useAuth(); // Check if user is logged in
+  const isGuest = !user; // Guest if not logged in
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [guestName, setGuestName] = useState(''); // PART 1: Guest name field
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
@@ -49,6 +53,12 @@ export default function ReviewsSection() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // PART 1: Validate guest name if guest
+    if (isGuest && !guestName.trim()) {
+      setError('Please enter your name');
+      return;
+    }
+
     // Rating is optional - allow submission with just a comment
     if (rating === 0 && (!comment || comment.trim().length === 0)) {
       setError('Please provide a rating or comment');
@@ -68,7 +78,7 @@ export default function ReviewsSection() {
 
     try {
       // Submit platform review (not shop-specific)
-      console.log('[ReviewsSection] Submitting review:', { rating: finalRating, comment: comment.trim() });
+      console.log('[ReviewsSection] Submitting review:', { rating: finalRating, comment: comment.trim(), guest_name: isGuest ? guestName.trim() : undefined });
       const response = await fetch(`${apiUrl}/reviews/platform-reviews`, {
         method: 'POST',
         headers: {
@@ -77,6 +87,7 @@ export default function ReviewsSection() {
         body: JSON.stringify({
           rating: finalRating,
           comment: comment.trim() || undefined,
+          guest_name: isGuest ? guestName.trim() : undefined, // PART 1: Include guest name
           platform: 'yoyakuyo',
         }),
       });
@@ -99,6 +110,7 @@ export default function ReviewsSection() {
       setSubmitted(true);
       setRating(0);
       setComment('');
+      setGuestName(''); // PART 1: Clear guest name
       
       setTimeout(() => {
         setSubmitted(false);
@@ -133,6 +145,24 @@ export default function ReviewsSection() {
 
         <div className="bg-white rounded-xl border border-gray-200 p-6 md:p-8">
           <form onSubmit={handleSubmit}>
+            {/* PART 1: Guest Name Field - Only show for guests */}
+            {isGuest && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your name *
+                </label>
+                <input
+                  type="text"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  required
+                  maxLength={100}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter your name"
+                />
+              </div>
+            )}
+
             {/* Rating Selection */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-3">
