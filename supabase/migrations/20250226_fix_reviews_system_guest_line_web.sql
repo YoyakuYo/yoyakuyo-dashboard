@@ -24,6 +24,14 @@ BEGIN
     ALTER TABLE reviews ADD COLUMN author_type review_author_type_enum;
   END IF;
 
+  -- Add user_id column (for web users - maps to customer_id)
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'reviews' AND column_name = 'user_id'
+  ) THEN
+    ALTER TABLE reviews ADD COLUMN user_id UUID REFERENCES customers(id) ON DELETE SET NULL;
+  END IF;
+
   -- Add line_user_id column
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
@@ -123,20 +131,23 @@ CREATE POLICY "Owners can respond to reviews"
 -- Add constraint to ensure proper author_type usage
 ALTER TABLE reviews DROP CONSTRAINT IF EXISTS reviews_author_type_constraint;
 ALTER TABLE reviews ADD CONSTRAINT reviews_author_type_constraint CHECK (
-  (author_type = 'guest' AND guest_name IS NOT NULL AND user_id IS NULL AND line_user_id IS NULL) OR
-  (author_type = 'user' AND user_id IS NOT NULL AND line_user_id IS NULL AND guest_name IS NULL) OR
-  (author_type = 'line' AND line_user_id IS NOT NULL AND user_id IS NULL AND guest_name IS NULL) OR
+  (author_type = 'guest' AND guest_name IS NOT NULL AND (user_id IS NULL OR customer_id IS NULL) AND line_user_id IS NULL) OR
+  (author_type = 'user' AND (user_id IS NOT NULL OR customer_id IS NOT NULL) AND line_user_id IS NULL AND guest_name IS NULL) OR
+  (author_type = 'line' AND line_user_id IS NOT NULL AND (user_id IS NULL OR customer_id IS NULL) AND guest_name IS NULL) OR
   (author_type IS NULL) -- Allow NULL for backward compatibility during migration
 );
 
 -- Update existing reviews to classify by author_type
 -- This is a best-effort classification based on existing data
+-- Also backfill user_id from customer_id for existing reviews
 UPDATE reviews
-SET author_type = CASE
-  WHEN customer_id IS NOT NULL THEN 'user'::review_author_type_enum
-  WHEN booking_id IS NOT NULL THEN 'user'::review_author_type_enum
-  ELSE 'guest'::review_author_type_enum
-END
+SET 
+  author_type = CASE
+    WHEN customer_id IS NOT NULL THEN 'user'::review_author_type_enum
+    WHEN booking_id IS NOT NULL THEN 'user'::review_author_type_enum
+    ELSE 'guest'::review_author_type_enum
+  END,
+  user_id = customer_id -- Backfill user_id from customer_id for existing reviews
 WHERE author_type IS NULL;
 
 -- Set guest_name for guest reviews if we can infer it
