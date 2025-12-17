@@ -274,8 +274,14 @@ export default function ReviewsSection() {
         )}
 
         {!loadingReviews && reviews.length === 0 && (
-          <div className="mt-12 text-center">
-            <p className="text-gray-600">No reviews yet. Be the first to share your experience!</p>
+          <div className="mt-12 bg-white rounded-xl border border-gray-200 p-8 text-center">
+            <div className="text-4xl mb-4">💬</div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              No reviews yet
+            </h3>
+            <p className="text-gray-600 text-lg">
+              Be the first to share your experience!
+            </p>
           </div>
         )}
       </div>
