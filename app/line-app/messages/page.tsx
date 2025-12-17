@@ -3,6 +3,12 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
+import { createClient } from "@supabase/supabase-js";
+
+// Initialize Supabase client for realtime
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 interface Message {
   id: string;
@@ -27,6 +33,7 @@ export default function MessagesPage() {
   const [lineUserId, setLineUserId] = useState<string | null>(null);
   const [idToken, setIdToken] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const realtimeChannelRef = useRef<any>(null);
 
   useEffect(() => {
     if (!shopId) {
@@ -86,6 +93,9 @@ export default function MessagesPage() {
 
       // Load messages
       await loadMessages(convId, lineUserId, token);
+      
+      // PART 4: Subscribe to realtime updates
+      subscribeToMessages(convId);
     } catch (error: any) {
       console.error("[Messages] Error creating/getting conversation:", error);
       alert(`Error: ${error.message || 'Failed to initialize conversation'}`);
@@ -119,6 +129,72 @@ export default function MessagesPage() {
     }
   };
 
+  // PART 4: Subscribe to realtime updates
+  const subscribeToMessages = (convId: string) => {
+    if (!supabase) {
+      console.warn("[Messages] Supabase client not initialized, skipping realtime");
+      return;
+    }
+
+    // Clean up existing subscription
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current);
+    }
+
+    console.log("[Messages] Subscribing to realtime updates for conversation:", convId);
+    
+    const channel = supabase
+      .channel(`messages:conversation_id=eq.${convId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${convId}`,
+        },
+        (payload) => {
+          console.log("[Messages] New message received via realtime:", payload.new);
+          const newMessage = payload.new as Message;
+          
+          // Add message to list (optimistic UI reconciliation)
+          setMessages((prev) => {
+            // Check if message already exists (avoid duplicates)
+            if (prev.some((msg) => msg.id === newMessage.id)) {
+              return prev;
+            }
+            return [...prev, {
+              id: newMessage.id,
+              conversation_id: newMessage.conversation_id,
+              sender_role: (newMessage as any).sender_role || (newMessage.sender_type === 'shop' ? 'shop' : 'customer'),
+              sender_type: newMessage.sender_type,
+              body: newMessage.body,
+              is_read: newMessage.is_read,
+              created_at: newMessage.created_at,
+            }];
+          });
+          
+          // Scroll to bottom
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }
+      )
+      .subscribe();
+
+    realtimeChannelRef.current = channel;
+  };
+
+  // Cleanup realtime subscription on unmount
+  useEffect(() => {
+    return () => {
+      if (realtimeChannelRef.current && supabase) {
+        console.log("[Messages] Cleaning up realtime subscription");
+        supabase.removeChannel(realtimeChannelRef.current);
+      }
+    };
+  }, []);
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !conversationId || !lineUserId || !idToken || sending) {
       return;
@@ -147,8 +223,15 @@ export default function MessagesPage() {
 
       const data = await res.json();
       
-      // Add message to list
-      setMessages(prev => [...prev, data.message]);
+      // PART 4: Optimistic UI - add message immediately
+      // Realtime will also add it, but we add it here for instant feedback
+      setMessages((prev) => {
+        // Check if message already exists (realtime might have added it)
+        if (prev.some((msg) => msg.id === data.message.id)) {
+          return prev;
+        }
+        return [...prev, data.message];
+      });
       setNewMessage('');
       
       // Scroll to bottom
