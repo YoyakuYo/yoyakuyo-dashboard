@@ -68,6 +68,7 @@ export default function ReviewsSection() {
 
     try {
       // Submit platform review (not shop-specific)
+      console.log('[ReviewsSection] Submitting review:', { rating: finalRating, comment: comment.trim() });
       const response = await fetch(`${apiUrl}/reviews/platform-reviews`, {
         method: 'POST',
         headers: {
@@ -82,8 +83,12 @@ export default function ReviewsSection() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to submit review' }));
+        console.error('[ReviewsSection] Review submission failed:', response.status, errorData);
         throw new Error(errorData.error || 'Failed to submit review');
       }
+
+      const submittedReview = await response.json();
+      console.log('[ReviewsSection] Review submitted successfully:', submittedReview);
 
       // Refresh reviews list to show the new review
       await fetchReviews();
