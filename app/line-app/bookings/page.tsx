@@ -41,13 +41,7 @@ function LineBookingsPageContent() {
   const [error, setError] = useState<string>("");
   const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
   const [viewingBookingId, setViewingBookingId] = useState<string | null>(null);
-  // PART 5: Language selector and review state
-  const [language, setLanguage] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('line_app_language') || 'ja';
-    }
-    return 'ja';
-  });
+  // PART 5: Review state
   const [showReviews, setShowReviews] = useState<string | null>(null); // shop_id for which to show reviews
 
   const loadBookings = async () => {
