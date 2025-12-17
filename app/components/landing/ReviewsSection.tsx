@@ -90,6 +90,9 @@ export default function ReviewsSection() {
       const submittedReview = await response.json();
       console.log('[ReviewsSection] Review submitted successfully:', submittedReview);
 
+      // Small delay to ensure database commit completes
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Refresh reviews list to show the new review
       await fetchReviews();
       
@@ -277,27 +280,27 @@ export default function ReviewsSection() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {loadingReviews && (
-          <div className="mt-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">Loading reviews...</p>
-          </div>
-        )}
-
-        {!loadingReviews && reviews.length === 0 && (
-          <div className="mt-12 bg-white rounded-xl border border-gray-200 p-8 text-center">
-            <div className="text-4xl mb-4">💬</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              No reviews yet
-            </h3>
-            <p className="text-gray-600 text-lg">
-              Be the first to share your experience!
-            </p>
-          </div>
-        )}
+          ) : (
+            <>
+              {loadingReviews ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="mt-4 text-gray-600">Loading reviews...</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                  <div className="text-4xl mb-4">💬</div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    No reviews yet
+                  </h3>
+                  <p className="text-gray-600 text-lg">
+                    Be the first to share your experience!
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </section>
   );
