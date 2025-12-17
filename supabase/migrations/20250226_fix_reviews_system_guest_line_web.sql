@@ -130,13 +130,32 @@ CREATE POLICY "Owners can respond to reviews"
 
 -- Add constraint to ensure proper author_type usage
 -- Note: We use customer_id (existing) for user reviews, user_id is optional for future use
-ALTER TABLE reviews DROP CONSTRAINT IF EXISTS reviews_author_type_constraint;
-ALTER TABLE reviews ADD CONSTRAINT reviews_author_type_constraint CHECK (
-  (author_type = 'guest' AND guest_name IS NOT NULL AND customer_id IS NULL AND line_user_id IS NULL) OR
-  (author_type = 'user' AND (customer_id IS NOT NULL OR user_id IS NOT NULL) AND line_user_id IS NULL AND guest_name IS NULL) OR
-  (author_type = 'line' AND line_user_id IS NOT NULL AND customer_id IS NULL AND guest_name IS NULL) OR
-  (author_type IS NULL) -- Allow NULL for backward compatibility during migration
-);
+-- Only check user_id if the column exists
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'reviews' AND column_name = 'user_id'
+  ) THEN
+    -- Constraint with user_id
+    ALTER TABLE reviews DROP CONSTRAINT IF EXISTS reviews_author_type_constraint;
+    ALTER TABLE reviews ADD CONSTRAINT reviews_author_type_constraint CHECK (
+      (author_type = 'guest' AND guest_name IS NOT NULL AND customer_id IS NULL AND user_id IS NULL AND line_user_id IS NULL) OR
+      (author_type = 'user' AND (customer_id IS NOT NULL OR user_id IS NOT NULL) AND line_user_id IS NULL AND guest_name IS NULL) OR
+      (author_type = 'line' AND line_user_id IS NOT NULL AND customer_id IS NULL AND user_id IS NULL AND guest_name IS NULL) OR
+      (author_type IS NULL) -- Allow NULL for backward compatibility during migration
+    );
+  ELSE
+    -- Constraint without user_id (fallback)
+    ALTER TABLE reviews DROP CONSTRAINT IF EXISTS reviews_author_type_constraint;
+    ALTER TABLE reviews ADD CONSTRAINT reviews_author_type_constraint CHECK (
+      (author_type = 'guest' AND guest_name IS NOT NULL AND customer_id IS NULL AND line_user_id IS NULL) OR
+      (author_type = 'user' AND customer_id IS NOT NULL AND line_user_id IS NULL AND guest_name IS NULL) OR
+      (author_type = 'line' AND line_user_id IS NOT NULL AND customer_id IS NULL AND guest_name IS NULL) OR
+      (author_type IS NULL) -- Allow NULL for backward compatibility during migration
+    );
+  END IF;
+END $$;
 
 -- Update existing reviews to classify by author_type
 -- This is a best-effort classification based on existing data
