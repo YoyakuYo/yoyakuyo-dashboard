@@ -277,7 +277,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="bg-gray-50 flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh' }}>
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10">
         <h1 className="text-lg font-semibold text-gray-900">Messages</h1>
@@ -298,21 +298,27 @@ export default function MessagesPage() {
             return (
               <div
                 key={message.id}
-                className={`flex ${isCustomer ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${isCustomer ? 'justify-end' : 'justify-start'} min-w-0`}
               >
                 <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                  className={`max-w-[85%] md:max-w-md px-4 py-2 rounded-lg ${
                     isCustomer
                       ? 'bg-green-600 text-white'
                       : isAI
                       ? 'bg-purple-100 text-purple-900 border border-purple-300'
                       : 'bg-white text-gray-900 border border-gray-200'
                   }`}
+                  style={{
+                    minWidth: 0,
+                    width: 'fit-content',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'anywhere',
+                  }}
                 >
                   {isAI && (
                     <p className="text-xs font-semibold text-purple-700 mb-1">AI Assistant</p>
                   )}
-                  <p className="text-sm whitespace-pre-wrap">{message.body}</p>
+                  <p className="text-sm whitespace-pre-wrap break-words">{message.body}</p>
                   <p
                     className={`text-xs mt-1 ${
                       isCustomer ? 'text-green-100' : isAI ? 'text-purple-600' : 'text-gray-500'
