@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 
@@ -99,11 +99,14 @@ export default function OwnerInboxPage() {
     }
   };
 
-  const loadMessages = async (conversationId: string) => {
-    if (!userId || !conversationId) return;
+  const loadMessages = useCallback(async (conversationId: string) => {
+    if (!userId || !conversationId) {
+      console.log('[Owner Inbox] Cannot load messages - missing userId or conversationId', { userId, conversationId });
+      return;
+    }
     
     try {
-      console.log('[Owner Inbox] Loading messages for conversation:', conversationId);
+      console.log('[Owner Inbox] Loading messages for conversation:', conversationId, 'with userId:', userId);
       
       const res = await fetch(`${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`, {
         headers: {
@@ -112,29 +115,44 @@ export default function OwnerInboxPage() {
       });
 
       if (!res.ok) {
-        throw new Error('Failed to load messages');
+        const errorText = await res.text();
+        console.error('[Owner Inbox] Failed to load messages - response not OK:', res.status, errorText);
+        throw new Error(`Failed to load messages: ${res.status}`);
       }
 
       const data = await res.json();
-      console.log('[Owner Inbox] Messages loaded:', data.messages?.length || 0);
-      setMessages(data.messages || []);
+      console.log('[Owner Inbox] Messages response:', data);
+      console.log('[Owner Inbox] Messages loaded:', data.messages?.length || 0, 'messages');
       
-      // Mark messages as read
-      await markAsRead(conversationId);
+      if (data.messages && Array.isArray(data.messages)) {
+        setMessages(data.messages);
+        console.log('[Owner Inbox] ✅ Messages set in state:', data.messages.length);
+        
+        // Mark messages as read after setting them
+        markAsRead(conversationId).catch(err => {
+          console.error('[Owner Inbox] Error marking as read:', err);
+        });
+      } else {
+        console.warn('[Owner Inbox] ⚠️ No messages array in response:', data);
+        setMessages([]);
+      }
     } catch (error) {
-      console.error('[Owner Inbox] Error loading messages:', error);
+      console.error('[Owner Inbox] ❌ Error loading messages:', error);
       setMessages([]); // Clear messages on error
     }
-  };
+  }, [userId]);
 
   // CRITICAL: Load messages when activeConversationId changes
   useEffect(() => {
+    console.log('[Owner Inbox] useEffect triggered - activeConversationId:', activeConversationId, 'userId:', userId);
     if (activeConversationId && userId) {
+      console.log('[Owner Inbox] Calling loadMessages for:', activeConversationId);
       loadMessages(activeConversationId);
     } else {
+      console.log('[Owner Inbox] Clearing messages - no active conversation');
       setMessages([]); // Clear messages when no conversation selected
     }
-  }, [activeConversationId, userId]);
+  }, [activeConversationId, userId, loadMessages]);
 
   // Update selectedConversation when activeConversationId changes
   useEffect(() => {
@@ -146,7 +164,7 @@ export default function OwnerInboxPage() {
     }
   }, [activeConversationId, conversations]);
 
-  const markAsRead = async (conversationId: string) => {
+  const markAsRead = useCallback(async (conversationId: string) => {
     if (!userId) return;
     
     try {
@@ -166,11 +184,11 @@ export default function OwnerInboxPage() {
     } catch (error) {
       console.error('[Owner Inbox] Error marking messages as read:', error);
     }
-  };
+  }, [userId]);
 
   const sendMessage = async () => {
     // Block send if content is empty or whitespace
-    if (!newMessage || !newMessage.trim() || !selectedConversation || !userId || sending) {
+    if (!newMessage || !newMessage.trim() || !activeConversationId || !userId || sending) {
       if (!newMessage || !newMessage.trim()) {
         console.warn('[Owner Inbox] Cannot send empty message');
       }
@@ -181,7 +199,7 @@ export default function OwnerInboxPage() {
       setSending(true);
       const trimmedContent = newMessage.trim();
       console.log('[Owner Inbox] Sending message:', {
-        conversation_id: selectedConversation.id,
+        conversation_id: activeConversationId,
         contentLength: trimmedContent.length,
       });
       
@@ -192,7 +210,7 @@ export default function OwnerInboxPage() {
           'x-user-id': userId,
         },
         body: JSON.stringify({
-          conversation_id: selectedConversation.id,
+          conversation_id: activeConversationId,
           content: trimmedContent, // Send as 'content' not 'body'
         }),
       });
@@ -203,9 +221,12 @@ export default function OwnerInboxPage() {
       }
 
       const data = await res.json();
+      console.log('[Owner Inbox] Message sent successfully:', data);
       
-      // Add message to list
-      setMessages((prev) => [...prev, data.message]);
+      // Reload messages to get the latest
+      if (activeConversationId) {
+        await loadMessages(activeConversationId);
+      }
       setNewMessage('');
       
       // Reload conversations to update last_message_at
@@ -221,10 +242,13 @@ export default function OwnerInboxPage() {
   };
 
   const handleSelectConversation = (conversation: Conversation) => {
+    console.log('[Owner Inbox] Conversation selected:', conversation.id, conversation.shop?.name);
     // Set activeConversationId (single source of truth)
     setActiveConversationId(conversation.id);
     // On mobile, show chat panel
     setShowChat(true);
+    // Clear messages immediately to show loading state
+    setMessages([]);
   };
 
   const getCustomerDisplayName = (conv: Conversation) => {
@@ -301,14 +325,17 @@ export default function OwnerInboxPage() {
       <div className={`${
         showChat ? 'flex' : 'hidden md:flex'
       } flex-1 flex-col h-full bg-white`}>
-        {activeConversationId && selectedConversation ? (
+        {activeConversationId ? (
           <>
             {/* Header with Back button on mobile */}
             <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-4 flex-shrink-0">
               <div className="flex items-center gap-3">
                 {/* Back button - mobile only */}
                 <button
-                  onClick={() => setShowChat(false)}
+                  onClick={() => {
+                    setShowChat(false);
+                    setActiveConversationId(null);
+                  }}
                   className="md:hidden text-gray-600 hover:text-gray-900"
                   aria-label="Back to conversations"
                 >
@@ -318,9 +345,11 @@ export default function OwnerInboxPage() {
                 </button>
                 <div className="flex-1">
                   <h2 className="text-lg font-semibold text-gray-900">
-                    {selectedConversation.shop?.name || 'Shop'}
+                    {selectedConversation?.shop?.name || 'Shop'}
                   </h2>
-                  <p className="text-sm text-gray-500">{getCustomerDisplayName(selectedConversation)}</p>
+                  <p className="text-sm text-gray-500">
+                    {selectedConversation ? getCustomerDisplayName(selectedConversation) : 'Loading...'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -330,6 +359,7 @@ export default function OwnerInboxPage() {
               {messages.length === 0 ? (
                 <div className="text-center text-gray-500 mt-8">
                   <p>No messages yet. Start the conversation!</p>
+                  <p className="text-xs mt-2 text-gray-400">Conversation ID: {activeConversationId}</p>
                 </div>
               ) : (
                 messages.map((message) => {
