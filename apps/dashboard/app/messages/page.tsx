@@ -121,6 +121,102 @@ export default function OwnerInboxPage() {
     }
   }, [userId]);
 
+  const loadMessages = useCallback(async (conversationId: string) => {
+    if (!userId || !conversationId) {
+      console.log('[Owner Inbox] Cannot load messages - missing userId or conversationId', { userId, conversationId });
+      return;
+    }
+    
+    try {
+      console.log('[Owner Inbox] Loading messages for conversation:', conversationId, 'with userId:', userId);
+      console.log('[Owner Inbox] API URL:', `${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`);
+      
+      const res = await fetch(`${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`, {
+        method: 'GET',
+        headers: {
+          'x-user-id': userId,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Include cookies if needed
+      });
+
+      console.log('[Owner Inbox] Response status:', res.status, res.statusText);
+
+      if (!res.ok) {
+        let errorText = '';
+        try {
+          errorText = await res.text();
+          const errorData = errorText ? JSON.parse(errorText) : { error: 'Unknown error' };
+          console.error('[Owner Inbox] Failed to load messages - response not OK:', {
+            status: res.status,
+            statusText: res.statusText,
+            error: errorData,
+            rawText: errorText,
+          });
+          
+          // Show user-friendly error
+          if (res.status === 403) {
+            console.error('[Owner Inbox] ❌ 403 Forbidden - Access denied. Check if userId matches shop owner_user_id');
+            alert('Access denied. Please ensure you are the owner of this shop.');
+          } else if (res.status === 401) {
+            console.error('[Owner Inbox] ❌ 401 Unauthorized - Authentication required');
+            alert('Authentication required. Please log in again.');
+          }
+        } catch (parseError) {
+          console.error('[Owner Inbox] Error parsing error response:', parseError);
+          errorText = await res.text();
+        }
+        throw new Error(`Failed to load messages: ${res.status} - ${errorText}`);
+      }
+
+      const data = await res.json();
+      console.log('[Owner Inbox] Messages response:', data);
+      console.log('[Owner Inbox] Messages loaded:', data.messages?.length || 0, 'messages');
+      
+      if (data.messages && Array.isArray(data.messages)) {
+        setMessages(data.messages);
+        console.log('[Owner Inbox] ✅ Messages set in state:', data.messages.length);
+        
+        // Mark messages as read after setting them
+        markAsRead(conversationId).catch(err => {
+          console.error('[Owner Inbox] Error marking as read:', err);
+        });
+      } else {
+        console.warn('[Owner Inbox] ⚠️ No messages array in response:', data);
+        setMessages([]);
+      }
+    } catch (error: any) {
+      console.error('[Owner Inbox] ❌ Error loading messages:', error);
+      setMessages([]); // Clear messages on error
+      // Don't show alert here as we already showed it above for 403/401
+      if (!error.message?.includes('403') && !error.message?.includes('401')) {
+        alert(`Error loading messages: ${error.message || 'Unknown error'}`);
+      }
+    }
+  }, [userId, markAsRead]);
+
+  // CRITICAL: Load messages when activeConversationId changes
+  useEffect(() => {
+    console.log('[Owner Inbox] useEffect triggered - activeConversationId:', activeConversationId, 'userId:', userId);
+    if (activeConversationId && userId) {
+      console.log('[Owner Inbox] Calling loadMessages for:', activeConversationId);
+      loadMessages(activeConversationId);
+    } else {
+      console.log('[Owner Inbox] Clearing messages - no active conversation');
+      setMessages([]); // Clear messages when no conversation selected
+    }
+  }, [activeConversationId, userId, loadMessages]);
+
+  // Update selectedConversation when activeConversationId changes
+  useEffect(() => {
+    if (activeConversationId) {
+      const conv = conversations.find(c => c.id === activeConversationId);
+      setSelectedConversation(conv || null);
+    } else {
+      setSelectedConversation(null);
+    }
+  }, [activeConversationId, conversations]);
+
   const sendMessage = async () => {
     // Block send if content is empty or whitespace
     if (!newMessage || !newMessage.trim() || !activeConversationId || !userId || sending) {
