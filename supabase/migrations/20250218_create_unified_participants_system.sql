@@ -160,6 +160,8 @@ END $$;
 -- STEP 5: Update messages.sender_id to reference participants
 -- ============================================
 DO $$
+DECLARE
+    constraint_record RECORD;
 BEGIN
     -- Drop existing FK constraint if it exists (might reference users)
     IF EXISTS (
@@ -172,15 +174,15 @@ BEGIN
     END IF;
     
     -- Drop any other FK constraints on sender_id
-    FOR r IN (
+    FOR constraint_record IN (
         SELECT conname 
         FROM pg_constraint 
         WHERE conrelid = 'messages'::regclass 
         AND confrelid IS NOT NULL
         AND conname LIKE '%sender%'
     ) LOOP
-        EXECUTE format('ALTER TABLE messages DROP CONSTRAINT IF EXISTS %I', r.conname);
-        RAISE NOTICE 'Dropped constraint: %', r.conname;
+        EXECUTE format('ALTER TABLE messages DROP CONSTRAINT IF EXISTS %I', constraint_record.conname);
+        RAISE NOTICE 'Dropped constraint: %', constraint_record.conname;
     END LOOP;
     
     -- Make sender_id NOT NULL (only if column exists and has data)
