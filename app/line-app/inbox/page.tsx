@@ -28,7 +28,8 @@ interface Message {
   id: string;
   conversation_id: string;
   sender_type: 'customer' | 'shop';
-  body: string;
+  body?: string;
+  content?: string;
   created_at: string;
 }
 
@@ -218,6 +219,7 @@ function LineInboxPageContent() {
 
       const data = await res.json();
       console.log("[LINE Inbox] Loaded messages:", data.messages?.length || 0);
+      console.log("[LINE Inbox] Sample message:", data.messages?.[0]);
       setMessages(data.messages || []);
     } catch (error: any) {
       console.error("[LINE Inbox] Error loading messages:", error);
@@ -390,10 +392,11 @@ function LineInboxPageContent() {
                     ) : (
                       messages.map((message) => {
                         const isCustomer = message.sender_type === 'customer';
+                        const messageText = message.body || message.content || '';
                         return (
                           <div
                             key={message.id}
-                            className={`flex ${isCustomer ? 'justify-end' : 'justify-start'} min-w-0`}
+                            className={`flex ${isCustomer ? 'justify-end' : 'justify-start'} min-w-0 w-full`}
                           >
                             <div
                               className={`max-w-[85%] md:max-w-md px-4 py-2 rounded-lg ${
@@ -404,11 +407,21 @@ function LineInboxPageContent() {
                               style={{
                                 minWidth: 0,
                                 width: 'fit-content',
+                                maxWidth: '85%',
                                 wordBreak: 'break-word',
                                 overflowWrap: 'anywhere',
+                                whiteSpace: 'pre-wrap',
                               }}
                             >
-                              <p className="text-sm whitespace-pre-wrap break-words">{message.body}</p>
+                              {messageText ? (
+                                <p className={`text-sm break-words ${isCustomer ? 'text-white' : 'text-gray-900'}`}>
+                                  {messageText}
+                                </p>
+                              ) : (
+                                <p className={`text-xs italic ${isCustomer ? 'text-blue-100' : 'text-gray-400'}`}>
+                                  (Empty message)
+                                </p>
+                              )}
                               <p
                                 className={`text-xs mt-1 ${
                                   isCustomer ? 'text-blue-100' : 'text-gray-500'
