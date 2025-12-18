@@ -103,38 +103,45 @@ END $$;
 -- ============================================
 -- This is a best-effort migration for existing data
 -- New messages will use resolveSender() function
+-- Handles both 'shop' (sender_role_enum) and 'owner' (sender_role_type) enum values
 DO $$
 DECLARE
     msg_record RECORD;
     participant_id_val UUID;
+    owner_user_id_val UUID;
 BEGIN
-    -- For messages with sender_role = 'shop', try to find owner participant
+    -- For messages with sender_role = 'shop' OR 'owner', try to find owner participant
+    -- Check which enum type is being used and handle both cases
+    -- Cast to TEXT to avoid enum type mismatch errors
     FOR msg_record IN 
-        SELECT m.id, m.conversation_id, m.sender_role, c.shop_id
+        SELECT m.id, m.conversation_id, m.sender_role::TEXT as sender_role_text, c.shop_id
         FROM messages m
         JOIN conversations c ON c.id = m.conversation_id
         WHERE m.sender_id IS NULL
-        AND m.sender_role = 'shop'
+        AND (m.sender_role::TEXT IN ('shop', 'owner'))
     LOOP
+        -- Get owner_user_id from shop
+        SELECT owner_user_id INTO owner_user_id_val
+        FROM shops
+        WHERE id = msg_record.shop_id
+        LIMIT 1;
+        
+        IF owner_user_id_val IS NULL THEN
+            RAISE NOTICE 'No owner found for shop %, skipping message %', msg_record.shop_id, msg_record.id;
+            CONTINUE;
+        END IF;
+        
         -- Try to find or create owner participant
         SELECT id INTO participant_id_val
         FROM participants
         WHERE source = 'owner'
-        AND source_id IN (
-            SELECT owner_user_id::TEXT
-            FROM shops
-            WHERE id = msg_record.shop_id
-            LIMIT 1
-        )
+        AND source_id = owner_user_id_val::TEXT
         LIMIT 1;
         
         -- If not found, create one
         IF participant_id_val IS NULL THEN
             INSERT INTO participants (source, source_id, display_name)
-            SELECT 'owner', owner_user_id::TEXT, 'Shop Owner'
-            FROM shops
-            WHERE id = msg_record.shop_id
-            LIMIT 1
+            VALUES ('owner', owner_user_id_val::TEXT, 'Shop Owner')
             RETURNING id INTO participant_id_val;
         END IF;
         
@@ -142,9 +149,11 @@ BEGIN
         UPDATE messages
         SET sender_id = participant_id_val
         WHERE id = msg_record.id;
+        
+        RAISE NOTICE 'Migrated message % to participant %', msg_record.id, participant_id_val;
     END LOOP;
     
-    RAISE NOTICE 'Migrated shop messages to participants';
+    RAISE NOTICE 'Migrated shop/owner messages to participants';
 END $$;
 
 -- ============================================
