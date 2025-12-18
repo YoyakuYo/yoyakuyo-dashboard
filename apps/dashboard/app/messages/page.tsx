@@ -23,7 +23,8 @@ interface Message {
   conversation_id: string;
   sender_role?: 'customer' | 'shop' | 'ai';
   sender_type: 'customer' | 'shop';
-  body: string;
+  body?: string;
+  content?: string;
   is_read: boolean;
   created_at: string;
 }
@@ -31,12 +32,16 @@ interface Message {
 export default function OwnerInboxPage() {
   const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  // SINGLE SOURCE OF TRUTH: activeConversationId
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  // Mobile state: show chat panel or conversation list
+  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     // Get user ID from localStorage or session
@@ -95,7 +100,7 @@ export default function OwnerInboxPage() {
   };
 
   const loadMessages = async (conversationId: string) => {
-    if (!userId) return;
+    if (!userId || !conversationId) return;
     
     try {
       console.log('[Owner Inbox] Loading messages for conversation:', conversationId);
@@ -118,8 +123,28 @@ export default function OwnerInboxPage() {
       await markAsRead(conversationId);
     } catch (error) {
       console.error('[Owner Inbox] Error loading messages:', error);
+      setMessages([]); // Clear messages on error
     }
   };
+
+  // CRITICAL: Load messages when activeConversationId changes
+  useEffect(() => {
+    if (activeConversationId && userId) {
+      loadMessages(activeConversationId);
+    } else {
+      setMessages([]); // Clear messages when no conversation selected
+    }
+  }, [activeConversationId, userId]);
+
+  // Update selectedConversation when activeConversationId changes
+  useEffect(() => {
+    if (activeConversationId) {
+      const conv = conversations.find(c => c.id === activeConversationId);
+      setSelectedConversation(conv || null);
+    } else {
+      setSelectedConversation(null);
+    }
+  }, [activeConversationId, conversations]);
 
   const markAsRead = async (conversationId: string) => {
     if (!userId) return;
@@ -196,8 +221,10 @@ export default function OwnerInboxPage() {
   };
 
   const handleSelectConversation = (conversation: Conversation) => {
-    setSelectedConversation(conversation);
-    loadMessages(conversation.id);
+    // Set activeConversationId (single source of truth)
+    setActiveConversationId(conversation.id);
+    // On mobile, show chat panel
+    setShowChat(true);
   };
 
   const getCustomerDisplayName = (conv: Conversation) => {
@@ -222,10 +249,12 @@ export default function OwnerInboxPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row h-screen overflow-hidden">
       {/* Conversations List */}
-      <div className="w-1/3 border-r border-gray-200 bg-white flex flex-col">
-        <div className="p-4 border-b border-gray-200">
+      <div className={`${
+        showChat ? 'hidden md:flex' : 'flex'
+      } w-full md:w-1/3 border-r border-gray-200 bg-white flex-col h-full`}>
+        <div className="p-4 border-b border-gray-200 flex-shrink-0">
           <h1 className="text-xl font-bold text-gray-900">Inbox</h1>
           <p className="text-sm text-gray-500 mt-1">
             {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
@@ -243,7 +272,7 @@ export default function OwnerInboxPage() {
                 key={conv.id}
                 onClick={() => handleSelectConversation(conv)}
                 className={`w-full text-left p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                  selectedConversation?.id === conv.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
+                  activeConversationId === conv.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
@@ -269,19 +298,35 @@ export default function OwnerInboxPage() {
       </div>
 
       {/* Messages View */}
-      <div className="flex-1 flex flex-col">
-        {selectedConversation ? (
+      <div className={`${
+        showChat ? 'flex' : 'hidden md:flex'
+      } flex-1 flex-col h-full bg-white`}>
+        {activeConversationId && selectedConversation ? (
           <>
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {selectedConversation.shop?.name || 'Shop'}
-              </h2>
-              <p className="text-sm text-gray-500">{getCustomerDisplayName(selectedConversation)}</p>
+            {/* Header with Back button on mobile */}
+            <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-4 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                {/* Back button - mobile only */}
+                <button
+                  onClick={() => setShowChat(false)}
+                  className="md:hidden text-gray-600 hover:text-gray-900"
+                  aria-label="Back to conversations"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {selectedConversation.shop?.name || 'Shop'}
+                  </h2>
+                  <p className="text-sm text-gray-500">{getCustomerDisplayName(selectedConversation)}</p>
+                </div>
+              </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {/* Messages - scrollable area */}
+            <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-4 bg-gray-50">
               {messages.length === 0 ? (
                 <div className="text-center text-gray-500 mt-8">
                   <p>No messages yet. Start the conversation!</p>
@@ -291,6 +336,8 @@ export default function OwnerInboxPage() {
                   const senderRole = message.sender_role || (message.sender_type === 'shop' ? 'shop' : 'customer');
                   const isOwner = senderRole === 'shop';
                   const isAI = senderRole === 'ai';
+                  // Use content field if available, fallback to body
+                  const messageContent = message.content || message.body || '';
                   
                   return (
                     <div
@@ -298,18 +345,22 @@ export default function OwnerInboxPage() {
                       className={`flex ${isOwner ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                        className={`max-w-[85%] md:max-w-md px-4 py-2 rounded-lg ${
                           isOwner
                             ? 'bg-blue-600 text-white'
                             : isAI
                             ? 'bg-purple-100 text-purple-900 border border-purple-300'
                             : 'bg-white text-gray-900 border border-gray-200'
                         }`}
+                        style={{
+                          wordBreak: 'break-word',
+                          whiteSpace: 'pre-wrap',
+                        }}
                       >
                         {isAI && (
                           <p className="text-xs font-semibold text-purple-700 mb-1">AI Assistant</p>
                         )}
-                        <p className="text-sm whitespace-pre-wrap">{message.body}</p>
+                        <p className="text-sm break-words whitespace-pre-wrap">{messageContent}</p>
                         <p
                           className={`text-xs mt-1 ${
                             isOwner ? 'text-blue-100' : isAI ? 'text-purple-600' : 'text-gray-500'
@@ -327,8 +378,8 @@ export default function OwnerInboxPage() {
               )}
             </div>
 
-            {/* Input */}
-            <div className="bg-white border-t border-gray-200 px-6 py-4">
+            {/* Input - sticky at bottom */}
+            <div className="bg-white border-t border-gray-200 px-4 md:px-6 py-4 flex-shrink-0" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -347,7 +398,7 @@ export default function OwnerInboxPage() {
                 <button
                   onClick={sendMessage}
                   disabled={sending || !newMessage.trim()}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                  className="px-4 md:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold whitespace-nowrap"
                 >
                   {sending ? 'Sending...' : 'Send'}
                 </button>
