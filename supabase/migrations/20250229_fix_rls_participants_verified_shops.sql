@@ -286,13 +286,13 @@ SELECT DISTINCT
     END AS participant_type,
     CASE 
         WHEN c.customer_type = 'web' THEN c.customer_ref::UUID
-        ELSE NULL
+        ELSE NULL::UUID
     END AS user_id,
     CASE 
         WHEN c.customer_type = 'line' THEN c.customer_ref
         ELSE NULL
     END AS line_user_id,
-    NULL AS shop_id,
+    NULL::UUID AS shop_id,
     c.customer_ref AS participant_ref
 FROM conversations c
 WHERE NOT EXISTS (
