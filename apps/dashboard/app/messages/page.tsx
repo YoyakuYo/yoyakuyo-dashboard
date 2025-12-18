@@ -40,6 +40,7 @@ export default function OwnerInboxPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   // Mobile state: show chat panel or conversation list
   const [showChat, setShowChat] = useState(false);
 
@@ -154,18 +155,24 @@ export default function OwnerInboxPage() {
             rawText: errorText,
           });
           
-          // Show user-friendly error
+          // PART 1 FIX: Show error state instead of "No messages yet"
           if (res.status === 403) {
             console.error('[Owner Inbox] ❌ 403 Forbidden - Access denied. Check if userId matches shop owner_user_id');
-            alert('Access denied. Please ensure you are the owner of this shop.');
+            setMessages([]); // Clear messages
+            setError('Not authorized to view messages. Please ensure you are the owner of this shop.');
+            return; // Don't throw, just show error
           } else if (res.status === 401) {
             console.error('[Owner Inbox] ❌ 401 Unauthorized - Authentication required');
-            alert('Authentication required. Please log in again.');
+            setMessages([]);
+            setError('Authentication required. Please log in again.');
+            return;
           }
         } catch (parseError) {
           console.error('[Owner Inbox] Error parsing error response:', parseError);
           errorText = await res.text();
         }
+        setMessages([]);
+        setError(`Failed to load messages: ${res.status}`);
         throw new Error(`Failed to load messages: ${res.status} - ${errorText}`);
       }
 
@@ -387,7 +394,13 @@ export default function OwnerInboxPage() {
 
             {/* Messages - scrollable area */}
             <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-4 bg-gray-50">
-              {messages.length === 0 ? (
+              {error ? (
+                <div className="text-center text-red-600 mt-8 p-4 bg-red-50 rounded-lg border border-red-200">
+                  <p className="font-semibold">⚠️ Error</p>
+                  <p className="text-sm mt-2">{error}</p>
+                  <p className="text-xs mt-2 text-gray-400">Conversation ID: {activeConversationId}</p>
+                </div>
+              ) : messages.length === 0 ? (
                 <div className="text-center text-gray-500 mt-8">
                   <p>No messages yet. Start the conversation!</p>
                   <p className="text-xs mt-2 text-gray-400">Conversation ID: {activeConversationId}</p>

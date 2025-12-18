@@ -25,6 +25,8 @@ interface Shop {
   cover_photo_url?: string;
   logo_url?: string;
   category?: string;
+  is_verified?: boolean;
+  verified_at?: string;
 }
 
 interface Service {

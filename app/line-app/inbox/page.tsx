@@ -385,6 +385,11 @@ function LineInboxPageContent() {
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                         <p className="mt-2 text-sm">{language === 'ja' ? 'メッセージを読み込み中...' : 'Loading messages...'}</p>
                       </div>
+                    ) : error ? (
+                      <div className="text-center text-red-600 mt-8 p-4 bg-red-50 rounded-lg border border-red-200">
+                        <p className="font-semibold">⚠️ {language === 'ja' ? 'エラー' : 'Error'}</p>
+                        <p className="text-sm mt-2">{error}</p>
+                      </div>
                     ) : messages.length === 0 ? (
                       <div className="text-center text-gray-500 mt-8">
                         <p>{language === 'ja' ? 'メッセージがありません。会話を始めましょう！' : 'No messages yet. Start the conversation!'}</p>
