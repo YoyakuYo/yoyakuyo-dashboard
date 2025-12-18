@@ -469,12 +469,16 @@ export default function LineShopDetailPage() {
             </div>
           )}
 
-          {services.length === 0 ? (
+          {!shop?.is_verified ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600 mb-4">This shop is not yet verified</p>
+              <p className="text-sm text-gray-500">
+                Bookings will be available once this shop is claimed.
+              </p>
+            </div>
+          ) : services.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-600 mb-4">No services available</p>
-              <p className="text-sm text-gray-500">
-                Please contact the shop directly to book an appointment.
-              </p>
             </div>
           ) : (
             <form onSubmit={handleBookingSubmit} className="space-y-6">
