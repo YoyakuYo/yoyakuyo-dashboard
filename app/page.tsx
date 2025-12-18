@@ -5,6 +5,7 @@ import HeroCarousel from './components/landing/HeroCarousel';
 import CategorySection from './components/landing/CategorySection';
 import ReviewsSection from './components/landing/ReviewsSection';
 import RoleSelectionModal from './components/landing/RoleSelectionModal';
+import LineQRCodeSection from './components/landing/LineQRCodeSection';
 import OwnerModals from './components/OwnerModals';
 import { BrowseAIAssistant } from './browse/components/BrowseAIAssistant';
 import { BrowseAIProvider } from './components/BrowseAIContext';
