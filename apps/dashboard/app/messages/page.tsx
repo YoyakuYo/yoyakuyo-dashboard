@@ -144,13 +144,21 @@ export default function OwnerInboxPage() {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation || !userId || sending) {
+    // Block send if content is empty or whitespace
+    if (!newMessage || !newMessage.trim() || !selectedConversation || !userId || sending) {
+      if (!newMessage || !newMessage.trim()) {
+        console.warn('[Owner Inbox] Cannot send empty message');
+      }
       return;
     }
 
     try {
       setSending(true);
-      console.log('[Owner Inbox] Sending message...');
+      const trimmedContent = newMessage.trim();
+      console.log('[Owner Inbox] Sending message:', {
+        conversation_id: selectedConversation.id,
+        contentLength: trimmedContent.length,
+      });
       
       const res = await fetch(`${apiUrl}/api/internal-messaging/messages`, {
         method: 'POST',
@@ -160,7 +168,7 @@ export default function OwnerInboxPage() {
         },
         body: JSON.stringify({
           conversation_id: selectedConversation.id,
-          body: newMessage.trim(),
+          content: trimmedContent, // Send as 'content' not 'body'
         }),
       });
 

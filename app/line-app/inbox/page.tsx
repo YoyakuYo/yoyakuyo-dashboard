@@ -228,13 +228,20 @@ function LineInboxPageContent() {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation || !lineUserId || !idToken || sending) {
+    // Block send if content is empty or whitespace
+    if (!newMessage || !newMessage.trim() || !selectedConversation || !lineUserId || !idToken || sending) {
+      if (!newMessage || !newMessage.trim()) {
+        console.warn("[LINE Inbox] Cannot send empty message");
+      }
       return;
     }
 
     try {
       setSending(true);
-      console.log("[LINE Inbox] Sending message to conversation:", selectedConversation.id);
+      const trimmedContent = newMessage.trim();
+      console.log("[LINE Inbox] Sending message to conversation:", selectedConversation.id, {
+        contentLength: trimmedContent.length,
+      });
       
       const res = await fetch(`${apiUrl}/api/internal-messaging/messages`, {
         method: 'POST',
@@ -245,7 +252,7 @@ function LineInboxPageContent() {
         },
         body: JSON.stringify({
           conversation_id: selectedConversation.id,
-          body: newMessage.trim(),
+          content: trimmedContent, // Send as 'content' not 'body'
         }),
       });
 

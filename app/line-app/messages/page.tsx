@@ -206,12 +206,21 @@ export default function MessagesPage() {
   }, []);
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !conversationId || !lineUserId || !idToken || sending) {
+    // Block send if content is empty or whitespace
+    if (!newMessage || !newMessage.trim() || !conversationId || !lineUserId || !idToken || sending) {
+      if (!newMessage || !newMessage.trim()) {
+        console.warn("[Messages] Cannot send empty message");
+      }
       return;
     }
 
     try {
       setSending(true);
+      const trimmedContent = newMessage.trim();
+      console.log("[Messages] Sending message:", {
+        conversation_id: conversationId,
+        contentLength: trimmedContent.length,
+      });
       
       const res = await fetch(`${apiUrl}/api/internal-messaging/messages`, {
         method: 'POST',
@@ -222,7 +231,7 @@ export default function MessagesPage() {
         },
         body: JSON.stringify({
           conversation_id: conversationId,
-          body: newMessage.trim(),
+          content: trimmedContent, // Send as 'content' not 'body'
         }),
       });
 
