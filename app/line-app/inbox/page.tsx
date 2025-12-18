@@ -214,6 +214,15 @@ function LineInboxPageContent() {
       });
 
       if (!res.ok) {
+        if (res.status === 403) {
+          setError('Not authorized to view messages. Please ensure you are logged in correctly.');
+          setMessages([]);
+          return;
+        } else if (res.status === 401) {
+          setError('Authentication required. Please log in again.');
+          setMessages([]);
+          return;
+        }
         throw new Error('Failed to load messages');
       }
 
@@ -221,9 +230,11 @@ function LineInboxPageContent() {
       console.log("[LINE Inbox] Loaded messages:", data.messages?.length || 0);
       console.log("[LINE Inbox] Sample message:", data.messages?.[0]);
       setMessages(data.messages || []);
+      setError(""); // Clear error on success
     } catch (error: any) {
       console.error("[LINE Inbox] Error loading messages:", error);
       setError(`Failed to load messages: ${error.message || 'Unknown error'}`);
+      setMessages([]);
     } finally {
       setLoadingMessages(false);
     }
