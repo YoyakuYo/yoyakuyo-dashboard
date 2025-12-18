@@ -300,10 +300,10 @@ function LineInboxPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="bg-gray-50 flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}>
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+      <header className="bg-white border-b border-gray-200 flex-shrink-0 z-10">
+        <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold text-gray-900">{language === 'ja' ? '受信箱' : 'Inbox'}</h1>
             <button
@@ -317,22 +317,22 @@ function LineInboxPageContent() {
       </header>
 
       {error && (
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="px-4 py-2 flex-shrink-0">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
             <p className="text-red-800 text-sm">{error}</p>
           </div>
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="flex h-[600px]">
+      <div className="flex-1 flex flex-col min-h-0 px-2 md:px-4 py-2">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
+          <div className="flex flex-1 min-h-0" style={{ height: '100%' }}>
             {/* Conversations List */}
-            <div className="w-1/3 border-r border-gray-200 flex flex-col">
-              <div className="p-4 border-b border-gray-200">
-                <h2 className="font-semibold text-gray-900">{language === 'ja' ? '会話' : 'Conversations'}</h2>
+            <div className="w-1/3 border-r border-gray-200 flex flex-col min-w-0 hidden md:flex">
+              <div className="p-3 border-b border-gray-200 flex-shrink-0">
+                <h2 className="font-semibold text-gray-900 text-sm">{language === 'ja' ? '会話' : 'Conversations'}</h2>
               </div>
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto min-h-0">
                 {conversations.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">
                     <p className="text-sm">{language === 'ja' ? '会話がありません' : 'No conversations yet'}</p>
@@ -368,16 +368,16 @@ function LineInboxPageContent() {
             </div>
 
             {/* Messages View */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-w-0 min-h-0">
               {selectedConversation ? (
                 <>
-                  <div className="p-4 border-b border-gray-200">
-                    <h2 className="font-semibold text-gray-900">
+                  <div className="p-3 border-b border-gray-200 flex-shrink-0">
+                    <h2 className="font-semibold text-gray-900 text-sm">
                       {selectedConversation.shop?.name || 'Shop'}
                     </h2>
                   </div>
                   
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ minHeight: 0 }}>
+                  <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
                     {loadingMessages ? (
                       <div className="text-center text-gray-500">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -427,7 +427,7 @@ function LineInboxPageContent() {
                   </div>
 
                   {/* Input Area */}
-                  <div className="border-t border-gray-200 p-4">
+                  <div className="border-t border-gray-200 p-3 flex-shrink-0" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
                     <div className="flex gap-2">
                       <textarea
                         value={newMessage}
@@ -440,13 +440,13 @@ function LineInboxPageContent() {
                         }}
                         placeholder={language === 'ja' ? 'メッセージを入力...' : 'Type a message...'}
                         rows={2}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
                         disabled={sending}
                       />
                       <button
                         onClick={sendMessage}
                         disabled={sending || !newMessage.trim()}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm whitespace-nowrap"
                       >
                         {sending ? (language === 'ja' ? '送信中...' : 'Sending...') : (language === 'ja' ? '送信' : 'Send')}
                       </button>
