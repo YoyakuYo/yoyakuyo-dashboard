@@ -276,7 +276,7 @@ COMMENT ON FUNCTION resolve_sender IS 'Resolves or creates a participant by sour
 
 COMMENT ON TABLE participants IS 'Unified identity abstraction for all message senders. Eliminates FK violations by providing a single table for LINE, WEB, GUEST, and OWNER identities.';
 
-COMMENT ON COLUMN participants.source IS 'Type of participant: line, web, guest, or owner';
+COMMENT ON COLUMN participants.source IS 'Type of participant: line, web, guest, owner, or ai';
 COMMENT ON COLUMN participants.source_id IS 'Unique identifier for the participant in their source system (line_user_id, user_id, guest_session_id, owner_user_id)';
 COMMENT ON COLUMN participants.metadata IS 'Additional metadata (e.g., customer_id for LINE users, LINE profile info)';
 
