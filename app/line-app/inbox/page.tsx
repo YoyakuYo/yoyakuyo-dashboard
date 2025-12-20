@@ -421,7 +421,41 @@ function LineInboxPageContent() {
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
-      
+
+      // OPTION B (Fallback): Force-fetch messages shortly after send to capture AI response,
+      // without changing conversation or navigating. This is a safety net if realtime misses.
+      if (lineUserId && idToken && selectedConversation?.id) {
+        const refreshConversationId = selectedConversation.id;
+        const refreshUserId = lineUserId;
+        const refreshToken = idToken;
+
+        setTimeout(() => {
+          // Only refresh if we are still on the same conversation
+          const lockedId = lockedConversationIdRef.current;
+          const activeId = selectedConversation?.id;
+          if (lockedId && lockedId !== refreshConversationId) {
+            console.log("[LINE Inbox][OPTION B] Skipping forced refresh, locked conversation changed:", {
+              lockedId,
+              refreshConversationId,
+            });
+            return;
+          }
+          if (activeId && activeId !== refreshConversationId) {
+            console.log("[LINE Inbox][OPTION B] Skipping forced refresh, active conversation changed:", {
+              activeId,
+              refreshConversationId,
+            });
+            return;
+          }
+
+          console.log("[LINE Inbox][OPTION B] Forcing messages refresh after send to capture AI response", {
+            refreshConversationId,
+          });
+          // We intentionally do not await this; it will merge messages in-place.
+          loadMessages(refreshConversationId, refreshUserId, refreshToken);
+        }, 1500);
+      }
+
       // STEP 0: DO NOT reload entire conversations list - only update last_message_at silently
       // Remove: await loadConversations(lineUserId, idToken);
       // Instead, update conversations state silently without resetting selectedConversation
