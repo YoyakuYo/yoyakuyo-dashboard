@@ -629,11 +629,7 @@ function LineInboxPageContent() {
         console.log("[LINE Inbox] [BUG CHECK] last message ID AFTER replace temp:", updated[updated.length - 1]?.id);
         return updated;
       });
-      
-      // STEP 5: Auto-scroll to bottom after real message
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      // Auto-scroll will happen automatically via useEffect when messages.length changes
 
       // CRITICAL: Rely ONLY on Supabase realtime for AI responses
       // No fallback - if realtime doesn't work, we need to fix the configuration
@@ -685,16 +681,11 @@ function LineInboxPageContent() {
     }
 
     console.log("[LINE Inbox] Subscribing to realtime updates for conversation:", lockedId);
-    console.log("[LINE Inbox] [SUBSCRIPTION] Setting up subscription for conversation_id:", lockedId);
-    console.log("[LINE Inbox] [SUBSCRIPTION] Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Missing');
-    console.log("[LINE Inbox] [SUBSCRIPTION] Supabase Key:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Missing');
     
-    // CRITICAL: Use a unique channel name to avoid conflicts
-    const channelName = `messages:${lockedId}:${Date.now()}`;
-    console.log("[LINE Inbox] [SUBSCRIPTION] Channel name:", channelName);
+    // CRITICAL: Match exact pattern - channel name is simple: messages:${conversationId}
+    const channelName = `messages:${lockedId}`;
     
-    // CRITICAL: Use the exact same pattern as the working messages/page.tsx
-    // Don't use status callback - just subscribe and let events flow
+    // CRITICAL: Use the exact same pattern as specified - simple subscribe, no status callback
     const channel = supabase
       .channel(channelName)
       .on(
@@ -706,79 +697,38 @@ function LineInboxPageContent() {
           filter: `conversation_id=eq.${lockedId}`,
         },
         (payload) => {
-          console.log("[LINE Inbox] [REALTIME] ✅✅✅ EVENT RECEIVED! ✅✅✅");
-          console.log("[LINE Inbox] [REALTIME] Full payload:", JSON.stringify(payload, null, 2));
-          console.log("[LINE Inbox] New message received via realtime:", payload.new);
+          console.log("[LINE Inbox] [REALTIME] ✅ Event received:", payload.new?.id);
           const newMessage = payload.new as any;
-          console.log("[LINE Inbox] [REALTIME] Message details:", {
-            id: newMessage.id,
-            conversation_id: newMessage.conversation_id,
-            sender_type: newMessage.sender_type,
-            body: newMessage.body?.substring(0, 50),
-            lockedId: lockedId,
-            matches: newMessage.conversation_id === lockedId,
-          });
           
-          // CRITICAL: Verify this is for our conversation
-          if (newMessage.conversation_id !== lockedId) {
-            console.warn("[LINE Inbox] [REALTIME] ⚠️ Message for different conversation, ignoring");
-            return;
-          }
-          
-          // Subscription filter already ensures conversation_id matches lockedId
-          // Trust the filter - don't add extra checks that might block valid messages
-          
-          // [MANDATORY] AI message received, appending to state
-          console.log("[MANDATORY] AI message received, appending to state:", newMessage);
-          console.log("[MANDATORY] sender_type:", newMessage.sender_type, "sender_role:", (newMessage as any).sender_role);
-
-          // CRITICAL: Use functional state update to avoid stale closure
+          // CRITICAL: Use functional state update - subscription filter already ensures conversation_id matches
           setMessages((prev) => {
-            console.log("[LINE Inbox] [RENDER CHECK] setMessages called, prev.length:", prev.length);
-            
             // Check if message already exists (avoid duplicates)
             if (prev.some((msg) => msg.id === newMessage.id)) {
-              console.log("[LINE Inbox] Message already exists, skipping:", newMessage.id);
-              return prev; // Return same reference if duplicate
+              return prev;
             }
             
-            // CRITICAL: Create new array - never mutate prev
+            // Format message to match our Message interface
             const formattedMessage: Message = {
               id: newMessage.id,
               conversation_id: newMessage.conversation_id,
-              sender_type: newMessage.sender_type || 'shop', // Accept AI/owner/shop messages
+              sender_type: newMessage.sender_type || 'shop',
               body: newMessage.body || newMessage.content,
               content: newMessage.content || newMessage.body,
               created_at: newMessage.created_at,
               status: 'sent',
             };
             
-            console.log("[LINE Inbox] Adding new message from realtime:", formattedMessage.id);
-            
-            // CRITICAL: Create new array reference - React will detect this change
-            const updated = [...prev, formattedMessage].sort((a, b) => 
+            // Return new array - React will detect this change and trigger useEffect for auto-scroll
+            return [...prev, formattedMessage].sort((a, b) => 
               new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             );
-            
-            console.log("[LINE Inbox] [RENDER CHECK] messages.length AFTER realtime append:", updated.length);
-            console.log("[LINE Inbox] [RENDER CHECK] returning NEW array reference");
-            return updated; // Return new array reference
           });
-          
-          // STEP 5: Auto-scroll to bottom when AI message arrives
-          setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
         }
       )
       .subscribe();
     
-    // Match working pattern exactly - simple subscribe, no status callback
-    // Events will flow automatically when they arrive
-    console.log("[LINE Inbox] [SUBSCRIPTION] Channel subscribed (pattern matches working messages/page.tsx)");
-
     realtimeChannelRef.current = channel;
-    console.log("[LINE Inbox] [SUBSCRIPTION] Channel stored in ref, conversation_id:", lockedId);
+    console.log("[LINE Inbox] [SUBSCRIPTION] Subscribed to channel:", channelName);
   };
   
   const handleSelectConversation = async (conv: Conversation) => {
@@ -847,6 +797,13 @@ function LineInboxPageContent() {
     };
   }, [selectedConversation?.id, lineUserId, idToken]);
   
+  // CRITICAL: Auto-scroll to bottom when messages change (realtime or user send)
+  useEffect(() => {
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages.length]);
+
   // CRITICAL: Render logging to verify React detects state changes
   useEffect(() => {
     const lastMsgId = messages[messages.length - 1]?.id;
