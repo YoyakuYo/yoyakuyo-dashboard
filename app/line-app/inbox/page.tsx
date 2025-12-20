@@ -132,45 +132,17 @@ function LineInboxPageContent() {
             console.log("[LINE Inbox] ✅ Got Supabase JWT:", !!jwt);
             setSupabaseJWT(jwt);
             
-            // STEP 3: Initialize Supabase client with JWT
-            if (jwt) {
-              const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-              const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-              if (supabaseUrl && supabaseAnonKey) {
-                const client = createClient(supabaseUrl, supabaseAnonKey, {
-                  global: {
-                    headers: {
-                      Authorization: `Bearer ${jwt}`,
-                    },
-                  },
-                  auth: {
-                    persistSession: true,
-                    autoRefreshToken: true,
-                  },
-                  realtime: {
-                    params: {
-                      eventsPerSecond: 10,
-                    },
-                  },
-                });
-                
-                // Set the session
-                await client.auth.setSession({
-                  access_token: jwt,
-                  refresh_token: '', // Not needed for LINE users
-                });
-                
-                setSupabaseClient(client as any);
-                supabase = client as any; // Update module-level variable
-                console.log("[LINE Inbox] ✅ Supabase client initialized with JWT");
-              }
-            }
+            // STEP 3: Initialize Supabase client with JWT (or anon key as fallback)
+            await initializeSupabaseClient(jwt);
           } else {
-            console.warn("[LINE Inbox] ⚠️ Failed to get Supabase JWT, will use anon key");
+            console.warn("[LINE Inbox] ⚠️ Failed to get Supabase JWT, initializing with anon key");
+            // Fallback: Initialize with anon key
+            await initializeSupabaseClient(null);
           }
         } catch (jwtError: any) {
           console.error("[LINE Inbox] Error getting Supabase JWT:", jwtError);
-          // Continue with anon key as fallback
+          // Fallback: Initialize with anon key
+          await initializeSupabaseClient(null);
         }
         
         // Load conversations
