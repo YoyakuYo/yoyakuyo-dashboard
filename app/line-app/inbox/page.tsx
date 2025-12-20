@@ -299,18 +299,19 @@ function LineInboxPageContent() {
         contentLength: trimmedContent.length,
       });
       
-      const res = await fetch(`${apiUrl}/api/internal-messaging/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-line-user-id': lineUserId,
-          'x-id-token': idToken,
-        },
-        body: JSON.stringify({
-          conversation_id: selectedConversation.id,
-          content: trimmedContent, // Send as 'content' not 'body'
-        }),
-      });
+      // ALWAYS inject X-User-Id via unified messaging API client
+      const res = await messagingFetch(
+        `${apiUrl}/api/internal-messaging/messages`,
+        {
+          method: 'POST',
+          lineUserId,
+          idToken,
+          body: {
+            conversation_id: selectedConversation.id,
+            content: trimmedContent,
+          },
+        }
+      );
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Failed to send message' }));
