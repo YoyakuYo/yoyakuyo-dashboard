@@ -722,7 +722,8 @@ function LineInboxPageContent() {
       setRtDebug(`❌ Invalid conversation_id format`);
       return;
     }
-    console.log("[RT] Filter: conversation_id=eq.${lockedId}");
+    const filterString = `conversation_id=eq.${lockedId}`;
+    console.log("[RT] Filter:", filterString);
     console.log("[RT] lockedId type:", typeof lockedId, "value:", lockedId, "length:", lockedId.length);
     
     // CRITICAL: Use new Supabase Realtime API - postgres_changes with proper filter
