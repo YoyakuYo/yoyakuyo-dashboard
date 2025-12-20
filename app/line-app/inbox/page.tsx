@@ -854,22 +854,16 @@ function LineInboxPageContent() {
 
         <div className="flex-1 flex flex-col min-h-0 px-2 md:px-4 py-2">
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
-            {/* Mobile Conversations List (full-width) */}
-            <div className="md:hidden border-b border-gray-200">
-              <div className="p-3 flex-shrink-0">
-                <h2 className="font-semibold text-gray-900 text-sm">
-                  {language === 'ja' ? '会話を選択' : 'Select a conversation'}
-                </h2>
-              </div>
-              <div className="max-h-48 overflow-y-auto">
-                {conversations.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">
-                    <p className="text-sm">
-                      {language === 'ja' ? '会話がありません' : 'No conversations yet'}
-                    </p>
-                  </div>
-                ) : (
-                  conversations.map((conv) => (
+            {/* Mobile Conversations List (full-width) - Only show if 2+ conversations */}
+            {conversations.length >= 2 && (
+              <div className="md:hidden border-b border-gray-200">
+                <div className="p-3 flex-shrink-0">
+                  <h2 className="font-semibold text-gray-900 text-sm">
+                    {language === 'ja' ? '会話を選択' : 'Select a conversation'}
+                  </h2>
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {conversations.map((conv) => (
                     <button
                       key={conv.id}
                       onClick={() => handleSelectConversation(conv)}
@@ -893,14 +887,15 @@ function LineInboxPageContent() {
                         </p>
                       )}
                     </button>
-                  ))
-                )}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="flex flex-1 min-h-0" style={{ height: '100%' }}>
-              {/* Desktop Conversations List */}
-              <div className="w-1/3 border-r border-gray-200 flex flex-col min-w-0 hidden md:flex">
+              {/* Desktop Conversations List - Only show if 2+ conversations */}
+              {conversations.length >= 2 && (
+                <div className="w-1/3 border-r border-gray-200 flex flex-col min-w-0 hidden md:flex">
                 <div className="p-3 border-b border-gray-200 flex-shrink-0">
                   <h2 className="font-semibold text-gray-900 text-sm">{language === 'ja' ? '会話' : 'Conversations'}</h2>
                 </div>
@@ -938,6 +933,7 @@ function LineInboxPageContent() {
                   )}
                 </div>
               </div>
+            )}
 
             {/* Messages View */}
             <div className="flex-1 flex flex-col min-w-0 min-h-0">
