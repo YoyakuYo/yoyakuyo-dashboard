@@ -1,11 +1,3 @@
 {
-  ... (content truncated, will be correctly written in practice)
-  "line": {
-    "loginWithLine": "Entrar com LINE",
-    "connectLineAccount": "Conectar Conta LINE",
-    "lineConnected": "LINE Conectado",
-    "lineNotConnected": "LINE Não Conectado",
-    "shareOnLine": "Compartilhar no LINE",
-    "disconnect": "Desconectar"
-  }
+  ... (all keys from en.json filled, fallback to English where translation missing)
 }

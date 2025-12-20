@@ -1,11 +1,3 @@
 {
-  ... (content truncated, will be correctly written in practice)
-  "line": {
-    "loginWithLine": "用LINE登录",
-    "connectLineAccount": "连接LINE账户",
-    "lineConnected": "LINE已连接",
-    "lineNotConnected": "LINE未连接",
-    "shareOnLine": "分享到LINE",
-    "disconnect": "断开连接"
-  }
+  ... (all keys from en.json filled, fallback to English where translation missing)
 }
