@@ -150,8 +150,9 @@ function LineInboxPageContent() {
       console.log("[LINE Inbox] Loading conversations for LINE user:", lineUserId);
       
       // ALWAYS inject X-User-Id via unified messaging API client
+      // Rely on backend auth context to resolve customer_type/customer_ref
       const res = await messagingFetch(
-        `${apiUrl}/api/internal-messaging/conversations?customer_type=line&customer_ref=${lineUserId}`,
+        `${apiUrl}/api/internal-messaging/conversations`,
         {
           lineUserId,
           idToken: token,
@@ -462,7 +463,7 @@ function LineInboxPageContent() {
       if (lineUserId && idToken) {
         // Silently update conversations list without resetting selectedConversation
         const res = await messagingFetch(
-          `${apiUrl}/api/internal-messaging/conversations?customer_type=line&customer_ref=${lineUserId}`,
+          `${apiUrl}/api/internal-messaging/conversations`,
           {
             lineUserId,
             idToken,
