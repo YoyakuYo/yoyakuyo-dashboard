@@ -928,9 +928,10 @@ function LineInboxPageContent() {
             setRtDebug(`📝 Appending msg ${newMessage.id?.substring(0, 8)} (was ${prev.length} msgs)`);
             
             // Check if message already exists (avoid duplicates)
+            // This is normal - messages loaded via API might also come through realtime
             if (prev.some((msg) => msg.id === newMessage.id)) {
               console.log("[RT] MESSAGE ALREADY EXISTS, SKIPPING", newMessage.id);
-              setRtDebug(`⚠️ Duplicate msg ${newMessage.id?.substring(0, 8)}`);
+              // Don't show duplicate warning - it's normal behavior
               return prev;
             }
             
