@@ -38,7 +38,14 @@ async function resolveUserId(options: MessagingApiOptions): Promise<string | nul
       
       if (res.ok) {
         const data = await res.json();
-        return data.user_id || null;
+        const userId = data.user_id || data.customer_id;
+        if (userId) {
+          console.log('[Messaging API Client] ✅ Resolved user_id:', userId, 'from LINE user:', lineUserId);
+          return userId;
+        }
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('[Messaging API Client] ❌ Failed to resolve user_id:', errorData);
       }
     } catch (error) {
       console.error('[Messaging API Client] Error resolving user_id:', error);
