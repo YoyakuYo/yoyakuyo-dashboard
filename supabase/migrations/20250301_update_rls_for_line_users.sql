@@ -22,7 +22,7 @@ USING (
     WHERE conversations.id = messages.conversation_id
     AND (
       -- Web user: customer_ref matches customer_id (auth.uid())
-      (conversations.customer_type = 'web' AND conversations.customer_ref = auth.uid()::text)
+      (conversations.customer_type = 'web' AND conversations.customer_ref::uuid = auth.uid())
       OR
       -- LINE user: customer_ref matches line_user_id, and auth.uid() is in customers via line_accounts
       (conversations.customer_type = 'line' AND EXISTS (
@@ -36,7 +36,7 @@ USING (
       EXISTS (
         SELECT 1 FROM shops
         WHERE shops.id = conversations.shop_id
-        AND shops.owner_id = auth.uid()::text
+        AND shops.owner_id::uuid = auth.uid()
       )
     )
   )
@@ -49,7 +49,7 @@ FOR SELECT
 TO authenticated
 USING (
   -- Web user
-  (customer_type = 'web' AND customer_ref = auth.uid()::text)
+  (customer_type = 'web' AND customer_ref::uuid = auth.uid())
   OR
   -- LINE user: customer_ref matches line_user_id, and auth.uid() is in customers via line_accounts
   (customer_type = 'line' AND EXISTS (
@@ -63,7 +63,7 @@ USING (
   EXISTS (
     SELECT 1 FROM shops
     WHERE shops.id = conversations.shop_id
-    AND shops.owner_id = auth.uid()::text
+    AND shops.owner_id::uuid = auth.uid()
   )
 );
 
