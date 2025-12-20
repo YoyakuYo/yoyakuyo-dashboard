@@ -51,6 +51,10 @@ interface Message {
 }
 
 function LineInboxPageContent() {
+  // VISIBLE DEBUG STATE (for phone testing - no console access)
+  const [rtDebug, setRtDebug] = useState<string>("");
+  const [rtStatus, setRtStatus] = useState<string>("");
+  
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedShopId = searchParams.get('shop_id');
@@ -668,6 +672,7 @@ function LineInboxPageContent() {
       // Only remove if it's for a different conversation or in error state
       if (currentLockedId !== lockedId || currentState === 'CHANNEL_ERROR' || currentState === 'CLOSED') {
         console.log("[RT] UNSUBSCRIBED (switching conversation)", currentLockedId);
+        setRtDebug(`🔌 Unsubscribed from ${currentLockedId?.substring(0, 8)}`);
         supabase.removeChannel(currentChannel);
       } else if (currentState === 'SUBSCRIBED') {
         console.log("[RT] Channel already subscribed for this conversation, skipping");
@@ -678,6 +683,8 @@ function LineInboxPageContent() {
     // STEP 1: HARD DIAGNOSTIC LOGGING
     console.log("[RT] SUBSCRIBING", lockedId);
     console.log("[RT] LISTENING TO", lockedId);
+    setRtDebug(`📡 Subscribing to ${lockedId.substring(0, 8)}...`);
+    setRtStatus("⏳ Connecting...");
     
     // CRITICAL: Match exact pattern - channel name is simple: messages:${conversationId}
     const channelName = `messages:${lockedId}`;
@@ -697,6 +704,7 @@ function LineInboxPageContent() {
           // STEP 1 & 5: HARD DIAGNOSTIC LOGGING
           console.log("[RT] INSERT RECEIVED", payload.new);
           console.log("[RT] MESSAGE FOR", payload.new.conversation_id);
+          setRtDebug(`📨 INSERT RECEIVED: ${payload.new.id?.substring(0, 8)}`);
           
           const newMessage = payload.new as any;
           
@@ -706,6 +714,7 @@ function LineInboxPageContent() {
               listeningTo: lockedId,
               messageFor: newMessage.conversation_id,
             });
+            setRtDebug(`❌ ID MISMATCH! Listening: ${lockedId.substring(0, 8)}, Got: ${newMessage.conversation_id?.substring(0, 8)}`);
             return;
           }
           
@@ -713,10 +722,12 @@ function LineInboxPageContent() {
           setMessages((prev) => {
             console.log("[RT] CURRENT messages.length BEFORE", prev.length);
             console.log("[RT] APPENDING MESSAGE", newMessage.id);
+            setRtDebug(`📝 Appending msg ${newMessage.id?.substring(0, 8)} (was ${prev.length} msgs)`);
             
             // Check if message already exists (avoid duplicates)
             if (prev.some((msg) => msg.id === newMessage.id)) {
               console.log("[RT] MESSAGE ALREADY EXISTS, SKIPPING", newMessage.id);
+              setRtDebug(`⚠️ Duplicate msg ${newMessage.id?.substring(0, 8)}`);
               return prev;
             }
             
@@ -737,6 +748,9 @@ function LineInboxPageContent() {
             );
             
             console.log("[RT] NEW messages.length AFTER", updated.length);
+            setRtDebug(`✅ Added! Now ${updated.length} msgs`);
+            // Clear debug after 3 seconds
+            setTimeout(() => setRtDebug(renderDebug), 3000);
             return updated;
           });
         }
@@ -744,6 +758,14 @@ function LineInboxPageContent() {
       .subscribe((status) => {
         // STEP 1: STATUS LOGGING
         console.log("[RT] STATUS", status);
+        setRtStatus(`Status: ${status}`);
+        if (status === 'SUBSCRIBED') {
+          setRtDebug(`✅ Subscribed to ${lockedId.substring(0, 8)}`);
+        } else if (status === 'CHANNEL_ERROR') {
+          setRtDebug(`❌ Channel ERROR`);
+        } else if (status === 'TIMED_OUT') {
+          setRtDebug(`⏱️ Timeout`);
+        }
       });
     
     realtimeChannelRef.current = channel;
@@ -769,6 +791,7 @@ function LineInboxPageContent() {
       if (realtimeChannelRef.current && supabase) {
         const conversationId = lockedConversationIdRef.current;
         console.log("[RT] UNSUBSCRIBED", conversationId);
+        setRtDebug(`🔌 Unsubscribed (unmount) ${conversationId?.substring(0, 8)}`);
         supabase.removeChannel(realtimeChannelRef.current);
       }
     };
@@ -842,6 +865,9 @@ function LineInboxPageContent() {
   console.log("[RENDER] messages.length", messages.length);
   console.log("[RENDER] selectedConversation.id", selectedConversation?.id);
   console.log("[RENDER] lockedConversationIdRef", lockedConversationIdRef.current);
+  
+  // Update visible debug with render info
+  const renderDebug = `[RENDER] ${messages.length} msgs | Conv: ${selectedConversation?.id?.substring(0, 8) || 'none'}`;
 
   if (loading) {
     return (
@@ -856,7 +882,18 @@ function LineInboxPageContent() {
 
   return (
     <>
-      <div className="bg-gray-50 flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}>
+      {/* VISIBLE DEBUG BANNER (for phone testing) */}
+      <div style={{
+        position: 'fixed', top: 0, left: 0, right: 0,
+        background: '#f6e05e', color: '#222', padding: 8, fontWeight: 'bold', 
+        zIndex: 99999, textAlign: 'center', fontSize: '12px',
+        borderBottom: '2px solid #d69e2e', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        maxHeight: '80px', overflow: 'auto',
+      }}>
+        <div style={{ marginBottom: 4 }}>{rtDebug || renderDebug}</div>
+        {rtStatus && <div style={{ fontSize: '11px', opacity: 0.8 }}>{rtStatus}</div>}
+      </div>
+      <div className="bg-gray-50 flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: '80px' }}>
 
 
         {/* Header */}
