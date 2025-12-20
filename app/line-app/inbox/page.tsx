@@ -69,6 +69,8 @@ function LineInboxPageContent() {
   const [error, setError] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null); // STEP 5: Scroll management
   const realtimeChannelRef = useRef<any>(null); // STEP 3: Realtime subscription
+  // STEP 3: Lock conversation ID in a stable ref
+  const lockedConversationIdRef = useRef<string | null>(null);
   const [language, setLanguage] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('line_app_language') || 'ja';
@@ -291,7 +293,7 @@ function LineInboxPageContent() {
       console.log("[LINE Inbox] Loaded messages:", data.messages?.length || 0);
       console.log("[LINE Inbox] Sample message:", data.messages?.[0]);
       
-      // STEP 2: Merge results into state (do NOT overwrite) - preserve optimistic messages
+      // STEP 4: Message state MUST APPEND, NOT REPLACE - merge with existing
       setMessages(prev => {
         // Keep messages with status 'sending' or 'failed' (optimistic messages)
         const optimisticMessages = prev.filter(m => m.status === 'sending' || m.status === 'failed');
@@ -299,9 +301,12 @@ function LineInboxPageContent() {
         const fetchedMessages = (data.messages || []).filter((newMsg: Message) => 
           !prev.some(existing => existing.id === newMsg.id)
         );
-        return [...optimisticMessages, ...fetchedMessages].sort((a, b) => 
+        const merged = [...optimisticMessages, ...fetchedMessages].sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
+        console.log("[LINE Inbox] [BUG CHECK] messages.length AFTER loadMessages merge:", merged.length);
+        console.log("[LINE Inbox] [BUG CHECK] last message ID AFTER loadMessages merge:", merged[merged.length - 1]?.id);
+        return merged;
       });
       
       setError(""); // Clear error on success
@@ -329,6 +334,15 @@ function LineInboxPageContent() {
       return;
     }
 
+    // STEP 1: VERIFY THE ACTUAL BUG - Log conversation_id BEFORE send
+    const conversationIdBeforeSend = selectedConversation.id;
+    const lockedIdBeforeSend = lockedConversationIdRef.current;
+    console.log("[LINE Inbox] [BUG CHECK] conversation_id BEFORE send:", conversationIdBeforeSend);
+    console.log("[LINE Inbox] [BUG CHECK] lockedConversationIdRef BEFORE send:", lockedIdBeforeSend);
+    console.log("[LINE Inbox] [BUG CHECK] selectedConversation.id BEFORE send:", selectedConversation?.id);
+    console.log("[LINE Inbox] [BUG CHECK] messages.length BEFORE send:", messages.length);
+    console.log("[LINE Inbox] [BUG CHECK] last message ID BEFORE send:", messages[messages.length - 1]?.id);
+
     const trimmedContent = newMessage.trim();
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
@@ -342,7 +356,12 @@ function LineInboxPageContent() {
       status: 'sending',
     };
     
-    setMessages(prev => [...prev, optimisticMessage]);
+    // STEP 4: Message state MUST APPEND, NOT REPLACE
+    setMessages(prev => {
+      const newMessages = [...prev, optimisticMessage];
+      console.log("[LINE Inbox] [BUG CHECK] messages.length AFTER optimistic insert:", newMessages.length);
+      return newMessages;
+    });
     setNewMessage('');
     
     // STEP 5: Auto-scroll to bottom after optimistic insert
@@ -379,21 +398,61 @@ function LineInboxPageContent() {
       const data = await res.json();
       console.log("[LINE Inbox] Message sent successfully:", data.message?.id);
       
+      // STEP 1: VERIFY THE ACTUAL BUG - Log conversation_id AFTER send
+      console.log("[LINE Inbox] [BUG CHECK] conversation_id AFTER send:", selectedConversation?.id);
+      console.log("[LINE Inbox] [BUG CHECK] lockedConversationIdRef AFTER send:", lockedConversationIdRef.current);
+      console.log("[LINE Inbox] [BUG CHECK] selectedConversation.id AFTER send:", selectedConversation?.id);
+      
       // STEP 2: Replace temp message with real message ID
-      setMessages(prev => prev.map(msg => 
-        msg.id === tempId 
-          ? { ...data.message, status: 'sent' as const }
-          : msg
-      ));
+      // STEP 4: Message state MUST APPEND, NOT REPLACE - use map to update existing
+      setMessages(prev => {
+        const updated = prev.map(msg => 
+          msg.id === tempId 
+            ? { ...data.message, status: 'sent' as const }
+            : msg
+        );
+        console.log("[LINE Inbox] [BUG CHECK] messages.length AFTER replace temp:", updated.length);
+        console.log("[LINE Inbox] [BUG CHECK] last message ID AFTER replace temp:", updated[updated.length - 1]?.id);
+        return updated;
+      });
       
       // STEP 5: Auto-scroll to bottom after real message
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
       
-      // Reload conversations to update last_message_at
+      // STEP 0: DO NOT reload entire conversations list - only update last_message_at silently
+      // Remove: await loadConversations(lineUserId, idToken);
+      // Instead, update conversations state silently without resetting selectedConversation
       if (lineUserId && idToken) {
-        await loadConversations(lineUserId, idToken);
+        // Silently update conversations list without resetting selectedConversation
+        const res = await messagingFetch(
+          `${apiUrl}/api/internal-messaging/conversations?customer_type=line&customer_ref=${lineUserId}`,
+          {
+            lineUserId,
+            idToken,
+          }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          // STEP 2: Update conversations WITHOUT resetting selectedConversation
+          setConversations(prev => {
+            const updated = data.conversations || [];
+            // Preserve selectedConversation if it still exists
+            const currentSelectedId = selectedConversation?.id;
+            if (currentSelectedId) {
+              const stillExists = updated.find((c: Conversation) => c.id === currentSelectedId);
+              if (!stillExists) {
+                // If selected conversation was removed, find it in old list and add it back
+                const oldSelected = prev.find(c => c.id === currentSelectedId);
+                if (oldSelected) {
+                  updated.unshift(oldSelected);
+                }
+              }
+            }
+            return updated;
+          });
+        }
       }
     } catch (error: any) {
       console.error("[LINE Inbox] Error sending message:", error);
@@ -413,11 +472,109 @@ function LineInboxPageContent() {
   };
 
   const handleSelectConversation = async (conv: Conversation) => {
+    // STEP 3: Lock conversation ID in a stable ref
+    lockedConversationIdRef.current = conv.id;
+    console.log("[LINE Inbox] [BUG CHECK] Locked conversation_id:", conv.id);
+    
     setSelectedConversation(conv);
     if (lineUserId && idToken) {
       await loadMessages(conv.id, lineUserId, idToken);
+      // STEP 5: Subscribe to realtime updates for this conversation
+      subscribeToMessages(conv.id);
     }
   };
+  
+  // STEP 5: Subscribe to realtime updates for new messages
+  const subscribeToMessages = (conversationId: string) => {
+    if (!supabase) {
+      console.warn("[LINE Inbox] Supabase client not initialized, skipping realtime");
+      return;
+    }
+
+    // Clean up existing subscription
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current);
+    }
+
+    console.log("[LINE Inbox] Subscribing to realtime updates for conversation:", conversationId);
+    
+    const channel = supabase
+      .channel(`messages:conversation_id=eq.${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          console.log("[LINE Inbox] New message received via realtime:", payload.new);
+          const newMessage = payload.new as any;
+          
+          // STEP 4: Append to SAME messages state, do NOT overwrite array
+          setMessages((prev) => {
+            // Check if message already exists (avoid duplicates)
+            if (prev.some((msg) => msg.id === newMessage.id)) {
+              console.log("[LINE Inbox] Message already exists, skipping:", newMessage.id);
+              return prev;
+            }
+            
+            const formattedMessage: Message = {
+              id: newMessage.id,
+              conversation_id: newMessage.conversation_id,
+              sender_type: newMessage.sender_type || 'shop', // Default to shop for AI/owner messages
+              body: newMessage.body || newMessage.content,
+              content: newMessage.content || newMessage.body,
+              created_at: newMessage.created_at,
+              status: 'sent',
+            };
+            
+            console.log("[LINE Inbox] Adding new message from realtime:", formattedMessage.id);
+            const updated = [...prev, formattedMessage].sort((a, b) => 
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+            console.log("[LINE Inbox] [BUG CHECK] messages.length AFTER realtime append:", updated.length);
+            return updated;
+          });
+          
+          // STEP 5: Auto-scroll to bottom when AI message arrives
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }
+      )
+      .subscribe();
+
+    realtimeChannelRef.current = channel;
+  };
+  
+  // Cleanup realtime subscription on unmount
+  useEffect(() => {
+    return () => {
+      if (realtimeChannelRef.current && supabase) {
+        console.log("[LINE Inbox] Cleaning up realtime subscription");
+        supabase.removeChannel(realtimeChannelRef.current);
+      }
+    };
+  }, []);
+  
+  // STEP 5: Subscribe to realtime when conversation is selected
+  useEffect(() => {
+    if (selectedConversation && lineUserId && idToken) {
+      // STEP 3: Use locked conversation ID, never recalculate
+      const conversationId = lockedConversationIdRef.current || selectedConversation.id;
+      if (conversationId) {
+        subscribeToMessages(conversationId);
+      }
+    }
+    
+    return () => {
+      if (realtimeChannelRef.current && supabase) {
+        supabase.removeChannel(realtimeChannelRef.current);
+      }
+    };
+  }, [selectedConversation?.id, lineUserId, idToken]);
 
   if (loading) {
     return (
@@ -579,7 +736,8 @@ function LineInboxPageContent() {
                             </div>
                           </div>
                         );
-                      })
+                      })}
+                      </>
                     )}
                     {/* STEP 5: Scroll anchor */}
                     <div ref={messagesEndRef} />
