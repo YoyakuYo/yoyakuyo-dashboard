@@ -554,6 +554,8 @@ function LineInboxPageContent() {
     console.log("[LINE Inbox] [BUG CHECK] selectedConversation.id BEFORE send:", conversationToUse?.id);
     console.log("[LINE Inbox] [BUG CHECK] messages.length BEFORE send:", messages.length);
     console.log("[LINE Inbox] [BUG CHECK] last message ID BEFORE send:", messages[messages.length - 1]?.id);
+    console.log("[LINE Inbox] [SUBSCRIPTION] Realtime channel exists:", !!realtimeChannelRef.current);
+    console.log("[LINE Inbox] [SUBSCRIPTION] Realtime channel state:", realtimeChannelRef.current?.state);
 
     const trimmedContent = newMessage.trim();
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -673,6 +675,7 @@ function LineInboxPageContent() {
     }
 
     console.log("[LINE Inbox] Subscribing to realtime updates for conversation:", lockedId);
+    console.log("[LINE Inbox] [SUBSCRIPTION] Setting up subscription for conversation_id:", lockedId);
     
     const channel = supabase
       .channel(`messages:conversation_id=eq.${lockedId}`)
@@ -688,34 +691,47 @@ function LineInboxPageContent() {
           console.log("[LINE Inbox] New message received via realtime:", payload.new);
           const newMessage = payload.new as any;
           
-          // CRITICAL: Subscription filter already ensures conversation_id matches lockedId
-          // But double-check to be safe
-          if (newMessage.conversation_id !== lockedId) {
+          // CRITICAL: Use current locked ID from ref (not closure) to verify
+          // Subscription filter already ensures conversation_id matches, but double-check with current ref
+          const currentLockedId = lockedConversationIdRef.current;
+          if (currentLockedId && newMessage.conversation_id !== currentLockedId) {
             console.log("[LINE Inbox] ⚠️ Realtime message ignored - conversation_id mismatch:", {
               messageConversationId: newMessage.conversation_id,
               subscriptionLockedId: lockedId,
-              currentLockedId: lockedConversationIdRef.current,
+              currentLockedId: currentLockedId,
             });
+            return;
+          }
+          
+          // CRITICAL: If no locked ID, still accept if it matches subscription filter
+          // (This handles edge case where ref hasn't been set yet)
+          if (!currentLockedId && newMessage.conversation_id !== lockedId) {
+            console.log("[LINE Inbox] ⚠️ Realtime message ignored - no locked ID and doesn't match subscription");
             return;
           }
           
           // [MANDATORY] AI message received, appending to state (for live debug requirement)
           console.log("[MANDATORY] AI message received, appending to state:", newMessage);
+          console.log("[MANDATORY] sender_type:", newMessage.sender_type, "sender_role:", (newMessage as any).sender_role);
 
-          // STEP 4: Append to SAME messages state, do NOT overwrite array
+          // CRITICAL: Use functional state update to avoid stale closure
           setMessages((prev) => {
+            console.log("[LINE Inbox] [RENDER CHECK] setMessages called, prev.length:", prev.length);
+            
             // Check if message already exists (avoid duplicates)
             if (prev.some((msg) => msg.id === newMessage.id)) {
               console.log("[LINE Inbox] Message already exists, skipping:", newMessage.id);
               setRealtimeDebug(`[SKIP] Already exist: ${newMessage.id}`);
-              return prev;
+              return prev; // Return same reference if duplicate
             }
+            
             setRealtimeDebug(`AI msg: ${newMessage.id} added, messages now: ${prev.length + 1}`);
             
+            // CRITICAL: Create new array - never mutate prev
             const formattedMessage: Message = {
               id: newMessage.id,
               conversation_id: newMessage.conversation_id,
-              sender_type: newMessage.sender_type || 'shop', // Default to shop for AI/owner messages
+              sender_type: newMessage.sender_type || 'shop', // Accept AI/owner/shop messages
               body: newMessage.body || newMessage.content,
               content: newMessage.content || newMessage.body,
               created_at: newMessage.created_at,
@@ -723,11 +739,15 @@ function LineInboxPageContent() {
             };
             
             console.log("[LINE Inbox] Adding new message from realtime:", formattedMessage.id);
+            
+            // CRITICAL: Create new array reference - React will detect this change
             const updated = [...prev, formattedMessage].sort((a, b) => 
               new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             );
-            console.log("[LINE Inbox] [BUG CHECK] messages.length AFTER realtime append:", updated.length);
-            return updated;
+            
+            console.log("[LINE Inbox] [RENDER CHECK] messages.length AFTER realtime append:", updated.length);
+            console.log("[LINE Inbox] [RENDER CHECK] returning NEW array reference");
+            return updated; // Return new array reference
           });
           
           // STEP 5: Auto-scroll to bottom when AI message arrives
@@ -736,9 +756,17 @@ function LineInboxPageContent() {
           }, 100);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[LINE Inbox] [SUBSCRIPTION] Realtime subscription status:", status);
+        if (status === 'SUBSCRIBED') {
+          console.log("[LINE Inbox] [SUBSCRIPTION] ✅ Successfully subscribed to conversation:", lockedId);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error("[LINE Inbox] [SUBSCRIPTION] ❌ Channel error for conversation:", lockedId);
+        }
+      });
 
     realtimeChannelRef.current = channel;
+    console.log("[LINE Inbox] [SUBSCRIPTION] Channel stored in ref, conversation_id:", lockedId);
   }, []);
   
   const handleSelectConversation = async (conv: Conversation) => {
@@ -797,13 +825,19 @@ function LineInboxPageContent() {
     };
   }, [selectedConversation?.id, lineUserId, idToken]);
   
-  // STEP 1: VERIFY THE ACTUAL BUG - Log on render
+  // CRITICAL: Render logging to verify React detects state changes
   useEffect(() => {
     const lastMsgId = messages[messages.length - 1]?.id;
+    const lastMsgSender = messages[messages.length - 1]?.sender_type;
     const convId = selectedConversation?.id;
     const lockedId = lockedConversationIdRef.current;
-    console.log("[LINE Inbox] [BUG CHECK] RENDER - messages.length:", messages.length, "last message ID:", lastMsgId, "selectedConversation.id:", convId, "lockedConversationIdRef:", lockedId);
-  }, [messages.length, selectedConversation?.id]);
+    console.log("[LINE Inbox] [RENDER CHECK] Component re-rendered - messages.length:", messages.length, 
+      "last message ID:", lastMsgId, 
+      "last sender:", lastMsgSender,
+      "selectedConversation.id:", convId, 
+      "lockedConversationIdRef:", lockedId);
+    console.log("[LINE Inbox] [RENDER CHECK] All message IDs:", messages.map(m => ({ id: m.id, sender: m.sender_type })));
+  }, [messages, selectedConversation?.id]);
 
   if (loading) {
     return (
