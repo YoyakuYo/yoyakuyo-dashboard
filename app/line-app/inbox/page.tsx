@@ -52,6 +52,7 @@ interface Message {
 
 function LineInboxPageContent() {
   const [realtimeDebug, setRealtimeDebug] = useState<string>("");
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedShopId = searchParams.get('shop_id');
@@ -543,19 +544,22 @@ function LineInboxPageContent() {
     // CRITICAL: Ensure realtime subscription is ALWAYS active before sending
     if (conversationId && !realtimeChannelRef.current) {
       console.log("[LINE Inbox] Realtime subscription missing, setting up now:", conversationId);
+      setRealtimeDebug(`⚠️ No subscription! Setting up for ${conversationId}...`);
       subscribeToMessages(conversationId);
     }
 
     // STEP 1: VERIFY THE ACTUAL BUG - Log conversation_id BEFORE send
     const conversationIdBeforeSend = conversationId;
     const lockedIdBeforeSend = lockedConversationIdRef.current;
+    const channelState = realtimeChannelRef.current?.state || 'NONE';
     console.log("[LINE Inbox] [BUG CHECK] conversation_id BEFORE send:", conversationIdBeforeSend);
     console.log("[LINE Inbox] [BUG CHECK] lockedConversationIdRef BEFORE send:", lockedIdBeforeSend);
     console.log("[LINE Inbox] [BUG CHECK] selectedConversation.id BEFORE send:", conversationToUse?.id);
     console.log("[LINE Inbox] [BUG CHECK] messages.length BEFORE send:", messages.length);
     console.log("[LINE Inbox] [BUG CHECK] last message ID BEFORE send:", messages[messages.length - 1]?.id);
     console.log("[LINE Inbox] [SUBSCRIPTION] Realtime channel exists:", !!realtimeChannelRef.current);
-    console.log("[LINE Inbox] [SUBSCRIPTION] Realtime channel state:", realtimeChannelRef.current?.state);
+    console.log("[LINE Inbox] [SUBSCRIPTION] Realtime channel state:", channelState);
+    setRealtimeDebug(`📤 Sending to ${conversationId} | Sub: ${channelState} | Msgs: ${messages.length}`);
 
     const trimmedContent = newMessage.trim();
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -676,6 +680,7 @@ function LineInboxPageContent() {
 
     console.log("[LINE Inbox] Subscribing to realtime updates for conversation:", lockedId);
     console.log("[LINE Inbox] [SUBSCRIPTION] Setting up subscription for conversation_id:", lockedId);
+    setRealtimeDebug(`⏳ Setting up subscription for ${lockedId}...`);
     
     const channel = supabase
       .channel(`messages:conversation_id=eq.${lockedId}`)
@@ -690,6 +695,7 @@ function LineInboxPageContent() {
         (payload) => {
           console.log("[LINE Inbox] New message received via realtime:", payload.new);
           const newMessage = payload.new as any;
+          setRealtimeDebug(`📨 Realtime event received: ${newMessage.id || 'unknown'}`);
           
           // CRITICAL: Use current locked ID from ref (not closure) to verify
           // Subscription filter already ensures conversation_id matches, but double-check with current ref
@@ -700,6 +706,7 @@ function LineInboxPageContent() {
               subscriptionLockedId: lockedId,
               currentLockedId: currentLockedId,
             });
+            setRealtimeDebug(`⚠️ Ignored: conv mismatch (msg: ${newMessage.conversation_id}, locked: ${currentLockedId})`);
             return;
           }
           
@@ -707,12 +714,14 @@ function LineInboxPageContent() {
           // (This handles edge case where ref hasn't been set yet)
           if (!currentLockedId && newMessage.conversation_id !== lockedId) {
             console.log("[LINE Inbox] ⚠️ Realtime message ignored - no locked ID and doesn't match subscription");
+            setRealtimeDebug(`⚠️ Ignored: no locked ID`);
             return;
           }
           
           // [MANDATORY] AI message received, appending to state (for live debug requirement)
           console.log("[MANDATORY] AI message received, appending to state:", newMessage);
           console.log("[MANDATORY] sender_type:", newMessage.sender_type, "sender_role:", (newMessage as any).sender_role);
+          setRealtimeDebug(`✅ Processing message: ${newMessage.id} (sender: ${newMessage.sender_type || 'unknown'})`);
 
           // CRITICAL: Use functional state update to avoid stale closure
           setMessages((prev) => {
@@ -758,10 +767,15 @@ function LineInboxPageContent() {
       )
       .subscribe((status) => {
         console.log("[LINE Inbox] [SUBSCRIPTION] Realtime subscription status:", status);
+        setSubscriptionStatus(`Sub: ${status} | Conv: ${lockedId}`);
         if (status === 'SUBSCRIBED') {
           console.log("[LINE Inbox] [SUBSCRIPTION] ✅ Successfully subscribed to conversation:", lockedId);
+          setRealtimeDebug(`✅ Subscribed to ${lockedId}`);
         } else if (status === 'CHANNEL_ERROR') {
           console.error("[LINE Inbox] [SUBSCRIPTION] ❌ Channel error for conversation:", lockedId);
+          setRealtimeDebug(`❌ Subscription ERROR for ${lockedId}`);
+        } else {
+          setRealtimeDebug(`⏳ Subscription: ${status}`);
         }
       });
 
@@ -850,17 +864,22 @@ function LineInboxPageContent() {
     );
   }
 
+  // Always show debug banner with current state
+  const supabaseStatus = supabase ? '✅' : '❌';
+  const debugInfo = realtimeDebug || subscriptionStatus || `Supabase: ${supabaseStatus} | Msgs: ${messages.length} | Conv: ${selectedConversation?.id || 'none'} | Sub: ${realtimeChannelRef.current?.state || 'none'}`;
+  
   return (
     <>
-      {realtimeDebug && (
-        <div style={{
-          position: 'fixed', bottom: 10, left: 0, right: 0,
-          background: '#f6e05e', color: '#222', padding: 8, fontWeight: 'bold', zIndex: 9999, textAlign: 'center',
-        }}>
-          {realtimeDebug}
-        </div>
-      )}
-      <div className="bg-gray-50 flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}>
+      <div style={{
+        position: 'fixed', top: 0, left: 0, right: 0,
+        background: '#f6e05e', color: '#222', padding: 12, fontWeight: 'bold', zIndex: 99999, 
+        textAlign: 'center', fontSize: '14px', borderBottom: '2px solid #d69e2e',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+      }}>
+        <div>{debugInfo}</div>
+        {subscriptionStatus && realtimeDebug && <div style={{ fontSize: '12px', marginTop: 4, opacity: 0.8 }}>{subscriptionStatus}</div>}
+      </div>
+      <div className="bg-gray-50 flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: '60px' }}>
 
 
         {/* Header */}
