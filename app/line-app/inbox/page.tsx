@@ -202,25 +202,74 @@ function LineInboxPageContent() {
     }
   };
 
-  // CRITICAL: NO AUTO-CREATION - Only find existing conversation from list
+  // CRITICAL: Find existing conversation - check list first, then backend if needed
   const handlePreselectedShop = async (shopId: string, lineUserId: string, token: string, bookingId?: string) => {
     try {
       console.log("[LINE Inbox] Handling preselected shop (FETCH ONLY, NO CREATE):", { shopId, bookingId });
       
-      // Find existing conversation from already-loaded list (by shop_id)
-      const existingConv = conversations.find(c => c.shop_id === shopId);
+      // FIRST: Check already-loaded conversations list
+      let existingConv = conversations.find(c => c.shop_id === shopId);
+      
+      // SECOND: If not in list, check backend (conversation might exist but not be in list yet)
+      if (!existingConv) {
+        console.log("[LINE Inbox] Not in list, checking backend for existing conversation...");
+        try {
+          const res = await messagingFetch(
+            `${apiUrl}/api/internal-messaging/conversations`,
+            {
+              lineUserId,
+              idToken: token,
+            }
+          );
+          
+          if (res.ok) {
+            const data = await res.json();
+            const allConversations: Conversation[] = data.conversations || [];
+            existingConv = allConversations.find(c => c.shop_id === shopId);
+            
+            // Update conversations list with backend data (deduplicated)
+            const byShop = new Map<string, Conversation>();
+            for (const conv of allConversations) {
+              const key = conv.shop_id;
+              const existing = byShop.get(key);
+              if (!existing) {
+                byShop.set(key, conv);
+              } else {
+                const existingTime = new Date(existing.last_message_at || existing.created_at).getTime();
+                const newTime = new Date(conv.last_message_at || conv.created_at).getTime();
+                if (newTime > existingTime) {
+                  byShop.set(key, conv);
+                }
+              }
+            }
+            const deduped = Array.from(byShop.values()).sort((a, b) =>
+              new Date(b.last_message_at || b.created_at).getTime() -
+              new Date(a.last_message_at || a.created_at).getTime()
+            );
+            setConversations(deduped);
+            
+            // Re-check after updating list
+            existingConv = deduped.find(c => c.shop_id === shopId);
+          }
+        } catch (fetchError) {
+          console.error("[LINE Inbox] Error checking backend for conversation:", fetchError);
+        }
+      }
       
       if (!existingConv) {
-        console.log("[LINE Inbox] No existing conversation found for shop:", shopId);
-        // DO NOT CREATE - just show empty state or error
-        setError(`No conversation found for this shop. Send a message to start a conversation.`);
+        console.log("[LINE Inbox] No existing conversation found in DB for shop:", shopId);
+        // DO NOT CREATE - show message that user can send first message
+        setError("");
+        setSelectedConversation(null);
+        setMessages([]);
         return;
       }
       
       console.log("[LINE Inbox] ✅ Found existing conversation:", existingConv.id);
       
-      // Use the existing conversation from the list
+      // Use the existing conversation - set state and load messages
       setSelectedConversation(existingConv);
+      lockedConversationIdRef.current = existingConv.id;
       await loadMessages(existingConv.id, lineUserId, token);
       
       // Focus message input after a short delay
@@ -395,6 +444,13 @@ function LineInboxPageContent() {
       }
     } else {
       conversationId = conversationToUse.id;
+      // CRITICAL: Lock conversation_id - never let it change
+      lockedConversationIdRef.current = conversationId;
+    }
+
+    // CRITICAL: Ensure conversation state is set and locked before sending
+    if (conversationToUse && !selectedConversation) {
+      setSelectedConversation(conversationToUse);
     }
 
     // STEP 1: VERIFY THE ACTUAL BUG - Log conversation_id BEFORE send
@@ -556,19 +612,24 @@ function LineInboxPageContent() {
           
           setConversations(deduped);
           
-          // Preserve selectedConversation if it still exists
-          const currentSelectedId = conversationToUse?.id;
+          // CRITICAL: Preserve selectedConversation state - never reset it
+          const currentSelectedId = conversationToUse?.id || selectedConversation?.id;
           if (currentSelectedId) {
             const stillExists = deduped.find((c: Conversation) => c.id === currentSelectedId);
             if (!stillExists && conversationToUse) {
-              // If selected conversation was removed, add it back
+              // If selected conversation was removed from list, add it back
               setConversations(prev => {
                 if (!prev.some(c => c.id === currentSelectedId)) {
                   return [conversationToUse!, ...prev];
                 }
                 return prev;
               });
+            } else if (stillExists) {
+              // Update selectedConversation with latest data from backend
+              setSelectedConversation(stillExists);
             }
+            // CRITICAL: Lock conversation_id - never let it change
+            lockedConversationIdRef.current = currentSelectedId;
           }
         }
       }
