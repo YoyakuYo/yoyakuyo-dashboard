@@ -859,14 +859,13 @@ function LineInboxPageContent() {
           table: 'messages',
           filter: filterString,
         },
-        (payload: any) => {
+        async (payload: any) => {
           // STEP 6: DEBUG CONFIRMATION
           console.log("[RT] Realtime payload received");
           console.log("[RT] payload.id:", payload.new.id);
           console.log("[RT] payload.conversation_id:", payload.new.conversation_id);
           console.log("[RT] payload.sender_type:", payload.new.sender_type);
           console.log("[RT] payload.sender_id:", payload.new.sender_id);
-          console.log("[RT] Full payload.new:", JSON.stringify(payload.new, null, 2));
           setRtDebug(`📨 INSERT: ${payload.new.id?.substring(0, 8)}`);
           
           const newMessage = payload.new as any;
@@ -881,10 +880,51 @@ function LineInboxPageContent() {
             return;
           }
           
+          // CRITICAL: Determine sender_type by fetching participant info
+          // Realtime payload doesn't include participant join, so we need to fetch it
+          let senderType: 'customer' | 'shop' = 'shop'; // Default to shop (AI/owner messages)
+          
+          const client = supabaseClient || supabase;
+          if (client && newMessage.sender_id) {
+            try {
+              // Fetch participant to get source
+              const { data: participant, error: partError } = await client
+                .from('participants')
+                .select('source')
+                .eq('id', newMessage.sender_id)
+                .single();
+              
+              if (!partError && participant && (participant as any).source) {
+                const source = (participant as any).source;
+                // Map participant source to sender_type
+                if (source === 'customer' || source === 'line' || source === 'web' || source === 'guest') {
+                  senderType = 'customer';
+                } else {
+                  // 'ai' or 'owner' → shop
+                  senderType = 'shop';
+                }
+                console.log("[RT] Determined sender_type from participant:", senderType, "source:", source);
+              } else {
+                console.warn("[RT] Could not fetch participant or missing source, defaulting to 'shop'");
+              }
+            } catch (fetchError: any) {
+              console.error("[RT] Error fetching participant:", fetchError);
+              // Default to 'shop' on error
+            }
+          } else if (newMessage.sender_type) {
+            // Fallback: Use explicit sender_type if provided
+            senderType = newMessage.sender_type === 'customer' ? 'customer' : 'shop';
+            console.log("[RT] Using explicit sender_type from payload:", senderType);
+          } else {
+            // Last resort: Default to 'shop' (AI/owner response)
+            // Customer messages are added optimistically, so new realtime messages are likely shop/AI
+            console.warn("[RT] No sender_id or sender_type, defaulting to 'shop'");
+          }
+          
           // STEP 2: STATE UPDATE - MUST USE FUNCTIONAL UPDATE
           setMessages((prev) => {
             console.log("[RT] CURRENT messages.length BEFORE", prev.length);
-            console.log("[RT] APPENDING MESSAGE", newMessage.id);
+            console.log("[RT] APPENDING MESSAGE", newMessage.id, "sender_type:", senderType);
             setRtDebug(`📝 Appending msg ${newMessage.id?.substring(0, 8)} (was ${prev.length} msgs)`);
             
             // Check if message already exists (avoid duplicates)
@@ -892,50 +932,6 @@ function LineInboxPageContent() {
               console.log("[RT] MESSAGE ALREADY EXISTS, SKIPPING", newMessage.id);
               setRtDebug(`⚠️ Duplicate msg ${newMessage.id?.substring(0, 8)}`);
               return prev;
-            }
-            
-            // Format message to match our Message interface
-            // CRITICAL: Determine sender_type correctly
-            // Realtime payload doesn't include participant join, so we need to fetch it
-            let senderType: 'customer' | 'shop' = 'shop'; // Default to shop (AI/owner messages)
-            
-            // Strategy: Fetch participant info to determine sender_type
-            // This is necessary because messages table doesn't store sender_type directly
-            const client = supabaseClient || supabase;
-            if (client && newMessage.sender_id) {
-              try {
-                // Fetch participant to get source
-                const { data: participant, error: partError } = await client
-                  .from('participants')
-                  .select('source')
-                  .eq('id', newMessage.sender_id)
-                  .single();
-                
-                if (!partError && participant) {
-                  const source = participant.source;
-                  // Map participant source to sender_type
-                  if (source === 'customer' || source === 'line' || source === 'web' || source === 'guest') {
-                    senderType = 'customer';
-                  } else {
-                    // 'ai' or 'owner' → shop
-                    senderType = 'shop';
-                  }
-                  console.log("[RT] Determined sender_type from participant:", senderType, "source:", source);
-                } else {
-                  console.warn("[RT] Could not fetch participant, defaulting to 'shop'");
-                }
-              } catch (fetchError: any) {
-                console.error("[RT] Error fetching participant:", fetchError);
-                // Default to 'shop' on error
-              }
-            } else if (newMessage.sender_type) {
-              // Fallback: Use explicit sender_type if provided (shouldn't happen, but just in case)
-              senderType = newMessage.sender_type === 'customer' ? 'customer' : 'shop';
-              console.log("[RT] Using explicit sender_type from payload:", senderType);
-            } else {
-              // Last resort: Default to 'shop' (AI/owner response)
-              // Customer messages are added optimistically, so new realtime messages are likely shop/AI
-              console.warn("[RT] No sender_id or sender_type, defaulting to 'shop'");
             }
             
             const formattedMessage: Message = {
