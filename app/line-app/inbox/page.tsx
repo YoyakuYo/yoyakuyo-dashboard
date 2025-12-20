@@ -540,6 +540,12 @@ function LineInboxPageContent() {
       }
     }
 
+    // CRITICAL: Ensure realtime subscription is ALWAYS active before sending
+    if (conversationId && !realtimeChannelRef.current) {
+      console.log("[LINE Inbox] Realtime subscription missing, setting up now:", conversationId);
+      subscribeToMessages(conversationId);
+    }
+
     // STEP 1: VERIFY THE ACTUAL BUG - Log conversation_id BEFORE send
     const conversationIdBeforeSend = conversationId;
     const lockedIdBeforeSend = lockedConversationIdRef.current;
@@ -682,12 +688,13 @@ function LineInboxPageContent() {
           console.log("[LINE Inbox] New message received via realtime:", payload.new);
           const newMessage = payload.new as any;
           
-          // CRITICAL: Verify this message belongs to the current locked conversation
-          const lockedConversationId = lockedConversationIdRef.current;
-          if (newMessage.conversation_id !== lockedConversationId) {
+          // CRITICAL: Subscription filter already ensures conversation_id matches lockedId
+          // But double-check to be safe
+          if (newMessage.conversation_id !== lockedId) {
             console.log("[LINE Inbox] ⚠️ Realtime message ignored - conversation_id mismatch:", {
               messageConversationId: newMessage.conversation_id,
-              lockedConversationId: lockedConversationId,
+              subscriptionLockedId: lockedId,
+              currentLockedId: lockedConversationIdRef.current,
             });
             return;
           }
@@ -759,16 +766,19 @@ function LineInboxPageContent() {
   
   // CRITICAL: Auto-open conversation if there's exactly one and no preselected shop
   useEffect(() => {
+    // Only auto-open if: exactly 1 conversation, no conversation selected, no preselected shop, and we have auth
     if (conversations.length === 1 && !selectedConversation && !preselectedShopId && lineUserId && idToken && !loading) {
       const singleConv = conversations[0];
       console.log("[LINE Inbox] Auto-opening single conversation:", singleConv.id);
-      setSelectedConversation(singleConv);
       lockedConversationIdRef.current = singleConv.id;
-      loadMessages(singleConv.id, lineUserId, idToken).then(() => {
+      setSelectedConversation(singleConv);
+      // Load messages and subscribe immediately
+      (async () => {
+        await loadMessages(singleConv.id, lineUserId, idToken);
         subscribeToMessages(singleConv.id);
-      });
+      })();
     }
-  }, [conversations.length, selectedConversation, preselectedShopId, lineUserId, idToken, loading]);
+  }, [conversations.length, preselectedShopId, lineUserId, idToken, loading]);
 
   // STEP 5: Subscribe to realtime when conversation is selected
   useEffect(() => {
@@ -1046,7 +1056,13 @@ function LineInboxPageContent() {
               ) : (
                 <div className="flex-1 flex items-center justify-center">
                   <div className="text-center text-gray-500">
-                    <p className="text-lg">{language === 'ja' ? '会話を選択してください' : 'Select a conversation'}</p>
+                    {conversations.length >= 2 ? (
+                      <p className="text-lg">{language === 'ja' ? '会話を選択してください' : 'Select a conversation'}</p>
+                    ) : conversations.length === 1 ? (
+                      <p className="text-lg">{language === 'ja' ? '読み込み中...' : 'Loading conversation...'}</p>
+                    ) : (
+                      <p className="text-lg">{language === 'ja' ? '会話がありません' : 'No conversations yet'}</p>
+                    )}
                   </div>
                 </div>
               )}
