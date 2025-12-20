@@ -6,21 +6,21 @@
 
 -- 1. Check REPLICA IDENTITY (should be 'f' for FULL)
 SELECT 
-    schemaname, 
-    tablename, 
-    CASE relreplident
+    n.nspname as schemaname,
+    c.relname as tablename, 
+    CASE c.relreplident
         WHEN 'f' THEN 'FULL ✅'
         WHEN 'd' THEN 'DEFAULT ❌ (NEEDS FIX)'
         WHEN 'n' THEN 'NOTHING ❌ (NEEDS FIX)'
         WHEN 'i' THEN 'INDEX ❌ (NEEDS FIX)'
         ELSE 'UNKNOWN'
     END as replica_identity,
-    relreplident
+    c.relreplident
 FROM pg_class c
 JOIN pg_namespace n ON n.oid = c.relnamespace
 WHERE n.nspname = 'public' 
 AND c.relname IN ('messages', 'conversations')
-ORDER BY tablename;
+ORDER BY c.relname;
 
 -- 2. Check if tables are in realtime publication
 SELECT 
