@@ -166,7 +166,30 @@ function LineInboxPageContent() {
 
       const data = await res.json();
       console.log("[LINE Inbox] Loaded conversations:", data.conversations?.length || 0);
-      setConversations(data.conversations || []);
+      
+      // CRITICAL: Deduplicate by shop_id - keep only the latest conversation per shop
+      const rawConversations: Conversation[] = data.conversations || [];
+      const byShop = new Map<string, Conversation>();
+      for (const conv of rawConversations) {
+        const key = conv.shop_id;
+        const existing = byShop.get(key);
+        if (!existing) {
+          byShop.set(key, conv);
+        } else {
+          // Keep the one with latest last_message_at (or created_at if no messages)
+          const existingTime = new Date(existing.last_message_at || existing.created_at).getTime();
+          const newTime = new Date(conv.last_message_at || conv.created_at).getTime();
+          if (newTime > existingTime) {
+            byShop.set(key, conv);
+          }
+        }
+      }
+      const deduped = Array.from(byShop.values()).sort((a, b) =>
+        new Date(b.last_message_at || b.created_at).getTime() -
+        new Date(a.last_message_at || a.created_at).getTime()
+      );
+      console.log("[LINE Inbox] Deduplicated conversations:", deduped.length, "from", rawConversations.length);
+      setConversations(deduped);
       
       // STEP 4: DO NOT auto-select first conversation
       // Conversation may ONLY change on user click
@@ -179,74 +202,26 @@ function LineInboxPageContent() {
     }
   };
 
-  // STEP 2: Resolve or create conversation with booking_id and conversation_ai_mode
+  // CRITICAL: NO AUTO-CREATION - Only find existing conversation from list
   const handlePreselectedShop = async (shopId: string, lineUserId: string, token: string, bookingId?: string) => {
     try {
-      console.log("[LINE Inbox] Handling preselected shop:", { shopId, bookingId });
+      console.log("[LINE Inbox] Handling preselected shop (FETCH ONLY, NO CREATE):", { shopId, bookingId });
       
-      // STEP 2: Resolve or create conversation
-      // Call get_or_create_conversation(user_id, shop_id)
-      // ALWAYS inject X-User-Id via unified messaging API client
-      const convRes = await messagingFetch(
-        `${apiUrl}/api/internal-messaging/conversations`,
-        {
-          method: 'POST',
-          lineUserId,
-          idToken: token,
-          body: {
-            shop_id: shopId,
-            booking_id: bookingId || null,
-            customer_type: 'line',
-            customer_ref: lineUserId,
-          },
-        }
-      );
-
-      if (!convRes.ok) {
-        const errorData = await convRes.json().catch(() => ({ error: 'Failed to resolve conversation' }));
-        throw new Error(errorData.error || 'Failed to resolve conversation');
-      }
-
-      const convData = await convRes.json();
-      const conversationId = convData.conversation_id;
+      // Find existing conversation from already-loaded list (by shop_id)
+      const existingConv = conversations.find(c => c.shop_id === shopId);
       
-      console.log("[LINE Inbox] ✅ Conversation resolved:", conversationId);
-      
-      // STEP 4: Get shop name from conversation.shop (returned by backend)
-      // Backend now returns shop details in response
-      const shop = convData.shop || convData.conversation?.shop;
-      
-      // STEP 4: Verify shop name is resolved
-      if (!shop || !shop.name) {
-        console.error("[LINE Inbox] ❌ Shop name is missing for conversation:", conversationId);
-        setError('Shop information is incomplete. Cannot open conversation.');
-        // STEP 6: Prevent silent failures - throw error
-        throw new Error('Shop name is missing');
+      if (!existingConv) {
+        console.log("[LINE Inbox] No existing conversation found for shop:", shopId);
+        // DO NOT CREATE - just show empty state or error
+        setError(`No conversation found for this shop. Send a message to start a conversation.`);
+        return;
       }
       
-      const conversation: Conversation = {
-        id: conversationId,
-        shop_id: shopId,
-        shop: shop,
-        created_at: convData.conversation?.created_at || new Date().toISOString(),
-      };
+      console.log("[LINE Inbox] ✅ Found existing conversation:", existingConv.id);
       
-      // Check if conversation already exists in list
-      const existingIndex = conversations.findIndex(c => c.id === conversationId);
-      if (existingIndex >= 0) {
-        // Update existing
-        setConversations(prev => {
-          const updated = [...prev];
-          updated[existingIndex] = conversation;
-          return updated;
-        });
-      } else {
-        // Add new
-        setConversations(prev => [conversation, ...prev]);
-      }
-      
-      setSelectedConversation(conversation);
-      await loadMessages(conversationId, lineUserId, token);
+      // Use the existing conversation from the list
+      setSelectedConversation(existingConv);
+      await loadMessages(existingConv.id, lineUserId, token);
       
       // Focus message input after a short delay
       setTimeout(() => {
@@ -258,8 +233,6 @@ function LineInboxPageContent() {
     } catch (error: any) {
       console.error("[LINE Inbox] ❌ Error handling preselected shop:", error);
       setError(`Failed to open conversation: ${error.message || 'Unknown error'}`);
-      // STEP 6: Prevent silent failures - throw error
-      throw error;
     }
   };
 
@@ -329,19 +302,89 @@ function LineInboxPageContent() {
 
   const sendMessage = async () => {
     // Block send if content is empty or whitespace
-    if (!newMessage || !newMessage.trim() || !selectedConversation || !lineUserId || !idToken || sending) {
+    if (!newMessage || !newMessage.trim() || !lineUserId || !idToken || sending) {
       if (!newMessage || !newMessage.trim()) {
         console.warn("[LINE Inbox] Cannot send empty message");
       }
       return;
     }
 
+    // CRITICAL: If no conversation exists, create it ONLY when sending first message
+    let conversationId: string;
+    let conversationToUse: Conversation | null = selectedConversation;
+
+    if (!conversationToUse) {
+      // Need shop_id to create conversation - try preselectedShopId or find from conversations list
+      const shopId = preselectedShopId || (conversations.length > 0 ? conversations[0].shop_id : null);
+      
+      if (!shopId) {
+        setError('Cannot send message: No shop selected and no conversation exists.');
+        return;
+      }
+
+      console.log("[LINE Inbox] No conversation exists, creating ONLY because user is sending first message:", shopId);
+      
+      // ONLY CREATE HERE - when user actually sends first message
+      try {
+        const convRes = await messagingFetch(
+          `${apiUrl}/api/internal-messaging/conversations`,
+          {
+            method: 'POST',
+            lineUserId,
+            idToken,
+            body: {
+              shop_id: shopId,
+              booking_id: preselectedBookingId || null,
+              customer_type: 'line',
+              customer_ref: lineUserId,
+            },
+          }
+        );
+
+        if (!convRes.ok) {
+          const errorData = await convRes.json().catch(() => ({ error: 'Failed to create conversation' }));
+          throw new Error(errorData.error || 'Failed to create conversation');
+        }
+
+        const convData = await convRes.json();
+        conversationId = convData.conversation_id;
+        
+        const shop = convData.shop || convData.conversation?.shop;
+        conversationToUse = {
+          id: conversationId,
+          shop_id: shopId,
+          shop: shop || { id: shopId, name: 'Shop' },
+          created_at: convData.conversation?.created_at || new Date().toISOString(),
+        };
+        
+        // Add to conversations list
+        setConversations(prev => {
+          // Check if already exists (shouldn't, but dedupe anyway)
+          if (prev.some(c => c.shop_id === shopId)) {
+            return prev.map(c => c.shop_id === shopId ? conversationToUse! : c);
+          }
+          return [conversationToUse!, ...prev];
+        });
+        
+        setSelectedConversation(conversationToUse);
+        lockedConversationIdRef.current = conversationId;
+        
+        console.log("[LINE Inbox] ✅ Created conversation for first message:", conversationId);
+      } catch (error: any) {
+        console.error("[LINE Inbox] ❌ Failed to create conversation:", error);
+        setError(`Failed to create conversation: ${error.message || 'Unknown error'}`);
+        return;
+      }
+    } else {
+      conversationId = conversationToUse.id;
+    }
+
     // STEP 1: VERIFY THE ACTUAL BUG - Log conversation_id BEFORE send
-    const conversationIdBeforeSend = selectedConversation.id;
+    const conversationIdBeforeSend = conversationId;
     const lockedIdBeforeSend = lockedConversationIdRef.current;
     console.log("[LINE Inbox] [BUG CHECK] conversation_id BEFORE send:", conversationIdBeforeSend);
     console.log("[LINE Inbox] [BUG CHECK] lockedConversationIdRef BEFORE send:", lockedIdBeforeSend);
-    console.log("[LINE Inbox] [BUG CHECK] selectedConversation.id BEFORE send:", selectedConversation?.id);
+    console.log("[LINE Inbox] [BUG CHECK] selectedConversation.id BEFORE send:", conversationToUse?.id);
     console.log("[LINE Inbox] [BUG CHECK] messages.length BEFORE send:", messages.length);
     console.log("[LINE Inbox] [BUG CHECK] last message ID BEFORE send:", messages[messages.length - 1]?.id);
 
@@ -351,7 +394,7 @@ function LineInboxPageContent() {
     // STEP 1: Optimistic message insert - immediately append to local state
     const optimisticMessage: Message = {
       id: tempId,
-      conversation_id: selectedConversation.id,
+      conversation_id: conversationId,
       sender_type: 'customer',
       content: trimmedContent,
       created_at: new Date().toISOString(),
@@ -373,7 +416,7 @@ function LineInboxPageContent() {
 
     try {
       setSending(true);
-      console.log("[LINE Inbox] Sending message to conversation:", selectedConversation.id, {
+      console.log("[LINE Inbox] Sending message to conversation:", conversationId, {
         contentLength: trimmedContent.length,
         tempId,
       });
@@ -386,7 +429,7 @@ function LineInboxPageContent() {
           lineUserId,
           idToken,
           body: {
-            conversation_id: selectedConversation.id,
+            conversation_id: conversationId,
             content: trimmedContent,
           },
         }
@@ -401,9 +444,9 @@ function LineInboxPageContent() {
       console.log("[LINE Inbox] Message sent successfully:", data.message?.id);
       
       // STEP 1: VERIFY THE ACTUAL BUG - Log conversation_id AFTER send
-      console.log("[LINE Inbox] [BUG CHECK] conversation_id AFTER send:", selectedConversation?.id);
+      console.log("[LINE Inbox] [BUG CHECK] conversation_id AFTER send:", conversationId);
       console.log("[LINE Inbox] [BUG CHECK] lockedConversationIdRef AFTER send:", lockedConversationIdRef.current);
-      console.log("[LINE Inbox] [BUG CHECK] selectedConversation.id AFTER send:", selectedConversation?.id);
+      console.log("[LINE Inbox] [BUG CHECK] selectedConversation.id AFTER send:", conversationToUse?.id);
       
       // STEP 2: Replace temp message with real message ID
       // STEP 4: Message state MUST APPEND, NOT REPLACE - use map to update existing
@@ -425,15 +468,15 @@ function LineInboxPageContent() {
 
       // OPTION B (Fallback): Force-fetch messages shortly after send to capture AI response,
       // without changing conversation or navigating. This is a safety net if realtime misses.
-      if (lineUserId && idToken && selectedConversation?.id) {
-        const refreshConversationId = selectedConversation.id;
+      if (lineUserId && idToken && conversationId) {
+        const refreshConversationId = conversationId;
         const refreshUserId = lineUserId;
         const refreshToken = idToken;
 
         setTimeout(() => {
           // Only refresh if we are still on the same conversation
           const lockedId = lockedConversationIdRef.current;
-          const activeId = selectedConversation?.id;
+          const activeId = conversationToUse?.id;
           if (lockedId && lockedId !== refreshConversationId) {
             console.log("[LINE Inbox][OPTION B] Skipping forced refresh, locked conversation changed:", {
               lockedId,
@@ -472,22 +515,43 @@ function LineInboxPageContent() {
         if (res.ok) {
           const data = await res.json();
           // STEP 2: Update conversations WITHOUT resetting selectedConversation
-          setConversations(prev => {
-            const updated = data.conversations || [];
-            // Preserve selectedConversation if it still exists
-            const currentSelectedId = selectedConversation?.id;
-            if (currentSelectedId) {
-              const stillExists = updated.find((c: Conversation) => c.id === currentSelectedId);
-              if (!stillExists) {
-                // If selected conversation was removed, find it in old list and add it back
-                const oldSelected = prev.find(c => c.id === currentSelectedId);
-                if (oldSelected) {
-                  updated.unshift(oldSelected);
-                }
+          // Also deduplicate by shop_id
+          const rawConversations: Conversation[] = data.conversations || [];
+          const byShop = new Map<string, Conversation>();
+          for (const conv of rawConversations) {
+            const key = conv.shop_id;
+            const existing = byShop.get(key);
+            if (!existing) {
+              byShop.set(key, conv);
+            } else {
+              const existingTime = new Date(existing.last_message_at || existing.created_at).getTime();
+              const newTime = new Date(conv.last_message_at || conv.created_at).getTime();
+              if (newTime > existingTime) {
+                byShop.set(key, conv);
               }
             }
-            return updated;
-          });
+          }
+          const deduped = Array.from(byShop.values()).sort((a, b) =>
+            new Date(b.last_message_at || b.created_at).getTime() -
+            new Date(a.last_message_at || a.created_at).getTime()
+          );
+          
+          setConversations(deduped);
+          
+          // Preserve selectedConversation if it still exists
+          const currentSelectedId = conversationToUse?.id;
+          if (currentSelectedId) {
+            const stillExists = deduped.find((c: Conversation) => c.id === currentSelectedId);
+            if (!stillExists && conversationToUse) {
+              // If selected conversation was removed, add it back
+              setConversations(prev => {
+                if (!prev.some(c => c.id === currentSelectedId)) {
+                  return [conversationToUse!, ...prev];
+                }
+                return prev;
+              });
+            }
+          }
         }
       }
     } catch (error: any) {
