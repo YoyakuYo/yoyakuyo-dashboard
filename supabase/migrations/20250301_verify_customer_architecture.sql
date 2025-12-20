@@ -56,15 +56,39 @@ SELECT
 FROM line_accounts;
 
 -- 6. Count line_users records (if table exists)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'line_users'
+    ) THEN
+        RAISE NOTICE 'line_users table EXISTS';
+    ELSE
+        RAISE NOTICE 'line_users table DOES NOT EXIST';
+    END IF;
+END $$;
+
 SELECT 
-    COUNT(*) as total_line_users,
-    COUNT(DISTINCT line_user_id) as unique_line_user_ids
-FROM line_users
-WHERE EXISTS (
-    SELECT 1 FROM information_schema.tables 
-    WHERE table_schema = 'public' 
-    AND table_name = 'line_users'
-);
+    'line_users' as table_status,
+    CASE 
+        WHEN EXISTS (
+            SELECT 1 FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'line_users'
+        ) THEN 'EXISTS'
+        ELSE 'DOES NOT EXIST'
+    END as status,
+    CASE 
+        WHEN EXISTS (
+            SELECT 1 FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'line_users'
+        ) THEN (
+            SELECT COUNT(*)::text FROM line_users
+        )
+        ELSE '0'
+    END as total_records;
 
 -- 7. Check for orphaned records (line_accounts without customers)
 SELECT 
@@ -129,14 +153,29 @@ ORDER BY tc.table_name, kcu.column_name;
 -- 12. Check if line_users overlaps with line_accounts (potential redundancy)
 SELECT 
     'line_users vs line_accounts overlap' as check_type,
-    COUNT(DISTINCT lu.line_user_id) as line_users_count,
-    COUNT(DISTINCT la.line_user_id) as line_accounts_count,
-    COUNT(DISTINCT CASE WHEN la.line_user_id IS NOT NULL THEN lu.line_user_id END) as overlapping_ids
-FROM line_users lu
-FULL OUTER JOIN line_accounts la ON lu.line_user_id = la.line_user_id
-WHERE EXISTS (
-    SELECT 1 FROM information_schema.tables 
-    WHERE table_schema = 'public' 
-    AND table_name = 'line_users'
-);
+    CASE 
+        WHEN EXISTS (
+            SELECT 1 FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'line_users'
+        ) THEN (
+            SELECT COUNT(DISTINCT lu.line_user_id)::text 
+            FROM line_users lu
+        )
+        ELSE 'N/A (table does not exist)'
+    END as line_users_count,
+    COUNT(DISTINCT la.line_user_id)::text as line_accounts_count,
+    CASE 
+        WHEN EXISTS (
+            SELECT 1 FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'line_users'
+        ) THEN (
+            SELECT COUNT(DISTINCT CASE WHEN la.line_user_id IS NOT NULL THEN lu.line_user_id END)::text
+            FROM line_users lu
+            FULL OUTER JOIN line_accounts la ON lu.line_user_id = la.line_user_id
+        )
+        ELSE 'N/A (table does not exist)'
+    END as overlapping_ids
+FROM line_accounts la;
 
