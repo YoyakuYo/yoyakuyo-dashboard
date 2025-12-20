@@ -746,11 +746,9 @@ function LineInboxPageContent() {
       return;
     }
     
-    // STEP 5: Check auth session before subscribing
+    // STEP 5: Check auth session before subscribing (non-blocking)
     // CRITICAL: Realtime works better with authenticated session, but we can try with anon too
-    try {
-      const { data: { session }, error: sessionError } = await client.auth.getSession();
-      
+    client.auth.getSession().then(({ data: { session }, error: sessionError }: any) => {
       if (sessionError) {
         console.warn("[LINE Inbox] ⚠️ Session check error (non-fatal):", sessionError);
       }
@@ -766,12 +764,12 @@ function LineInboxPageContent() {
       // Continue with subscription setup regardless of session status
       // RLS policies allow anon fallback, so we can still try
       setupSubscription(client, conversationId);
-    } catch (error: any) {
+    }).catch((error: any) => {
       console.error("[LINE Inbox] Error checking auth session:", error);
       setRtDebug(`⚠️ Auth check failed - trying anyway`);
       // Try to subscribe anyway - anon might work
       setupSubscription(client, conversationId);
-    }
+    });
   };
   
   // Helper function to set up the actual subscription (after auth is confirmed)
