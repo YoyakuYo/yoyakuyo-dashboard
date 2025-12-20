@@ -640,9 +640,14 @@ function LineInboxPageContent() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
 
-      // FALLBACK: If realtime doesn't fire within 4 seconds, fetch new messages directly
+      // FALLBACK: If realtime doesn't fire within 2 seconds, fetch new messages directly
       // This is a safety net - realtime should handle it, but if it fails, we need to show the AI response
       // CRITICAL: Only fetch messages, do NOT touch conversation state or trigger any side effects
+      // Clear any existing fallback timer first
+      if (waitingForAIResponseRef.current?.timeoutId) {
+        clearTimeout(waitingForAIResponseRef.current.timeoutId);
+      }
+      
       const currentMessageCount = messages.length + 1; // +1 because we just added the user message
       waitingForAIResponseRef.current = {
         messageCount: currentMessageCount,
@@ -656,7 +661,7 @@ function LineInboxPageContent() {
               conversationId &&
               lockedConversationIdRef.current === conversationId) {
             console.log("[LINE Inbox] [FALLBACK] Realtime didn't fire, fetching new messages directly");
-            setRealtimeDebug(`⚠️ Realtime failed, fetching...`);
+            setRealtimeDebug(`⏳ Checking for AI response...`);
             
             try {
               // Direct fetch - do NOT use loadMessages to avoid side effects
@@ -708,7 +713,7 @@ function LineInboxPageContent() {
             
             waitingForAIResponseRef.current = null;
           }
-        }, 4000) as any,
+        }, 2000) as any, // Reduced from 4000ms to 2000ms for faster response
       };
     } catch (error: any) {
       console.error("[LINE Inbox] Error sending message:", error);
