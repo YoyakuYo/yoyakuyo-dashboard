@@ -272,6 +272,9 @@ function LineInboxPageContent() {
       lockedConversationIdRef.current = existingConv.id;
       await loadMessages(existingConv.id, lineUserId, token);
       
+      // Set up realtime subscription for this conversation
+      subscribeToMessages(existingConv.id);
+      
       // Focus message input after a short delay
       setTimeout(() => {
         const input = document.querySelector('textarea[placeholder*="message"]') as HTMLTextAreaElement;
@@ -387,6 +390,9 @@ function LineInboxPageContent() {
         if (messages.length === 0 || messages[0]?.conversation_id !== existingConv.id) {
           await loadMessages(existingConv.id, lineUserId, idToken);
         }
+        
+        // Ensure realtime subscription is active for this conversation
+        subscribeToMessages(existingConv.id);
       } else {
         // NO conversation exists anywhere - create ONLY when sending first message
         console.log("[LINE Inbox] No conversation exists anywhere, creating ONLY because user is sending first message:", shopId);
@@ -434,6 +440,9 @@ function LineInboxPageContent() {
           
           setSelectedConversation(conversationToUse);
           lockedConversationIdRef.current = conversationId;
+          
+          // Set up realtime subscription for the new conversation
+          subscribeToMessages(conversationId);
           
           console.log("[LINE Inbox] ✅ Created conversation for first message:", conversationId);
         } catch (error: any) {
@@ -540,99 +549,9 @@ function LineInboxPageContent() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
 
-      // OPTION B (Fallback): Force-fetch messages shortly after send to capture AI response,
-      // without changing conversation or navigating. This is a safety net if realtime misses.
-      if (lineUserId && idToken && conversationId) {
-        const refreshConversationId = conversationId;
-        const refreshUserId = lineUserId;
-        const refreshToken = idToken;
-
-        setTimeout(() => {
-          // Only refresh if we are still on the same conversation
-          const lockedId = lockedConversationIdRef.current;
-          const activeId = conversationToUse?.id;
-          if (lockedId && lockedId !== refreshConversationId) {
-            console.log("[LINE Inbox][OPTION B] Skipping forced refresh, locked conversation changed:", {
-              lockedId,
-              refreshConversationId,
-            });
-            return;
-          }
-          if (activeId && activeId !== refreshConversationId) {
-            console.log("[LINE Inbox][OPTION B] Skipping forced refresh, active conversation changed:", {
-              activeId,
-              refreshConversationId,
-            });
-            return;
-          }
-
-          console.log("[LINE Inbox][OPTION B] Forcing messages refresh after send to capture AI response", {
-            refreshConversationId,
-          });
-          // We intentionally do not await this; it will merge messages in-place.
-          loadMessages(refreshConversationId, refreshUserId, refreshToken);
-        }, 1500);
-      }
-
-      // STEP 0: DO NOT reload entire conversations list - only update last_message_at silently
-      // Remove: await loadConversations(lineUserId, idToken);
-      // Instead, update conversations state silently without resetting selectedConversation
-      if (lineUserId && idToken) {
-        // Silently update conversations list without resetting selectedConversation
-        const res = await messagingFetch(
-          `${apiUrl}/api/internal-messaging/conversations`,
-          {
-            lineUserId,
-            idToken,
-          }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          // STEP 2: Update conversations WITHOUT resetting selectedConversation
-          // Also deduplicate by shop_id
-          const rawConversations: Conversation[] = data.conversations || [];
-          const byShop = new Map<string, Conversation>();
-          for (const conv of rawConversations) {
-            const key = conv.shop_id;
-            const existing = byShop.get(key);
-            if (!existing) {
-              byShop.set(key, conv);
-            } else {
-              const existingTime = new Date(existing.last_message_at || existing.created_at).getTime();
-              const newTime = new Date(conv.last_message_at || conv.created_at).getTime();
-              if (newTime > existingTime) {
-                byShop.set(key, conv);
-              }
-            }
-          }
-          const deduped = Array.from(byShop.values()).sort((a, b) =>
-            new Date(b.last_message_at || b.created_at).getTime() -
-            new Date(a.last_message_at || a.created_at).getTime()
-          );
-          
-          setConversations(deduped);
-          
-          // CRITICAL: Preserve selectedConversation state - never reset it
-          const currentSelectedId = conversationToUse?.id || selectedConversation?.id;
-          if (currentSelectedId) {
-            const stillExists = deduped.find((c: Conversation) => c.id === currentSelectedId);
-            if (!stillExists && conversationToUse) {
-              // If selected conversation was removed from list, add it back
-              setConversations(prev => {
-                if (!prev.some(c => c.id === currentSelectedId)) {
-                  return [conversationToUse!, ...prev];
-                }
-                return prev;
-              });
-            } else if (stillExists) {
-              // Update selectedConversation with latest data from backend
-              setSelectedConversation(stillExists);
-            }
-            // CRITICAL: Lock conversation_id - never let it change
-            lockedConversationIdRef.current = currentSelectedId;
-          }
-        }
-      }
+      // CRITICAL: DO NOT refresh conversations list or messages after send
+      // Rely ONLY on Supabase realtime for AI responses
+      // This prevents state resets and conversation switching
     } catch (error: any) {
       console.error("[LINE Inbox] Error sending message:", error);
       
@@ -677,6 +596,17 @@ function LineInboxPageContent() {
         (payload) => {
           console.log("[LINE Inbox] New message received via realtime:", payload.new);
           const newMessage = payload.new as any;
+          
+          // CRITICAL: Verify this message belongs to the current locked conversation
+          const lockedConversationId = lockedConversationIdRef.current;
+          if (newMessage.conversation_id !== lockedConversationId) {
+            console.log("[LINE Inbox] ⚠️ Realtime message ignored - conversation_id mismatch:", {
+              messageConversationId: newMessage.conversation_id,
+              lockedConversationId: lockedConversationId,
+            });
+            return;
+          }
+          
           // [MANDATORY] AI message received, appending to state (for live debug requirement)
           console.log("[MANDATORY] AI message received, appending to state:", newMessage);
 
