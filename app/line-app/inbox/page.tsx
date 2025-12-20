@@ -309,12 +309,13 @@ function LineInboxPageContent() {
       return;
     }
 
-    // CRITICAL: If no conversation exists, create it ONLY when sending first message
+    // CRITICAL: Reuse existing conversation if available, only create if truly doesn't exist
     let conversationId: string;
     let conversationToUse: Conversation | null = selectedConversation;
 
+    // If no selected conversation, check if one exists in the list for this shop
     if (!conversationToUse) {
-      // Need shop_id to create conversation - try preselectedShopId or find from conversations list
+      // Determine which shop we're messaging
       const shopId = preselectedShopId || (conversations.length > 0 ? conversations[0].shop_id : null);
       
       if (!shopId) {
@@ -322,58 +323,75 @@ function LineInboxPageContent() {
         return;
       }
 
-      console.log("[LINE Inbox] No conversation exists, creating ONLY because user is sending first message:", shopId);
+      // FIRST: Check if conversation already exists in list (by shop_id)
+      const existingConv = conversations.find(c => c.shop_id === shopId);
       
-      // ONLY CREATE HERE - when user actually sends first message
-      try {
-        const convRes = await messagingFetch(
-          `${apiUrl}/api/internal-messaging/conversations`,
-          {
-            method: 'POST',
-            lineUserId,
-            idToken,
-            body: {
-              shop_id: shopId,
-              booking_id: preselectedBookingId || null,
-              customer_type: 'line',
-              customer_ref: lineUserId,
-            },
-          }
-        );
-
-        if (!convRes.ok) {
-          const errorData = await convRes.json().catch(() => ({ error: 'Failed to create conversation' }));
-          throw new Error(errorData.error || 'Failed to create conversation');
+      if (existingConv) {
+        // Reuse existing conversation - DO NOT CREATE
+        console.log("[LINE Inbox] Found existing conversation in list, reusing:", existingConv.id);
+        conversationToUse = existingConv;
+        conversationId = existingConv.id;
+        setSelectedConversation(existingConv);
+        lockedConversationIdRef.current = existingConv.id;
+        
+        // Load messages for this conversation if not already loaded
+        if (messages.length === 0 || messages[0]?.conversation_id !== existingConv.id) {
+          await loadMessages(existingConv.id, lineUserId, idToken);
         }
+      } else {
+        // NO conversation exists anywhere - create ONLY when sending first message
+        console.log("[LINE Inbox] No conversation exists anywhere, creating ONLY because user is sending first message:", shopId);
+        
+        try {
+          const convRes = await messagingFetch(
+            `${apiUrl}/api/internal-messaging/conversations`,
+            {
+              method: 'POST',
+              lineUserId,
+              idToken,
+              body: {
+                shop_id: shopId,
+                booking_id: preselectedBookingId || null,
+                customer_type: 'line',
+                customer_ref: lineUserId,
+              },
+            }
+          );
 
-        const convData = await convRes.json();
-        conversationId = convData.conversation_id;
-        
-        const shop = convData.shop || convData.conversation?.shop;
-        conversationToUse = {
-          id: conversationId,
-          shop_id: shopId,
-          shop: shop || { id: shopId, name: 'Shop' },
-          created_at: convData.conversation?.created_at || new Date().toISOString(),
-        };
-        
-        // Add to conversations list
-        setConversations(prev => {
-          // Check if already exists (shouldn't, but dedupe anyway)
-          if (prev.some(c => c.shop_id === shopId)) {
-            return prev.map(c => c.shop_id === shopId ? conversationToUse! : c);
+          if (!convRes.ok) {
+            const errorData = await convRes.json().catch(() => ({ error: 'Failed to create conversation' }));
+            throw new Error(errorData.error || 'Failed to create conversation');
           }
-          return [conversationToUse!, ...prev];
-        });
-        
-        setSelectedConversation(conversationToUse);
-        lockedConversationIdRef.current = conversationId;
-        
-        console.log("[LINE Inbox] ✅ Created conversation for first message:", conversationId);
-      } catch (error: any) {
-        console.error("[LINE Inbox] ❌ Failed to create conversation:", error);
-        setError(`Failed to create conversation: ${error.message || 'Unknown error'}`);
-        return;
+
+          const convData = await convRes.json();
+          conversationId = convData.conversation_id;
+          
+          const shop = convData.shop || convData.conversation?.shop;
+          conversationToUse = {
+            id: conversationId,
+            shop_id: shopId,
+            shop: shop || { id: shopId, name: 'Shop' },
+            created_at: convData.conversation?.created_at || new Date().toISOString(),
+          };
+          
+          // Add to conversations list (deduplication will happen on next load)
+          setConversations(prev => {
+            // Check if already exists (shouldn't, but dedupe anyway)
+            if (prev.some(c => c.shop_id === shopId)) {
+              return prev.map(c => c.shop_id === shopId ? conversationToUse! : c);
+            }
+            return [conversationToUse!, ...prev];
+          });
+          
+          setSelectedConversation(conversationToUse);
+          lockedConversationIdRef.current = conversationId;
+          
+          console.log("[LINE Inbox] ✅ Created conversation for first message:", conversationId);
+        } catch (error: any) {
+          console.error("[LINE Inbox] ❌ Failed to create conversation:", error);
+          setError(`Failed to create conversation: ${error.message || 'Unknown error'}`);
+          return;
+        }
       }
     } else {
       conversationId = conversationToUse.id;
