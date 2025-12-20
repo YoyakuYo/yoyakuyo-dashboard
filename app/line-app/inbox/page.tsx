@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
+import { messagingFetch } from "@/lib/messagingApiClient";
 
 // LINE LIFF SDK types
 declare global {
