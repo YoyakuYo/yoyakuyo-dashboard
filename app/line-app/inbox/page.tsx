@@ -735,7 +735,7 @@ function LineInboxPageContent() {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `conversation_id=eq.${lockedId}`,
+          filter: filterString,
         },
         (payload) => {
           // STEP 6: DEBUG CONFIRMATION
