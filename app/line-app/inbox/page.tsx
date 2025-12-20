@@ -574,7 +574,7 @@ function LineInboxPageContent() {
         supabase.removeChannel(realtimeChannelRef.current);
       }
     };
-  }, [selectedConversation?.id, lineUserId, idToken]);
+  }, [selectedConversation?.id, lineUserId, idToken, subscribeToMessages]);
   
   // STEP 1: VERIFY THE ACTUAL BUG - Log on render
   useEffect(() => {
