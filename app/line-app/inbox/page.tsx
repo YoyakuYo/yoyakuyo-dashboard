@@ -965,6 +965,7 @@ function LineInboxPageContent() {
         if (status === 'SUBSCRIBED') {
           console.log("[RT] ✅ Successfully subscribed to channel:", channelName);
           setRtDebug(`✅ Subscribed to ${lockedId.substring(0, 8)}`);
+          setRtStatus(`✅ Connected`); // Clear "Connecting..." status
         } else if (status === 'CHANNEL_ERROR') {
           const errorMsg = err?.message || err?.toString() || 'Unknown error';
           console.error("[RT] CHANNEL ERROR DETAILS:", err);
