@@ -865,6 +865,8 @@ function LineInboxPageContent() {
           console.log("[RT] payload.id:", payload.new.id);
           console.log("[RT] payload.conversation_id:", payload.new.conversation_id);
           console.log("[RT] payload.sender_type:", payload.new.sender_type);
+          console.log("[RT] payload.sender_id:", payload.new.sender_id);
+          console.log("[RT] Full payload.new:", JSON.stringify(payload.new, null, 2));
           setRtDebug(`📨 INSERT: ${payload.new.id?.substring(0, 8)}`);
           
           const newMessage = payload.new as any;
@@ -893,10 +895,33 @@ function LineInboxPageContent() {
             }
             
             // Format message to match our Message interface
+            // CRITICAL: Determine sender_type correctly
+            // Realtime payload doesn't include participant join, so we need to infer
+            let senderType: 'customer' | 'shop' = 'shop'; // Default to shop (AI/owner messages)
+            
+            // Strategy: Since customer messages are added optimistically before sending,
+            // any NEW message from realtime that we don't already have must be from shop/AI
+            // However, we should check if sender_type is explicitly provided first
+            
+            if (newMessage.sender_type) {
+              // Use explicit sender_type if provided in payload
+              senderType = newMessage.sender_type === 'customer' ? 'customer' : 'shop';
+              console.log("[RT] Using explicit sender_type:", senderType);
+            } else {
+              // No sender_type in payload - need to fetch participant info
+              // For now, default to 'shop' since customer messages are already in UI (optimistic)
+              // TODO: Could fetch participant info, but that adds latency
+              console.warn("[RT] No sender_type in payload, defaulting to 'shop' (AI/owner response)");
+              senderType = 'shop';
+              
+              // Alternative: Make a quick API call to get full message with participant info
+              // But that adds latency, so we'll use the default for now
+            }
+            
             const formattedMessage: Message = {
               id: newMessage.id,
               conversation_id: newMessage.conversation_id,
-              sender_type: newMessage.sender_type || 'shop',
+              sender_type: senderType,
               body: newMessage.body || newMessage.content,
               content: newMessage.content || newMessage.body,
               created_at: newMessage.created_at,
