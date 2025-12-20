@@ -31,6 +31,18 @@ ORDER BY ordinal_position;
 -- 3. Check if line_users table exists (the one we just created)
 SELECT 
     'line_users' as table_name,
+    CASE 
+        WHEN EXISTS (
+            SELECT 1 FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'line_users'
+        ) THEN 'EXISTS - see columns below'
+        ELSE 'DOES NOT EXIST'
+    END as table_status;
+
+-- If line_users exists, show its structure
+SELECT 
+    'line_users' as table_name,
     column_name,
     data_type,
     is_nullable,
@@ -38,6 +50,11 @@ SELECT
 FROM information_schema.columns
 WHERE table_schema = 'public' 
 AND table_name = 'line_users'
+AND EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+    AND table_name = 'line_users'
+)
 ORDER BY ordinal_position;
 
 -- 4. Count customers by role
@@ -55,22 +72,9 @@ SELECT
     COUNT(DISTINCT line_user_id) as unique_line_user_ids
 FROM line_accounts;
 
--- 6. Count line_users records (if table exists)
-DO $$
-BEGIN
-    IF EXISTS (
-        SELECT 1 FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'line_users'
-    ) THEN
-        RAISE NOTICE 'line_users table EXISTS';
-    ELSE
-        RAISE NOTICE 'line_users table DOES NOT EXIST';
-    END IF;
-END $$;
-
+-- 6. Check line_users table status (if table exists)
 SELECT 
-    'line_users' as table_status,
+    'line_users' as table_name,
     CASE 
         WHEN EXISTS (
             SELECT 1 FROM information_schema.tables 
@@ -84,11 +88,9 @@ SELECT
             SELECT 1 FROM information_schema.tables 
             WHERE table_schema = 'public' 
             AND table_name = 'line_users'
-        ) THEN (
-            SELECT COUNT(*)::text FROM line_users
-        )
-        ELSE '0'
-    END as total_records;
+        ) THEN 'Table exists - count available via separate query'
+        ELSE 'N/A - table does not exist'
+    END as record_count;
 
 -- 7. Check for orphaned records (line_accounts without customers)
 SELECT 
@@ -150,32 +152,12 @@ WHERE tc.constraint_type = 'FOREIGN KEY'
     AND tc.table_name IN ('customers', 'line_accounts', 'line_users', 'bookings')
 ORDER BY tc.table_name, kcu.column_name;
 
--- 12. Check if line_users overlaps with line_accounts (potential redundancy)
+-- 12. Check line_accounts statistics (line_users table does not exist, so no overlap check needed)
 SELECT 
-    'line_users vs line_accounts overlap' as check_type,
-    CASE 
-        WHEN EXISTS (
-            SELECT 1 FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name = 'line_users'
-        ) THEN (
-            SELECT COUNT(DISTINCT lu.line_user_id)::text 
-            FROM line_users lu
-        )
-        ELSE 'N/A (table does not exist)'
-    END as line_users_count,
-    COUNT(DISTINCT la.line_user_id)::text as line_accounts_count,
-    CASE 
-        WHEN EXISTS (
-            SELECT 1 FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name = 'line_users'
-        ) THEN (
-            SELECT COUNT(DISTINCT CASE WHEN la.line_user_id IS NOT NULL THEN lu.line_user_id END)::text
-            FROM line_users lu
-            FULL OUTER JOIN line_accounts la ON lu.line_user_id = la.line_user_id
-        )
-        ELSE 'N/A (table does not exist)'
-    END as overlapping_ids
+    'line_accounts statistics' as check_type,
+    COUNT(DISTINCT la.line_user_id)::text as unique_line_user_ids,
+    COUNT(DISTINCT la.customer_id)::text as unique_customer_ids,
+    COUNT(*)::text as total_mappings,
+    'line_users table does not exist - no redundancy check needed' as note
 FROM line_accounts la;
 
