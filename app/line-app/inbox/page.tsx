@@ -653,6 +653,18 @@ function LineInboxPageContent() {
   const subscribeToMessages = (conversationId: string) => {
     if (!supabase) {
       console.warn("[LINE Inbox] Supabase client not initialized, skipping realtime");
+      setRtDebug(`❌ Supabase client not initialized`);
+      setRtStatus(`Missing Supabase config`);
+      return;
+    }
+    
+    // Verify Supabase env vars are set
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("[RT] Supabase env vars missing!");
+      setRtDebug(`❌ Missing env vars: URL=${!!supabaseUrl}, Key=${!!supabaseKey}`);
+      setRtStatus(`Config error`);
       return;
     }
 
@@ -755,16 +767,28 @@ function LineInboxPageContent() {
           });
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         // STEP 1: STATUS LOGGING
-        console.log("[RT] STATUS", status);
-        setRtStatus(`Status: ${status}`);
+        console.log("[RT] STATUS", status, err);
+        setRtStatus(`Status: ${status}${err ? ` - ${err.message || JSON.stringify(err)}` : ''}`);
         if (status === 'SUBSCRIBED') {
           setRtDebug(`✅ Subscribed to ${lockedId.substring(0, 8)}`);
         } else if (status === 'CHANNEL_ERROR') {
+          const errorMsg = err?.message || err?.toString() || 'Unknown error';
+          console.error("[RT] CHANNEL ERROR DETAILS:", err);
           setRtDebug(`❌ Channel ERROR`);
+          setRtStatus(`Error: ${errorMsg.substring(0, 60)}`);
+          // Common causes:
+          // 1. REPLICA IDENTITY not FULL - run migration 20250301_enable_realtime_replica_identity.sql
+          // 2. Table not in supabase_realtime publication
+          // 3. RLS blocking realtime SELECT
+          // Run diagnostic: supabase/migrations/20250301_check_realtime_setup.sql
         } else if (status === 'TIMED_OUT') {
           setRtDebug(`⏱️ Timeout`);
+        } else if (status === 'CLOSED') {
+          setRtDebug(`🔌 Channel CLOSED`);
+        } else {
+          setRtDebug(`⏳ ${status}`);
         }
       });
     
