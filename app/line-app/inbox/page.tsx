@@ -164,11 +164,9 @@ function LineInboxPageContent() {
       console.log("[LINE Inbox] Loaded conversations:", data.conversations?.length || 0);
       setConversations(data.conversations || []);
       
-      // If no preselected shop, select first conversation if available
-      if (!preselectedShopId && data.conversations && data.conversations.length > 0) {
-        setSelectedConversation(data.conversations[0]);
-        await loadMessages(data.conversations[0].id, lineUserId, token);
-      }
+      // STEP 4: DO NOT auto-select first conversation
+      // Conversation may ONLY change on user click
+      // If no preselected shop, do NOT auto-select
     } catch (error: any) {
       console.error("[LINE Inbox] Error loading conversations:", error);
       setError(`Failed to load conversations: ${error.message || 'Unknown error'}`);
