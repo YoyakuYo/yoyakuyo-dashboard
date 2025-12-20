@@ -333,10 +333,7 @@ function LineInboxPageContent() {
       
       setError(""); // Clear error on success
       
-      // STEP 5: Auto-scroll to bottom after loading
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      // Auto-scroll will happen automatically via useEffect when messages.length changes
     } catch (error: any) {
       console.error("[LINE Inbox] Error loading messages:", error);
       setError(`Failed to load messages: ${error.message || 'Unknown error'}`);
@@ -578,10 +575,7 @@ function LineInboxPageContent() {
     });
     setNewMessage('');
     
-    // STEP 5: Auto-scroll to bottom after optimistic insert
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 50);
+    // Auto-scroll will happen automatically via useEffect when messages.length changes
 
     try {
       setSending(true);
@@ -669,23 +663,26 @@ function LineInboxPageContent() {
     const currentChannel = realtimeChannelRef.current;
     if (currentChannel) {
       const currentState = currentChannel.state;
-      console.log("[LINE Inbox] Existing channel state:", currentState);
+      const currentLockedId = lockedConversationIdRef.current;
+      console.log("[RT] Existing channel state:", currentState, "for conversation:", currentLockedId);
       // Only remove if it's for a different conversation or in error state
-      if (lockedConversationIdRef.current !== lockedId || currentState === 'CHANNEL_ERROR' || currentState === 'CLOSED') {
-        console.log("[LINE Inbox] Removing existing channel for different conversation or error state");
+      if (currentLockedId !== lockedId || currentState === 'CHANNEL_ERROR' || currentState === 'CLOSED') {
+        console.log("[RT] UNSUBSCRIBED (switching conversation)", currentLockedId);
         supabase.removeChannel(currentChannel);
       } else if (currentState === 'SUBSCRIBED') {
-        console.log("[LINE Inbox] Channel already subscribed for this conversation, skipping");
+        console.log("[RT] Channel already subscribed for this conversation, skipping");
         return; // Already subscribed, don't re-subscribe
       }
     }
 
-    console.log("[LINE Inbox] Subscribing to realtime updates for conversation:", lockedId);
+    // STEP 1: HARD DIAGNOSTIC LOGGING
+    console.log("[RT] SUBSCRIBING", lockedId);
+    console.log("[RT] LISTENING TO", lockedId);
     
     // CRITICAL: Match exact pattern - channel name is simple: messages:${conversationId}
     const channelName = `messages:${lockedId}`;
     
-    // CRITICAL: Use the exact same pattern as specified - simple subscribe, no status callback
+    // CRITICAL: Use the exact same pattern as specified - simple subscribe, with status callback for diagnostics
     const channel = supabase
       .channel(channelName)
       .on(
@@ -697,13 +694,29 @@ function LineInboxPageContent() {
           filter: `conversation_id=eq.${lockedId}`,
         },
         (payload) => {
-          console.log("[LINE Inbox] [REALTIME] ✅ Event received:", payload.new?.id);
+          // STEP 1 & 5: HARD DIAGNOSTIC LOGGING
+          console.log("[RT] INSERT RECEIVED", payload.new);
+          console.log("[RT] MESSAGE FOR", payload.new.conversation_id);
+          
           const newMessage = payload.new as any;
           
-          // CRITICAL: Use functional state update - subscription filter already ensures conversation_id matches
+          // STEP 5: CONVERSATION ID VALIDATION
+          if (newMessage.conversation_id !== lockedId) {
+            console.error("[RT] ⚠️ CONVERSATION ID MISMATCH!", {
+              listeningTo: lockedId,
+              messageFor: newMessage.conversation_id,
+            });
+            return;
+          }
+          
+          // STEP 2: STATE UPDATE - MUST USE FUNCTIONAL UPDATE
           setMessages((prev) => {
+            console.log("[RT] CURRENT messages.length BEFORE", prev.length);
+            console.log("[RT] APPENDING MESSAGE", newMessage.id);
+            
             // Check if message already exists (avoid duplicates)
             if (prev.some((msg) => msg.id === newMessage.id)) {
+              console.log("[RT] MESSAGE ALREADY EXISTS, SKIPPING", newMessage.id);
               return prev;
             }
             
@@ -719,13 +732,19 @@ function LineInboxPageContent() {
             };
             
             // Return new array - React will detect this change and trigger useEffect for auto-scroll
-            return [...prev, formattedMessage].sort((a, b) => 
+            const updated = [...prev, formattedMessage].sort((a, b) => 
               new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             );
+            
+            console.log("[RT] NEW messages.length AFTER", updated.length);
+            return updated;
           });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        // STEP 1: STATUS LOGGING
+        console.log("[RT] STATUS", status);
+      });
     
     realtimeChannelRef.current = channel;
     console.log("[LINE Inbox] [SUBSCRIPTION] Subscribed to channel:", channelName);
@@ -748,7 +767,8 @@ function LineInboxPageContent() {
   useEffect(() => {
     return () => {
       if (realtimeChannelRef.current && supabase) {
-        console.log("[LINE Inbox] Cleaning up realtime subscription");
+        const conversationId = lockedConversationIdRef.current;
+        console.log("[RT] UNSUBSCRIBED", conversationId);
         supabase.removeChannel(realtimeChannelRef.current);
       }
     };
@@ -817,6 +837,11 @@ function LineInboxPageContent() {
       "lockedConversationIdRef:", lockedId);
     console.log("[LINE Inbox] [RENDER CHECK] All message IDs:", messages.map(m => ({ id: m.id, sender: m.sender_type })));
   }, [messages, selectedConversation?.id]);
+
+  // STEP 3: VERIFY RENDER IS ACTUALLY TRIGGERED
+  console.log("[RENDER] messages.length", messages.length);
+  console.log("[RENDER] selectedConversation.id", selectedConversation?.id);
+  console.log("[RENDER] lockedConversationIdRef", lockedConversationIdRef.current);
 
   if (loading) {
     return (
