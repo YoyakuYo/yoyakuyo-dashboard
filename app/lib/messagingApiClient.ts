@@ -2,7 +2,7 @@
 // ALWAYS injects X-User-Id for all messaging API calls
 // Maps LINE users to canonical customer_id
 
-import { apiUrl } from './apiClient';
+import { apiUrl } from '@/lib/apiClient';
 
 interface MessagingApiOptions {
   lineUserId?: string;
