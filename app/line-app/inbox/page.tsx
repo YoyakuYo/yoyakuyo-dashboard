@@ -1,9 +1,24 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 import { messagingFetch } from "@/app/lib/messagingApiClient";
+import { createClient } from "@supabase/supabase-js";
+
+// Initialize Supabase client for realtime
+let supabase: ReturnType<typeof createClient> | null = null;
+try {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  if (supabaseUrl && supabaseAnonKey) {
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+  } else {
+    console.warn('[LINE Inbox] Supabase env vars not configured, realtime disabled');
+  }
+} catch (error) {
+  console.error('[LINE Inbox] Failed to initialize Supabase client:', error);
+}
 
 // LINE LIFF SDK types
 declare global {
@@ -32,6 +47,7 @@ interface Message {
   body?: string;
   content?: string;
   created_at: string;
+  status?: 'sending' | 'sent' | 'failed'; // STEP 1: Optimistic message status
 }
 
 function LineInboxPageContent() {
@@ -51,6 +67,8 @@ function LineInboxPageContent() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string>("");
+  const messagesEndRef = useRef<HTMLDivElement>(null); // STEP 5: Scroll management
+  const realtimeChannelRef = useRef<any>(null); // STEP 3: Realtime subscription
   const [language, setLanguage] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('line_app_language') || 'ja';
@@ -260,11 +278,12 @@ function LineInboxPageContent() {
       if (!res.ok) {
         if (res.status === 403) {
           setError('Not authorized to view messages. Please ensure you are logged in correctly.');
-          setMessages([]);
+          // STEP 4: Keep current conversation_id, show error state instead
+          // DO NOT reset messages or conversation
           return;
         } else if (res.status === 401) {
           setError('Authentication required. Please log in again.');
-          setMessages([]);
+          // STEP 4: Keep current conversation_id, show error state instead
           return;
         }
         throw new Error('Failed to load messages');
@@ -273,12 +292,31 @@ function LineInboxPageContent() {
       const data = await res.json();
       console.log("[LINE Inbox] Loaded messages:", data.messages?.length || 0);
       console.log("[LINE Inbox] Sample message:", data.messages?.[0]);
-      setMessages(data.messages || []);
+      
+      // STEP 2: Merge results into state (do NOT overwrite) - preserve optimistic messages
+      setMessages(prev => {
+        // Keep messages with status 'sending' or 'failed' (optimistic messages)
+        const optimisticMessages = prev.filter(m => m.status === 'sending' || m.status === 'failed');
+        // Merge with fetched messages, avoiding duplicates
+        const fetchedMessages = (data.messages || []).filter((newMsg: Message) => 
+          !prev.some(existing => existing.id === newMsg.id)
+        );
+        return [...optimisticMessages, ...fetchedMessages].sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      });
+      
       setError(""); // Clear error on success
+      
+      // STEP 5: Auto-scroll to bottom after loading
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     } catch (error: any) {
       console.error("[LINE Inbox] Error loading messages:", error);
       setError(`Failed to load messages: ${error.message || 'Unknown error'}`);
-      setMessages([]);
+      // STEP 4: Keep current conversation_id, show error state instead
+      // DO NOT reset messages or conversation
     } finally {
       setLoadingMessages(false);
     }
@@ -293,11 +331,32 @@ function LineInboxPageContent() {
       return;
     }
 
+    const trimmedContent = newMessage.trim();
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // STEP 1: Optimistic message insert - immediately append to local state
+    const optimisticMessage: Message = {
+      id: tempId,
+      conversation_id: selectedConversation.id,
+      sender_type: 'customer',
+      content: trimmedContent,
+      created_at: new Date().toISOString(),
+      status: 'sending',
+    };
+    
+    setMessages(prev => [...prev, optimisticMessage]);
+    setNewMessage('');
+    
+    // STEP 5: Auto-scroll to bottom after optimistic insert
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 50);
+
     try {
       setSending(true);
-      const trimmedContent = newMessage.trim();
       console.log("[LINE Inbox] Sending message to conversation:", selectedConversation.id, {
         contentLength: trimmedContent.length,
+        tempId,
       });
       
       // ALWAYS inject X-User-Id via unified messaging API client
@@ -322,9 +381,17 @@ function LineInboxPageContent() {
       const data = await res.json();
       console.log("[LINE Inbox] Message sent successfully:", data.message?.id);
       
-      // Add message to list
-      setMessages(prev => [...prev, data.message]);
-      setNewMessage('');
+      // STEP 2: Replace temp message with real message ID
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempId 
+          ? { ...data.message, status: 'sent' as const }
+          : msg
+      ));
+      
+      // STEP 5: Auto-scroll to bottom after real message
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
       
       // Reload conversations to update last_message_at
       if (lineUserId && idToken) {
@@ -332,8 +399,16 @@ function LineInboxPageContent() {
       }
     } catch (error: any) {
       console.error("[LINE Inbox] Error sending message:", error);
+      
+      // STEP 2: Mark message as failed, DO NOT reset conversation
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempId 
+          ? { ...msg, status: 'failed' as const }
+          : msg
+      ));
+      
       setError(`Failed to send message: ${error.message || 'Unknown error'}`);
-      alert(`Failed to send message: ${error.message || 'Unknown error'}`);
+      // DO NOT alert - show error in UI instead
     } finally {
       setSending(false);
     }
