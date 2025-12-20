@@ -73,6 +73,7 @@ function LineInboxPageContent() {
   const realtimeChannelRef = useRef<any>(null); // STEP 3: Realtime subscription
   // STEP 3: Lock conversation ID in a stable ref
   const lockedConversationIdRef = useRef<string | null>(null);
+  const waitingForAIResponseRef = useRef<{ messageCount: number; conversationId: string; timeoutId: NodeJS.Timeout | null } | null>(null);
   const [language, setLanguage] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('line_app_language') || 'ja';
@@ -639,9 +640,23 @@ function LineInboxPageContent() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
 
-      // CRITICAL: DO NOT refresh conversations list or messages after send
-      // Rely ONLY on Supabase realtime for AI responses
-      // This prevents state resets and conversation switching
+      // FALLBACK: If realtime doesn't fire within 4 seconds, refresh messages once
+      // This is a safety net - realtime should handle it, but if it fails, we need to show the AI response
+      const currentMessageCount = messages.length + 1; // +1 because we just added the user message
+      waitingForAIResponseRef.current = {
+        messageCount: currentMessageCount,
+        conversationId: conversationId,
+        timeoutId: setTimeout(async () => {
+          // Check if waiting flag is still set (realtime didn't clear it)
+          if (waitingForAIResponseRef.current && lineUserId && idToken) {
+            console.log("[LINE Inbox] [FALLBACK] Realtime didn't fire, refreshing messages");
+            setRealtimeDebug(`⚠️ Realtime failed, refreshing...`);
+            // Refresh messages once - this will update the state with new messages
+            await loadMessages(conversationId, lineUserId, idToken);
+            waitingForAIResponseRef.current = null;
+          }
+        }, 4000) as any,
+      };
     } catch (error: any) {
       console.error("[LINE Inbox] Error sending message:", error);
       
@@ -695,33 +710,23 @@ function LineInboxPageContent() {
         (payload) => {
           console.log("[LINE Inbox] New message received via realtime:", payload.new);
           const newMessage = payload.new as any;
-          setRealtimeDebug(`📨 Realtime event received: ${newMessage.id || 'unknown'}`);
+          setRealtimeDebug(`📨 Realtime event: ${newMessage.id || 'unknown'}`);
           
-          // CRITICAL: Use current locked ID from ref (not closure) to verify
-          // Subscription filter already ensures conversation_id matches, but double-check with current ref
-          const currentLockedId = lockedConversationIdRef.current;
-          if (currentLockedId && newMessage.conversation_id !== currentLockedId) {
-            console.log("[LINE Inbox] ⚠️ Realtime message ignored - conversation_id mismatch:", {
-              messageConversationId: newMessage.conversation_id,
-              subscriptionLockedId: lockedId,
-              currentLockedId: currentLockedId,
-            });
-            setRealtimeDebug(`⚠️ Ignored: conv mismatch (msg: ${newMessage.conversation_id}, locked: ${currentLockedId})`);
-            return;
+          // Clear waiting flag since we got a realtime event
+          if (waitingForAIResponseRef.current) {
+            if (waitingForAIResponseRef.current.timeoutId) {
+              clearTimeout(waitingForAIResponseRef.current.timeoutId);
+            }
+            waitingForAIResponseRef.current = null;
           }
           
-          // CRITICAL: If no locked ID, still accept if it matches subscription filter
-          // (This handles edge case where ref hasn't been set yet)
-          if (!currentLockedId && newMessage.conversation_id !== lockedId) {
-            console.log("[LINE Inbox] ⚠️ Realtime message ignored - no locked ID and doesn't match subscription");
-            setRealtimeDebug(`⚠️ Ignored: no locked ID`);
-            return;
-          }
+          // Subscription filter already ensures conversation_id matches lockedId
+          // Trust the filter - don't add extra checks that might block valid messages
           
           // [MANDATORY] AI message received, appending to state (for live debug requirement)
           console.log("[MANDATORY] AI message received, appending to state:", newMessage);
           console.log("[MANDATORY] sender_type:", newMessage.sender_type, "sender_role:", (newMessage as any).sender_role);
-          setRealtimeDebug(`✅ Processing message: ${newMessage.id} (sender: ${newMessage.sender_type || 'unknown'})`);
+          setRealtimeDebug(`✅ Processing: ${newMessage.id} (${newMessage.sender_type || 'unknown'})`);
 
           // CRITICAL: Use functional state update to avoid stale closure
           setMessages((prev) => {
