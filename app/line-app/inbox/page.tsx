@@ -527,6 +527,8 @@ function LineInboxPageContent() {
                       messages.map((message) => {
                         const isCustomer = message.sender_type === 'customer';
                         const messageText = message.body || message.content || '';
+                        const isSending = message.status === 'sending';
+                        const isFailed = message.status === 'failed';
                         return (
                           <div
                             key={message.id}
@@ -537,7 +539,7 @@ function LineInboxPageContent() {
                                 isCustomer
                                   ? 'bg-blue-600 text-white'
                                   : 'bg-white text-gray-900 border border-gray-200'
-                              }`}
+                              } ${isFailed ? 'opacity-50 border-red-300' : ''}`}
                               style={{
                                 minWidth: 0,
                                 width: 'fit-content',
@@ -556,21 +558,31 @@ function LineInboxPageContent() {
                                   (Empty message)
                                 </p>
                               )}
-                              <p
-                                className={`text-xs mt-1 ${
-                                  isCustomer ? 'text-blue-100' : 'text-gray-500'
-                                }`}
-                              >
-                                {new Date(message.created_at).toLocaleTimeString('en-US', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </p>
+                              <div className="flex items-center justify-between mt-1">
+                                <p
+                                  className={`text-xs ${
+                                    isCustomer ? 'text-blue-100' : 'text-gray-500'
+                                  }`}
+                                >
+                                  {new Date(message.created_at).toLocaleTimeString('en-US', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </p>
+                                {isSending && (
+                                  <span className="text-xs text-blue-200 ml-2">Sending...</span>
+                                )}
+                                {isFailed && (
+                                  <span className="text-xs text-red-300 ml-2">Failed</span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         );
                       })
                     )}
+                    {/* STEP 5: Scroll anchor */}
+                    <div ref={messagesEndRef} />
                   </div>
 
                   {/* Input Area */}
