@@ -89,11 +89,22 @@ function LineInboxPageContent() {
 
       // Set session if JWT is provided
       if (jwt) {
-        await client.auth.setSession({
-          access_token: jwt,
-          refresh_token: '', // Not needed for LINE users
-        });
-        console.log("[LINE Inbox] ✅ Supabase client initialized with JWT");
+        try {
+          const { data: sessionData, error: sessionError } = await client.auth.setSession({
+            access_token: jwt,
+            refresh_token: '', // Not needed for LINE users
+          });
+          
+          if (sessionError) {
+            console.error("[LINE Inbox] Error setting session:", sessionError);
+          } else if (sessionData?.session) {
+            console.log("[LINE Inbox] ✅ Supabase client initialized with JWT and session set");
+          } else {
+            console.warn("[LINE Inbox] ⚠️ Session not set, but client initialized");
+          }
+        } catch (sessionErr: any) {
+          console.error("[LINE Inbox] Error in setSession:", sessionErr);
+        }
       } else {
         console.log("[LINE Inbox] ⚠️ Supabase client initialized with anon key (no JWT)");
       }
@@ -735,28 +746,32 @@ function LineInboxPageContent() {
       return;
     }
     
-    // STEP 5: Wait for auth session before subscribing
-    // CRITICAL: Realtime requires authenticated session for RLS
-    client.auth.getSession().then(({ data: { session }, error: sessionError }: any) => {
-      if (sessionError || !session) {
-        console.error("[LINE Inbox] ❌ No auth session, realtime will fail:", sessionError);
-        setRtDebug(`❌ No auth session - realtime disabled`);
-        setRtStatus(`Auth required`);
-        return; // Don't subscribe without auth
+    // STEP 5: Check auth session before subscribing
+    // CRITICAL: Realtime works better with authenticated session, but we can try with anon too
+    try {
+      const { data: { session }, error: sessionError } = await client.auth.getSession();
+      
+      if (sessionError) {
+        console.warn("[LINE Inbox] ⚠️ Session check error (non-fatal):", sessionError);
       }
       
-      console.log("[LINE Inbox] ✅ Auth session exists, proceeding with realtime");
-      setRtDebug(`✅ Auth session active`);
+      if (session) {
+        console.log("[LINE Inbox] ✅ Auth session exists, proceeding with realtime");
+        setRtDebug(`✅ Auth session active`);
+      } else {
+        console.warn("[LINE Inbox] ⚠️ No auth session, will try with anon key (RLS may block)");
+        setRtDebug(`⚠️ No auth session - using anon`);
+      }
       
-      // Continue with subscription setup (moved inside the then block)
+      // Continue with subscription setup regardless of session status
+      // RLS policies allow anon fallback, so we can still try
       setupSubscription(client, conversationId);
-    }).catch((error: any) => {
+    } catch (error: any) {
       console.error("[LINE Inbox] Error checking auth session:", error);
-      setRtDebug(`❌ Auth check failed`);
-      return; // Don't subscribe on error
-    });
-    
-    return; // Exit early - subscription will be set up in the then block
+      setRtDebug(`⚠️ Auth check failed - trying anyway`);
+      // Try to subscribe anyway - anon might work
+      setupSubscription(client, conversationId);
+    }
   };
   
   // Helper function to set up the actual subscription (after auth is confirmed)
