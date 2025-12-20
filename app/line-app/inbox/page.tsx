@@ -1127,18 +1127,7 @@ function LineInboxPageContent() {
 
   return (
     <>
-      {/* VISIBLE DEBUG BANNER (for phone testing) */}
-      <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0,
-        background: '#f6e05e', color: '#222', padding: 8, fontWeight: 'bold', 
-        zIndex: 99999, textAlign: 'center', fontSize: '12px',
-        borderBottom: '2px solid #d69e2e', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-        maxHeight: '80px', overflow: 'auto',
-      }}>
-        <div style={{ marginBottom: 4 }}>{rtDebug || renderDebug}</div>
-        {rtStatus && <div style={{ fontSize: '11px', opacity: 0.8 }}>{rtStatus}</div>}
-      </div>
-      <div className="bg-gray-50 flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: '80px' }}>
+      <div className="bg-gray-50 flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}>
 
 
         {/* Header */}
