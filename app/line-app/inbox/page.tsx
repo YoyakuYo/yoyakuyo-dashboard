@@ -55,6 +55,57 @@ function LineInboxPageContent() {
   const [idToken, setIdToken] = useState<string | null>(null);
   const [supabaseJWT, setSupabaseJWT] = useState<string | null>(null);
   const [supabaseClient, setSupabaseClient] = useState<ReturnType<typeof createClient> | null>(null);
+  
+  // Helper function to initialize Supabase client (with or without JWT)
+  const initializeSupabaseClient = async (jwt: string | null) => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("[LINE Inbox] ❌ Missing Supabase env vars");
+      setRtDebug(`❌ Missing Supabase config`);
+      return;
+    }
+
+    try {
+      const client = createClient(supabaseUrl, supabaseAnonKey, {
+        ...(jwt ? {
+          global: {
+            headers: {
+              Authorization: `Bearer ${jwt}`,
+            },
+          },
+        } : {}),
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+        },
+        realtime: {
+          params: {
+            eventsPerSecond: 10,
+          },
+        },
+      });
+
+      // Set session if JWT is provided
+      if (jwt) {
+        await client.auth.setSession({
+          access_token: jwt,
+          refresh_token: '', // Not needed for LINE users
+        });
+        console.log("[LINE Inbox] ✅ Supabase client initialized with JWT");
+      } else {
+        console.log("[LINE Inbox] ⚠️ Supabase client initialized with anon key (no JWT)");
+      }
+
+      setSupabaseClient(client as any);
+      supabase = client as any; // Update module-level variable
+    } catch (error: any) {
+      console.error("[LINE Inbox] Error initializing Supabase client:", error);
+      setRtDebug(`❌ Failed to initialize Supabase`);
+    }
+  };
+  
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
