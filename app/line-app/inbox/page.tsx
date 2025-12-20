@@ -647,48 +647,51 @@ function LineInboxPageContent() {
       <div className="bg-gray-50 flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}>
 
 
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 flex-shrink-0 z-10">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-gray-900">{language === 'ja' ? '受信箱' : 'Inbox'}</h1>
-            <button
-              onClick={() => router.push("/line-app")}
-              className="text-sm text-blue-600 hover:text-blue-700"
-            >
-              {language === 'ja' ? '戻る' : 'Back'}
-            </button>
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 flex-shrink-0 z-10">
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold text-gray-900">{language === 'ja' ? '受信箱' : 'Inbox'}</h1>
+              <button
+                onClick={() => router.push("/line-app")}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                {language === 'ja' ? '戻る' : 'Back'}
+              </button>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {error && (
-        <div className="px-4 py-2 flex-shrink-0">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <p className="text-red-800 text-sm">{error}</p>
+        {error && (
+          <div className="px-4 py-2 flex-shrink-0">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-red-800 text-sm">{error}</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="flex-1 flex flex-col min-h-0 px-2 md:px-4 py-2">
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
-          <div className="flex flex-1 min-h-0" style={{ height: '100%' }}>
-            {/* Conversations List */}
-            <div className="w-1/3 border-r border-gray-200 flex flex-col min-w-0 hidden md:flex">
-              <div className="p-3 border-b border-gray-200 flex-shrink-0">
-                <h2 className="font-semibold text-gray-900 text-sm">{language === 'ja' ? '会話' : 'Conversations'}</h2>
+        <div className="flex-1 flex flex-col min-h-0 px-2 md:px-4 py-2">
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
+            {/* Mobile Conversations List (full-width) */}
+            <div className="md:hidden border-b border-gray-200">
+              <div className="p-3 flex-shrink-0">
+                <h2 className="font-semibold text-gray-900 text-sm">
+                  {language === 'ja' ? '会話を選択' : 'Select a conversation'}
+                </h2>
               </div>
-              <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="max-h-48 overflow-y-auto">
                 {conversations.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">
-                    <p className="text-sm">{language === 'ja' ? '会話がありません' : 'No conversations yet'}</p>
+                    <p className="text-sm">
+                      {language === 'ja' ? '会話がありません' : 'No conversations yet'}
+                    </p>
                   </div>
                 ) : (
                   conversations.map((conv) => (
                     <button
                       key={conv.id}
                       onClick={() => handleSelectConversation(conv)}
-                      className={`w-full text-left p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                      className={`w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
                         selectedConversation?.id === conv.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
                       }`}
                     >
@@ -712,6 +715,47 @@ function LineInboxPageContent() {
                 )}
               </div>
             </div>
+
+            <div className="flex flex-1 min-h-0" style={{ height: '100%' }}>
+              {/* Desktop Conversations List */}
+              <div className="w-1/3 border-r border-gray-200 flex flex-col min-w-0 hidden md:flex">
+                <div className="p-3 border-b border-gray-200 flex-shrink-0">
+                  <h2 className="font-semibold text-gray-900 text-sm">{language === 'ja' ? '会話' : 'Conversations'}</h2>
+                </div>
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  {conversations.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">
+                      <p className="text-sm">{language === 'ja' ? '会話がありません' : 'No conversations yet'}</p>
+                    </div>
+                  ) : (
+                    conversations.map((conv) => (
+                      <button
+                        key={conv.id}
+                        onClick={() => handleSelectConversation(conv)}
+                        className={`w-full text-left p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                          selectedConversation?.id === conv.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className="font-semibold text-gray-900 truncate">
+                            {conv.shop?.name || 'Shop'}
+                          </h3>
+                          {conv.unread_count && conv.unread_count > 0 && (
+                            <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1">
+                              {conv.unread_count}
+                            </span>
+                          )}
+                        </div>
+                        {conv.last_message_at && (
+                          <p className="text-xs text-gray-400">
+                            {new Date(conv.last_message_at).toLocaleString()}
+                          </p>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
 
             {/* Messages View */}
             <div className="flex-1 flex flex-col min-w-0 min-h-0">
