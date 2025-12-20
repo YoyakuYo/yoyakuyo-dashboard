@@ -51,8 +51,6 @@ interface Message {
 }
 
 function LineInboxPageContent() {
-  const [realtimeDebug, setRealtimeDebug] = useState<string>("");
-  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedShopId = searchParams.get('shop_id');
@@ -73,7 +71,6 @@ function LineInboxPageContent() {
   const realtimeChannelRef = useRef<any>(null); // STEP 3: Realtime subscription
   // STEP 3: Lock conversation ID in a stable ref
   const lockedConversationIdRef = useRef<string | null>(null);
-  const waitingForAIResponseRef = useRef<{ messageCount: number; conversationId: string; timeoutId: NodeJS.Timeout | null } | null>(null);
   const [language, setLanguage] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('line_app_language') || 'ja';
@@ -545,7 +542,6 @@ function LineInboxPageContent() {
     // CRITICAL: Ensure realtime subscription is ALWAYS active before sending
     if (conversationId && !realtimeChannelRef.current) {
       console.log("[LINE Inbox] Realtime subscription missing, setting up now:", conversationId);
-      setRealtimeDebug(`⚠️ No subscription! Setting up for ${conversationId}...`);
       subscribeToMessages(conversationId);
     }
 
@@ -560,7 +556,6 @@ function LineInboxPageContent() {
     console.log("[LINE Inbox] [BUG CHECK] last message ID BEFORE send:", messages[messages.length - 1]?.id);
     console.log("[LINE Inbox] [SUBSCRIPTION] Realtime channel exists:", !!realtimeChannelRef.current);
     console.log("[LINE Inbox] [SUBSCRIPTION] Realtime channel state:", channelState);
-    setRealtimeDebug(`📤 Sending to ${conversationId} | Sub: ${channelState} | Msgs: ${messages.length}`);
 
     const trimmedContent = newMessage.trim();
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -640,81 +635,8 @@ function LineInboxPageContent() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
 
-      // FALLBACK: If realtime doesn't fire within 2 seconds, fetch new messages directly
-      // This is a safety net - realtime should handle it, but if it fails, we need to show the AI response
-      // CRITICAL: Only fetch messages, do NOT touch conversation state or trigger any side effects
-      // Clear any existing fallback timer first
-      if (waitingForAIResponseRef.current?.timeoutId) {
-        clearTimeout(waitingForAIResponseRef.current.timeoutId);
-      }
-      
-      const currentMessageCount = messages.length + 1; // +1 because we just added the user message
-      waitingForAIResponseRef.current = {
-        messageCount: currentMessageCount,
-        conversationId: conversationId,
-        timeoutId: setTimeout(async () => {
-          // Check if waiting flag is still set (realtime didn't clear it)
-          // CRITICAL: Also verify we're still in the same conversation
-          if (waitingForAIResponseRef.current && 
-              lineUserId && 
-              idToken && 
-              conversationId &&
-              lockedConversationIdRef.current === conversationId) {
-            console.log("[LINE Inbox] [FALLBACK] Realtime didn't fire, fetching new messages directly");
-            setRealtimeDebug(`⏳ Checking for AI response...`);
-            
-            try {
-              // Direct fetch - do NOT use loadMessages to avoid side effects
-              // CRITICAL: Only fetch if we're still in the same conversation
-              const currentConvId = lockedConversationIdRef.current || conversationId;
-              if (currentConvId !== waitingForAIResponseRef.current.conversationId) {
-                console.log("[LINE Inbox] [FALLBACK] Conversation changed, aborting fallback");
-                waitingForAIResponseRef.current = null;
-                return;
-              }
-              
-              const res = await messagingFetch(
-                `${apiUrl}/api/internal-messaging/conversations/${currentConvId}/messages`,
-                {
-                  lineUserId,
-                  idToken,
-                }
-              );
-
-              if (res.ok) {
-                const data = await res.json();
-                const newMessages = data.messages || [];
-                
-                // Merge new messages into state, avoiding duplicates
-                setMessages((prev) => {
-                  const existingIds = new Set(prev.map(m => m.id));
-                  const fetchedMessages = newMessages.filter((newMsg: Message) => 
-                    !existingIds.has(newMsg.id)
-                  );
-                  
-                  if (fetchedMessages.length > 0) {
-                    console.log("[LINE Inbox] [FALLBACK] Adding", fetchedMessages.length, "new messages");
-                    setRealtimeDebug(`✅ Found ${fetchedMessages.length} new message(s)`);
-                    const merged = [...prev, ...fetchedMessages].sort((a, b) => 
-                      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-                    );
-                    return merged;
-                  }
-                  return prev; // No new messages
-                });
-              } else {
-                console.error("[LINE Inbox] [FALLBACK] Failed to fetch messages:", res.status);
-                setRealtimeDebug(`❌ Fetch failed: ${res.status}`);
-              }
-            } catch (err) {
-              console.error("[LINE Inbox] [FALLBACK] Error fetching messages:", err);
-              setRealtimeDebug(`❌ Fetch error`);
-            }
-            
-            waitingForAIResponseRef.current = null;
-          }
-        }, 2000) as any, // Reduced from 4000ms to 2000ms for faster response
-      };
+      // CRITICAL: Rely ONLY on Supabase realtime for AI responses
+      // No fallback - if realtime doesn't work, we need to fix the configuration
     } catch (error: any) {
       console.error("[LINE Inbox] Error sending message:", error);
       
@@ -737,7 +659,6 @@ function LineInboxPageContent() {
   const subscribeToMessages = (conversationId: string) => {
     if (!supabase) {
       console.warn("[LINE Inbox] Supabase client not initialized, skipping realtime");
-      setRealtimeDebug(`❌ Supabase not initialized`);
       return;
     }
 
@@ -745,7 +666,6 @@ function LineInboxPageContent() {
     const lockedId = lockedConversationIdRef.current || conversationId;
     if (!lockedId) {
       console.warn("[LINE Inbox] No conversation ID to subscribe to");
-      setRealtimeDebug(`❌ No conversation ID`);
       return;
     }
 
@@ -760,7 +680,6 @@ function LineInboxPageContent() {
         supabase.removeChannel(currentChannel);
       } else if (currentState === 'SUBSCRIBED') {
         console.log("[LINE Inbox] Channel already subscribed for this conversation, skipping");
-        setRealtimeDebug(`✅ Already subscribed to ${lockedId}`);
         return; // Already subscribed, don't re-subscribe
       }
     }
@@ -769,7 +688,6 @@ function LineInboxPageContent() {
     console.log("[LINE Inbox] [SUBSCRIPTION] Setting up subscription for conversation_id:", lockedId);
     console.log("[LINE Inbox] [SUBSCRIPTION] Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Missing');
     console.log("[LINE Inbox] [SUBSCRIPTION] Supabase Key:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Missing');
-    setRealtimeDebug(`⏳ Setting up subscription for ${lockedId}...`);
     
     // CRITICAL: Use a unique channel name to avoid conflicts
     const channelName = `messages:${lockedId}:${Date.now()}`;
@@ -807,23 +725,12 @@ function LineInboxPageContent() {
             return;
           }
           
-          setRealtimeDebug(`📨 Realtime: ${newMessage.id}`);
-          
-          // Clear waiting flag since we got a realtime event
-          if (waitingForAIResponseRef.current) {
-            if (waitingForAIResponseRef.current.timeoutId) {
-              clearTimeout(waitingForAIResponseRef.current.timeoutId);
-            }
-            waitingForAIResponseRef.current = null;
-          }
-          
           // Subscription filter already ensures conversation_id matches lockedId
           // Trust the filter - don't add extra checks that might block valid messages
           
-          // [MANDATORY] AI message received, appending to state (for live debug requirement)
+          // [MANDATORY] AI message received, appending to state
           console.log("[MANDATORY] AI message received, appending to state:", newMessage);
           console.log("[MANDATORY] sender_type:", newMessage.sender_type, "sender_role:", (newMessage as any).sender_role);
-          setRealtimeDebug(`✅ Processing: ${newMessage.id} (${newMessage.sender_type || 'unknown'})`);
 
           // CRITICAL: Use functional state update to avoid stale closure
           setMessages((prev) => {
@@ -832,11 +739,8 @@ function LineInboxPageContent() {
             // Check if message already exists (avoid duplicates)
             if (prev.some((msg) => msg.id === newMessage.id)) {
               console.log("[LINE Inbox] Message already exists, skipping:", newMessage.id);
-              setRealtimeDebug(`[SKIP] Already exist: ${newMessage.id}`);
               return prev; // Return same reference if duplicate
             }
-            
-            setRealtimeDebug(`AI msg: ${newMessage.id} added, messages now: ${prev.length + 1}`);
             
             // CRITICAL: Create new array - never mutate prev
             const formattedMessage: Message = {
@@ -872,7 +776,6 @@ function LineInboxPageContent() {
     // Match working pattern exactly - simple subscribe, no status callback
     // Events will flow automatically when they arrive
     console.log("[LINE Inbox] [SUBSCRIPTION] Channel subscribed (pattern matches working messages/page.tsx)");
-    setRealtimeDebug(`✅ Subscribed to ${lockedId}`);
 
     realtimeChannelRef.current = channel;
     console.log("[LINE Inbox] [SUBSCRIPTION] Channel stored in ref, conversation_id:", lockedId);
@@ -969,22 +872,9 @@ function LineInboxPageContent() {
     );
   }
 
-  // Always show debug banner with current state
-  const supabaseStatus = supabase ? '✅' : '❌';
-  const debugInfo = realtimeDebug || subscriptionStatus || `Supabase: ${supabaseStatus} | Msgs: ${messages.length} | Conv: ${selectedConversation?.id || 'none'} | Sub: ${realtimeChannelRef.current?.state || 'none'}`;
-  
   return (
     <>
-      <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0,
-        background: '#f6e05e', color: '#222', padding: 12, fontWeight: 'bold', zIndex: 99999, 
-        textAlign: 'center', fontSize: '14px', borderBottom: '2px solid #d69e2e',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-      }}>
-        <div>{debugInfo}</div>
-        {subscriptionStatus && realtimeDebug && <div style={{ fontSize: '12px', marginTop: 4, opacity: 0.8 }}>{subscriptionStatus}</div>}
-      </div>
-      <div className="bg-gray-50 flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', paddingTop: '60px' }}>
+      <div className="bg-gray-50 flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}>
 
 
         {/* Header */}
