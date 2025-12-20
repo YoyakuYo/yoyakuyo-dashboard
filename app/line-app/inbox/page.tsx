@@ -640,19 +640,72 @@ function LineInboxPageContent() {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
 
-      // FALLBACK: If realtime doesn't fire within 4 seconds, refresh messages once
+      // FALLBACK: If realtime doesn't fire within 4 seconds, fetch new messages directly
       // This is a safety net - realtime should handle it, but if it fails, we need to show the AI response
+      // CRITICAL: Only fetch messages, do NOT touch conversation state or trigger any side effects
       const currentMessageCount = messages.length + 1; // +1 because we just added the user message
       waitingForAIResponseRef.current = {
         messageCount: currentMessageCount,
         conversationId: conversationId,
         timeoutId: setTimeout(async () => {
           // Check if waiting flag is still set (realtime didn't clear it)
-          if (waitingForAIResponseRef.current && lineUserId && idToken) {
-            console.log("[LINE Inbox] [FALLBACK] Realtime didn't fire, refreshing messages");
-            setRealtimeDebug(`⚠️ Realtime failed, refreshing...`);
-            // Refresh messages once - this will update the state with new messages
-            await loadMessages(conversationId, lineUserId, idToken);
+          // CRITICAL: Also verify we're still in the same conversation
+          if (waitingForAIResponseRef.current && 
+              lineUserId && 
+              idToken && 
+              conversationId &&
+              lockedConversationIdRef.current === conversationId) {
+            console.log("[LINE Inbox] [FALLBACK] Realtime didn't fire, fetching new messages directly");
+            setRealtimeDebug(`⚠️ Realtime failed, fetching...`);
+            
+            try {
+              // Direct fetch - do NOT use loadMessages to avoid side effects
+              // CRITICAL: Only fetch if we're still in the same conversation
+              const currentConvId = lockedConversationIdRef.current || conversationId;
+              if (currentConvId !== waitingForAIResponseRef.current.conversationId) {
+                console.log("[LINE Inbox] [FALLBACK] Conversation changed, aborting fallback");
+                waitingForAIResponseRef.current = null;
+                return;
+              }
+              
+              const res = await messagingFetch(
+                `${apiUrl}/api/internal-messaging/conversations/${currentConvId}/messages`,
+                {
+                  lineUserId,
+                  idToken,
+                }
+              );
+
+              if (res.ok) {
+                const data = await res.json();
+                const newMessages = data.messages || [];
+                
+                // Merge new messages into state, avoiding duplicates
+                setMessages((prev) => {
+                  const existingIds = new Set(prev.map(m => m.id));
+                  const fetchedMessages = newMessages.filter((newMsg: Message) => 
+                    !existingIds.has(newMsg.id)
+                  );
+                  
+                  if (fetchedMessages.length > 0) {
+                    console.log("[LINE Inbox] [FALLBACK] Adding", fetchedMessages.length, "new messages");
+                    setRealtimeDebug(`✅ Found ${fetchedMessages.length} new message(s)`);
+                    const merged = [...prev, ...fetchedMessages].sort((a, b) => 
+                      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                    );
+                    return merged;
+                  }
+                  return prev; // No new messages
+                });
+              } else {
+                console.error("[LINE Inbox] [FALLBACK] Failed to fetch messages:", res.status);
+                setRealtimeDebug(`❌ Fetch failed: ${res.status}`);
+              }
+            } catch (err) {
+              console.error("[LINE Inbox] [FALLBACK] Error fetching messages:", err);
+              setRealtimeDebug(`❌ Fetch error`);
+            }
+            
             waitingForAIResponseRef.current = null;
           }
         }, 4000) as any,
