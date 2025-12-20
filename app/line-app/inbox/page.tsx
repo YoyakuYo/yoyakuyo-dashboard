@@ -737,7 +737,6 @@ function LineInboxPageContent() {
                           </div>
                         );
                       })}
-                      </>
                     )}
                     {/* STEP 5: Scroll anchor */}
                     <div ref={messagesEndRef} />
