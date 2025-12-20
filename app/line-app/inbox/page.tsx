@@ -709,7 +709,8 @@ function LineInboxPageContent() {
     const channelName = `messages:${lockedId}`;
     
     // CRITICAL: Use the exact same pattern as specified - simple subscribe, with status callback for diagnostics
-    // Fix binding mismatch: use simple channel name and ensure filter is properly formatted
+    // TEMPORARY: Subscribe without filter to test if binding mismatch is filter-related
+    // If this works, we'll add filter back with proper format
     const channel = supabase
       .channel(channelName)
       .on(
@@ -718,7 +719,8 @@ function LineInboxPageContent() {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `conversation_id=eq.${lockedId}`,
+          // TEMPORARY: Remove filter to test - we'll filter in the handler
+          // filter: `conversation_id=eq.${lockedId}`,
         },
         (payload) => {
           // STEP 1 & 5: HARD DIAGNOSTIC LOGGING
@@ -728,14 +730,13 @@ function LineInboxPageContent() {
           
           const newMessage = payload.new as any;
           
-          // STEP 5: CONVERSATION ID VALIDATION
+          // STEP 5: CONVERSATION ID VALIDATION (now in handler since no filter)
           if (newMessage.conversation_id !== lockedId) {
-            console.error("[RT] ⚠️ CONVERSATION ID MISMATCH!", {
+            console.log("[RT] Message for different conversation, ignoring:", {
               listeningTo: lockedId,
               messageFor: newMessage.conversation_id,
             });
-            setRtDebug(`❌ ID MISMATCH! Listening: ${lockedId.substring(0, 8)}, Got: ${newMessage.conversation_id?.substring(0, 8)}`);
-            return;
+            return; // Silently ignore - not an error
           }
           
           // STEP 2: STATE UPDATE - MUST USE FUNCTIONAL UPDATE
