@@ -6,16 +6,20 @@
 -- Since backend API validates all access, we can allow anon SELECT for realtime
 -- ============================================
 
+-- Drop existing policies if they exist (idempotent)
+DROP POLICY IF EXISTS "anon_can_read_messages_for_realtime" ON messages;
+DROP POLICY IF EXISTS "anon_can_read_conversations_for_realtime" ON conversations;
+
 -- Add a permissive policy for anon users to read messages (for realtime)
 -- Backend API still validates access, so this is safe
-CREATE POLICY IF NOT EXISTS "anon_can_read_messages_for_realtime"
+CREATE POLICY "anon_can_read_messages_for_realtime"
 ON messages
 FOR SELECT
 TO anon
 USING (true);
 
 -- Also allow anon to read conversations (for realtime)
-CREATE POLICY IF NOT EXISTS "anon_can_read_conversations_for_realtime"
+CREATE POLICY "anon_can_read_conversations_for_realtime"
 ON conversations
 FOR SELECT
 TO anon
