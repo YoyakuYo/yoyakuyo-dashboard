@@ -527,6 +527,7 @@ Booking Details:
   };
 
   // PART 3: Message Shop handler - navigates to Inbox with preselected shop
+  // STEP 1: Pass REAL shop context (shop_id, booking_id, authenticated user_id)
   const handleMessageShop = async (booking: Booking) => {
     console.log("[LINE Bookings] Send message clicked for booking:", booking.id);
     
@@ -560,10 +561,19 @@ Booking Details:
       return;
     }
 
-    // Navigate to Inbox page with preselected shop_id
-    // The inbox page will resolve/create the conversation automatically
-    const inboxUrl = `/line-app/inbox?shop_id=${shopId}`;
-    console.log("[LINE Bookings] Navigating to inbox:", inboxUrl);
+    // STEP 1: Navigate to Inbox page with shop_id, booking_id, and line_user_id
+    // NO placeholders. NO generic "shop".
+    const params = new URLSearchParams({
+      shop_id: shopId,
+      booking_id: booking.id,
+      line_user_id: lineUserId,
+    });
+    const inboxUrl = `/line-app/inbox?${params.toString()}`;
+    console.log("[LINE Bookings] Navigating to inbox with context:", {
+      shop_id: shopId,
+      booking_id: booking.id,
+      line_user_id: lineUserId,
+    });
     router.push(inboxUrl);
   };
 

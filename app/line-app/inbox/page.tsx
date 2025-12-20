@@ -37,6 +37,8 @@ function LineInboxPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedShopId = searchParams.get('shop_id');
+  const preselectedBookingId = searchParams.get('booking_id');
+  const preselectedLineUserId = searchParams.get('line_user_id');
   
   const [lineUserId, setLineUserId] = useState<string>("");
   const [idToken, setIdToken] = useState<string | null>(null);
@@ -84,12 +86,23 @@ function LineInboxPageContent() {
         setLineUserId(profile.userId);
         setIdToken(token);
         
+        // STEP 1: Verify LINE user ID matches (if provided)
+        if (preselectedLineUserId && preselectedLineUserId !== profile.userId) {
+          console.error("[LINE Inbox] ❌ LINE user ID mismatch:", {
+            provided: preselectedLineUserId,
+            actual: profile.userId,
+          });
+          setError('User authentication mismatch. Please try again.');
+          setLoading(false);
+          return;
+        }
+        
         // Load conversations
         await loadConversations(profile.userId, token);
         
-        // If shop_id is preselected, find or create conversation
+        // STEP 2: If shop_id is preselected, resolve/create conversation with booking_id
         if (preselectedShopId) {
-          await handlePreselectedShop(preselectedShopId, profile.userId, token);
+          await handlePreselectedShop(preselectedShopId, profile.userId, token, preselectedBookingId || undefined);
         }
       } catch (error: any) {
         console.error("[LINE Inbox] Failed to initialize:", error);
@@ -143,61 +156,86 @@ function LineInboxPageContent() {
     }
   };
 
-  const handlePreselectedShop = async (shopId: string, lineUserId: string, token: string) => {
+  // STEP 2: Resolve or create conversation with booking_id and conversation_ai_mode
+  const handlePreselectedShop = async (shopId: string, lineUserId: string, token: string, bookingId?: string) => {
     try {
-      console.log("[LINE Inbox] Handling preselected shop:", shopId);
+      console.log("[LINE Inbox] Handling preselected shop:", { shopId, bookingId });
       
-      // Find existing conversation for this shop
-      const existingConv = conversations.find(c => c.shop_id === shopId);
-      
-      if (existingConv) {
-        console.log("[LINE Inbox] Found existing conversation:", existingConv.id);
-        setSelectedConversation(existingConv);
-        await loadMessages(existingConv.id, lineUserId, token);
-      } else {
-        // Create new conversation
-        console.log("[LINE Inbox] Creating new conversation for shop:", shopId);
-        const convRes = await fetch(`${apiUrl}/api/internal-messaging/conversations`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-line-user-id': lineUserId,
-            'x-id-token': token,
-          },
-          body: JSON.stringify({
-            shop_id: shopId,
-            customer_type: 'line',
-            customer_ref: lineUserId,
-          }),
-        });
-
-        if (!convRes.ok) {
-          const errorData = await convRes.json().catch(() => ({ error: 'Failed to create conversation' }));
-          throw new Error(errorData.error || 'Failed to create conversation');
-        }
-
-        const convData = await convRes.json();
-        const newConv = {
-          id: convData.conversation_id,
+      // STEP 2: Resolve or create conversation
+      // Call get_or_create_conversation(user_id, shop_id)
+      const convRes = await fetch(`${apiUrl}/api/internal-messaging/conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-line-user-id': lineUserId,
+          'x-id-token': token,
+        },
+        body: JSON.stringify({
           shop_id: shopId,
-          shop: convData.shop || { id: shopId, name: 'Shop' },
-          created_at: new Date().toISOString(),
-        };
-        
-        setSelectedConversation(newConv);
-        setConversations(prev => [newConv, ...prev]);
-        
-        // Focus message input after a short delay
-        setTimeout(() => {
-          const input = document.querySelector('textarea[placeholder*="message"]') as HTMLTextAreaElement;
-          if (input) {
-            input.focus();
-          }
-        }, 300);
+          booking_id: bookingId || null,
+          customer_type: 'line',
+          customer_ref: lineUserId,
+        }),
+      });
+
+      if (!convRes.ok) {
+        const errorData = await convRes.json().catch(() => ({ error: 'Failed to resolve conversation' }));
+        throw new Error(errorData.error || 'Failed to resolve conversation');
       }
+
+      const convData = await convRes.json();
+      const conversationId = convData.conversation_id;
+      
+      console.log("[LINE Inbox] ✅ Conversation resolved:", conversationId);
+      
+      // STEP 4: Get shop name from conversation.shop (returned by backend)
+      // Backend now returns shop details in response
+      const shop = convData.shop || convData.conversation?.shop;
+      
+      // STEP 4: Verify shop name is resolved
+      if (!shop || !shop.name) {
+        console.error("[LINE Inbox] ❌ Shop name is missing for conversation:", conversationId);
+        setError('Shop information is incomplete. Cannot open conversation.');
+        // STEP 6: Prevent silent failures - throw error
+        throw new Error('Shop name is missing');
+      }
+      
+      const conversation: Conversation = {
+        id: conversationId,
+        shop_id: shopId,
+        shop: shop,
+        created_at: convData.conversation?.created_at || new Date().toISOString(),
+      };
+      
+      // Check if conversation already exists in list
+      const existingIndex = conversations.findIndex(c => c.id === conversationId);
+      if (existingIndex >= 0) {
+        // Update existing
+        setConversations(prev => {
+          const updated = [...prev];
+          updated[existingIndex] = conversation;
+          return updated;
+        });
+      } else {
+        // Add new
+        setConversations(prev => [conversation, ...prev]);
+      }
+      
+      setSelectedConversation(conversation);
+      await loadMessages(conversationId, lineUserId, token);
+      
+      // Focus message input after a short delay
+      setTimeout(() => {
+        const input = document.querySelector('textarea[placeholder*="message"]') as HTMLTextAreaElement;
+        if (input) {
+          input.focus();
+        }
+      }, 300);
     } catch (error: any) {
-      console.error("[LINE Inbox] Error handling preselected shop:", error);
+      console.error("[LINE Inbox] ❌ Error handling preselected shop:", error);
       setError(`Failed to open conversation: ${error.message || 'Unknown error'}`);
+      // STEP 6: Prevent silent failures - throw error
+      throw error;
     }
   };
 
