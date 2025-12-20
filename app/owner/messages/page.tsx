@@ -77,90 +77,220 @@ export default function OwnerMessagesPage() {
   const loadCustomerThreads = async () => {
     if (!user?.id) return;
     try {
-      // Get customer_owner conversations
-      const res = await fetch(`${apiUrl}/api/conversations?type=customer_owner`, {
+      console.log('[Owner Messages] 🔍 [DIAGNOSTIC] Loading conversations for owner:', user.id);
+      // Use the new internal messaging endpoint for owner conversations
+      const res = await fetch(`${apiUrl}/api/internal-messaging/owner/conversations`, {
         headers: { 'x-user-id': user.id },
       });
+      
+      console.log('[Owner Messages] 📥 [DIAGNOSTIC] Response status:', res.status, res.statusText);
+      
       if (res.ok) {
         const data = await res.json();
-        console.log('Loaded customer conversations:', data.conversations?.length || 0);
+        console.log('[Owner Messages] ✅ [DIAGNOSTIC] Conversations loaded:', data.conversations?.length || 0);
+        console.log('[Owner Messages] 📦 [DIAGNOSTIC] Conversations data:', data);
+        
+        // Load shop names for each conversation
+        const conversationsWithShops = await Promise.all(
+          (data.conversations || []).map(async (conv: any) => {
+            try {
+              const shopRes = await fetch(`${apiUrl}/shops/${conv.shop_id}`);
+              if (shopRes.ok) {
+                const shopData = await shopRes.json();
+                return { ...conv, shop: { id: shopData.id, name: shopData.name } };
+              }
+            } catch (error) {
+              console.error('[Owner Messages] Error loading shop:', error);
+            }
+            return conv;
+          })
+        );
+        
         // Format conversations for customer messages
-        const formattedThreads: CustomerThread[] = (data.conversations || []).map((conv: any) => ({
+        const formattedThreads: CustomerThread[] = conversationsWithShops.map((conv: any) => ({
           id: conv.id,
           session_id: conv.id,
           shop_id: conv.shop_id,
           shop_name: conv.shop?.name,
-          customer_email: conv.customer?.email,
-          lastMessageAt: conv.updated_at || conv.created_at,
+          customer_email: conv.customer?.email || `${conv.customer_type} user`,
+          lastMessageAt: conv.last_message_at || conv.created_at,
           unreadCount: conv.unread_count || 0,
         }));
+        
+        console.log('[Owner Messages] ✅ [DIAGNOSTIC] Formatted threads:', formattedThreads.length);
         setCustomerThreads(formattedThreads);
       } else {
         const errorText = await res.text();
-        console.error('Failed to load customer conversations:', res.status, errorText);
+        console.error('[Owner Messages] ❌ [DIAGNOSTIC] Failed to load customer conversations:', {
+          status: res.status,
+          statusText: res.statusText,
+          error: errorText,
+        });
         setCustomerThreads([]);
       }
     } catch (error) {
-      console.error('Error loading customer threads:', error);
+      console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error loading customer threads:', error);
       setCustomerThreads([]);
     }
   };
 
 
   const loadMessages = async (conversationId: string) => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.error('[Owner Messages] ❌ [DIAGNOSTIC] Cannot load messages - missing user.id');
+      return;
+    }
+    
     try {
-      const res = await fetch(`${apiUrl}/api/conversations/${conversationId}`, {
-        headers: { 'x-user-id': user.id },
+      console.log('[Owner Messages] 🔍 [DIAGNOSTIC] Loading messages', {
+        conversationId,
+        userId: user.id,
+        endpoint: `${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`,
       });
+      
+      // Use the new internal messaging endpoint
+      const res = await fetch(`${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`, {
+        method: 'GET',
+        headers: {
+          'x-user-id': user.id,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('[Owner Messages] 📥 [DIAGNOSTIC] Response received', {
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+      });
+      
       if (res.ok) {
         const data = await res.json();
-        console.log('Loaded messages for conversation:', conversationId, 'Count:', data.messages?.length || 0);
+        console.log('[Owner Messages] ✅ [DIAGNOSTIC] Messages loaded', {
+          conversationId,
+          messagesCount: data.messages?.length || 0,
+          messages: data.messages,
+        });
+        
         // Format messages for display
-        const formattedMessages: Message[] = (data.messages || []).map((msg: any) => ({
-          id: msg.id,
-          role: msg.sender_role === 'owner' ? 'assistant' : 'user',
-          sender_type: msg.sender_role,
-          content: msg.content,
-          created_at: msg.created_at,
-        }));
+        const formattedMessages: Message[] = (data.messages || []).map((msg: any) => {
+          // Map sender_role to role and sender_type
+          const isOwner = msg.sender_role === 'shop' || msg.sender_role === 'owner';
+          const isAI = msg.sender_role === 'ai';
+          
+          return {
+            id: msg.id,
+            role: isOwner || isAI ? 'assistant' : 'user',
+            sender_type: isOwner ? 'owner' : 'customer',
+            content: msg.content || msg.body || '',
+            created_at: msg.created_at,
+          };
+        });
+        
+        console.log('[Owner Messages] ✅ [DIAGNOSTIC] Formatted messages:', formattedMessages.length);
         setMessages(formattedMessages);
       } else {
         const errorText = await res.text();
-        console.error('Failed to load messages:', res.status, errorText);
+        let errorData;
+        try {
+          errorData = errorText ? JSON.parse(errorText) : { error: 'Unknown error' };
+        } catch {
+          errorData = { error: errorText };
+        }
+        
+        console.error('[Owner Messages] ❌ [DIAGNOSTIC] Failed to load messages', {
+          status: res.status,
+          statusText: res.statusText,
+          error: errorData,
+          conversationId,
+          userId: user.id,
+        });
         setMessages([]);
       }
-    } catch (error) {
-      console.error('Error loading messages:', error);
+    } catch (error: any) {
+      console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error loading messages', {
+        error,
+        message: error.message,
+        conversationId,
+        userId: user.id,
+      });
       setMessages([]);
     }
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || !selectedThread || sending || !user?.id) return;
+    if (!input.trim() || !selectedThread || sending || !user?.id) {
+      console.warn('[Owner Messages] ⚠️ [DIAGNOSTIC] Cannot send message', {
+        hasInput: !!input.trim(),
+        selectedThread,
+        sending,
+        hasUserId: !!user?.id,
+      });
+      return;
+    }
 
     const messageText = input.trim();
     setInput("");
     setSending(true);
 
     try {
-      const res = await fetch(`${apiUrl}/api/conversations/${selectedThread}/messages`, {
+      console.log('[Owner Messages] 📤 [DIAGNOSTIC] Sending message', {
+        conversationId: selectedThread,
+        userId: user.id,
+        messageLength: messageText.length,
+        endpoint: `${apiUrl}/api/internal-messaging/messages`,
+      });
+      
+      // Use the new internal messaging endpoint
+      const res = await fetch(`${apiUrl}/api/internal-messaging/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-user-id': user.id,
         },
-        body: JSON.stringify({ content: messageText }),
+        body: JSON.stringify({
+          conversation_id: selectedThread,
+          content: messageText,
+        }),
       });
+      
+      console.log('[Owner Messages] 📥 [DIAGNOSTIC] Send message response', {
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+      });
+      
       if (res.ok) {
+        const data = await res.json();
+        console.log('[Owner Messages] ✅ [DIAGNOSTIC] Message sent successfully', data);
+        
+        // Reload messages to show the new message
         await loadMessages(selectedThread);
         // Refresh conversation list to update unread counts
         await loadCustomerThreads();
       } else {
-        console.error('Failed to send message:', await res.text());
+        const errorText = await res.text();
+        let errorData;
+        try {
+          errorData = errorText ? JSON.parse(errorText) : { error: 'Unknown error' };
+        } catch {
+          errorData = { error: errorText };
+        }
+        console.error('[Owner Messages] ❌ [DIAGNOSTIC] Failed to send message', {
+          status: res.status,
+          error: errorData,
+          conversationId: selectedThread,
+          userId: user.id,
+        });
+        alert(`Failed to send message: ${errorData.error || 'Unknown error'}`);
       }
-    } catch (error) {
-      console.error('Error sending message:', error);
+    } catch (error: any) {
+      console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error sending message', {
+        error,
+        message: error.message,
+        conversationId: selectedThread,
+        userId: user.id,
+      });
+      alert(`Error sending message: ${error.message || 'Unknown error'}`);
     } finally {
       setSending(false);
     }
