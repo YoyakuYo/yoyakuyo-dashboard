@@ -749,8 +749,8 @@ function LineInboxPageContent() {
             
             console.log("[RT] NEW messages.length AFTER", updated.length);
             setRtDebug(`✅ Added! Now ${updated.length} msgs`);
-            // Clear debug after 3 seconds
-            setTimeout(() => setRtDebug(renderDebug), 3000);
+            // Clear debug after 3 seconds (will show render state)
+            setTimeout(() => setRtDebug(`[RENDER] ${updated.length} msgs`), 3000);
             return updated;
           });
         }
