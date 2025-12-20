@@ -690,13 +690,20 @@ function LineInboxPageContent() {
       const currentLockedId = lockedConversationIdRef.current;
       console.log("[RT] Existing channel state:", currentState, "for conversation:", currentLockedId);
       
-      // Always unsubscribe if switching conversations or channel is in error/closed state
-      if (currentLockedId !== lockedId || currentState === 'CHANNEL_ERROR' || currentState === 'CLOSED') {
-        console.log("[RT] UNSUBSCRIBING old channel (switching conversation)", currentLockedId);
+      // Always unsubscribe if switching conversations or channel is in error state
+      // NOTE: Don't unsubscribe on CLOSED if it's the same conversation - let reconnection handle it
+      if (currentLockedId !== lockedId || currentState === 'CHANNEL_ERROR') {
+        console.log("[RT] UNSUBSCRIBING old channel (switching conversation or error)", currentLockedId);
         setRtDebug(`🔌 Unsubscribing from ${currentLockedId?.substring(0, 8)}`);
         // CRITICAL: Unsubscribe before creating new subscription
         supabase.removeChannel(currentChannel);
         realtimeChannelRef.current = null; // Clear ref immediately
+      } else if (currentState === 'CLOSED' && currentLockedId === lockedId) {
+        // Channel closed for same conversation - clear ref and reconnect
+        console.log("[RT] Channel closed for same conversation, will reconnect");
+        setRtDebug(`🔌 Channel closed, reconnecting...`);
+        realtimeChannelRef.current = null; // Clear ref so we can create new subscription
+        // Don't return - continue to create new subscription
       } else if (currentState === 'SUBSCRIBED' && currentLockedId === lockedId) {
         console.log("[RT] Channel already subscribed for this conversation, skipping");
         setRtDebug(`✅ Already subscribed to ${lockedId.substring(0, 8)}`);
@@ -727,8 +734,14 @@ function LineInboxPageContent() {
     console.log("[RT] lockedId type:", typeof lockedId, "value:", lockedId, "length:", lockedId.length);
     
     // CRITICAL: Use new Supabase Realtime API - postgres_changes with proper filter
+    // Add channel config to prevent premature closure
     const channel = supabase
-      .channel(channelName)
+      .channel(channelName, {
+        config: {
+          broadcast: { self: false },
+          presence: { key: '' },
+        },
+      })
       .on(
         'postgres_changes',
         {
@@ -813,9 +826,33 @@ function LineInboxPageContent() {
           // 3. RLS blocking realtime SELECT
           // 4. Filter binding mismatch - check conversation_id type
         } else if (status === 'TIMED_OUT') {
-          setRtDebug(`⏱️ Timeout`);
+          setRtDebug(`⏱️ Timeout - reconnecting...`);
+          setRtStatus(`Timeout - reconnecting...`);
+          // Auto-reconnect on timeout
+          setTimeout(() => {
+            if (lockedId && lockedConversationIdRef.current === lockedId) {
+              console.log("[RT] Reconnecting after timeout...");
+              subscribeToMessages(lockedId);
+            }
+          }, 2000);
         } else if (status === 'CLOSED') {
-          setRtDebug(`🔌 Channel CLOSED`);
+          console.warn("[RT] Channel CLOSED - attempting reconnection");
+          setRtDebug(`🔌 Channel CLOSED - reconnecting...`);
+          setRtStatus(`Closed - reconnecting...`);
+          // CRITICAL: Auto-reconnect if channel closes unexpectedly
+          // Only reconnect if we're still on the same conversation
+          if (lockedId && lockedConversationIdRef.current === lockedId) {
+            console.log("[RT] Attempting to reconnect to:", lockedId);
+            // Clear the ref so we can create a new subscription
+            realtimeChannelRef.current = null;
+            // Reconnect after a short delay
+            setTimeout(() => {
+              if (lockedConversationIdRef.current === lockedId) {
+                console.log("[RT] Reconnecting now...");
+                subscribeToMessages(lockedId);
+              }
+            }, 1000);
+          }
         } else {
           setRtDebug(`⏳ ${status}`);
         }
