@@ -123,16 +123,36 @@ export default function OwnerInboxPage() {
   }, [userId]);
 
   const loadMessages = useCallback(async (conversationId: string) => {
+    console.log('[Owner Inbox] 🔍 [DIAGNOSTIC] loadMessages called', {
+      conversationId,
+      userId,
+      timestamp: new Date().toISOString(),
+    });
+
     if (!userId || !conversationId) {
-      console.log('[Owner Inbox] Cannot load messages - missing userId or conversationId', { userId, conversationId });
+      console.error('[Owner Inbox] ❌ [DIAGNOSTIC] Cannot load messages - missing userId or conversationId', { 
+        userId, 
+        conversationId,
+        hasUserId: !!userId,
+        hasConversationId: !!conversationId,
+      });
       return;
     }
     
     try {
-      console.log('[Owner Inbox] Loading messages for conversation:', conversationId, 'with userId:', userId);
-      console.log('[Owner Inbox] API URL:', `${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`);
+      const apiEndpoint = `${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`;
+      console.log('[Owner Inbox] 📡 [DIAGNOSTIC] Starting API request', {
+        endpoint: apiEndpoint,
+        conversationId,
+        userId,
+        method: 'GET',
+        headers: {
+          'x-user-id': userId,
+          'Content-Type': 'application/json',
+        },
+      });
       
-      const res = await fetch(`${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`, {
+      const res = await fetch(apiEndpoint, {
         method: 'GET',
         headers: {
           'x-user-id': userId,
@@ -141,34 +161,41 @@ export default function OwnerInboxPage() {
         credentials: 'include', // Include cookies if needed
       });
 
-      console.log('[Owner Inbox] Response status:', res.status, res.statusText);
+      console.log('[Owner Inbox] 📥 [DIAGNOSTIC] Response received', {
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+        headers: Object.fromEntries(res.headers.entries()),
+      });
 
       if (!res.ok) {
         let errorText = '';
         try {
           errorText = await res.text();
           const errorData = errorText ? JSON.parse(errorText) : { error: 'Unknown error' };
-          console.error('[Owner Inbox] Failed to load messages - response not OK:', {
+          console.error('[Owner Inbox] ❌ [DIAGNOSTIC] Failed to load messages - response not OK:', {
             status: res.status,
             statusText: res.statusText,
             error: errorData,
             rawText: errorText,
+            conversationId,
+            userId,
           });
           
           // PART 1 FIX: Show error state instead of "No messages yet"
           if (res.status === 403) {
-            console.error('[Owner Inbox] ❌ 403 Forbidden - Access denied. Check if userId matches shop owner_user_id');
+            console.error('[Owner Inbox] ❌ [DIAGNOSTIC] 403 Forbidden - Access denied. Check if userId matches shop owner_user_id');
             setMessages([]); // Clear messages
             setError('Not authorized to view messages. Please ensure you are the owner of this shop.');
             return; // Don't throw, just show error
           } else if (res.status === 401) {
-            console.error('[Owner Inbox] ❌ 401 Unauthorized - Authentication required');
+            console.error('[Owner Inbox] ❌ [DIAGNOSTIC] 401 Unauthorized - Authentication required');
             setMessages([]);
             setError('Authentication required. Please log in again.');
             return;
           }
         } catch (parseError) {
-          console.error('[Owner Inbox] Error parsing error response:', parseError);
+          console.error('[Owner Inbox] ❌ [DIAGNOSTIC] Error parsing error response:', parseError);
           errorText = await res.text();
         }
         setMessages([]);
@@ -177,23 +204,45 @@ export default function OwnerInboxPage() {
       }
 
       const data = await res.json();
-      console.log('[Owner Inbox] Messages response:', data);
-      console.log('[Owner Inbox] Messages loaded:', data.messages?.length || 0, 'messages');
+      console.log('[Owner Inbox] 📦 [DIAGNOSTIC] Response data parsed', {
+        dataKeys: Object.keys(data),
+        hasMessages: !!data.messages,
+        messagesType: Array.isArray(data.messages) ? 'array' : typeof data.messages,
+        messagesLength: data.messages?.length || 0,
+        fullData: data,
+      });
       
       if (data.messages && Array.isArray(data.messages)) {
+        console.log('[Owner Inbox] ✅ [DIAGNOSTIC] Setting messages in state', {
+          count: data.messages.length,
+          messageIds: data.messages.map((m: any) => m.id),
+          firstMessage: data.messages[0],
+          lastMessage: data.messages[data.messages.length - 1],
+        });
         setMessages(data.messages);
-        console.log('[Owner Inbox] ✅ Messages set in state:', data.messages.length);
+        console.log('[Owner Inbox] ✅ [DIAGNOSTIC] Messages set in state - state should update now');
         
         // Mark messages as read after setting them
         markAsRead(conversationId).catch(err => {
-          console.error('[Owner Inbox] Error marking as read:', err);
+          console.error('[Owner Inbox] ❌ [DIAGNOSTIC] Error marking as read:', err);
         });
       } else {
-        console.warn('[Owner Inbox] ⚠️ No messages array in response:', data);
+        console.warn('[Owner Inbox] ⚠️ [DIAGNOSTIC] No messages array in response:', {
+          data,
+          hasMessages: !!data.messages,
+          messagesType: typeof data.messages,
+          isArray: Array.isArray(data.messages),
+        });
         setMessages([]);
       }
     } catch (error: any) {
-      console.error('[Owner Inbox] ❌ Error loading messages:', error);
+      console.error('[Owner Inbox] ❌ [DIAGNOSTIC] Error loading messages:', {
+        error,
+        message: error.message,
+        stack: error.stack,
+        conversationId,
+        userId,
+      });
       setMessages([]); // Clear messages on error
       // Don't show alert here as we already showed it above for 403/401
       if (!error.message?.includes('403') && !error.message?.includes('401')) {
@@ -204,12 +253,26 @@ export default function OwnerInboxPage() {
 
   // CRITICAL: Load messages when activeConversationId changes
   useEffect(() => {
-    console.log('[Owner Inbox] useEffect triggered - activeConversationId:', activeConversationId, 'userId:', userId);
+    console.log('[Owner Inbox] 🔄 [DIAGNOSTIC] useEffect triggered', {
+      activeConversationId,
+      userId,
+      hasActiveConversationId: !!activeConversationId,
+      hasUserId: !!userId,
+      messagesLength: messages.length,
+      timestamp: new Date().toISOString(),
+    });
+    
     if (activeConversationId && userId) {
-      console.log('[Owner Inbox] Calling loadMessages for:', activeConversationId);
+      console.log('[Owner Inbox] ✅ [DIAGNOSTIC] Conditions met - calling loadMessages', {
+        activeConversationId,
+        userId,
+      });
       loadMessages(activeConversationId);
     } else {
-      console.log('[Owner Inbox] Clearing messages - no active conversation');
+      console.log('[Owner Inbox] ⚠️ [DIAGNOSTIC] Clearing messages - no active conversation', {
+        activeConversationId,
+        userId,
+      });
       setMessages([]); // Clear messages when no conversation selected
     }
   }, [activeConversationId, userId, loadMessages]);
@@ -280,13 +343,28 @@ export default function OwnerInboxPage() {
   };
 
   const handleSelectConversation = (conversation: Conversation) => {
-    console.log('[Owner Inbox] Conversation selected:', conversation.id, conversation.shop?.name);
+    console.log('[Owner Inbox] 🖱️ [DIAGNOSTIC] Conversation selected', {
+      conversationId: conversation.id,
+      shopName: conversation.shop?.name,
+      shopId: conversation.shop_id,
+      customerType: conversation.customer_type,
+      customerRef: conversation.customer_ref,
+      previousActiveConversationId: activeConversationId,
+      currentMessagesLength: messages.length,
+      timestamp: new Date().toISOString(),
+    });
+    
     // Set activeConversationId (single source of truth)
+    console.log('[Owner Inbox] 🔄 [DIAGNOSTIC] Setting activeConversationId to:', conversation.id);
     setActiveConversationId(conversation.id);
+    
     // On mobile, show chat panel
     setShowChat(true);
+    
     // Clear messages immediately to show loading state
+    console.log('[Owner Inbox] 🧹 [DIAGNOSTIC] Clearing messages array (will be reloaded by useEffect)');
     setMessages([]);
+    setError(null); // Clear any previous errors
   };
 
   const getCustomerDisplayName = (conv: Conversation) => {
@@ -394,16 +472,29 @@ export default function OwnerInboxPage() {
 
             {/* Messages - scrollable area */}
             <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 space-y-4 bg-gray-50">
+              {(() => {
+                console.log('[Owner Inbox] 🎨 [DIAGNOSTIC] Rendering messages area', {
+                  activeConversationId,
+                  messagesLength: messages.length,
+                  hasError: !!error,
+                  error,
+                  selectedConversationId: selectedConversation?.id,
+                });
+                return null;
+              })()}
               {error ? (
                 <div className="text-center text-red-600 mt-8 p-4 bg-red-50 rounded-lg border border-red-200">
                   <p className="font-semibold">⚠️ Error</p>
                   <p className="text-sm mt-2">{error}</p>
                   <p className="text-xs mt-2 text-gray-400">Conversation ID: {activeConversationId}</p>
+                  <p className="text-xs mt-1 text-gray-400">User ID: {userId}</p>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="text-center text-gray-500 mt-8">
                   <p>No messages yet. Start the conversation!</p>
                   <p className="text-xs mt-2 text-gray-400">Conversation ID: {activeConversationId}</p>
+                  <p className="text-xs mt-1 text-gray-400">User ID: {userId}</p>
+                  <p className="text-xs mt-1 text-gray-400">Check console for diagnostic logs</p>
                 </div>
               ) : (
                 messages.map((message) => {
