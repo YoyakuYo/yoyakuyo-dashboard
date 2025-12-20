@@ -707,7 +707,7 @@ function LineInboxPageContent() {
     // STEP 1: HARD DIAGNOSTIC LOGGING
     console.log("[RT] SUBSCRIBING", lockedId);
     console.log("[RT] LISTENING TO", lockedId);
-    console.log("[RT] Channel name will be: messages-realtime-${lockedId}");
+    console.log("[RT] Channel name will be:", `messages-realtime-${lockedId}`);
     setRtDebug(`📡 Subscribing to ${lockedId.substring(0, 8)}...`);
     setRtStatus("⏳ Connecting...");
     
