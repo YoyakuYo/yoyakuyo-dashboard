@@ -498,7 +498,9 @@ function LineInboxPageContent() {
         (payload) => {
           console.log("[LINE Inbox] New message received via realtime:", payload.new);
           const newMessage = payload.new as any;
-          
+          // [MANDATORY] AI message received, appending to state (for live debug requirement)
+          console.log("[MANDATORY] AI message received, appending to state:", newMessage);
+
           // STEP 4: Append to SAME messages state, do NOT overwrite array
           setMessages((prev) => {
             // Check if message already exists (avoid duplicates)
