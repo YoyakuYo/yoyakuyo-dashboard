@@ -575,6 +575,11 @@ function LineInboxPageContent() {
       }
     };
   }, [selectedConversation?.id, lineUserId, idToken]);
+  
+  // STEP 1: VERIFY THE ACTUAL BUG - Log on render
+  useEffect(() => {
+    console.log("[LINE Inbox] [BUG CHECK] RENDER - messages.length:", messages.length, "last message ID:", messages[messages.length - 1]?.id, "selectedConversation.id:", selectedConversation?.id, "lockedConversationIdRef:", lockedConversationIdRef.current);
+  }, [messages.length, selectedConversation?.id]);
 
   if (loading) {
     return (
