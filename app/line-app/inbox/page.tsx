@@ -682,35 +682,50 @@ function LineInboxPageContent() {
       return;
     }
 
-    // Clean up existing subscription ONLY if it's for a different conversation
+    // STEP 4: ENSURE CLEAN UNSUBSCRIBE
+    // On conversation change: unsubscribe old channel THEN create new one
     const currentChannel = realtimeChannelRef.current;
     if (currentChannel) {
       const currentState = currentChannel.state;
       const currentLockedId = lockedConversationIdRef.current;
       console.log("[RT] Existing channel state:", currentState, "for conversation:", currentLockedId);
-      // Only remove if it's for a different conversation or in error state
+      
+      // Always unsubscribe if switching conversations or channel is in error/closed state
       if (currentLockedId !== lockedId || currentState === 'CHANNEL_ERROR' || currentState === 'CLOSED') {
-        console.log("[RT] UNSUBSCRIBED (switching conversation)", currentLockedId);
-        setRtDebug(`🔌 Unsubscribed from ${currentLockedId?.substring(0, 8)}`);
+        console.log("[RT] UNSUBSCRIBING old channel (switching conversation)", currentLockedId);
+        setRtDebug(`🔌 Unsubscribing from ${currentLockedId?.substring(0, 8)}`);
+        // CRITICAL: Unsubscribe before creating new subscription
         supabase.removeChannel(currentChannel);
-      } else if (currentState === 'SUBSCRIBED') {
+        realtimeChannelRef.current = null; // Clear ref immediately
+      } else if (currentState === 'SUBSCRIBED' && currentLockedId === lockedId) {
         console.log("[RT] Channel already subscribed for this conversation, skipping");
-        return; // Already subscribed, don't re-subscribe
+        setRtDebug(`✅ Already subscribed to ${lockedId.substring(0, 8)}`);
+        return; // Already subscribed to same conversation, don't re-subscribe
       }
     }
 
     // STEP 1: HARD DIAGNOSTIC LOGGING
     console.log("[RT] SUBSCRIBING", lockedId);
     console.log("[RT] LISTENING TO", lockedId);
+    console.log("[RT] Channel name will be: messages-realtime-${lockedId}");
     setRtDebug(`📡 Subscribing to ${lockedId.substring(0, 8)}...`);
     setRtStatus("⏳ Connecting...");
     
-    // CRITICAL: Match exact pattern - channel name is simple: messages:${conversationId}
-    const channelName = `messages:${lockedId}`;
+    // STEP 2: SINGLE CANONICAL REALTIME SUBSCRIPTION
+    // REQUIRED: channel name format: messages-realtime-${conversationId}
+    const channelName = `messages-realtime-${lockedId}`;
     
-    // CRITICAL: Use the exact same pattern as specified - simple subscribe, with status callback for diagnostics
-    // TEMPORARY: Subscribe without filter to test if binding mismatch is filter-related
-    // If this works, we'll add filter back with proper format
+    // STEP 3: VERIFY FILTER - conversation_id must be UUID type matching lockedId
+    // Ensure lockedId is a valid UUID string (not null/undefined)
+    if (!lockedId || typeof lockedId !== 'string' || lockedId.length !== 36) {
+      console.error("[RT] Invalid conversation_id format:", lockedId);
+      setRtDebug(`❌ Invalid conversation_id format`);
+      return;
+    }
+    console.log("[RT] Filter: conversation_id=eq.${lockedId}");
+    console.log("[RT] lockedId type:", typeof lockedId, "value:", lockedId, "length:", lockedId.length);
+    
+    // CRITICAL: Use new Supabase Realtime API - postgres_changes with proper filter
     const channel = supabase
       .channel(channelName)
       .on(
@@ -719,24 +734,26 @@ function LineInboxPageContent() {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          // TEMPORARY: Remove filter to test - we'll filter in the handler
-          // filter: `conversation_id=eq.${lockedId}`,
+          filter: `conversation_id=eq.${lockedId}`,
         },
         (payload) => {
-          // STEP 1 & 5: HARD DIAGNOSTIC LOGGING
-          console.log("[RT] INSERT RECEIVED", payload.new);
-          console.log("[RT] MESSAGE FOR", payload.new.conversation_id);
-          setRtDebug(`📨 INSERT RECEIVED: ${payload.new.id?.substring(0, 8)}`);
+          // STEP 6: DEBUG CONFIRMATION
+          console.log("[RT] Realtime payload received");
+          console.log("[RT] payload.id:", payload.new.id);
+          console.log("[RT] payload.conversation_id:", payload.new.conversation_id);
+          console.log("[RT] payload.sender_type:", payload.new.sender_type);
+          setRtDebug(`📨 INSERT: ${payload.new.id?.substring(0, 8)}`);
           
           const newMessage = payload.new as any;
           
-          // STEP 5: CONVERSATION ID VALIDATION (now in handler since no filter)
+          // STEP 3: VERIFY FILTER COLUMN - double-check conversation_id matches
           if (newMessage.conversation_id !== lockedId) {
-            console.log("[RT] Message for different conversation, ignoring:", {
+            console.warn("[RT] Filter mismatch (should not happen):", {
               listeningTo: lockedId,
               messageFor: newMessage.conversation_id,
             });
-            return; // Silently ignore - not an error
+            setRtDebug(`⚠️ Filter mismatch`);
+            return;
           }
           
           // STEP 2: STATE UPDATE - MUST USE FUNCTIONAL UPDATE
@@ -777,10 +794,12 @@ function LineInboxPageContent() {
         }
       )
       .subscribe((status, err) => {
-        // STEP 1: STATUS LOGGING
+        // STEP 6: DEBUG CONFIRMATION
+        console.log("[RT] Subscribed to channel", channelName);
         console.log("[RT] STATUS", status, err);
         setRtStatus(`Status: ${status}${err ? ` - ${err.message || JSON.stringify(err)}` : ''}`);
         if (status === 'SUBSCRIBED') {
+          console.log("[RT] ✅ Successfully subscribed to channel:", channelName);
           setRtDebug(`✅ Subscribed to ${lockedId.substring(0, 8)}`);
         } else if (status === 'CHANNEL_ERROR') {
           const errorMsg = err?.message || err?.toString() || 'Unknown error';
@@ -791,7 +810,7 @@ function LineInboxPageContent() {
           // 1. REPLICA IDENTITY not FULL - run migration 20250301_enable_realtime_replica_identity.sql
           // 2. Table not in supabase_realtime publication
           // 3. RLS blocking realtime SELECT
-          // Run diagnostic: supabase/migrations/20250301_check_realtime_setup.sql
+          // 4. Filter binding mismatch - check conversation_id type
         } else if (status === 'TIMED_OUT') {
           setRtDebug(`⏱️ Timeout`);
         } else if (status === 'CLOSED') {
@@ -802,7 +821,7 @@ function LineInboxPageContent() {
       });
     
     realtimeChannelRef.current = channel;
-    console.log("[LINE Inbox] [SUBSCRIPTION] Subscribed to channel:", channelName);
+    console.log("[RT] Channel created and subscribing:", channelName);
   };
   
   const handleSelectConversation = async (conv: Conversation) => {
@@ -818,14 +837,16 @@ function LineInboxPageContent() {
     }
   };
   
-  // Cleanup realtime subscription on unmount
+  // STEP 4: ENSURE CLEAN UNSUBSCRIBE - On component unmount
   useEffect(() => {
     return () => {
       if (realtimeChannelRef.current && supabase) {
         const conversationId = lockedConversationIdRef.current;
-        console.log("[RT] UNSUBSCRIBED", conversationId);
+        console.log("[RT] UNSUBSCRIBED (component unmount)", conversationId);
         setRtDebug(`🔌 Unsubscribed (unmount) ${conversationId?.substring(0, 8)}`);
+        // CRITICAL: 반드시 unsubscribe on unmount
         supabase.removeChannel(realtimeChannelRef.current);
+        realtimeChannelRef.current = null;
       }
     };
   }, []);
