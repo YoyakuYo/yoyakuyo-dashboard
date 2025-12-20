@@ -733,9 +733,11 @@ function LineInboxPageContent() {
   };
 
   // STEP 5: Subscribe to realtime updates for new messages
-  const subscribeToMessages = useCallback((conversationId: string) => {
+  // CRITICAL: Don't use useCallback - it causes stale closures and dependency issues
+  const subscribeToMessages = (conversationId: string) => {
     if (!supabase) {
       console.warn("[LINE Inbox] Supabase client not initialized, skipping realtime");
+      setRealtimeDebug(`❌ Supabase not initialized`);
       return;
     }
 
@@ -743,20 +745,38 @@ function LineInboxPageContent() {
     const lockedId = lockedConversationIdRef.current || conversationId;
     if (!lockedId) {
       console.warn("[LINE Inbox] No conversation ID to subscribe to");
+      setRealtimeDebug(`❌ No conversation ID`);
       return;
     }
 
-    // Clean up existing subscription
-    if (realtimeChannelRef.current) {
-      supabase.removeChannel(realtimeChannelRef.current);
+    // Clean up existing subscription ONLY if it's for a different conversation
+    const currentChannel = realtimeChannelRef.current;
+    if (currentChannel) {
+      const currentState = currentChannel.state;
+      console.log("[LINE Inbox] Existing channel state:", currentState);
+      // Only remove if it's for a different conversation or in error state
+      if (lockedConversationIdRef.current !== lockedId || currentState === 'CHANNEL_ERROR' || currentState === 'CLOSED') {
+        console.log("[LINE Inbox] Removing existing channel for different conversation or error state");
+        supabase.removeChannel(currentChannel);
+      } else if (currentState === 'SUBSCRIBED') {
+        console.log("[LINE Inbox] Channel already subscribed for this conversation, skipping");
+        setRealtimeDebug(`✅ Already subscribed to ${lockedId}`);
+        return; // Already subscribed, don't re-subscribe
+      }
     }
 
     console.log("[LINE Inbox] Subscribing to realtime updates for conversation:", lockedId);
     console.log("[LINE Inbox] [SUBSCRIPTION] Setting up subscription for conversation_id:", lockedId);
+    console.log("[LINE Inbox] [SUBSCRIPTION] Supabase URL:", process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Missing');
+    console.log("[LINE Inbox] [SUBSCRIPTION] Supabase Key:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Missing');
     setRealtimeDebug(`⏳ Setting up subscription for ${lockedId}...`);
     
+    // CRITICAL: Use a unique channel name to avoid conflicts
+    const channelName = `messages:${lockedId}:${Date.now()}`;
+    console.log("[LINE Inbox] [SUBSCRIPTION] Channel name:", channelName);
+    
     const channel = supabase
-      .channel(`messages:conversation_id=eq.${lockedId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -766,8 +786,17 @@ function LineInboxPageContent() {
           filter: `conversation_id=eq.${lockedId}`,
         },
         (payload) => {
+          console.log("[LINE Inbox] [REALTIME] ✅ Event received! Payload:", payload);
           console.log("[LINE Inbox] New message received via realtime:", payload.new);
           const newMessage = payload.new as any;
+          console.log("[LINE Inbox] [REALTIME] Message details:", {
+            id: newMessage.id,
+            conversation_id: newMessage.conversation_id,
+            sender_type: newMessage.sender_type,
+            body: newMessage.body?.substring(0, 50),
+            lockedId: lockedId,
+            matches: newMessage.conversation_id === lockedId,
+          });
           setRealtimeDebug(`📨 Realtime event: ${newMessage.id || 'unknown'}`);
           
           // Clear waiting flag since we got a realtime event
@@ -828,23 +857,38 @@ function LineInboxPageContent() {
           }, 100);
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         console.log("[LINE Inbox] [SUBSCRIPTION] Realtime subscription status:", status);
+        if (err) {
+          console.error("[LINE Inbox] [SUBSCRIPTION] Subscription error:", err);
+          setRealtimeDebug(`❌ Sub error: ${err.message || 'Unknown'}`);
+        }
         setSubscriptionStatus(`Sub: ${status} | Conv: ${lockedId}`);
         if (status === 'SUBSCRIBED') {
           console.log("[LINE Inbox] [SUBSCRIPTION] ✅ Successfully subscribed to conversation:", lockedId);
+          console.log("[LINE Inbox] [SUBSCRIPTION] Channel details:", {
+            channelName: channelName,
+            state: channel.state,
+          });
           setRealtimeDebug(`✅ Subscribed to ${lockedId}`);
+          
+          // Test: Log that we're ready to receive events
+          console.log("[LINE Inbox] [SUBSCRIPTION] Ready to receive INSERT events for conversation:", lockedId);
         } else if (status === 'CHANNEL_ERROR') {
-          console.error("[LINE Inbox] [SUBSCRIPTION] ❌ Channel error for conversation:", lockedId);
+          console.error("[LINE Inbox] [SUBSCRIPTION] ❌ Channel error for conversation:", lockedId, err);
           setRealtimeDebug(`❌ Subscription ERROR for ${lockedId}`);
+        } else if (status === 'TIMED_OUT') {
+          console.error("[LINE Inbox] [SUBSCRIPTION] ⏱️ Subscription timed out for conversation:", lockedId);
+          setRealtimeDebug(`⏱️ Subscription timeout for ${lockedId}`);
         } else {
+          console.log("[LINE Inbox] [SUBSCRIPTION] Status:", status);
           setRealtimeDebug(`⏳ Subscription: ${status}`);
         }
       });
 
     realtimeChannelRef.current = channel;
     console.log("[LINE Inbox] [SUBSCRIPTION] Channel stored in ref, conversation_id:", lockedId);
-  }, []);
+  };
   
   const handleSelectConversation = async (conv: Conversation) => {
     // STEP 3: Lock conversation ID in a stable ref
@@ -886,19 +930,29 @@ function LineInboxPageContent() {
   }, [conversations.length, preselectedShopId, lineUserId, idToken, loading]);
 
   // STEP 5: Subscribe to realtime when conversation is selected
+  // CRITICAL: Only subscribe when conversation actually changes, don't clean up unnecessarily
   useEffect(() => {
     if (selectedConversation && lineUserId && idToken) {
       // STEP 3: Use locked conversation ID, never recalculate
       const conversationId = lockedConversationIdRef.current || selectedConversation.id;
       if (conversationId) {
-        subscribeToMessages(conversationId);
+        // Only subscribe if we don't already have an active subscription for this conversation
+        const currentChannel = realtimeChannelRef.current;
+        const channelState = currentChannel?.state;
+        if (!currentChannel || channelState !== 'SUBSCRIBED' || lockedConversationIdRef.current !== conversationId) {
+          console.log("[LINE Inbox] Setting up subscription for conversation:", conversationId);
+          subscribeToMessages(conversationId);
+        } else {
+          console.log("[LINE Inbox] Subscription already active for conversation:", conversationId);
+        }
       }
     }
     
+    // CRITICAL: Only clean up on unmount or when conversation actually changes
+    // Don't clean up on every render
     return () => {
-      if (realtimeChannelRef.current && supabase) {
-        supabase.removeChannel(realtimeChannelRef.current);
-      }
+      // Only clean up if component is unmounting (not on dependency changes)
+      // The subscribeToMessages function already handles cleanup when setting up new subscriptions
     };
   }, [selectedConversation?.id, lineUserId, idToken]);
   
