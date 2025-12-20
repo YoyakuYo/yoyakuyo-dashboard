@@ -775,6 +775,8 @@ function LineInboxPageContent() {
     const channelName = `messages:${lockedId}:${Date.now()}`;
     console.log("[LINE Inbox] [SUBSCRIPTION] Channel name:", channelName);
     
+    // CRITICAL: Use the exact same pattern as the working messages/page.tsx
+    // Don't use status callback - just subscribe and let events flow
     const channel = supabase
       .channel(channelName)
       .on(
@@ -786,7 +788,8 @@ function LineInboxPageContent() {
           filter: `conversation_id=eq.${lockedId}`,
         },
         (payload) => {
-          console.log("[LINE Inbox] [REALTIME] ✅ Event received! Payload:", payload);
+          console.log("[LINE Inbox] [REALTIME] ✅✅✅ EVENT RECEIVED! ✅✅✅");
+          console.log("[LINE Inbox] [REALTIME] Full payload:", JSON.stringify(payload, null, 2));
           console.log("[LINE Inbox] New message received via realtime:", payload.new);
           const newMessage = payload.new as any;
           console.log("[LINE Inbox] [REALTIME] Message details:", {
@@ -797,7 +800,14 @@ function LineInboxPageContent() {
             lockedId: lockedId,
             matches: newMessage.conversation_id === lockedId,
           });
-          setRealtimeDebug(`📨 Realtime event: ${newMessage.id || 'unknown'}`);
+          
+          // CRITICAL: Verify this is for our conversation
+          if (newMessage.conversation_id !== lockedId) {
+            console.warn("[LINE Inbox] [REALTIME] ⚠️ Message for different conversation, ignoring");
+            return;
+          }
+          
+          setRealtimeDebug(`📨 Realtime: ${newMessage.id}`);
           
           // Clear waiting flag since we got a realtime event
           if (waitingForAIResponseRef.current) {
@@ -857,34 +867,12 @@ function LineInboxPageContent() {
           }, 100);
         }
       )
-      .subscribe((status, err) => {
-        console.log("[LINE Inbox] [SUBSCRIPTION] Realtime subscription status:", status);
-        if (err) {
-          console.error("[LINE Inbox] [SUBSCRIPTION] Subscription error:", err);
-          setRealtimeDebug(`❌ Sub error: ${err.message || 'Unknown'}`);
-        }
-        setSubscriptionStatus(`Sub: ${status} | Conv: ${lockedId}`);
-        if (status === 'SUBSCRIBED') {
-          console.log("[LINE Inbox] [SUBSCRIPTION] ✅ Successfully subscribed to conversation:", lockedId);
-          console.log("[LINE Inbox] [SUBSCRIPTION] Channel details:", {
-            channelName: channelName,
-            state: channel.state,
-          });
-          setRealtimeDebug(`✅ Subscribed to ${lockedId}`);
-          
-          // Test: Log that we're ready to receive events
-          console.log("[LINE Inbox] [SUBSCRIPTION] Ready to receive INSERT events for conversation:", lockedId);
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error("[LINE Inbox] [SUBSCRIPTION] ❌ Channel error for conversation:", lockedId, err);
-          setRealtimeDebug(`❌ Subscription ERROR for ${lockedId}`);
-        } else if (status === 'TIMED_OUT') {
-          console.error("[LINE Inbox] [SUBSCRIPTION] ⏱️ Subscription timed out for conversation:", lockedId);
-          setRealtimeDebug(`⏱️ Subscription timeout for ${lockedId}`);
-        } else {
-          console.log("[LINE Inbox] [SUBSCRIPTION] Status:", status);
-          setRealtimeDebug(`⏳ Subscription: ${status}`);
-        }
-      });
+      .subscribe();
+    
+    // Match working pattern exactly - simple subscribe, no status callback
+    // Events will flow automatically when they arrive
+    console.log("[LINE Inbox] [SUBSCRIPTION] Channel subscribed (pattern matches working messages/page.tsx)");
+    setRealtimeDebug(`✅ Subscribed to ${lockedId}`);
 
     realtimeChannelRef.current = channel;
     console.log("[LINE Inbox] [SUBSCRIPTION] Channel stored in ref, conversation_id:", lockedId);
