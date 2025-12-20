@@ -51,6 +51,7 @@ interface Message {
 }
 
 function LineInboxPageContent() {
+  const [realtimeDebug, setRealtimeDebug] = useState<string>("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedShopId = searchParams.get('shop_id');
@@ -506,8 +507,10 @@ function LineInboxPageContent() {
             // Check if message already exists (avoid duplicates)
             if (prev.some((msg) => msg.id === newMessage.id)) {
               console.log("[LINE Inbox] Message already exists, skipping:", newMessage.id);
+              setRealtimeDebug(`[SKIP] Already exist: ${newMessage.id}`);
               return prev;
             }
+            setRealtimeDebug(`AI msg: ${newMessage.id} added, messages now: ${prev.length + 1}`);
             
             const formattedMessage: Message = {
               id: newMessage.id,
@@ -598,7 +601,18 @@ function LineInboxPageContent() {
   }
 
   return (
-    <div className="bg-gray-50 flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}>
+    <>
+      {realtimeDebug && (
+        <div style={{
+          position: 'fixed', bottom: 10, left: 0, right: 0,
+          background: '#f6e05e', color: '#222', padding: 8, fontWeight: 'bold', zIndex: 9999, textAlign: 'center',
+        }}>
+          {realtimeDebug}
+        </div>
+      )}
+      <div className="bg-gray-50 flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}>
+
+
       {/* Header */}
       <header className="bg-white border-b border-gray-200 flex-shrink-0 z-10">
         <div className="px-4 py-3">
@@ -791,6 +805,7 @@ function LineInboxPageContent() {
         </div>
       </div>
     </div>
+      </>
   );
 }
 
