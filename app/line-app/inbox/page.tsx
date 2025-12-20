@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense, useRef } from "react";
+import { useEffect, useState, Suspense, useRef, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 import { messagingFetch } from "@/app/lib/messagingApiClient";
@@ -485,7 +485,7 @@ function LineInboxPageContent() {
   };
   
   // STEP 5: Subscribe to realtime updates for new messages
-  const subscribeToMessages = (conversationId: string) => {
+  const subscribeToMessages = useCallback((conversationId: string) => {
     if (!supabase) {
       console.warn("[LINE Inbox] Supabase client not initialized, skipping realtime");
       return;
@@ -547,7 +547,7 @@ function LineInboxPageContent() {
       .subscribe();
 
     realtimeChannelRef.current = channel;
-  };
+  }, []);
   
   // Cleanup realtime subscription on unmount
   useEffect(() => {
