@@ -127,12 +127,14 @@ function LineInboxPageContent() {
       setLoading(true);
       console.log("[LINE Inbox] Loading conversations for LINE user:", lineUserId);
       
-      const res = await fetch(`${apiUrl}/api/internal-messaging/conversations?customer_type=line&customer_ref=${lineUserId}`, {
-        headers: {
-          'x-line-user-id': lineUserId,
-          'x-id-token': token,
-        },
-      });
+      // ALWAYS inject X-User-Id via unified messaging API client
+      const res = await messagingFetch(
+        `${apiUrl}/api/internal-messaging/conversations?customer_type=line&customer_ref=${lineUserId}`,
+        {
+          lineUserId,
+          idToken: token,
+        }
+      );
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Failed to load conversations' }));
@@ -163,20 +165,21 @@ function LineInboxPageContent() {
       
       // STEP 2: Resolve or create conversation
       // Call get_or_create_conversation(user_id, shop_id)
-      const convRes = await fetch(`${apiUrl}/api/internal-messaging/conversations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-line-user-id': lineUserId,
-          'x-id-token': token,
-        },
-        body: JSON.stringify({
-          shop_id: shopId,
-          booking_id: bookingId || null,
-          customer_type: 'line',
-          customer_ref: lineUserId,
-        }),
-      });
+      // ALWAYS inject X-User-Id via unified messaging API client
+      const convRes = await messagingFetch(
+        `${apiUrl}/api/internal-messaging/conversations`,
+        {
+          method: 'POST',
+          lineUserId,
+          idToken: token,
+          body: {
+            shop_id: shopId,
+            booking_id: bookingId || null,
+            customer_type: 'line',
+            customer_ref: lineUserId,
+          },
+        }
+      );
 
       if (!convRes.ok) {
         const errorData = await convRes.json().catch(() => ({ error: 'Failed to resolve conversation' }));
@@ -244,12 +247,14 @@ function LineInboxPageContent() {
       setLoadingMessages(true);
       console.log("[LINE Inbox] Loading messages for conversation:", conversationId);
       
-      const res = await fetch(`${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`, {
-        headers: {
-          'x-line-user-id': lineUserId,
-          'x-id-token': token,
-        },
-      });
+      // ALWAYS inject X-User-Id via unified messaging API client
+      const res = await messagingFetch(
+        `${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`,
+        {
+          lineUserId,
+          idToken: token,
+        }
+      );
 
       if (!res.ok) {
         if (res.status === 403) {
