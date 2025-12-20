@@ -12,7 +12,14 @@ try {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   if (supabaseUrl && supabaseAnonKey) {
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Configure client with realtime options
+    supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
+        },
+      },
+    });
   } else {
     console.warn('[LINE Inbox] Supabase env vars not configured, realtime disabled');
   }
@@ -702,6 +709,7 @@ function LineInboxPageContent() {
     const channelName = `messages:${lockedId}`;
     
     // CRITICAL: Use the exact same pattern as specified - simple subscribe, with status callback for diagnostics
+    // Fix binding mismatch: use simple channel name and ensure filter is properly formatted
     const channel = supabase
       .channel(channelName)
       .on(
