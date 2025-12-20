@@ -471,19 +471,6 @@ function LineInboxPageContent() {
     }
   };
 
-  const handleSelectConversation = async (conv: Conversation) => {
-    // STEP 3: Lock conversation ID in a stable ref
-    lockedConversationIdRef.current = conv.id;
-    console.log("[LINE Inbox] [BUG CHECK] Locked conversation_id:", conv.id);
-    
-    setSelectedConversation(conv);
-    if (lineUserId && idToken) {
-      await loadMessages(conv.id, lineUserId, idToken);
-      // STEP 5: Subscribe to realtime updates for this conversation
-      subscribeToMessages(conv.id);
-    }
-  };
-  
   // STEP 5: Subscribe to realtime updates for new messages
   const subscribeToMessages = useCallback((conversationId: string) => {
     if (!supabase) {
@@ -548,6 +535,19 @@ function LineInboxPageContent() {
 
     realtimeChannelRef.current = channel;
   }, []);
+  
+  const handleSelectConversation = async (conv: Conversation) => {
+    // STEP 3: Lock conversation ID in a stable ref
+    lockedConversationIdRef.current = conv.id;
+    console.log("[LINE Inbox] [BUG CHECK] Locked conversation_id:", conv.id);
+    
+    setSelectedConversation(conv);
+    if (lineUserId && idToken) {
+      await loadMessages(conv.id, lineUserId, idToken);
+      // STEP 5: Subscribe to realtime updates for this conversation
+      subscribeToMessages(conv.id);
+    }
+  };
   
   // Cleanup realtime subscription on unmount
   useEffect(() => {
