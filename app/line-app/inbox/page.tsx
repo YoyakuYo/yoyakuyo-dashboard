@@ -6,26 +6,9 @@ import { apiUrl } from "@/lib/apiClient";
 import { messagingFetch } from "@/app/lib/messagingApiClient";
 import { createClient } from "@supabase/supabase-js";
 
-// Initialize Supabase client for realtime
+// Supabase client will be initialized with JWT from backend
+// This is set in the component after verifying LINE ID token
 let supabase: ReturnType<typeof createClient> | null = null;
-try {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-  if (supabaseUrl && supabaseAnonKey) {
-    // Configure client with realtime options
-    supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      realtime: {
-        params: {
-          eventsPerSecond: 10,
-        },
-      },
-    });
-  } else {
-    console.warn('[LINE Inbox] Supabase env vars not configured, realtime disabled');
-  }
-} catch (error) {
-  console.error('[LINE Inbox] Failed to initialize Supabase client:', error);
-}
 
 // LINE LIFF SDK types
 declare global {
@@ -70,6 +53,8 @@ function LineInboxPageContent() {
   
   const [lineUserId, setLineUserId] = useState<string>("");
   const [idToken, setIdToken] = useState<string | null>(null);
+  const [supabaseJWT, setSupabaseJWT] = useState<string | null>(null);
+  const [supabaseClient, setSupabaseClient] = useState<ReturnType<typeof createClient> | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -127,6 +112,65 @@ function LineInboxPageContent() {
           setError('User authentication mismatch. Please try again.');
           setLoading(false);
           return;
+        }
+        
+        // STEP 2: Get Supabase JWT from backend verify endpoint
+        let jwt: string | null = null;
+        try {
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+          const verifyResponse = await fetch(`${apiUrl}/api/line/liff/verify`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ id_token: token }),
+          });
+          
+          if (verifyResponse.ok) {
+            const userData = await verifyResponse.json();
+            jwt = userData.supabase_jwt || null;
+            console.log("[LINE Inbox] ✅ Got Supabase JWT:", !!jwt);
+            setSupabaseJWT(jwt);
+            
+            // STEP 3: Initialize Supabase client with JWT
+            if (jwt) {
+              const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+              const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+              if (supabaseUrl && supabaseAnonKey) {
+                const client = createClient(supabaseUrl, supabaseAnonKey, {
+                  global: {
+                    headers: {
+                      Authorization: `Bearer ${jwt}`,
+                    },
+                  },
+                  auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                  },
+                  realtime: {
+                    params: {
+                      eventsPerSecond: 10,
+                    },
+                  },
+                });
+                
+                // Set the session
+                await client.auth.setSession({
+                  access_token: jwt,
+                  refresh_token: '', // Not needed for LINE users
+                });
+                
+                setSupabaseClient(client as any);
+                supabase = client as any; // Update module-level variable
+                console.log("[LINE Inbox] ✅ Supabase client initialized with JWT");
+              }
+            }
+          } else {
+            console.warn("[LINE Inbox] ⚠️ Failed to get Supabase JWT, will use anon key");
+          }
+        } catch (jwtError: any) {
+          console.error("[LINE Inbox] Error getting Supabase JWT:", jwtError);
+          // Continue with anon key as fallback
         }
         
         // Load conversations
@@ -658,13 +702,42 @@ function LineInboxPageContent() {
   // STEP 5: Subscribe to realtime updates for new messages
   // CRITICAL: Don't use useCallback - it causes stale closures and dependency issues
   const subscribeToMessages = (conversationId: string) => {
-    if (!supabase) {
+    // Use component state client if available, otherwise module-level
+    const client = supabaseClient || supabase;
+    
+    if (!client) {
       console.warn("[LINE Inbox] Supabase client not initialized, skipping realtime");
       setRtDebug(`❌ Supabase client not initialized`);
       setRtStatus(`Missing Supabase config`);
       return;
     }
     
+    // STEP 5: Wait for auth session before subscribing
+    // CRITICAL: Realtime requires authenticated session for RLS
+    client.auth.getSession().then(({ data: { session }, error: sessionError }: any) => {
+      if (sessionError || !session) {
+        console.error("[LINE Inbox] ❌ No auth session, realtime will fail:", sessionError);
+        setRtDebug(`❌ No auth session - realtime disabled`);
+        setRtStatus(`Auth required`);
+        return; // Don't subscribe without auth
+      }
+      
+      console.log("[LINE Inbox] ✅ Auth session exists, proceeding with realtime");
+      setRtDebug(`✅ Auth session active`);
+      
+      // Continue with subscription setup (moved inside the then block)
+      setupSubscription(client, conversationId);
+    }).catch((error: any) => {
+      console.error("[LINE Inbox] Error checking auth session:", error);
+      setRtDebug(`❌ Auth check failed`);
+      return; // Don't subscribe on error
+    });
+    
+    return; // Exit early - subscription will be set up in the then block
+  };
+  
+  // Helper function to set up the actual subscription (after auth is confirmed)
+  const setupSubscription = (client: ReturnType<typeof createClient>, conversationId: string) => {
     // Verify Supabase env vars are set
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -696,7 +769,7 @@ function LineInboxPageContent() {
         console.log("[RT] UNSUBSCRIBING old channel (switching conversation or error)", currentLockedId);
         setRtDebug(`🔌 Unsubscribing from ${currentLockedId?.substring(0, 8)}`);
         // CRITICAL: Unsubscribe before creating new subscription
-        supabase.removeChannel(currentChannel);
+        client.removeChannel(currentChannel);
         realtimeChannelRef.current = null; // Clear ref immediately
       } else if (currentState === 'CLOSED' && currentLockedId === lockedId) {
         // Channel closed for same conversation - clear ref and reconnect
@@ -735,7 +808,7 @@ function LineInboxPageContent() {
     
     // CRITICAL: Use new Supabase Realtime API - postgres_changes with proper filter
     // Add channel config to prevent premature closure
-    const channel = supabase
+    const channel = client
       .channel(channelName, {
         config: {
           broadcast: { self: false },
@@ -750,7 +823,7 @@ function LineInboxPageContent() {
           table: 'messages',
           filter: filterString,
         },
-        (payload) => {
+        (payload: any) => {
           // STEP 6: DEBUG CONFIRMATION
           console.log("[RT] Realtime payload received");
           console.log("[RT] payload.id:", payload.new.id);
@@ -807,7 +880,7 @@ function LineInboxPageContent() {
           });
         }
       )
-      .subscribe((status, err) => {
+      .subscribe((status: any, err: any) => {
         // STEP 6: DEBUG CONFIRMATION
         console.log("[RT] Subscribed to channel", channelName);
         console.log("[RT] STATUS", status, err);
@@ -878,12 +951,13 @@ function LineInboxPageContent() {
   // STEP 4: ENSURE CLEAN UNSUBSCRIBE - On component unmount
   useEffect(() => {
     return () => {
-      if (realtimeChannelRef.current && supabase) {
+      const client = supabaseClient || supabase;
+      if (realtimeChannelRef.current && client) {
         const conversationId = lockedConversationIdRef.current;
         console.log("[RT] UNSUBSCRIBED (component unmount)", conversationId);
         setRtDebug(`🔌 Unsubscribed (unmount) ${conversationId?.substring(0, 8)}`);
         // CRITICAL: 반드시 unsubscribe on unmount
-        supabase.removeChannel(realtimeChannelRef.current);
+        client.removeChannel(realtimeChannelRef.current);
         realtimeChannelRef.current = null;
       }
     };
