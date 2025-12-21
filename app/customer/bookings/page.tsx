@@ -219,11 +219,11 @@ function CustomerBookingsPageContent() {
     let filteredBookings = bookings;
     if (filter !== "all") {
       if (filter === "upcoming") {
-        filteredBookings = allBookings.filter((b: any) => 
+        filteredBookings = bookings.filter((b: any) => 
           b.status === "pending" || b.status === "confirmed"
         );
       } else {
-        filteredBookings = allBookings.filter((b: any) => b.status === filter);
+        filteredBookings = bookings.filter((b: any) => b.status === filter);
       }
     }
 
