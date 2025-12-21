@@ -216,3 +216,31 @@ WHERE table_schema = 'public'
   AND table_name LIKE '%line%booking%'
 ORDER BY table_name;
 
+-- ============================================
+-- PART 11: DIAGNOSTIC - Find all bookings that should be web customer bookings
+-- ============================================
+-- This shows ALL bookings that have user_id or customer_profile_id set
+-- but might not have source = 'web'
+SELECT 
+  'DIAGNOSTIC: All potential web customer bookings' as category,
+  b.id,
+  b.customer_id,
+  b.user_id,
+  b.customer_profile_id,
+  b.source,
+  b.customer_name,
+  b.shop_id,
+  b.status,
+  b.created_at,
+  CASE 
+    WHEN b.user_id IS NOT NULL THEN 'Has user_id'
+    WHEN b.customer_profile_id IS NOT NULL THEN 'Has customer_profile_id'
+    WHEN b.source = 'web' THEN 'Has source=web'
+    ELSE 'Unknown'
+  END as web_identifier
+FROM bookings b
+WHERE b.user_id IS NOT NULL 
+   OR b.customer_profile_id IS NOT NULL 
+   OR b.source = 'web'
+ORDER BY b.created_at DESC;
+
