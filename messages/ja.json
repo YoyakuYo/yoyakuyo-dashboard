@@ -46,7 +46,9 @@
     "characters": "文字",
     "selectAll": "すべて選択",
     "viewDetails": "詳細を見る",
-    "cannotBeChanged": "cannot be changed"
+    "cannotBeChanged": "変更できません",
+    "city": "市区町村",
+    "refresh": "更新"
   },
   "auth": {
     "signInToShop": "店舗にサインイン",
@@ -966,6 +968,12 @@
     "addressInformation": "住所情報",
     "addressLine1": "住所1行目",
     "addressLine2": "住所2行目"
+  },
+  "admin": {
+    "shopClaimRequests": "店舗申請リクエスト",
+    "reviewAndApprove": "店舗所有権の申請を確認して承認/拒否",
+    "importantVerificationRule": "重要な認証ルール:",
+    "verificationRuleDesc": "アップロードされた書類がYoyakuYoのこの店舗と同じ店舗名と住所を明確に示している場合のみ承認してください。名前/住所が一致しない場合は、申請を拒否してください。"
   },
   "verification": {
     "verified": "認証済み",

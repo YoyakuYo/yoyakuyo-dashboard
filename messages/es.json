@@ -430,7 +430,9 @@
     "description": "Description",
     "price": "Price",
     "duration": "Duration",
-    "cannotBeChanged": "cannot be changed"
+    "cannotBeChanged": "no se puede cambiar",
+    "city": "Ciudad",
+    "refresh": "Actualizar"
   },
   "nav": {
     "shops": "Tiendas",
@@ -776,6 +778,12 @@
     "addressInformation": "Información de Dirección",
     "addressLine1": "Línea de Dirección 1",
     "addressLine2": "Línea de Dirección 2"
+  },
+  "admin": {
+    "shopClaimRequests": "Solicitudes de Reclamación de Tiendas",
+    "reviewAndApprove": "Revisar y aprobar/rechazar solicitudes de propiedad de tiendas",
+    "importantVerificationRule": "Regla de Verificación Importante:",
+    "verificationRuleDesc": "Apruebe solo si los documentos cargados muestran claramente el mismo nombre y dirección de la tienda que esta tienda en YoyakuYo. Si el nombre/dirección no coincide, rechace la solicitud."
   },
   "verification": {
     "verified": "Verificado",

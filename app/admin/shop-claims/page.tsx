@@ -188,21 +188,21 @@ export default function AdminShopClaimsPage() {
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Shop Claim Requests</h1>
-              <p className="text-gray-600">Review and approve/reject shop ownership claims</p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('admin.shopClaimRequests')}</h1>
+              <p className="text-gray-600">{t('admin.reviewAndApprove')}</p>
             </div>
             <button
               onClick={fetchPendingClaims}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
             >
-              Refresh
+              {t('common.refresh')}
             </button>
           </div>
 
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-yellow-800 font-medium mb-2">⚠️ Important Verification Rule:</p>
+            <p className="text-sm text-yellow-800 font-medium mb-2">⚠️ {t('admin.importantVerificationRule')}</p>
             <p className="text-sm text-yellow-700">
-              Approve only if the uploaded documents clearly show the same shop name and address as this shop in YoyakuYo. If the name/address does not match, reject the claim.
+              {t('admin.verificationRuleDesc')}
             </p>
           </div>
 

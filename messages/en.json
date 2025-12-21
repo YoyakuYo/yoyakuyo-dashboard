@@ -46,7 +46,8 @@
     "characters": "characters",
     "viewDetails": "View Details",
     "cannotBeChanged": "cannot be changed",
-    "city": "City"
+    "city": "City",
+    "refresh": "Refresh"
   },
   "auth": {
     "signInToShop": "Sign in to your shop",
@@ -996,6 +997,12 @@
     "addressInformation": "Address Information",
     "addressLine1": "Address Line 1",
     "addressLine2": "Address Line 2"
+  },
+  "admin": {
+    "shopClaimRequests": "Shop Claim Requests",
+    "reviewAndApprove": "Review and approve/reject shop ownership claims",
+    "importantVerificationRule": "Important Verification Rule:",
+    "verificationRuleDesc": "Approve only if the uploaded documents clearly show the same shop name and address as this shop in YoyakuYo. If the name/address does not match, reject the claim."
   },
   "verification": {
     "verified": "Verified",

@@ -238,6 +238,21 @@
     "enabled": "푸시 알림 활성화됨",
     "enable": "푸시 알림 활성화"
   },
+  "admin": {
+    "shopClaimRequests": "매장 소유권 주장 요청",
+    "reviewAndApprove": "매장 소유권 주장을 검토하고 승인/거부",
+    "importantVerificationRule": "중요한 인증 규칙:",
+    "verificationRuleDesc": "업로드된 문서가 YoyakuYo의 이 매장과 동일한 매장 이름과 주소를 명확하게 보여주는 경우에만 승인하세요. 이름/주소가 일치하지 않으면 주장을 거부하세요."
+  },
+  "verification": {
+    "verified": "인증됨",
+    "pending": "대기 중",
+    "unverified": "미인증",
+    "pendingMessage": "매장 인증이 검토 중입니다. 승인되면 알려드리겠습니다.",
+    "unverifiedMessage": "예약을 받으려면 매장 인증이 필요합니다. 문서를 업로드하여 시작하세요.",
+    "viewStatus": "상태 보기",
+    "uploadDocuments": "문서 업로드"
+  },
   "customer": {
     "nav": {
       "home": "홈",

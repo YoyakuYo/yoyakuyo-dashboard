@@ -430,7 +430,9 @@
     "description": "Description",
     "price": "Price",
     "duration": "Duration",
-    "cannotBeChanged": "cannot be changed"
+    "cannotBeChanged": "无法更改",
+    "city": "城市",
+    "refresh": "刷新"
   },
   "nav": {
     "shops": "店铺",
@@ -776,6 +778,12 @@
     "addressInformation": "地址信息",
     "addressLine1": "地址第一行",
     "addressLine2": "地址第二行"
+  },
+  "admin": {
+    "shopClaimRequests": "店铺申请请求",
+    "reviewAndApprove": "审查并批准/拒绝店铺所有权申请",
+    "importantVerificationRule": "重要验证规则:",
+    "verificationRuleDesc": "仅当上传的文件清楚地显示与YoyakuYo中此店铺相同的店铺名称和地址时才批准。如果名称/地址不匹配，请拒绝申请。"
   },
   "verification": {
     "verified": "已验证",
