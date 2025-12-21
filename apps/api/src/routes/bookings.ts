@@ -110,11 +110,11 @@ router.post('/', async (req: Request, res: Response) => {
         // Get user_id from header (for logged-in customers)
         const userId = req.headers['x-user-id'] as string;
 
-        // Get customer_profile_id if user is logged in
+        // Get customer_profile_id if user is logged in - auto-create if it doesn't exist
         let customerProfileId: string | null = null;
         if (userId) {
             // Try to find customer profile by customer_auth_id
-            const { data: profile } = await supabase
+            let { data: profile, error: profileError } = await supabase
                 .from("customer_profiles")
                 .select("id")
                 .eq("customer_auth_id", userId)
@@ -132,6 +132,41 @@ router.post('/', async (req: Request, res: Response) => {
                 
                 if (profileFallback?.id) {
                     customerProfileId = profileFallback.id;
+                } else {
+                    // Auto-create customer profile if it doesn't exist
+                    try {
+                        const { data: authUser } = await supabase.auth.admin.getUserById(userId);
+                        const userEmail = authUser?.user?.email || '';
+                        const userName = authUser?.user?.user_metadata?.name || authUser?.user?.email?.split('@')[0] || 'Customer';
+                        
+                        const { data: profileId, error: createError } = await supabase
+                            .rpc('create_customer_profile', {
+                                p_customer_auth_id: userId,
+                                p_email: userEmail,
+                                p_name: userName,
+                                p_phone: null
+                            });
+
+                        if (createError || !profileId) {
+                            console.error('[Booking] Error creating customer profile:', createError);
+                            // Don't fail the booking, just log the error
+                        } else {
+                            // Fetch the newly created profile
+                            const { data: newProfile } = await supabase
+                                .from("customer_profiles")
+                                .select("id")
+                                .eq("id", profileId)
+                                .single();
+
+                            if (newProfile?.id) {
+                                customerProfileId = newProfile.id;
+                                console.log('[Booking] ✅ Auto-created customer profile:', customerProfileId);
+                            }
+                        }
+                    } catch (createErr: any) {
+                        console.error('[Booking] Error auto-creating customer profile:', createErr);
+                        // Don't fail the booking, just log the error
+                    }
                 }
             }
         }
