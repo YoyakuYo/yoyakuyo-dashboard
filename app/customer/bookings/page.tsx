@@ -197,6 +197,46 @@ function CustomerBookingsPageContent() {
     bookings = uniqueBookings;
     bookingsError = null;
     
+    // DEBUG: Check what bookings actually exist in the database
+    try {
+      const { data: debugBookings, error: debugError } = await supabase
+        .from("bookings")
+        .select("id, customer_id, user_id, customer_profile_id, customer_name, shop_id, created_at")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      
+      console.log('[Customer Bookings] DEBUG - Recent bookings in database:', {
+        totalFound: debugBookings?.length || 0,
+        bookings: debugBookings?.map(b => ({
+          id: b.id,
+          customer_id: b.customer_id,
+          user_id: b.user_id,
+          customer_profile_id: b.customer_profile_id,
+          customer_name: b.customer_name,
+          created_at: b.created_at
+        })) || []
+      });
+      
+      // Check specifically for bookings matching our user
+      const matchingBookings = debugBookings?.filter(b => 
+        b.customer_id === user.id || 
+        b.user_id === user.id || 
+        b.customer_profile_id === customerProfileId
+      ) || [];
+      
+      console.log('[Customer Bookings] DEBUG - Bookings matching user:', {
+        count: matchingBookings.length,
+        bookings: matchingBookings.map(b => ({
+          id: b.id,
+          customer_id: b.customer_id,
+          user_id: b.user_id,
+          customer_profile_id: b.customer_profile_id
+        }))
+      });
+    } catch (debugErr) {
+      console.error('[Customer Bookings] DEBUG error:', debugErr);
+    }
+    
     console.log('[Customer Bookings] Found bookings:', {
       customerProfileId,
       userId: user.id,
