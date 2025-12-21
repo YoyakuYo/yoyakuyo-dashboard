@@ -76,7 +76,8 @@ function CustomerBookingsPageContent() {
     let bookings: any[] = [];
     let bookingsError: any = null;
 
-    // Build query with multiple filters using .or() to check all possible fields
+    // Build query with multiple filters - try all possible fields
+    // Query by customer_profile_id, user_id, or customer_id (for old bookings)
     let query = supabase
       .from("bookings")
       .select(`
@@ -94,8 +95,8 @@ function CustomerBookingsPageContent() {
         )
       `);
 
-    // Try to query by customer_profile_id, user_id, or customer_id (for old bookings)
-    // Use .or() to check multiple conditions
+    // Build OR conditions for Supabase PostgREST
+    // Format: "field1.eq.value1,field2.eq.value2"
     const orConditions: string[] = [];
     
     if (customerProfileId) {
@@ -109,11 +110,15 @@ function CustomerBookingsPageContent() {
     // Note: customer_id might be the old structure where it equals user.id
     orConditions.push(`customer_id.eq.${user.id}`);
 
+    // Use .or() with comma-separated conditions
     if (orConditions.length > 0) {
       query = query.or(orConditions.join(','));
     }
 
     const { data, error } = await query.order("created_at", { ascending: false });
+    
+    console.log('[Customer Bookings] Query conditions:', orConditions);
+    console.log('[Customer Bookings] Query result count:', data?.length || 0);
 
     if (error) {
       // If error is "column does not exist", try simpler queries
