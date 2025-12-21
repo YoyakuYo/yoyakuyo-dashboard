@@ -109,7 +109,7 @@ router.get('/favorites', async (req: Request, res: Response) => {
     }
 
     // Get customer profile by customer_auth_id
-    const { data: profile, error: profileError } = await dbClient
+    let { data: profile, error: profileError } = await dbClient
       .from('customer_profiles')
       .select('id')
       .eq('customer_auth_id', userId)
@@ -123,36 +123,45 @@ router.get('/favorites', async (req: Request, res: Response) => {
         .eq('id', userId)
         .maybeSingle();
       
-      if (!profileFallback?.id) {
-        return res.status(404).json({ error: 'Customer profile not found' });
-      }
-      
-      // Use fallback profile
-      const { data: favorites, error: favoritesError } = await dbClient
-        .from('customer_favorites')
-        .select(`
-          *,
-          shops (
-            id,
-            name,
-            address,
-            phone,
-            description,
-            category,
-            main_image_url,
-            rating,
-            review_count
-          )
-        `)
-        .eq('customer_id', profileFallback.id)
-        .order('created_at', { ascending: false });
+      if (profileFallback?.id) {
+        profile = profileFallback;
+      } else {
+        // Auto-create customer profile if it doesn't exist
+        try {
+          const { data: authUser } = await dbClient.auth.admin.getUserById(userId);
+          const userEmail = authUser?.user?.email || '';
+          const userName = authUser?.user?.user_metadata?.name || authUser?.user?.email?.split('@')[0] || 'Customer';
+          
+          const { data: profileId, error: createError } = await dbClient
+            .rpc('create_customer_profile', {
+              p_customer_auth_id: userId,
+              p_email: userEmail,
+              p_name: userName,
+              p_phone: null
+            });
 
-      if (favoritesError) {
-        console.error('Error fetching favorites:', favoritesError);
-        return res.status(500).json({ error: 'Failed to fetch favorites' });
-      }
+          if (createError || !profileId) {
+            console.error('Error creating customer profile:', createError);
+            return res.status(500).json({ error: 'Failed to create customer profile' });
+          }
 
-      return res.json({ favorites: favorites || [] });
+          // Fetch the newly created profile
+          const { data: newProfile } = await dbClient
+            .from('customer_profiles')
+            .select('id')
+            .eq('id', profileId)
+            .single();
+
+          if (!newProfile?.id) {
+            return res.status(500).json({ error: 'Failed to retrieve created profile' });
+          }
+
+          profile = newProfile;
+        } catch (createErr: any) {
+          console.error('Error auto-creating customer profile:', createErr);
+          return res.status(500).json({ error: 'Failed to create customer profile', details: createErr.message });
+        }
+      }
     }
 
     // Get favorites for this customer profile
@@ -202,7 +211,7 @@ router.post('/favorites', async (req: Request, res: Response) => {
     }
 
     // Get customer profile by customer_auth_id
-    const { data: profile, error: profileError } = await dbClient
+    let { data: profile, error: profileError } = await dbClient
       .from('customer_profiles')
       .select('id')
       .eq('customer_auth_id', userId)
@@ -216,30 +225,45 @@ router.post('/favorites', async (req: Request, res: Response) => {
         .eq('id', userId)
         .maybeSingle();
       
-      if (!profileFallback?.id) {
-        return res.status(404).json({ error: 'Customer profile not found' });
-      }
-      
-      // Insert favorite using fallback profile
-      const { data: favorite, error: insertError } = await dbClient
-        .from('customer_favorites')
-        .insert({
-          customer_id: profileFallback.id,
-          shop_id: shop_id,
-        })
-        .select()
-        .single();
+      if (profileFallback?.id) {
+        profile = profileFallback;
+      } else {
+        // Auto-create customer profile if it doesn't exist
+        try {
+          const { data: authUser } = await dbClient.auth.admin.getUserById(userId);
+          const userEmail = authUser?.user?.email || '';
+          const userName = authUser?.user?.user_metadata?.name || authUser?.user?.email?.split('@')[0] || 'Customer';
+          
+          const { data: profileId, error: createError } = await dbClient
+            .rpc('create_customer_profile', {
+              p_customer_auth_id: userId,
+              p_email: userEmail,
+              p_name: userName,
+              p_phone: null
+            });
 
-      if (insertError) {
-        // Check if it's a duplicate (unique constraint violation)
-        if (insertError.code === '23505') {
-          return res.status(409).json({ error: 'Shop is already in favorites' });
+          if (createError || !profileId) {
+            console.error('Error creating customer profile:', createError);
+            return res.status(500).json({ error: 'Failed to create customer profile' });
+          }
+
+          // Fetch the newly created profile
+          const { data: newProfile } = await dbClient
+            .from('customer_profiles')
+            .select('id')
+            .eq('id', profileId)
+            .single();
+
+          if (!newProfile?.id) {
+            return res.status(500).json({ error: 'Failed to retrieve created profile' });
+          }
+
+          profile = newProfile;
+        } catch (createErr: any) {
+          console.error('Error auto-creating customer profile:', createErr);
+          return res.status(500).json({ error: 'Failed to create customer profile', details: createErr.message });
         }
-        console.error('Error adding favorite:', insertError);
-        return res.status(500).json({ error: 'Failed to add favorite' });
       }
-
-      return res.json({ favorite });
     }
 
     // Insert favorite
@@ -283,7 +307,7 @@ router.delete('/favorites/:shop_id', async (req: Request, res: Response) => {
     }
 
     // Get customer profile by customer_auth_id
-    const { data: profile, error: profileError } = await dbClient
+    let { data: profile, error: profileError } = await dbClient
       .from('customer_profiles')
       .select('id')
       .eq('customer_auth_id', userId)
@@ -297,23 +321,45 @@ router.delete('/favorites/:shop_id', async (req: Request, res: Response) => {
         .eq('id', userId)
         .maybeSingle();
       
-      if (!profileFallback?.id) {
-        return res.status(404).json({ error: 'Customer profile not found' });
-      }
-      
-      // Delete favorite using fallback profile
-      const { error: deleteError } = await dbClient
-        .from('customer_favorites')
-        .delete()
-        .eq('customer_id', profileFallback.id)
-        .eq('shop_id', shop_id);
+      if (profileFallback?.id) {
+        profile = profileFallback;
+      } else {
+        // Auto-create customer profile if it doesn't exist
+        try {
+          const { data: authUser } = await dbClient.auth.admin.getUserById(userId);
+          const userEmail = authUser?.user?.email || '';
+          const userName = authUser?.user?.user_metadata?.name || authUser?.user?.email?.split('@')[0] || 'Customer';
+          
+          const { data: profileId, error: createError } = await dbClient
+            .rpc('create_customer_profile', {
+              p_customer_auth_id: userId,
+              p_email: userEmail,
+              p_name: userName,
+              p_phone: null
+            });
 
-      if (deleteError) {
-        console.error('Error removing favorite:', deleteError);
-        return res.status(500).json({ error: 'Failed to remove favorite' });
-      }
+          if (createError || !profileId) {
+            console.error('Error creating customer profile:', createError);
+            return res.status(500).json({ error: 'Failed to create customer profile' });
+          }
 
-      return res.json({ success: true });
+          // Fetch the newly created profile
+          const { data: newProfile } = await dbClient
+            .from('customer_profiles')
+            .select('id')
+            .eq('id', profileId)
+            .single();
+
+          if (!newProfile?.id) {
+            return res.status(500).json({ error: 'Failed to retrieve created profile' });
+          }
+
+          profile = newProfile;
+        } catch (createErr: any) {
+          console.error('Error auto-creating customer profile:', createErr);
+          return res.status(500).json({ error: 'Failed to create customer profile', details: createErr.message });
+        }
+      }
     }
 
     // Delete favorite
