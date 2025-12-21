@@ -242,6 +242,20 @@ function CustomerBookingsPageContent() {
     bookings = uniqueBookings;
     bookingsError = null;
     
+    console.log('[Customer Bookings] After all queries:', JSON.stringify({
+      totalFound: allBookings.length,
+      uniqueBookings: uniqueBookings.length,
+      bookingIds: uniqueBookings.map(b => b.id),
+      bookingsSummary: uniqueBookings.map(b => ({
+        id: b.id,
+        customer_id: b.customer_id,
+        user_id: b.user_id,
+        customer_profile_id: b.customer_profile_id,
+        customer_name: b.customer_name,
+        status: b.status
+      }))
+    }, null, 2));
+    
     // DEBUG: Check what bookings actually exist in the database
     try {
       const { data: debugBookings, error: debugError } = await supabase
