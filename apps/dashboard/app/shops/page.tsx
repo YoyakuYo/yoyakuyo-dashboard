@@ -35,15 +35,15 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
           // Redirect to LINE OAuth
           window.location.href = data.authUrl;
         } else {
-          alert('Failed to get LINE OAuth URL');
+          alert(t('line.failedToGetOAuthUrl'));
         }
       } else {
         const error = await res.json();
-        alert(error.error || 'Failed to connect LINE account');
+        alert(error.error || t('line.failedToConnect'));
       }
     } catch (error) {
       console.error('Error connecting LINE:', error);
-      alert('Failed to connect LINE account');
+      alert(t('line.failedToConnect'));
     } finally {
       setConnecting(false);
     }
@@ -52,7 +52,7 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
   const handleCopyLink = () => {
     if (deeplinkUrl) {
       navigator.clipboard.writeText(deeplinkUrl);
-      alert('LINE link copied to clipboard!');
+      alert(t('line.lineLinkCopied'));
     }
   };
 
@@ -69,7 +69,7 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('line_connected') === 'success') {
-      alert('LINE account connected successfully!');
+      alert(t('line.connectedSuccessfully'));
       // Remove query param
       window.history.replaceState({}, '', window.location.pathname);
       // Reload shop data
@@ -83,13 +83,13 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
   if (!shop?.line_qr_code_url || !shop?.line_destination_id) {
     return (
       <div className="text-center space-y-4 py-4">
-        <p className="text-gray-500">Connect LINE to generate QR code</p>
+        <p className="text-gray-500">{t('line.connectLineToGenerate')}</p>
         <button
           onClick={handleConnectLine}
           disabled={connecting}
           className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {connecting ? 'Connecting...' : 'Connect LINE Account'}
+          {connecting ? t('line.connecting') : t('line.connectLineAccountButton')}
         </button>
       </div>
     );
@@ -108,13 +108,13 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
           onClick={handleCopyLink}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
-          Copy LINE Link
+          {t('line.copyLineLink')}
         </button>
         <button
           onClick={handleDownloadQr}
           className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
         >
-          Download QR Code
+          {t('line.downloadQRCode')}
         </button>
       </div>
     </div>

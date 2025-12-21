@@ -622,10 +622,14 @@
     "notifications": "Notificações",
     "email": "E-mail",
     "userId": "ID do Usuário",
+    "fullName": "Nome Completo",
+    "preferences": "Preferências",
+    "preferencesComingSoon": "Preferências de configuração em breve...",
+    "pushNotifications": "Notificações Push",
+    "pushNotificationsDesc": "Receba notificações push para novas reservas, mensagens e avaliações mesmo quando o aplicativo estiver fechado.",
     "manageNotifications": "Gerencie como você recebe notificações sobre reservas e mensagens.",
     "emailNotificationsNewBookings": "Notificações por e-mail para novas reservas",
-    "emailNotificationsCustomerMessages": "Notificações por e-mail para mensagens de clientes",
-    "pushNotifications": "Notificações push (quando disponível)"
+    "emailNotificationsCustomerMessages": "Notificações por e-mail para mensagens de clientes"
   },
   "status": {
     "pending": "Pendente",
@@ -648,7 +652,10 @@
     "copyLineLink": "Copiar link LINE",
     "downloadQRCode": "Baixar código QR",
     "lineLinkCopied": "Link LINE copiado para a área de transferência!",
-    "lineReservationText": "LINEで予約はこちら"
+    "lineReservationText": "LINEで予約はこちら",
+    "failedToGetOAuthUrl": "Falha ao obter URL de OAuth do LINE",
+    "failedToConnect": "Falha ao conectar conta LINE",
+    "connectedSuccessfully": "Conta LINE conectada com sucesso!"
   },
   "dashboard": {
     "title": "Painel",
@@ -1105,6 +1112,12 @@
   },
   "assistant": {
     "title": "Assistente IA",
+    "ownerAIAssistant": "Assistente de IA do Proprietário",
+    "greeting": "👋 Olá! Sou seu Assistente de IA.",
+    "greetingDesc": "Pergunte-me qualquer coisa sobre gerenciar sua loja, reservas ou serviços.",
+    "askQuestion": "Faça uma pergunta sobre sua loja...",
+    "couldNotProcess": "Desculpe, não consegui processar essa solicitação.",
+    "errorEncountered": "Desculpe, encontrei um erro. Por favor, tente novamente.",
     "subtitle": "Gerencie conversas com clientes e obtenha ajuda da IA",
     "customerConversations": "Conversas com Clientes",
     "selectConversation": "Selecionar uma conversa",
@@ -1281,17 +1294,20 @@
     "addFirstReview": "Be the first to review this shop"
   },
   "messages": {
-    "title": "Messages",
-    "conversations": "Conversations",
-    "noConversations": "No conversations yet",
-    "noMessages": "No messages yet. Start the conversation!",
-    "typeMessage": "Type a message...",
-    "send": "Send",
-    "sending": "Sending...",
-    "selectConversation": "Select a conversation to start messaging",
-    "customer": "Customer",
-    "shop": "Shop",
-    "browseShops": "Browse shops to start messaging"
+    "title": "Mensagens",
+    "conversations": "Conversas",
+    "customerConversations": "Conversas com Clientes",
+    "noConversations": "Ainda não há conversas",
+    "noMessages": "Ainda não há mensagens. Inicie a conversa!",
+    "typeMessage": "Digite uma mensagem...",
+    "send": "Enviar",
+    "sending": "Enviando...",
+    "selectConversation": "Selecione uma conversa para começar a enviar mensagens",
+    "customer": "Cliente",
+    "shop": "Loja",
+    "browseShops": "Navegue pelas lojas para começar a enviar mensagens",
+    "failedToSend": "Falha ao enviar mensagem",
+    "errorSending": "Erro ao enviar mensagem"
   },
   "claim": {
     "title": "Claim a Shop",

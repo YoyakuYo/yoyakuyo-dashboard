@@ -5,13 +5,15 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/lib/useAuth";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation';
 import { useAIConversation } from "@/lib/useAIConversation";
 import { apiUrl } from "@/lib/apiClient";
+import { useTranslations } from 'next-intl';
 
 export default function OwnerAIPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const t = useTranslations();
   const [shop, setShop] = useState<any>(null);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -113,13 +115,13 @@ export default function OwnerAIPage() {
       }
 
       const data = await response.json();
-      const aiResponse = data.response || "I'm sorry, I couldn't process that request.";
+      const aiResponse = data.response || t('assistant.couldNotProcess');
 
       // Add AI response to conversation
       await addMessage('assistant', aiResponse);
     } catch (error) {
       console.error("Error getting AI response:", error);
-      await addMessage('assistant', "I'm sorry, I encountered an error. Please try again.");
+      await addMessage('assistant', t('assistant.errorEncountered'));
     } finally {
       setLoading(false);
     }
@@ -138,15 +140,15 @@ export default function OwnerAIPage() {
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Owner AI Assistant</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">{t('assistant.title')}</h1>
 
       <div className="bg-white rounded-lg shadow border border-gray-200 flex flex-col h-[calc(100vh-200px)]">
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
-              <p className="text-lg mb-2">👋 Hello! I'm your AI Assistant.</p>
-              <p>Ask me anything about managing your shop, bookings, or services.</p>
+              <p className="text-lg mb-2">{t('assistant.greeting')}</p>
+              <p>{t('assistant.greetingDesc')}</p>
             </div>
           ) : (
             messages.map((message, idx) => (
@@ -182,7 +184,7 @@ export default function OwnerAIPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Ask a question about your shop..."
+              placeholder={t('assistant.askQuestion')}
               disabled={loading || saving}
             />
             <button
@@ -190,7 +192,7 @@ export default function OwnerAIPage() {
               disabled={loading || saving || !input.trim()}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading || saving ? 'Sending...' : 'Send'}
+              {loading || saving ? t('messages.sending') : t('chat.send')}
             </button>
           </form>
         </div>

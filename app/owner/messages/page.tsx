@@ -7,6 +7,7 @@ import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/lib/useAuth";
 import { apiUrl } from "@/lib/apiClient";
 import { useRouter } from "next/navigation";
+import { useTranslations } from 'next-intl';
 
 interface CustomerThread {
   id: string;
@@ -29,6 +30,7 @@ interface Message {
 export default function OwnerMessagesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const t = useTranslations();
   const [customerThreads, setCustomerThreads] = useState<CustomerThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -281,7 +283,7 @@ export default function OwnerMessagesPage() {
           conversationId: selectedThread,
           userId: user.id,
         });
-        alert(`Failed to send message: ${errorData.error || 'Unknown error'}`);
+        alert(`${t('messages.failedToSend')}: ${errorData.error || t('common.error')}`);
       }
     } catch (error: any) {
       console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error sending message', {
@@ -290,7 +292,7 @@ export default function OwnerMessagesPage() {
         conversationId: selectedThread,
         userId: user.id,
       });
-      alert(`Error sending message: ${error.message || 'Unknown error'}`);
+      alert(`${t('messages.errorSending')}: ${error.message || t('common.error')}`);
     } finally {
       setSending(false);
     }
@@ -309,7 +311,7 @@ export default function OwnerMessagesPage() {
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Messages</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">{t('messages.title')}</h1>
 
 
       <div className="flex gap-6 h-[calc(100vh-250px)]">
@@ -317,7 +319,7 @@ export default function OwnerMessagesPage() {
         <div className="w-80 bg-white rounded-lg shadow border border-gray-200 flex flex-col">
           <div className="p-4 border-b border-gray-200">
             <h2 className="font-semibold text-gray-900">
-              Customer Conversations
+              {t('messages.customerConversations')}
             </h2>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -332,10 +334,10 @@ export default function OwnerMessagesPage() {
                     }`}
                   >
                     <p className="font-medium text-sm text-gray-900">
-                      {thread.shop_name || 'Shop'}
+                      {thread.shop_name || t('messages.shop')}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {thread.customer_email || 'Customer'}
+                      {thread.customer_email || t('messages.customer')}
                     </p>
                     {thread.unreadCount > 0 && (
                       <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">
@@ -346,7 +348,7 @@ export default function OwnerMessagesPage() {
                 ))}
               </div>
             ) : (
-              <p className="p-4 text-sm text-gray-500">No customer conversations</p>
+              <p className="p-4 text-sm text-gray-500">{t('messages.noConversations')}</p>
             )}
           </div>
         </div>
@@ -358,7 +360,7 @@ export default function OwnerMessagesPage() {
               {/* Header */}
               <div className="p-4 border-b border-gray-200">
                 <h2 className="font-semibold text-gray-900">
-                  {customerThreads.find(t => t.id === selectedThread)?.customer_email || 'Customer'}
+                  {customerThreads.find(t => t.id === selectedThread)?.customer_email || t('messages.customer')}
                 </h2>
               </div>
 
@@ -366,7 +368,7 @@ export default function OwnerMessagesPage() {
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
                 {messages.length === 0 ? (
                   <div className="text-center text-gray-500 py-8">
-                    No messages yet. Start the conversation!
+                    {t('messages.noMessages')}
                   </div>
                 ) : (
                   messages.map((message) => (
@@ -410,7 +412,7 @@ export default function OwnerMessagesPage() {
                       }
                     }}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Type a message..."
+                    placeholder={t('messages.typeMessage')}
                     disabled={sending}
                   />
                   <button
@@ -418,14 +420,14 @@ export default function OwnerMessagesPage() {
                     disabled={sending || !input.trim()}
                     className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Send
+                    {t('chat.send')}
                   </button>
                 </div>
               </div>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-500">
-              Select a conversation to start messaging
+              {t('messages.selectConversation')}
             </div>
           )}
         </div>

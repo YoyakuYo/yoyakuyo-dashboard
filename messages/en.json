@@ -716,6 +716,12 @@
   },
   "assistant": {
     "title": "AI Assistant",
+    "ownerAIAssistant": "Owner AI Assistant",
+    "greeting": "👋 Hello! I'm your AI Assistant.",
+    "greetingDesc": "Ask me anything about managing your shop, bookings, or services.",
+    "askQuestion": "Ask a question about your shop...",
+    "couldNotProcess": "I'm sorry, I couldn't process that request.",
+    "errorEncountered": "I'm sorry, I encountered an error. Please try again.",
     "subtitle": "Manage customer conversations and get AI help",
     "customerConversations": "Customer Conversations",
     "selectConversation": "Select a conversation",
@@ -804,10 +810,14 @@
     "notifications": "Notifications",
     "email": "Email",
     "userId": "User ID",
+    "fullName": "Full Name",
+    "preferences": "Preferences",
+    "preferencesComingSoon": "Settings preferences coming soon...",
+    "pushNotifications": "Push Notifications",
+    "pushNotificationsDesc": "Receive push notifications for new bookings, messages, and reviews even when the app is closed.",
     "manageNotifications": "Manage how you receive notifications about bookings and messages.",
     "emailNotificationsNewBookings": "Email notifications for new bookings",
-    "emailNotificationsCustomerMessages": "Email notifications for customer messages",
-    "pushNotifications": "Push notifications (when available)"
+    "emailNotificationsCustomerMessages": "Email notifications for customer messages"
   },
   "line": {
     "loginWithLine": "Login with LINE",
@@ -823,7 +833,10 @@
     "copyLineLink": "Copy LINE Link",
     "downloadQRCode": "Download QR Code",
     "lineLinkCopied": "LINE link copied to clipboard!",
-    "lineReservationText": "LINEで予約はこちら"
+    "lineReservationText": "LINEで予約はこちら",
+    "failedToGetOAuthUrl": "Failed to get LINE OAuth URL",
+    "failedToConnect": "Failed to connect LINE account",
+    "connectedSuccessfully": "LINE account connected successfully!"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -966,6 +979,7 @@
   "messages": {
     "title": "Messages",
     "conversations": "Conversations",
+    "customerConversations": "Customer Conversations",
     "noConversations": "No conversations yet",
     "noMessages": "No messages yet. Start the conversation!",
     "typeMessage": "Type a message...",
@@ -974,7 +988,9 @@
     "selectConversation": "Select a conversation to start messaging",
     "customer": "Customer",
     "shop": "Shop",
-    "browseShops": "Browse shops to start messaging"
+    "browseShops": "Browse shops to start messaging",
+    "failedToSend": "Failed to send message",
+    "errorSending": "Error sending message"
   },
   "landing": {
     "heroTagline": "BOOKING INSPIRES",

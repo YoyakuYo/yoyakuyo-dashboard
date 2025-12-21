@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/useAuth";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 import PushNotificationButton from "@/app/components/PushNotificationButton";
+import { useTranslations } from 'next-intl';
 
 interface UserProfile {
   id: string;
@@ -18,6 +19,7 @@ interface UserProfile {
 export default function OwnerSettingsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
@@ -67,41 +69,41 @@ export default function OwnerSettingsPage() {
 
   return (
     <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Settings</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-6">{t('settings.title')}</h1>
 
       <div className="bg-white rounded-lg shadow p-6 space-y-6">
         <div>
-          <h2 className="text-xl font-semibold mb-4">Account Information</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('settings.accountInformation')}</h2>
           <div className="space-y-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email
+                {t('common.email')}
               </label>
-              <p className="text-gray-900">{userProfile?.email || user?.email || 'N/A'}</p>
+              <p className="text-gray-900">{userProfile?.email || user?.email || t('dashboard.na')}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
+                {t('settings.fullName')}
               </label>
-              <p className="text-gray-900">{userProfile?.full_name || 'N/A'}</p>
+              <p className="text-gray-900">{userProfile?.full_name || t('dashboard.na')}</p>
             </div>
           </div>
         </div>
 
         <div className="border-t pt-6">
-          <h2 className="text-xl font-semibold mb-4">Preferences</h2>
-          <p className="text-gray-600">Settings preferences coming soon...</p>
+          <h2 className="text-xl font-semibold mb-4">{t('settings.preferences')}</h2>
+          <p className="text-gray-600">{t('settings.preferencesComingSoon')}</p>
         </div>
 
         <div className="border-t pt-6">
-          <h2 className="text-xl font-semibold mb-4">Notifications</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('settings.notifications')}</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Push Notifications
+                {t('settings.pushNotifications')}
               </label>
               <p className="text-sm text-gray-600 mb-3">
-                Receive push notifications for new bookings, messages, and reviews even when the app is closed.
+                {t('settings.pushNotificationsDesc')}
               </p>
               <PushNotificationButton userType="owner" />
             </div>

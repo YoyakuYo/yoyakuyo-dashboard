@@ -717,6 +717,12 @@
   },
   "assistant": {
     "title": "AIアシスタント",
+    "ownerAIAssistant": "オーナーAIアシスタント",
+    "greeting": "👋 こんにちは！私はあなたのAIアシスタントです。",
+    "greetingDesc": "店舗の管理、予約、サービスについて何でもお聞きください。",
+    "askQuestion": "店舗について質問してください...",
+    "couldNotProcess": "申し訳ございませんが、そのリクエストを処理できませんでした。",
+    "errorEncountered": "申し訳ございませんが、エラーが発生しました。もう一度お試しください。",
     "subtitle": "顧客との会話を管理し、AIのサポートを受けます",
     "customerConversations": "顧客との会話",
     "selectConversation": "会話を選択",
@@ -825,7 +831,10 @@
     "copyLineLink": "LINEリンクをコピー",
     "downloadQRCode": "QRコードをダウンロード",
     "lineLinkCopied": "LINEリンクをクリップボードにコピーしました！",
-    "lineReservationText": "LINEで予約はこちら"
+    "lineReservationText": "LINEで予約はこちら",
+    "failedToGetOAuthUrl": "LINE OAuth URLの取得に失敗しました",
+    "failedToConnect": "LINEアカウントの接続に失敗しました",
+    "connectedSuccessfully": "LINEアカウントが正常に接続されました！"
   },
   "dashboard": {
     "title": "ダッシュボード",
@@ -1286,17 +1295,20 @@
     "navStaff": "Staff Dashboard"
   },
   "messages": {
-    "title": "Messages",
-    "conversations": "Conversations",
-    "noConversations": "No conversations yet",
-    "noMessages": "No messages yet. Start the conversation!",
-    "typeMessage": "Type a message...",
-    "send": "Send",
-    "sending": "Sending...",
-    "selectConversation": "Select a conversation to start messaging",
-    "customer": "Customer",
-    "shop": "Shop",
-    "browseShops": "Browse shops to start messaging"
+    "title": "メッセージ",
+    "conversations": "会話",
+    "customerConversations": "顧客との会話",
+    "noConversations": "まだ会話がありません",
+    "noMessages": "まだメッセージがありません。会話を始めましょう！",
+    "typeMessage": "メッセージを入力...",
+    "send": "送信",
+    "sending": "送信中...",
+    "selectConversation": "会話を選択してメッセージを開始",
+    "customer": "顧客",
+    "shop": "店舗",
+    "browseShops": "店舗を閲覧してメッセージを開始",
+    "failedToSend": "メッセージの送信に失敗しました",
+    "errorSending": "メッセージ送信エラー"
   },
   "claim": {
     "title": "Claim a Shop",

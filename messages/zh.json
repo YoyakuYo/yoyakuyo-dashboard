@@ -622,10 +622,14 @@
     "notifications": "通知",
     "email": "电子邮件",
     "userId": "用户ID",
+    "fullName": "全名",
+    "preferences": "偏好设置",
+    "preferencesComingSoon": "设置偏好即将推出...",
+    "pushNotifications": "推送通知",
+    "pushNotificationsDesc": "即使应用关闭，也能接收新预约、消息和评论的推送通知。",
     "manageNotifications": "管理您如何接收有关预约和消息的通知。",
     "emailNotificationsNewBookings": "新预约的电子邮件通知",
-    "emailNotificationsCustomerMessages": "客户消息的电子邮件通知",
-    "pushNotifications": "推送通知（可用时）"
+    "emailNotificationsCustomerMessages": "客户消息的电子邮件通知"
   },
   "status": {
     "pending": "待处理",
@@ -648,7 +652,10 @@
     "copyLineLink": "复制LINE链接",
     "downloadQRCode": "下载二维码",
     "lineLinkCopied": "LINE链接已复制到剪贴板！",
-    "lineReservationText": "LINEで予約はこちら"
+    "lineReservationText": "LINEで予約はこちら",
+    "failedToGetOAuthUrl": "获取LINE OAuth URL失败",
+    "failedToConnect": "连接LINE账户失败",
+    "connectedSuccessfully": "LINE账户连接成功！"
   },
   "dashboard": {
     "title": "仪表板",
@@ -1100,6 +1107,12 @@
   },
   "assistant": {
     "title": "AI助手",
+    "ownerAIAssistant": "店主AI助手",
+    "greeting": "👋 你好！我是您的AI助手。",
+    "greetingDesc": "您可以询问任何关于管理店铺、预约或服务的问题。",
+    "askQuestion": "询问关于您店铺的问题...",
+    "couldNotProcess": "抱歉，我无法处理该请求。",
+    "errorEncountered": "抱歉，我遇到了错误。请重试。",
     "subtitle": "管理客户对话并获得AI帮助",
     "customerConversations": "客户对话",
     "selectConversation": "选择对话",
@@ -1276,17 +1289,20 @@
     "addFirstReview": "Be the first to review this shop"
   },
   "messages": {
-    "title": "Messages",
-    "conversations": "Conversations",
-    "noConversations": "No conversations yet",
-    "noMessages": "No messages yet. Start the conversation!",
-    "typeMessage": "Type a message...",
-    "send": "Send",
-    "sending": "Sending...",
-    "selectConversation": "Select a conversation to start messaging",
-    "customer": "Customer",
-    "shop": "Shop",
-    "browseShops": "Browse shops to start messaging"
+    "title": "消息",
+    "conversations": "对话",
+    "customerConversations": "客户对话",
+    "noConversations": "还没有对话",
+    "noMessages": "还没有消息。开始对话吧！",
+    "typeMessage": "输入消息...",
+    "send": "发送",
+    "sending": "发送中...",
+    "selectConversation": "选择对话开始发消息",
+    "customer": "客户",
+    "shop": "店铺",
+    "browseShops": "浏览店铺开始发消息",
+    "failedToSend": "发送消息失败",
+    "errorSending": "发送消息时出错"
   },
   "claim": {
     "title": "Claim a Shop",
