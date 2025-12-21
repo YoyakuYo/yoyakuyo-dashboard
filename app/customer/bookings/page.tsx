@@ -62,12 +62,17 @@ function CustomerBookingsPageContent() {
 
     const supabase = getSupabaseClient();
     
-    // CRITICAL: user.id from useCustomAuth() IS the canonical users.id
-    // Query bookings for both 'line' and 'user' booking types (web users can have both)
-    const canonicalUserId = user.id;
-    // Query bookings - filter by user_id (works for both LINE and web user bookings)
-    // Note: booking_type filter removed as it may not exist or cause query issues
-    const { data: bookings, error: bookingsError } = await supabase
+    // Get customer profile ID first
+    const { data: customerProfile } = await supabase
+      .from("customer_profiles")
+      .select("id")
+      .eq("customer_auth_id", user.id)
+      .maybeSingle();
+
+    const customerProfileId = customerProfile?.id;
+
+    // Query bookings - try customer_profile_id first, then fallback to user_id
+    let query = supabase
       .from("bookings")
       .select(`
         *,
@@ -82,8 +87,17 @@ function CustomerBookingsPageContent() {
           name,
           price
         )
-      `)
-      .eq("user_id", canonicalUserId)
+      `);
+
+    // Filter by customer_profile_id if available, otherwise use user_id
+    if (customerProfileId) {
+      query = query.eq("customer_profile_id", customerProfileId);
+    } else {
+      // Fallback: try user_id (for backward compatibility or if profile doesn't exist)
+      query = query.eq("user_id", user.id);
+    }
+
+    const { data: bookings, error: bookingsError } = await query
       .order("created_at", { ascending: false });
     
     if (bookingsError) {
