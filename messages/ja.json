@@ -306,6 +306,7 @@
     "failedToReschedule": "予約の変更に失敗しました",
     "failedToCreate": "予約の作成に失敗しました。もう一度お試しください。",
     "noBookingsFound": "予約が見つかりませんでした。",
+    "payNow": "今すぐ支払う",
     "guestBooking": "ゲストとして予約",
     "guestBookingDesc": "アカウント不要。詳細を入力して予約できます。",
     "selectShop": "店舗を選択",
@@ -936,7 +937,11 @@
     },
     "profile": "プロフィール",
     "customer": "顧客",
-    "profileInformation": "Profile Information"
+    "profileInformation": "プロフィール情報",
+    "dateOfBirth": "生年月日",
+    "addressInformation": "住所情報",
+    "addressLine1": "住所1行目",
+    "addressLine2": "住所2行目"
   },
   "verification": {
     "verified": "認証済み",

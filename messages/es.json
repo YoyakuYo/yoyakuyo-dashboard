@@ -286,6 +286,7 @@
   },
   "booking": {
     "noBookingsFound": "No se encontraron reservas.",
+    "payNow": "Pagar Ahora",
     "guestBooking": "Reservar como Invitado",
     "guestBookingDesc": "No se requiere cuenta. Complete sus datos para hacer una reserva.",
     "selectShop": "Seleccionar Tienda",
@@ -755,7 +756,11 @@
     },
     "profile": "Perfil",
     "customer": "Cliente",
-    "profileInformation": "Profile Information"
+    "profileInformation": "Información del Perfil",
+    "dateOfBirth": "Fecha de Nacimiento",
+    "addressInformation": "Información de Dirección",
+    "addressLine1": "Línea de Dirección 1",
+    "addressLine2": "Línea de Dirección 2"
   },
   "verification": {
     "verified": "Verificado",
