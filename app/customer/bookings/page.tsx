@@ -240,7 +240,7 @@ function CustomerBookingsPageContent() {
 
     // DEBUG ASSERTION: Check for orphaned bookings (only if customer_profile_id column exists)
     // Skip this check if we already fell back to user_id query
-    if (allBookings.length === 0 && customerProfileId && !bookingsError) {
+    if (bookings.length === 0 && customerProfileId && !bookingsError) {
       // Try to check for orphaned bookings, but handle case where column doesn't exist
       try {
         const { data: orphanedCheck, error: orphanedError } = await supabase
@@ -264,7 +264,7 @@ function CustomerBookingsPageContent() {
       }
     }
     
-    console.log(`[Customer Bookings] Found ${allBookings.length} bookings for user_id: ${user.id}, customer_profile_id: ${customerProfileId || 'none'}`);
+    console.log(`[Customer Bookings] Found ${bookings.length} bookings for user_id: ${user.id}, customer_profile_id: ${customerProfileId || 'none'}`);
     setBookings(filteredBookings);
     setLoading(false);
   };
