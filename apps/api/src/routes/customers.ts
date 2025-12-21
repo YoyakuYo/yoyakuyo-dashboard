@@ -100,12 +100,24 @@ router.post('/:id/push-subscription', async (req: Request, res: Response) => {
 // ============================================
 
 // GET /customers/favorites - Get customer's favorite shops
+// ONLY authenticated users (LINE and web customers) can view favorites
 router.get('/favorites', async (req: Request, res: Response) => {
   try {
     const userId = req.headers['x-user-id'] as string;
     
+    // STRICT: Require authentication - only customers with accounts can view favorites
     if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
+      return res.status(401).json({ error: 'Authentication required. Only customers with accounts can view favorites.' });
+    }
+
+    // Verify user exists in auth system
+    try {
+      const { data: authUser, error: authError } = await dbClient.auth.admin.getUserById(userId);
+      if (authError || !authUser?.user) {
+        return res.status(401).json({ error: 'Invalid user. Authentication required.' });
+      }
+    } catch (authCheckErr) {
+      return res.status(401).json({ error: 'Authentication verification failed. Only customers with accounts can view favorites.' });
     }
 
     // Get customer profile by customer_auth_id
@@ -197,13 +209,25 @@ router.get('/favorites', async (req: Request, res: Response) => {
 });
 
 // POST /customers/favorites - Add a shop to favorites
+// ONLY authenticated users (LINE and web customers) can add favorites
 router.post('/favorites', async (req: Request, res: Response) => {
   try {
     const userId = req.headers['x-user-id'] as string;
     const { shop_id } = req.body;
 
+    // STRICT: Require authentication - only customers with accounts can add favorites
     if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
+      return res.status(401).json({ error: 'Authentication required. Only customers with accounts can add favorites.' });
+    }
+
+    // Verify user exists in auth system
+    try {
+      const { data: authUser, error: authError } = await dbClient.auth.admin.getUserById(userId);
+      if (authError || !authUser?.user) {
+        return res.status(401).json({ error: 'Invalid user. Authentication required.' });
+      }
+    } catch (authCheckErr) {
+      return res.status(401).json({ error: 'Authentication verification failed. Only customers with accounts can add favorites.' });
     }
 
     if (!shop_id) {
@@ -293,13 +317,25 @@ router.post('/favorites', async (req: Request, res: Response) => {
 });
 
 // DELETE /customers/favorites/:shop_id - Remove a shop from favorites
+// ONLY authenticated users (LINE and web customers) can remove favorites
 router.delete('/favorites/:shop_id', async (req: Request, res: Response) => {
   try {
     const userId = req.headers['x-user-id'] as string;
     const { shop_id } = req.params;
 
+    // STRICT: Require authentication - only customers with accounts can remove favorites
     if (!userId) {
-      return res.status(400).json({ error: 'User ID is required' });
+      return res.status(401).json({ error: 'Authentication required. Only customers with accounts can remove favorites.' });
+    }
+
+    // Verify user exists in auth system
+    try {
+      const { data: authUser, error: authError } = await dbClient.auth.admin.getUserById(userId);
+      if (authError || !authUser?.user) {
+        return res.status(401).json({ error: 'Invalid user. Authentication required.' });
+      }
+    } catch (authCheckErr) {
+      return res.status(401).json({ error: 'Authentication verification failed. Only customers with accounts can remove favorites.' });
     }
 
     if (!shop_id) {
