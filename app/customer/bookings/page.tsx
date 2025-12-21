@@ -103,12 +103,20 @@ function CustomerBookingsPageContent() {
           .eq("customer_profile_id", customerProfileId)
           .order("created_at", { ascending: false });
 
-        console.log('[Customer Bookings] Query by customer_profile_id:', {
+        console.log('[Customer Bookings] Query by customer_profile_id:', JSON.stringify({
           customerProfileId,
           found: profileData?.length || 0,
-          error: profileError?.message,
-          bookings: profileData?.map(b => ({ id: b.id, customer_profile_id: b.customer_profile_id, user_id: b.user_id, customer_id: b.customer_id })) || []
-        });
+          error: profileError?.message || null,
+          errorCode: profileError?.code || null,
+          bookings: profileData?.map(b => ({ 
+            id: b.id, 
+            customer_profile_id: b.customer_profile_id, 
+            user_id: b.user_id, 
+            customer_id: b.customer_id,
+            customer_name: b.customer_name,
+            created_at: b.created_at
+          })) || []
+        }, null, 2));
 
         if (!profileError && profileData) {
           profileData.forEach(booking => {
@@ -144,12 +152,20 @@ function CustomerBookingsPageContent() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      console.log('[Customer Bookings] Query by user_id:', {
+      console.log('[Customer Bookings] Query by user_id:', JSON.stringify({
         userId: user.id,
         found: userData?.length || 0,
-        error: userError?.message,
-        bookings: userData?.map(b => ({ id: b.id, customer_profile_id: b.customer_profile_id, user_id: b.user_id, customer_id: b.customer_id })) || []
-      });
+        error: userError?.message || null,
+        errorCode: userError?.code || null,
+        bookings: userData?.map(b => ({ 
+          id: b.id, 
+          customer_profile_id: b.customer_profile_id, 
+          user_id: b.user_id, 
+          customer_id: b.customer_id,
+          customer_name: b.customer_name,
+          created_at: b.created_at
+        })) || []
+      }, null, 2));
 
       if (!userError && userData) {
         userData.forEach(booking => {
@@ -184,12 +200,20 @@ function CustomerBookingsPageContent() {
         .eq("customer_id", user.id)
         .order("created_at", { ascending: false });
 
-      console.log('[Customer Bookings] Query by customer_id:', {
+      console.log('[Customer Bookings] Query by customer_id:', JSON.stringify({
         customerId: user.id,
         found: customerData?.length || 0,
-        error: customerError?.message,
-        bookings: customerData?.map(b => ({ id: b.id, customer_profile_id: b.customer_profile_id, user_id: b.user_id, customer_id: b.customer_id })) || []
-      });
+        error: customerError?.message || null,
+        errorCode: customerError?.code || null,
+        bookings: customerData?.map(b => ({ 
+          id: b.id, 
+          customer_profile_id: b.customer_profile_id, 
+          user_id: b.user_id, 
+          customer_id: b.customer_id,
+          customer_name: b.customer_name,
+          created_at: b.created_at
+        })) || []
+      }, null, 2));
 
       if (!customerError && customerData) {
         customerData.forEach(booking => {
@@ -226,7 +250,7 @@ function CustomerBookingsPageContent() {
         .order("created_at", { ascending: false })
         .limit(10);
       
-      console.log('[Customer Bookings] DEBUG - Recent bookings in database:', {
+      console.log('[Customer Bookings] DEBUG - Recent bookings in database:', JSON.stringify({
         totalFound: debugBookings?.length || 0,
         bookings: debugBookings?.map(b => ({
           id: b.id,
@@ -234,38 +258,49 @@ function CustomerBookingsPageContent() {
           user_id: b.user_id,
           customer_profile_id: b.customer_profile_id,
           customer_name: b.customer_name,
+          shop_id: b.shop_id,
           created_at: b.created_at
         })) || []
-      });
+      }, null, 2));
       
       // Check specifically for bookings matching our user
       const matchingBookings = debugBookings?.filter(b => 
-        b.customer_id === user.id || 
-        b.user_id === user.id || 
-        b.customer_profile_id === customerProfileId
+        (b.customer_id && b.customer_id === user.id) || 
+        (b.user_id && b.user_id === user.id) || 
+        (b.customer_profile_id && b.customer_profile_id === customerProfileId)
       ) || [];
       
-      console.log('[Customer Bookings] DEBUG - Bookings matching user:', {
+      console.log('[Customer Bookings] DEBUG - Bookings matching user:', JSON.stringify({
+        searchCriteria: {
+          userId: user.id,
+          customerProfileId: customerProfileId,
+          customerId: user.id
+        },
         count: matchingBookings.length,
         bookings: matchingBookings.map(b => ({
           id: b.id,
           customer_id: b.customer_id,
           user_id: b.user_id,
-          customer_profile_id: b.customer_profile_id
+          customer_profile_id: b.customer_profile_id,
+          customer_name: b.customer_name,
+          shop_id: b.shop_id,
+          created_at: b.created_at
         }))
-      });
+      }, null, 2));
     } catch (debugErr) {
       console.error('[Customer Bookings] DEBUG error:', debugErr);
     }
     
-    console.log('[Customer Bookings] Found bookings:', {
+    console.log('[Customer Bookings] Found bookings:', JSON.stringify({
       customerProfileId,
       userId: user.id,
       totalBookings: bookings.length,
       byProfile: customerProfileId ? bookings.filter(b => b.customer_profile_id === customerProfileId).length : 0,
       byUserId: bookings.filter(b => b.user_id === user.id).length,
-      byCustomerId: bookings.filter(b => b.customer_id === user.id).length
-    });
+      byCustomerId: bookings.filter(b => b.customer_id === user.id).length,
+      allBookingsIds: allBookings.map(b => b.id),
+      finalBookingsIds: bookings.map(b => b.id)
+    }, null, 2));
     
     if (bookingsError) {
       console.error("Error fetching bookings:", bookingsError);
