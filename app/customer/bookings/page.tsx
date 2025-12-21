@@ -189,81 +189,22 @@ function CustomerBookingsPageContent() {
       return dateB - dateA;
     });
 
-    const data = allBookings;
-    const error = null;
+    // Remove duplicates (in case a booking matches multiple conditions)
+    const uniqueBookings = allBookings.filter((booking, index, self) =>
+      index === self.findIndex((b) => b.id === booking.id)
+    );
+    
+    bookings = uniqueBookings;
+    bookingsError = null;
     
     console.log('[Customer Bookings] Found bookings:', {
       customerProfileId,
       userId: user.id,
-      totalBookings: data.length,
-      byProfile: customerProfileId ? data.filter(b => b.customer_profile_id === customerProfileId).length : 0,
-      byUserId: data.filter(b => b.user_id === user.id).length,
-      byCustomerId: data.filter(b => b.customer_id === user.id).length
+      totalBookings: bookings.length,
+      byProfile: customerProfileId ? bookings.filter(b => b.customer_profile_id === customerProfileId).length : 0,
+      byUserId: bookings.filter(b => b.user_id === user.id).length,
+      byCustomerId: bookings.filter(b => b.customer_id === user.id).length
     });
-
-    if (error) {
-      // If error is "column does not exist", try simpler queries
-      if (error.code === '42703' || error.message?.includes('does not exist')) {
-        console.warn('[Customer Bookings] Some columns not found, trying fallback queries');
-        
-        // Try user_id only
-        const { data: userData, error: userError } = await supabase
-          .from("bookings")
-          .select(`
-            *,
-            shops (
-              id,
-              name,
-              address,
-              phone
-            ),
-            services (
-              id,
-              name,
-              price
-            )
-          `)
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
-        
-        if (!userError && userData) {
-          bookings = userData || [];
-        } else {
-          // Last resort: try customer_id
-          const { data: customerData, error: customerError } = await supabase
-            .from("bookings")
-            .select(`
-              *,
-              shops (
-                id,
-                name,
-                address,
-                phone
-              ),
-              services (
-                id,
-                name,
-                price
-              )
-            `)
-            .eq("customer_id", user.id)
-            .order("created_at", { ascending: false });
-          
-          bookings = customerData || [];
-          bookingsError = customerError;
-        }
-      } else {
-        bookingsError = error;
-      }
-    } else {
-      bookings = data || [];
-      
-      // Remove duplicates (in case a booking matches multiple conditions)
-      const uniqueBookings = bookings.filter((booking, index, self) =>
-        index === self.findIndex((b) => b.id === booking.id)
-      );
-      bookings = uniqueBookings;
-    }
     
     if (bookingsError) {
       console.error("Error fetching bookings:", bookingsError);
@@ -272,10 +213,10 @@ function CustomerBookingsPageContent() {
       return;
     }
     
-    const allBookings = bookings || [];
+    const allBookingsFinal = bookings;
 
     // Apply filter
-    let filteredBookings = allBookings;
+    let filteredBookings = bookings;
     if (filter !== "all") {
       if (filter === "upcoming") {
         filteredBookings = allBookings.filter((b: any) => 
