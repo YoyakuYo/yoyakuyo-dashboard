@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useCustomAuth } from "@/lib/useCustomAuth";
-import { getSupabaseClient } from "@/lib/supabaseClient";
+import { apiUrl } from "@/lib/apiClient";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -18,117 +18,54 @@ export default function CustomerFavoritesPage() {
   }, [user]);
 
   const loadFavorites = async () => {
-    if (!user?.id) {
+    if (!user?.id || !apiUrl) {
       setLoading(false);
       return;
     }
 
-    const supabase = getSupabaseClient();
-    
-    // First, get customer_profile_id from customer_auth_id
-    let { data: profile } = await supabase
-      .from("customer_profiles")
-      .select("id")
-      .eq("customer_auth_id", user.id)
-      .maybeSingle();
+    try {
+      const res = await fetch(`${apiUrl}/customers/favorites`, {
+        headers: {
+          'x-user-id': user.id,
+        },
+      });
 
-    // If no profile exists, create one using the database function
-    if (!profile?.id) {
-      console.log("Profile not found, creating new profile...");
-      const { data: profileId, error: createError } = await supabase
-        .rpc('create_customer_profile', {
-          p_customer_auth_id: user.id,
-          p_email: user.email || "",
-          p_name: user.name || user.email?.split('@')[0] || "Customer",
-          p_phone: null
-        });
-
-      if (createError) {
-        console.error("Error creating profile:", createError);
-        setFavorites([]);
-        setLoading(false);
-        return;
-      }
-
-      if (profileId) {
-        // Fetch the newly created profile
-        const { data: newProfile } = await supabase
-          .from("customer_profiles")
-          .select("id")
-          .eq("id", profileId)
-          .maybeSingle();
-
-        if (newProfile) {
-          profile = newProfile;
-        } else {
-          console.error("Error fetching newly created profile");
-          setFavorites([]);
-          setLoading(false);
-          return;
-        }
+      if (res.ok) {
+        const data = await res.json();
+        setFavorites(data.favorites || []);
       } else {
-        console.error("No profile ID returned from create function");
+        console.error("Error loading favorites:", res.status);
         setFavorites([]);
-        setLoading(false);
-        return;
       }
-    }
-
-    const { data, error } = await supabase
-      .from("customer_favorites")
-      .select(`
-        *,
-        shops (
-          id,
-          name,
-          address,
-          phone,
-          description,
-          category,
-          main_image_url,
-          rating,
-          review_count
-        )
-      `)
-      .eq("customer_id", profile.id) // Use customer_profile.id, not customers.id
-      .order("created_at", { ascending: false });
-
-    if (error) {
+    } catch (error) {
       console.error("Error loading favorites:", error);
-    } else {
-      setFavorites(data || []);
+      setFavorites([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleRemoveFavorite = async (shopId: string) => {
-    if (!user?.id) return;
+    if (!user?.id || !apiUrl) return;
 
-    const supabase = getSupabaseClient();
-    
-    // Get customer_profile_id
-    const { data: profile } = await supabase
-      .from("customer_profiles")
-      .select("id")
-      .eq("customer_auth_id", user.id)
-      .maybeSingle();
+    try {
+      const res = await fetch(`${apiUrl}/customers/favorites/${shopId}`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-id': user.id,
+        },
+      });
 
-    if (!profile?.id) {
-      alert("Failed to find customer profile");
-      return;
-    }
-
-    const { error } = await supabase
-      .from("customer_favorites")
-      .delete()
-      .eq("customer_id", profile.id) // Use customer_profile.id
-      .eq("shop_id", shopId);
-
-    if (error) {
+      if (res.ok) {
+        loadFavorites(); // Reload favorites list
+      } else {
+        const error = await res.json();
+        console.error("Error removing favorite:", error);
+        alert("Failed to remove favorite");
+      }
+    } catch (error) {
       console.error("Error removing favorite:", error);
       alert("Failed to remove favorite");
-    } else {
-      loadFavorites();
     }
   };
 

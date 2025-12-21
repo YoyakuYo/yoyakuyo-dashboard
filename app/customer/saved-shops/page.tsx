@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useCustomAuth } from "@/lib/useCustomAuth";
-import { getSupabaseClient } from "@/lib/supabaseClient";
+import { apiUrl } from "@/lib/apiClient";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -18,143 +18,54 @@ export default function CustomerSavedShopsPage() {
   }, [user]);
 
   const loadSavedShops = async () => {
-    if (!user?.id) {
+    if (!user?.id || !apiUrl) {
       setLoading(false);
       return;
     }
 
-    const supabase = getSupabaseClient();
-    
-    // Get customer_profile_id from customer_auth_id
-    let { data: profile } = await supabase
-      .from("customer_profiles")
-      .select("id")
-      .eq("customer_auth_id", user.id)
-      .maybeSingle();
+    try {
+      const res = await fetch(`${apiUrl}/customers/favorites`, {
+        headers: {
+          'x-user-id': user.id,
+        },
+      });
 
-    // If no profile exists, create one using the database function
-    if (!profile?.id) {
-      console.log("Profile not found, creating new profile...");
-      const { data: profileId, error: createError } = await supabase
-        .rpc('create_customer_profile', {
-          p_customer_auth_id: user.id,
-          p_email: user.email || "",
-          p_name: user.name || user.email?.split('@')[0] || "Customer",
-          p_phone: null
-        });
-
-      if (createError) {
-        console.error("Error creating profile:", createError);
-        setSavedShops([]);
-        setLoading(false);
-        return;
-      }
-
-      if (profileId) {
-        // Fetch the newly created profile
-        const { data: newProfile } = await supabase
-          .from("customer_profiles")
-          .select("id")
-          .eq("id", profileId)
-          .maybeSingle();
-
-        if (newProfile) {
-          profile = newProfile;
-        } else {
-          console.error("Error fetching newly created profile");
-          setSavedShops([]);
-          setLoading(false);
-          return;
-        }
+      if (res.ok) {
+        const data = await res.json();
+        setSavedShops(data.favorites || []);
       } else {
-        console.error("No profile ID returned from create function");
+        console.error("Error loading saved shops:", res.status);
         setSavedShops([]);
-        setLoading(false);
-        return;
       }
-    }
-
-    // Use profile.id as customer_id
-    const { data, error } = await supabase
-      .from("customer_favorites")
-      .select(`
-        *,
-        shops (
-          id,
-          name,
-          address,
-          phone,
-          description,
-          category,
-          main_image_url,
-          rating,
-          review_count
-        )
-      `)
-      .eq("customer_id", profile.id)
-      .order("created_at", { ascending: false });
-
-    if (error) {
+    } catch (error) {
       console.error("Error loading saved shops:", error);
-    } else {
-      setSavedShops(data || []);
+      setSavedShops([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleRemoveSaved = async (shopId: string) => {
-    if (!user?.id) return;
+    if (!user?.id || !apiUrl) return;
 
-    const supabase = getSupabaseClient();
-    
-    // Get customer_profile_id from customer_auth_id
-    const { data: profile } = await supabase
-      .from("customer_profiles")
-      .select("id")
-      .eq("customer_auth_id", user.id)
-      .maybeSingle();
+    try {
+      const res = await fetch(`${apiUrl}/customers/favorites/${shopId}`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-id': user.id,
+        },
+      });
 
-    if (!profile?.id) {
-      // Try fallback: check if customer_profiles.id = user.id (old structure)
-      const { data: profileFallback } = await supabase
-        .from("customer_profiles")
-        .select("id")
-        .eq("id", user.id)
-        .maybeSingle();
-      
-      if (!profileFallback?.id) {
-        alert("Customer profile not found. Please contact support.");
-        return;
-      }
-      
-      // Use fallback profile
-      const { error } = await supabase
-        .from("customer_favorites")
-        .delete()
-        .eq("customer_id", profileFallback.id)
-        .eq("shop_id", shopId);
-
-      if (error) {
+      if (res.ok) {
+        loadSavedShops(); // Reload saved shops list
+      } else {
+        const error = await res.json();
         console.error("Error removing saved shop:", error);
         alert("Failed to remove saved shop");
-      } else {
-        loadSavedShops();
       }
-      return;
-    }
-
-    // Use profile.id as customer_id
-    const { error } = await supabase
-      .from("customer_favorites")
-      .delete()
-      .eq("customer_id", profile.id)
-      .eq("shop_id", shopId);
-
-    if (error) {
+    } catch (error) {
       console.error("Error removing saved shop:", error);
       alert("Failed to remove saved shop");
-    } else {
-      loadSavedShops();
     }
   };
 

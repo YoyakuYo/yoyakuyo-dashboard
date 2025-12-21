@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useCustomAuth } from "@/lib/useCustomAuth";
+import { apiUrl } from "@/lib/apiClient";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
 import Image from "next/image";
@@ -39,137 +40,81 @@ export default function CustomerShopDetailPage() {
   };
 
   const checkFavorite = async () => {
-    if (!user?.id) return;
-
-    const supabase = getSupabaseClient();
-    
-    // Get customer_profile_id from customer_auth_id
-    const { data: profile } = await supabase
-      .from("customer_profiles")
-      .select("id")
-      .eq("customer_auth_id", user.id)
-      .maybeSingle();
-
-    if (!profile?.id) {
-      // Try fallback: check if customer_profiles.id = user.id (old structure)
-      const { data: profileFallback } = await supabase
-        .from("customer_profiles")
-        .select("id")
-        .eq("id", user.id)
-        .maybeSingle();
-      
-      if (!profileFallback?.id) {
-        setIsFavorite(false);
-        return;
-      }
-      
-      // Use fallback profile
-      const { data } = await supabase
-        .from("customer_favorites")
-        .select("id")
-        .eq("customer_id", profileFallback.id)
-        .eq("shop_id", shopId)
-        .maybeSingle();
-      
-      setIsFavorite(!!data);
+    if (!user?.id || !apiUrl) {
+      setIsFavorite(false);
       return;
     }
 
-    // Use profile.id as customer_id
-    const { data } = await supabase
-      .from("customer_favorites")
-      .select("id")
-      .eq("customer_id", profile.id)
-      .eq("shop_id", shopId)
-      .maybeSingle();
+    try {
+      const res = await fetch(`${apiUrl}/customers/favorites`, {
+        headers: {
+          'x-user-id': user.id,
+        },
+      });
 
-    setIsFavorite(!!data);
+      if (res.ok) {
+        const data = await res.json();
+        const favoriteShopIds = (data.favorites || []).map((f: any) => f.shop_id || f.shops?.id);
+        setIsFavorite(favoriteShopIds.includes(shopId));
+      } else {
+        setIsFavorite(false);
+      }
+    } catch (error) {
+      console.error("Error checking favorite:", error);
+      setIsFavorite(false);
+    }
   };
 
   const toggleFavorite = async () => {
-    if (!user?.id) {
+    if (!user?.id || !apiUrl) {
       window.location.href = "/customer-login";
       return;
     }
 
-    const supabase = getSupabaseClient();
-    
-    // Get customer_profile_id from customer_auth_id
-    const { data: profile } = await supabase
-      .from("customer_profiles")
-      .select("id")
-      .eq("customer_auth_id", user.id)
-      .maybeSingle();
-
-    if (!profile?.id) {
-      // Try fallback: check if customer_profiles.id = user.id (old structure)
-      const { data: profileFallback } = await supabase
-        .from("customer_profiles")
-        .select("id")
-        .eq("id", user.id)
-        .maybeSingle();
-      
-      if (!profileFallback?.id) {
-        alert("Customer profile not found. Please contact support.");
-        return;
-      }
-      
-      // Use fallback profile
+    try {
       if (isFavorite) {
-        const { error } = await supabase
-          .from("customer_favorites")
-          .delete()
-          .eq("customer_id", profileFallback.id)
-          .eq("shop_id", shopId);
-        if (error) {
+        // Remove favorite
+        const res = await fetch(`${apiUrl}/customers/favorites/${shopId}`, {
+          method: 'DELETE',
+          headers: {
+            'x-user-id': user.id,
+          },
+        });
+
+        if (res.ok) {
+          setIsFavorite(false);
+        } else {
+          const error = await res.json();
           console.error("Error removing favorite:", error);
           alert("Failed to remove favorite");
-        } else {
-          setIsFavorite(false);
         }
       } else {
-        const { error } = await supabase
-          .from("customer_favorites")
-          .insert({
-            customer_id: profileFallback.id,
-            shop_id: shopId,
-          });
-        if (error) {
-          console.error("Error adding favorite:", error);
-          alert("Failed to add favorite");
-        } else {
-          setIsFavorite(true);
-        }
-      }
-      return;
-    }
-
-    // Use profile.id as customer_id
-    if (isFavorite) {
-      const { error } = await supabase
-        .from("customer_favorites")
-        .delete()
-        .eq("customer_id", profile.id)
-        .eq("shop_id", shopId);
-      if (error) {
-        console.error("Error removing favorite:", error);
-        alert("Failed to remove favorite");
-      } else {
-        setIsFavorite(false);
-      }
-    } else {
-      const { error } = await supabase
-        .from("customer_favorites")
-        .insert({
-          customer_id: profile.id,
-          shop_id: shopId,
+        // Add favorite
+        const res = await fetch(`${apiUrl}/customers/favorites`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': user.id,
+          },
+          body: JSON.stringify({ shop_id: shopId }),
         });
-      if (error) {
-        console.error("Error adding favorite:", error);
-        alert("Failed to add favorite");
-      } else {
-        setIsFavorite(true);
+
+        if (res.ok) {
+          setIsFavorite(true);
+        } else {
+          const error = await res.json();
+          console.error("Error adding favorite:", error);
+          if (res.status === 409) {
+            // Already in favorites, just update UI
+            setIsFavorite(true);
+          } else {
+            alert("Failed to add favorite");
+          }
+        }
       }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      alert("Failed to update favorite");
     }
   };
 

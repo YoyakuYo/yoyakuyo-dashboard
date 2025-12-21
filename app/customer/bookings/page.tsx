@@ -65,6 +65,8 @@ function CustomerBookingsPageContent() {
     // CRITICAL: user.id from useCustomAuth() IS the canonical users.id
     // Query bookings for both 'line' and 'user' booking types (web users can have both)
     const canonicalUserId = user.id;
+    // Query bookings - filter by user_id (works for both LINE and web user bookings)
+    // Note: booking_type filter removed as it may not exist or cause query issues
     const { data: bookings, error: bookingsError } = await supabase
       .from("bookings")
       .select(`
@@ -81,7 +83,6 @@ function CustomerBookingsPageContent() {
           price
         )
       `)
-      .in("booking_type", ["line", "user"]) // Show both LINE and web user bookings
       .eq("user_id", canonicalUserId)
       .order("created_at", { ascending: false });
     
