@@ -103,6 +103,13 @@ function CustomerBookingsPageContent() {
           .eq("customer_profile_id", customerProfileId)
           .order("created_at", { ascending: false });
 
+        console.log('[Customer Bookings] Query by customer_profile_id:', {
+          customerProfileId,
+          found: profileData?.length || 0,
+          error: profileError?.message,
+          bookings: profileData?.map(b => ({ id: b.id, customer_profile_id: b.customer_profile_id, user_id: b.user_id, customer_id: b.customer_id })) || []
+        });
+
         if (!profileError && profileData) {
           profileData.forEach(booking => {
             if (!seenIds.has(booking.id)) {
@@ -112,7 +119,7 @@ function CustomerBookingsPageContent() {
           });
         }
       } catch (e) {
-        // Column might not exist, ignore
+        console.error('[Customer Bookings] Error querying by customer_profile_id:', e);
       }
     }
 
@@ -137,6 +144,13 @@ function CustomerBookingsPageContent() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
+      console.log('[Customer Bookings] Query by user_id:', {
+        userId: user.id,
+        found: userData?.length || 0,
+        error: userError?.message,
+        bookings: userData?.map(b => ({ id: b.id, customer_profile_id: b.customer_profile_id, user_id: b.user_id, customer_id: b.customer_id })) || []
+      });
+
       if (!userError && userData) {
         userData.forEach(booking => {
           if (!seenIds.has(booking.id)) {
@@ -146,7 +160,7 @@ function CustomerBookingsPageContent() {
         });
       }
     } catch (e) {
-      // Column might not exist, ignore
+      console.error('[Customer Bookings] Error querying by user_id:', e);
     }
 
     // Try customer_id (for old bookings)
@@ -170,6 +184,13 @@ function CustomerBookingsPageContent() {
         .eq("customer_id", user.id)
         .order("created_at", { ascending: false });
 
+      console.log('[Customer Bookings] Query by customer_id:', {
+        customerId: user.id,
+        found: customerData?.length || 0,
+        error: customerError?.message,
+        bookings: customerData?.map(b => ({ id: b.id, customer_profile_id: b.customer_profile_id, user_id: b.user_id, customer_id: b.customer_id })) || []
+      });
+
       if (!customerError && customerData) {
         customerData.forEach(booking => {
           if (!seenIds.has(booking.id)) {
@@ -179,7 +200,7 @@ function CustomerBookingsPageContent() {
         });
       }
     } catch (e) {
-      // Ignore errors
+      console.error('[Customer Bookings] Error querying by customer_id:', e);
     }
 
     // Sort by created_at descending
