@@ -60,6 +60,61 @@ function CustomerBookingsPageContent() {
       return;
     }
 
+    // Use API endpoint to bypass RLS (custom auth users have auth.uid() = NULL)
+    try {
+      const { apiUrl } = await import("@/lib/apiClient");
+      const res = await fetch(`${apiUrl}/customers/bookings`, {
+        headers: {
+          'x-user-id': user.id,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const bookings = data.bookings || [];
+        
+        console.log('[Customer Bookings] API response:', JSON.stringify({
+          found: bookings.length,
+          bookingIds: bookings.map((b: any) => b.id),
+        }, null, 2));
+        
+        // Apply filter
+        let filteredBookings = bookings;
+        if (filter !== "all") {
+          if (filter === "upcoming") {
+            filteredBookings = bookings.filter((b: any) => 
+              b.status === "pending" || b.status === "confirmed"
+            );
+          } else {
+            filteredBookings = bookings.filter((b: any) => b.status === filter);
+          }
+        }
+
+        // Sort by created_at descending
+        filteredBookings.sort((a: any, b: any) => {
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
+          return dateB - dateA;
+        });
+
+        setBookings(filteredBookings);
+        setLoading(false);
+        return;
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[Customer Bookings] API error:', res.status, errorData);
+        setBookings([]);
+        setLoading(false);
+        return;
+      }
+    } catch (error: any) {
+      console.error('[Customer Bookings] Error calling API:', error);
+      setBookings([]);
+      setLoading(false);
+      return;
+    }
+
+    // FALLBACK: Direct Supabase query (will be blocked by RLS for custom auth users)
     const supabase = getSupabaseClient();
     
     // Get customer profile ID first
