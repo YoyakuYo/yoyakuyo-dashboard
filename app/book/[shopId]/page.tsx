@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
+import { useCustomAuth } from '@/lib/useCustomAuth';
 import { BrowseAIAssistant } from '@/app/browse/components/BrowseAIAssistant';
 
 interface Service {
@@ -33,6 +34,7 @@ export default function PublicBookingPage() {
   const params = useParams();
   const shopId = params?.shopId as string;
   const t = useTranslations();
+  const { user } = useCustomAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [timeslots, setTimeslots] = useState<Timeslot[]>([]);
   const [selectedService, setSelectedService] = useState<string | null>(null);
@@ -40,6 +42,7 @@ export default function PublicBookingPage() {
   const [selectedTimeslot, setSelectedTimeslot] = useState<Timeslot | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [customerProfile, setCustomerProfile] = useState<{ name: string; email: string } | null>(null);
   const [shopName, setShopName] = useState<string>('');
   const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -65,6 +68,36 @@ export default function PublicBookingPage() {
       setAnonymousSessionId(sessionId);
     }
   }, []);
+
+  // Load customer profile if user is logged in
+  useEffect(() => {
+    if (user?.id) {
+      const loadCustomerProfile = async () => {
+        const supabase = getSupabaseClient();
+        const { data: profile } = await supabase
+          .from("customer_profiles")
+          .select("name, email, full_name")
+          .eq("customer_auth_id", user.id)
+          .maybeSingle();
+
+        if (profile) {
+          const profileName = profile.full_name || profile.name || user.name || user.email?.split('@')[0] || '';
+          const profileEmail = profile.email || user.email || '';
+          setCustomerProfile({ name: profileName, email: profileEmail });
+          setName(profileName);
+          setEmail(profileEmail);
+        } else {
+          // Fallback to user data if profile not found
+          const userName = user.name || user.email?.split('@')[0] || '';
+          const userEmail = user.email || '';
+          setCustomerProfile({ name: userName, email: userEmail });
+          setName(userName);
+          setEmail(userEmail);
+        }
+      };
+      loadCustomerProfile();
+    }
+  }, [user]);
 
   // LINE QR code feature removed - staff features were removed
   // Keeping state for potential future implementation
@@ -164,19 +197,29 @@ export default function PublicBookingPage() {
       alert(t('booking.selectTimeslot') || 'Please check availability and select a timeslot');
       return;
     }
-    if (!name.trim()) {
-      alert(t('booking.enterName') || 'Please enter your name');
-      return;
-    }
-    if (!email.trim()) {
-      alert(t('booking.enterEmail') || 'Please enter your email');
-      return;
-    }
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      alert(t('booking.invalidEmail') || 'Please enter a valid email address');
-      return;
+    
+    // For guest users, validate name and email
+    if (!user) {
+      if (!name.trim()) {
+        alert(t('booking.enterName') || 'Please enter your name');
+        return;
+      }
+      if (!email.trim()) {
+        alert(t('booking.enterEmail') || 'Please enter your email');
+        return;
+      }
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        alert(t('booking.invalidEmail') || 'Please enter a valid email address');
+        return;
+      }
+    } else {
+      // For logged-in users, use customer profile data
+      const finalName = customerProfile?.name || name || user.name || user.email?.split('@')[0] || 'Customer';
+      const finalEmail = customerProfile?.email || email || user.email || '';
+      setName(finalName);
+      setEmail(finalEmail);
     }
 
     setBookingLoading(true);
@@ -197,35 +240,47 @@ export default function PublicBookingPage() {
     }
 
     try {
+      // Use customer profile data if logged in, otherwise use form input
+      const finalName = user && customerProfile 
+        ? customerProfile.name 
+        : name.trim();
+      const finalEmail = user && customerProfile 
+        ? customerProfile.email 
+        : email.trim();
+
       const res = await fetch(`${apiUrl}/bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(user?.id && { 'x-user-id': user.id }), // Include user ID if logged in
         },
-          body: JSON.stringify({
-            shop_id: shopId,
-            service_id: selectedService,
-            customer_name: name.trim(),
-            customer_email: email || null,
-            date: selectedDate,
-            time_slot: `${timeslotToUse.start_time}-${timeslotToUse.end_time}`,
-            start_time: startDateTime.toISOString(),
-            end_time: endDateTime.toISOString(),
-            notes: `Booking for ${name}`,
-          }),
+        body: JSON.stringify({
+          shop_id: shopId,
+          service_id: selectedService,
+          customer_name: finalName,
+          customer_email: finalEmail || null,
+          date: selectedDate,
+          time_slot: `${timeslotToUse.start_time}-${timeslotToUse.end_time}`,
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
+          notes: `Booking for ${finalName}`,
+        }),
       });
 
       if (res.ok) {
         const data = await res.json();
         alert(t('booking.bookingSuccessful') || 'Booking successful!');
-        // Reset form
+        // Reset form (but keep customer profile data if logged in)
         setSelectedService(null);
         setSelectedDate(null);
         setSelectedTimeslot(null);
         setTimeslots([]);
         setAvailabilityChecked(false);
-        setName('');
-        setEmail('');
+        if (!user) {
+          // Only clear name/email for guest users
+          setName('');
+          setEmail('');
+        }
       } else {
         const errorData = await res.json().catch(() => ({ error: t('common.unknown') }));
         alert(`${t('booking.bookingFailed') || 'Booking failed'}: ${errorData.error || t('common.tryAgain') || 'Please try again'}`);
@@ -320,32 +375,57 @@ export default function PublicBookingPage() {
 
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
-            <div className="mb-3">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('booking.yourName')} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder={t('booking.yourName')}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('common.email')} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                placeholder={t('booking.yourEmail') || t('common.email')}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              />
-            </div>
+            {user && customerProfile ? (
+              // Show customer info for logged-in users (read-only)
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('booking.yourName')}
+                  </label>
+                  <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
+                    {customerProfile.name}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('common.email')}
+                  </label>
+                  <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
+                    {customerProfile.email}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // Show input fields for guest users
+              <>
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('booking.yourName')} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={t('booking.yourName')}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('common.email')} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    placeholder={t('booking.yourEmail') || t('common.email')}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <button
