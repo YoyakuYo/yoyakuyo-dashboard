@@ -36,8 +36,10 @@ interface Shop {
 
 interface Booking {
   id: string;
-  booking_date: string;
-  booking_time: string;
+  booking_date?: string;
+  booking_time?: string;
+  start_time?: string;
+  date?: string;
   status: string;
   customer_name?: string;
   service_name?: string;
