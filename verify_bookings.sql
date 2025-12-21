@@ -14,8 +14,7 @@ SELECT
   shop_id,
   service_id,
   status,
-  created_at,
-  booking_type
+  created_at
 FROM bookings
 ORDER BY created_at DESC
 LIMIT 20;
@@ -94,7 +93,7 @@ SELECT
 FROM information_schema.columns
 WHERE table_schema = 'public'
   AND table_name = 'bookings'
-  AND column_name IN ('customer_id', 'user_id', 'customer_profile_id', 'booking_type')
+  AND column_name IN ('customer_id', 'user_id', 'customer_profile_id')
 ORDER BY column_name;
 
 -- ============================================
