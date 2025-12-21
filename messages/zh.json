@@ -678,6 +678,15 @@
       "AI助手支持"
     ]
   },
+  "payment": {
+    "completePayment": "完成付款",
+    "bookingSummary": "预约摘要",
+    "amount": "金额",
+    "changePaymentMethod": "更改付款方式",
+    "noBookingFound": "未找到预约。请开始新的预约。",
+    "configRequired": "需要配置",
+    "configRequiredDesc": "付款方式需要在环境变量中设置API密钥。"
+  },
   "line": {
     "loginWithLine": "使用LINE登录",
     "connectLineAccount": "连接LINE账户",

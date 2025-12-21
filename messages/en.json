@@ -871,6 +871,15 @@
       "AI assistant support"
     ]
   },
+  "payment": {
+    "completePayment": "Complete Payment",
+    "bookingSummary": "Booking Summary",
+    "amount": "Amount",
+    "changePaymentMethod": "Change Payment Method",
+    "noBookingFound": "No booking found. Please start a new booking.",
+    "configRequired": "Configuration Required",
+    "configRequiredDesc": "Payment methods require API keys to be set in environment variables."
+  },
   "line": {
     "loginWithLine": "Login with LINE",
     "connectLineAccount": "Connect LINE Account",

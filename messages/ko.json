@@ -175,6 +175,15 @@
       "AI 어시스턴트 지원"
     ]
   },
+  "payment": {
+    "completePayment": "결제 완료",
+    "bookingSummary": "예약 요약",
+    "amount": "금액",
+    "changePaymentMethod": "결제 방법 변경",
+    "noBookingFound": "예약을 찾을 수 없습니다. 새로운 예약을 시작해주세요.",
+    "configRequired": "설정 필요",
+    "configRequiredDesc": "결제 방법에는 환경 변수에 API 키를 설정해야 합니다."
+  },
   "line": {
     "loginWithLine": "LINE으로 로그인",
     "connectLineAccount": "LINE 계정 연결",

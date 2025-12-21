@@ -868,6 +868,15 @@
       "AIアシスタントサポート"
     ]
   },
+  "payment": {
+    "completePayment": "お支払いを完了",
+    "bookingSummary": "予約概要",
+    "amount": "金額",
+    "changePaymentMethod": "支払い方法を変更",
+    "noBookingFound": "予約が見つかりませんでした。新しい予約を開始してください。",
+    "configRequired": "設定が必要",
+    "configRequiredDesc": "支払い方法には環境変数にAPIキーを設定する必要があります。"
+  },
   "line": {
     "loginWithLine": "LINEでログイン",
     "connectLineAccount": "LINEアカウントを接続",

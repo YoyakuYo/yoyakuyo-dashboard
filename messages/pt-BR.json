@@ -678,6 +678,15 @@
       "Suporte de assistente IA"
     ]
   },
+  "payment": {
+    "completePayment": "Completar Pagamento",
+    "bookingSummary": "Resumo da Reserva",
+    "amount": "Valor",
+    "changePaymentMethod": "Alterar Método de Pagamento",
+    "noBookingFound": "Nenhuma reserva encontrada. Por favor, inicie uma nova reserva.",
+    "configRequired": "Configuração Necessária",
+    "configRequiredDesc": "Os métodos de pagamento exigem que as chaves de API sejam definidas nas variáveis de ambiente."
+  },
   "line": {
     "loginWithLine": "Entrar com LINE",
     "connectLineAccount": "Conectar conta LINE",

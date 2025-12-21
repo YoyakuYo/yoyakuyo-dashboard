@@ -40,7 +40,7 @@ export default function PaymentPage() {
         loadServiceDetails(parsed.service_id);
         setLoading(false);
       } else {
-        setError("No booking found. Please start a new booking.");
+        setError(t('payment.noBookingFound'));
         setLoading(false);
       }
     }
@@ -127,16 +127,16 @@ export default function PaymentPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">Complete Payment</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">{t('payment.completePayment')}</h1>
 
         {/* Booking Summary */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Booking Summary</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('payment.bookingSummary')}</h2>
           <div className="space-y-2 text-gray-600">
-            <p><strong>Service:</strong> {productName}</p>
-            <p><strong>Date:</strong> {booking?.date || "N/A"}</p>
-            <p><strong>Time:</strong> {booking?.time_slot || booking?.start_time || "N/A"}</p>
-            <p><strong>Amount:</strong> <span className="font-bold text-lg">¥{Math.round(amount).toLocaleString()}</span></p>
+            <p><strong>{t('booking.service')}:</strong> {productName}</p>
+            <p><strong>{t('common.date')}:</strong> {booking?.date || t('dashboard.na')}</p>
+            <p><strong>{t('common.time')}:</strong> {booking?.time_slot || booking?.start_time || t('dashboard.na')}</p>
+            <p><strong>{t('payment.amount')}:</strong> <span className="font-bold text-lg">¥{Math.round(amount).toLocaleString()}</span></p>
           </div>
         </div>
 
@@ -161,7 +161,7 @@ export default function PaymentPage() {
               onClick={() => setSelectedMethod(null)}
               className="mb-4 text-blue-600 hover:text-blue-700 text-sm underline"
             >
-              ← Change Payment Method
+              ← {t('payment.changePaymentMethod')}
             </button>
 
             {selectedMethod === "stripe" && (
@@ -201,7 +201,7 @@ export default function PaymentPage() {
         {/* Configuration Notice */}
         <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-xs text-yellow-800">
-            <strong>Configuration Required:</strong> Payment methods require API keys to be set in environment variables.
+            <strong>{t('payment.configRequired')}:</strong> {t('payment.configRequiredDesc')}
             <br />
             <strong>Stripe:</strong> STRIPE_SECRET_KEY, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
             <br />
