@@ -21,6 +21,7 @@ import analytics from "./routes/analytics";
 import line from "./routes/line";
 import qr from "./routes/qr";
 import subscriptions from "./routes/subscriptions";
+import conversations from "./routes/conversations";
 import path from "path";
 
 // Only load .env file if it exists (for local development)
@@ -71,6 +72,8 @@ app.use("/qr", qr);
 app.use("/subscriptions", subscriptions);
 // Also mount LINE routes under /api/line for production/ngrok compatibility
 app.use("/api/line", line);
+// Mount conversations routes under /api/conversations
+app.use("/api/conversations", conversations);
 
 export default app;
 
