@@ -18,7 +18,7 @@ router.get("/", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    // Get customer profile
+    // Get customer profile - auto-create if it doesn't exist (for GET endpoint, we don't need to create, just return empty)
     const { data: customerProfile, error: profileError } = await dbClient
       .from("customer_profiles")
       .select("id")
@@ -33,50 +33,10 @@ router.get("/", async (req: Request, res: Response) => {
         .eq("id", userId)
         .maybeSingle();
       
+      // If no profile found, return empty conversations (user might not have profile yet)
       if (!profileFallback?.id) {
-        return res.status(404).json({ error: "Customer profile not found" });
+        return res.json({ conversations: [] });
       }
-
-    // Get conversations for this customer
-    // Note: conversations.customer_id references users(id), so we use userId (which equals customer_auth_id)
-    let query = dbClient
-      .from("conversations")
-      .select(`
-        *,
-        shop:shops(id, name),
-        owner:users!conversations_owner_id_fkey(id, email, full_name)
-      `)
-      .eq("customer_id", userId);
-
-      if (type) {
-        query = query.eq("type", type);
-      }
-
-      const { data: conversations, error: convError } = await query;
-
-      if (convError) {
-        console.error("Error fetching conversations:", convError);
-        return res.status(500).json({ error: "Failed to fetch conversations" });
-      }
-
-      // Get unread counts for each conversation
-      const conversationsWithUnread = await Promise.all(
-        (conversations || []).map(async (conv: any) => {
-          const { count } = await dbClient
-            .from("messages")
-            .select("*", { count: "exact", head: true })
-            .eq("conversation_id", conv.id)
-            .eq("is_read", false)
-            .neq("sender_role", "customer"); // Only count unread messages from owner/ai
-
-          return {
-            ...conv,
-            unread_count: count || 0,
-          };
-        })
-      );
-
-      return res.json({ conversations: conversationsWithUnread });
     }
 
     // Get conversations for this customer
