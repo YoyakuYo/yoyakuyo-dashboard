@@ -133,25 +133,25 @@ function CustomerBookingsPageContent() {
     }
 
     // DEBUG ASSERTION: Check for orphaned bookings
-    // If there are bookings for line_user_id but not for canonical user_id, log error
-    if (allBookings.length === 0) {
-      // Check if there are any bookings that might belong to this user but have wrong user_id
+    // If there are bookings for customer_profile_id but not showing up, log error
+    if (allBookings.length === 0 && customerProfileId) {
+      // Check if there are any bookings that might belong to this user but have wrong customer_profile_id
       const { data: orphanedCheck } = await supabase
         .from("bookings")
         .select("id, user_id, customer_profile_id")
-        .eq("customer_profile_id", user.id)
+        .eq("customer_profile_id", customerProfileId)
         .limit(1)
         .maybeSingle();
       
       if (orphanedCheck) {
         console.error(`[Customer Bookings] ❌ ORPHANED BOOKING DETECTED!`);
         console.error(`[Customer Bookings] ❌ Booking ${orphanedCheck.id} has customer_profile_id=${orphanedCheck.customer_profile_id} but user_id=${orphanedCheck.user_id}`);
-        console.error(`[Customer Bookings] ❌ Dashboard user_id=${canonicalUserId} does not match booking.user_id`);
+        console.error(`[Customer Bookings] ❌ Dashboard user_id=${user.id} does not match booking.user_id`);
         console.error(`[Customer Bookings] ❌ This booking will NOT appear in dashboard!`);
       }
     }
     
-    console.log(`[Customer Bookings] Found ${allBookings.length} bookings for canonical user_id: ${canonicalUserId}`);
+    console.log(`[Customer Bookings] Found ${allBookings.length} bookings for user_id: ${user.id}, customer_profile_id: ${customerProfileId || 'none'}`);
     setBookings(filteredBookings);
     setLoading(false);
   };
