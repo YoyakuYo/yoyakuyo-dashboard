@@ -1,4 +1,36 @@
 {
+  "common": {
+    "name": "이름",
+    "email": "이메일",
+    "phone": "전화",
+    "address": "주소"
+  },
+  "nav": {
+    "dashboard": "대시보드",
+    "myShop": "내 매장",
+    "messages": "메시지",
+    "aiAssistant": "AI 어시스턴트",
+    "contactSupport": "고객 지원",
+    "subscriptions": "구독 및 청구",
+    "settings": "설정"
+  },
+  "myShop": {
+    "title": "내 매장",
+    "overview": "개요",
+    "services": "서비스",
+    "staff": "스태프",
+    "bookings": "예약",
+    "photos": "사진",
+    "reviews": "리뷰",
+    "calendar": "캘린더",
+    "shopName": "매장 이름",
+    "address": "주소",
+    "phone": "전화",
+    "email": "이메일",
+    "website": "웹사이트",
+    "shopOverview": "매장 개요",
+    "editShop": "매장 편집"
+  },
   "browse": {
     "byArea": "지역별",
     "byCategory": "카테고리별",

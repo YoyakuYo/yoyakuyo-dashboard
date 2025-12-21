@@ -106,13 +106,13 @@ const Sidebar = React.memo(() => {
   };
 
   const navItems = [
-    { href: '/owner/dashboard', label: 'Dashboard', icon: '🏠' },
-    { href: '/owner/shop-profile', label: 'My Shop', icon: '🏪' },
-    { href: '/owner/messages', label: 'Messages', icon: '💬', badge: unreadCount > 0 ? unreadCount : undefined },
-    { href: '/owner/ai', label: 'AI Assistant', icon: '🤖' },
-    { href: '/owner/support', label: 'Contact Support', icon: '💬' },
-    { href: '/owner/subscription', label: 'Subscriptions & Billing', icon: '💳' },
-    { href: '/owner/settings', label: 'Settings', icon: '⚙️' },
+    { href: '/owner/dashboard', labelKey: 'nav.dashboard', icon: '🏠' },
+    { href: '/owner/shop-profile', labelKey: 'nav.myShop', icon: '🏪' },
+    { href: '/owner/messages', labelKey: 'nav.messages', icon: '💬', badge: unreadCount > 0 ? unreadCount : undefined },
+    { href: '/owner/ai', labelKey: 'nav.aiAssistant', icon: '🤖' },
+    { href: '/owner/support', labelKey: 'nav.contactSupport', icon: '💬' },
+    { href: '/owner/subscription', labelKey: 'nav.subscriptions', icon: '💳' },
+    { href: '/owner/settings', labelKey: 'nav.settings', icon: '⚙️' },
   ];
 
   const MobileDrawer = (
@@ -151,7 +151,7 @@ const Sidebar = React.memo(() => {
                     <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r"></span>
                   )}
                   <span className="text-xl">{item.icon}</span>
-                  <span className={`font-medium ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
+                  <span className={`font-medium ${isActive ? 'font-bold' : ''}`}>{t(item.labelKey)}</span>
                   {item.badge !== undefined && item.badge > 0 && (
                     <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
                       {item.badge}
