@@ -107,6 +107,35 @@ router.post('/', async (req: Request, res: Response) => {
             email  // Legacy support
         } = req.body;
 
+        // Get user_id from header (for logged-in customers)
+        const userId = req.headers['x-user-id'] as string;
+
+        // Get customer_profile_id if user is logged in
+        let customerProfileId: string | null = null;
+        if (userId) {
+            // Try to find customer profile by customer_auth_id
+            const { data: profile } = await supabase
+                .from("customer_profiles")
+                .select("id")
+                .eq("customer_auth_id", userId)
+                .maybeSingle();
+
+            if (profile?.id) {
+                customerProfileId = profile.id;
+            } else {
+                // Fallback: check if customer_profiles.id = user.id (old structure)
+                const { data: profileFallback } = await supabase
+                    .from("customer_profiles")
+                    .select("id")
+                    .eq("id", userId)
+                    .maybeSingle();
+                
+                if (profileFallback?.id) {
+                    customerProfileId = profileFallback.id;
+                }
+            }
+        }
+
         // Support both new format (customer_name) and legacy (first_name)
         const finalCustomerName = customer_name || first_name || '';
 
@@ -132,6 +161,8 @@ router.post('/', async (req: Request, res: Response) => {
             customer_email: customer_email || email || null,  // Required for guest bookings
             customer_phone: customer_phone || phone || null,  // Optional but recommended for guest bookings
             status: 'pending',
+            user_id: userId || null,  // Set user_id for logged-in customers
+            customer_profile_id: customerProfileId || null,  // Set customer_profile_id for logged-in customers
         };
 
         const { data: newBooking, error } = await supabase
