@@ -166,6 +166,7 @@ export default function PublicShopDetailPage() {
   const [bookingDate, setBookingDate] = useState<string>('');
   const [bookingTime, setBookingTime] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
+  const [customerEmail, setCustomerEmail] = useState<string>('');
   const [customerProfile, setCustomerProfile] = useState<{ name: string; email: string } | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
@@ -367,7 +368,7 @@ export default function PublicShopDetailPage() {
           service_id: bookingServiceId,
           staff_id: bookingStaffId || null,
           customer_name: customerName || customerProfile?.name || user?.email?.split('@')[0] || 'Guest',
-          customer_email: user?.email || null,
+          customer_email: customerEmail || user?.email || null,
           date: bookingDate,
           time_slot: bookingTime,
           start_time: startDateTime.toISOString(),
@@ -701,19 +702,34 @@ export default function PublicShopDetailPage() {
               </div>
 
               {!user && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('booking.yourName') || 'Your Name'} <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    required
-                    placeholder={t('booking.yourName') || 'Enter your name'}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
-                </div>
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('booking.yourName') || 'Your Name'} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      required
+                      placeholder={t('booking.yourName') || 'Enter your name'}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('common.email') || 'Email'} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      required
+                      placeholder={t('booking.yourEmail') || 'Enter your email'}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    />
+                  </div>
+                </>
               )}
 
               {bookingError && (
