@@ -121,7 +121,7 @@ export default function ReviewForm({
             required
             maxLength={100}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter your name"
+            placeholder={t('reviews.enterYourName')}
           />
         </div>
       )}

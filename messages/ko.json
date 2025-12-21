@@ -242,7 +242,15 @@
     "shopClaimRequests": "매장 소유권 주장 요청",
     "reviewAndApprove": "매장 소유권 주장을 검토하고 승인/거부",
     "importantVerificationRule": "중요한 인증 규칙:",
-    "verificationRuleDesc": "업로드된 문서가 YoyakuYo의 이 매장과 동일한 매장 이름과 주소를 명확하게 보여주는 경우에만 승인하세요. 이름/주소가 일치하지 않으면 주장을 거부하세요."
+    "verificationRuleDesc": "업로드된 문서가 YoyakuYo의 이 매장과 동일한 매장 이름과 주소를 명확하게 보여주는 경우에만 승인하세요. 이름/주소가 일치하지 않으면 주장을 거부하세요.",
+    "shopInformation": "매장 정보",
+    "shopId": "매장 ID",
+    "claimantInformation": "신청자 정보",
+    "matchingInformation": "일치 정보 (인증용):",
+    "shopNameAtClaim": "신청 시 매장 이름",
+    "shopAddressAtClaim": "신청 시 매장 주소",
+    "uploadedDocuments": "업로드된 문서",
+    "addNote": "결정에 대한 메모 추가..."
   },
   "verification": {
     "verified": "인증됨",

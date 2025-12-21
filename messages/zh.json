@@ -783,7 +783,15 @@
     "shopClaimRequests": "店铺申请请求",
     "reviewAndApprove": "审查并批准/拒绝店铺所有权申请",
     "importantVerificationRule": "重要验证规则:",
-    "verificationRuleDesc": "仅当上传的文件清楚地显示与YoyakuYo中此店铺相同的店铺名称和地址时才批准。如果名称/地址不匹配，请拒绝申请。"
+    "verificationRuleDesc": "仅当上传的文件清楚地显示与YoyakuYo中此店铺相同的店铺名称和地址时才批准。如果名称/地址不匹配，请拒绝申请。",
+    "shopInformation": "店铺信息",
+    "shopId": "店铺ID",
+    "claimantInformation": "申请人信息",
+    "matchingInformation": "匹配信息（用于验证）:",
+    "shopNameAtClaim": "申请时的店铺名称",
+    "shopAddressAtClaim": "申请时的店铺地址",
+    "uploadedDocuments": "已上传的文件",
+    "addNote": "添加关于您决定的备注..."
   },
   "verification": {
     "verified": "已验证",

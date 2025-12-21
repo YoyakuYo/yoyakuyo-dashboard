@@ -973,7 +973,15 @@
     "shopClaimRequests": "店舗申請リクエスト",
     "reviewAndApprove": "店舗所有権の申請を確認して承認/拒否",
     "importantVerificationRule": "重要な認証ルール:",
-    "verificationRuleDesc": "アップロードされた書類がYoyakuYoのこの店舗と同じ店舗名と住所を明確に示している場合のみ承認してください。名前/住所が一致しない場合は、申請を拒否してください。"
+    "verificationRuleDesc": "アップロードされた書類がYoyakuYoのこの店舗と同じ店舗名と住所を明確に示している場合のみ承認してください。名前/住所が一致しない場合は、申請を拒否してください。",
+    "shopInformation": "店舗情報",
+    "shopId": "店舗ID",
+    "claimantInformation": "申請者情報",
+    "matchingInformation": "一致情報（認証用）:",
+    "shopNameAtClaim": "申請時の店舗名",
+    "shopAddressAtClaim": "申請時の店舗住所",
+    "uploadedDocuments": "アップロードされた書類",
+    "addNote": "決定についてメモを追加..."
   },
   "verification": {
     "verified": "認証済み",

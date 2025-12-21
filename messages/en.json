@@ -1002,7 +1002,15 @@
     "shopClaimRequests": "Shop Claim Requests",
     "reviewAndApprove": "Review and approve/reject shop ownership claims",
     "importantVerificationRule": "Important Verification Rule:",
-    "verificationRuleDesc": "Approve only if the uploaded documents clearly show the same shop name and address as this shop in YoyakuYo. If the name/address does not match, reject the claim."
+    "verificationRuleDesc": "Approve only if the uploaded documents clearly show the same shop name and address as this shop in YoyakuYo. If the name/address does not match, reject the claim.",
+    "shopInformation": "Shop Information",
+    "shopId": "Shop ID",
+    "claimantInformation": "Claimant Information",
+    "matchingInformation": "Matching Information (for verification):",
+    "shopNameAtClaim": "Shop Name at Time of Claim",
+    "shopAddressAtClaim": "Shop Address at Time of Claim",
+    "uploadedDocuments": "Uploaded Documents",
+    "addNote": "Add a note about your decision..."
   },
   "verification": {
     "verified": "Verified",

@@ -232,18 +232,18 @@ export default function AdminShopClaimsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Left Column: Shop Info */}
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Shop Information</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.shopInformation')}</h3>
                       <div className="space-y-2 text-sm">
                         <div>
-                          <span className="font-medium text-gray-700">Shop Name:</span>
+                          <span className="font-medium text-gray-700">{t('myShop.shopName')}:</span>
                           <p className="text-gray-900">{claim.shops?.name || claim.shop_name_at_time}</p>
                         </div>
                         <div>
-                          <span className="font-medium text-gray-700">Shop Address:</span>
+                          <span className="font-medium text-gray-700">{t('myShop.address')}:</span>
                           <p className="text-gray-900">{claim.shops?.address || claim.shop_address_at_time}</p>
                         </div>
                         <div>
-                          <span className="font-medium text-gray-700">Shop ID:</span>
+                          <span className="font-medium text-gray-700">{t('admin.shopId')}:</span>
                           <p className="text-gray-600 font-mono text-xs">{claim.shop_id}</p>
                         </div>
                       </div>
@@ -251,7 +251,7 @@ export default function AdminShopClaimsPage() {
 
                     {/* Right Column: Claimant Info */}
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Claimant Information</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.claimantInformation')}</h3>
                       <div className="space-y-2 text-sm">
                         <div>
                           <span className="font-medium text-gray-700">Name:</span>
@@ -294,15 +294,15 @@ export default function AdminShopClaimsPage() {
 
                   {/* Matching Info */}
                   <div className="mt-6 pt-6 border-t border-gray-200">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Matching Information (for verification):</h4>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('admin.matchingInformation')}</h4>
                     <div className="bg-gray-50 rounded-lg p-3 text-sm">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <span className="font-medium text-gray-700">Shop Name at Time of Claim:</span>
+                          <span className="font-medium text-gray-700">{t('admin.shopNameAtClaim')}:</span>
                           <p className="text-gray-900 mt-1">{claim.shop_name_at_time}</p>
                         </div>
                         <div>
-                          <span className="font-medium text-gray-700">Shop Address at Time of Claim:</span>
+                          <span className="font-medium text-gray-700">{t('admin.shopAddressAtClaim')}:</span>
                           <p className="text-gray-900 mt-1">{claim.shop_address_at_time}</p>
                         </div>
                       </div>
@@ -312,7 +312,7 @@ export default function AdminShopClaimsPage() {
                   {/* Uploaded Documents */}
                   {claim.files && claim.files.length > 0 && (
                     <div className="mt-6 pt-6 border-t border-gray-200">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Uploaded Documents:</h4>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3">{t('admin.uploadedDocuments')}:</h4>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {claim.files.map((file) => (
                           <div
@@ -358,7 +358,7 @@ export default function AdminShopClaimsPage() {
                       onChange={(e) => setAdminNote({ ...adminNote, [claim.id]: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       rows={2}
-                      placeholder="Add a note about your decision..."
+                      placeholder={t('admin.addNote')}
                     />
                   </div>
 

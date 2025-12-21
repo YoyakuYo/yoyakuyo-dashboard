@@ -783,7 +783,15 @@
     "shopClaimRequests": "Solicitações de Reivindicação de Lojas",
     "reviewAndApprove": "Revisar e aprovar/rejeitar solicitações de propriedade de lojas",
     "importantVerificationRule": "Regra de Verificação Importante:",
-    "verificationRuleDesc": "Aprove apenas se os documentos carregados mostrarem claramente o mesmo nome e endereço da loja que esta loja no YoyakuYo. Se o nome/endereço não corresponder, rejeite a solicitação."
+    "verificationRuleDesc": "Aprove apenas se os documentos carregados mostrarem claramente o mesmo nome e endereço da loja que esta loja no YoyakuYo. Se o nome/endereço não corresponder, rejeite a solicitação.",
+    "shopInformation": "Informações da Loja",
+    "shopId": "ID da Loja",
+    "claimantInformation": "Informações do Solicitante",
+    "matchingInformation": "Informações Correspondentes (para verificação):",
+    "shopNameAtClaim": "Nome da Loja no Momento da Solicitação",
+    "shopAddressAtClaim": "Endereço da Loja no Momento da Solicitação",
+    "uploadedDocuments": "Documentos Carregados",
+    "addNote": "Adicionar uma nota sobre sua decisão..."
   },
   "verification": {
     "verified": "Verificado",
