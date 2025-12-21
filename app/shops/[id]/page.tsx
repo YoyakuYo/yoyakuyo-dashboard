@@ -302,11 +302,18 @@ export default function PublicShopDetailPage() {
 
   const handleReviewSubmit = async (reviewData: any) => {
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add x-user-id header for logged-in web customers
+      if (user?.id) {
+        headers['x-user-id'] = user.id;
+      }
+
       const res = await fetch(`${apiUrl}/reviews`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(reviewData),
       });
 
