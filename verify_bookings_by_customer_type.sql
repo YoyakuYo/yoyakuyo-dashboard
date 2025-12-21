@@ -23,7 +23,7 @@ SELECT
 FROM information_schema.columns
 WHERE table_schema = 'public'
   AND table_name = 'bookings'
-  AND column_name IN ('customer_id', 'user_id', 'customer_profile_id', 'line_user_id', 'booking_type')
+  AND column_name IN ('customer_id', 'user_id', 'customer_profile_id', 'source', 'booking_type')
 ORDER BY column_name;
 
 -- ============================================
@@ -53,10 +53,16 @@ FROM bookings
 WHERE customer_profile_id IS NOT NULL
 UNION ALL
 SELECT 
-  'Bookings with line_user_id (LINE customers)',
+  'Bookings with source = line (LINE customers)',
   COUNT(*)
 FROM bookings
-WHERE line_user_id IS NOT NULL
+WHERE source = 'line'
+UNION ALL
+SELECT 
+  'Bookings with source = web (Web customers)',
+  COUNT(*)
+FROM bookings
+WHERE source = 'web'
 UNION ALL
 SELECT 
   'Bookings with NULL for all customer fields',
@@ -64,8 +70,7 @@ SELECT
 FROM bookings
 WHERE customer_id IS NULL 
   AND user_id IS NULL 
-  AND customer_profile_id IS NULL 
-  AND line_user_id IS NULL;
+  AND customer_profile_id IS NULL;
 
 -- ============================================
 -- PART 4: Show sample bookings with all customer-related fields
@@ -75,7 +80,7 @@ SELECT
   customer_id,
   user_id,
   customer_profile_id,
-  line_user_id,
+  source,
   customer_name,
   customer_email,
   shop_id,
@@ -83,9 +88,9 @@ SELECT
   created_at,
   -- Determine customer type based on fields
   CASE 
-    WHEN line_user_id IS NOT NULL THEN 'LINE'
+    WHEN source = 'line' THEN 'LINE'
     WHEN user_id IS NOT NULL OR customer_profile_id IS NOT NULL THEN 'WEB'
-    WHEN customer_id IS NOT NULL THEN 'LEGACY'
+    WHEN customer_id IS NOT NULL AND (source IS NULL OR source != 'line') THEN 'LEGACY'
     ELSE 'GUEST'
   END as customer_type
 FROM bookings
@@ -128,19 +133,19 @@ LIMIT 10;
 -- ============================================
 SELECT 
   CASE 
-    WHEN line_user_id IS NOT NULL THEN 'LINE Customer'
+    WHEN source = 'line' THEN 'LINE Customer'
     WHEN user_id IS NOT NULL OR customer_profile_id IS NOT NULL THEN 'Web Customer'
-    WHEN customer_id IS NOT NULL THEN 'Legacy Customer (customer_id)'
+    WHEN customer_id IS NOT NULL AND (source IS NULL OR source != 'line') THEN 'Legacy Customer (customer_id)'
     ELSE 'Guest Booking'
   END as customer_type,
   COUNT(*) as booking_count,
-  COUNT(DISTINCT COALESCE(line_user_id, user_id::text, customer_id::text, customer_profile_id::text)) as unique_customers
+  COUNT(DISTINCT COALESCE(user_id::text, customer_id::text, customer_profile_id::text)) as unique_customers
 FROM bookings
 GROUP BY 
   CASE 
-    WHEN line_user_id IS NOT NULL THEN 'LINE Customer'
+    WHEN source = 'line' THEN 'LINE Customer'
     WHEN user_id IS NOT NULL OR customer_profile_id IS NOT NULL THEN 'Web Customer'
-    WHEN customer_id IS NOT NULL THEN 'Legacy Customer (customer_id)'
+    WHEN customer_id IS NOT NULL AND (source IS NULL OR source != 'line') THEN 'Legacy Customer (customer_id)'
     ELSE 'Guest Booking'
   END
 ORDER BY booking_count DESC;
@@ -168,20 +173,23 @@ ORDER BY b.created_at DESC
 LIMIT 10;
 
 -- ============================================
--- PART 9: Show bookings for LINE customers (if line_user_id exists)
+-- PART 9: Show bookings for LINE customers (source = 'line')
 -- ============================================
--- LINE customers (have line_user_id)
+-- LINE customers (have source = 'line')
 SELECT 
   'LINE Customer Bookings' as category,
   b.id,
   b.customer_id,
-  b.line_user_id,
+  b.source,
   b.customer_name,
   b.shop_id,
   b.status,
-  b.created_at
+  b.created_at,
+  -- Get line_user_id from line_accounts if available
+  la.line_user_id
 FROM bookings b
-WHERE b.line_user_id IS NOT NULL
+LEFT JOIN line_accounts la ON la.customer_id = b.customer_id
+WHERE b.source = 'line'
 ORDER BY b.created_at DESC
 LIMIT 10;
 
