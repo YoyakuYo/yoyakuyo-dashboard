@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation';
 import { apiUrl } from '@/lib/apiClient';
 import SupportChat from '../../components/SupportChat';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 export default function OwnerSupportPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const t = useTranslations();
   const [shopId, setShopId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,19 +65,19 @@ export default function OwnerSupportPage() {
     <div className="p-8">
       <div className="mb-6">
         <Link href="/owner/dashboard" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
-          ← Back to Dashboard
+          ← {t('common.back')} {t('nav.dashboard')}
         </Link>
-        <h1 className="text-3xl font-bold text-gray-900">Contact Support</h1>
-        <p className="text-gray-600 mt-1">Get help from our support team</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t('support.title')}</h1>
+        <p className="text-gray-600 mt-1">{t('support.subtitle')}</p>
       </div>
 
       <div className="bg-white rounded-lg shadow border border-gray-200 p-8 text-center">
-        <p className="text-gray-600 mb-4">Support feature is currently unavailable.</p>
+        <p className="text-gray-600 mb-4">{t('support.unavailable')}</p>
         <Link
           href="/owner/dashboard"
           className="text-blue-600 hover:text-blue-800 font-medium"
         >
-          Back to Dashboard →
+          {t('common.back')} {t('nav.dashboard')} →
         </Link>
       </div>
     </div>

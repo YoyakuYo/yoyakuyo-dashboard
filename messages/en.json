@@ -819,6 +819,45 @@
     "emailNotificationsNewBookings": "Email notifications for new bookings",
     "emailNotificationsCustomerMessages": "Email notifications for customer messages"
   },
+  "support": {
+    "title": "Contact Support",
+    "subtitle": "Get help from our support team",
+    "unavailable": "Support feature is currently unavailable."
+  },
+  "subscription": {
+    "title": "Subscription Plans",
+    "subtitle": "Choose a plan that fits your business needs",
+    "selectShop": "Select Shop",
+    "currentSubscription": "Current Subscription",
+    "status": "Status",
+    "renews": "Renews",
+    "shop": "Shop",
+    "manageSubscription": "Manage Subscription",
+    "loading": "Loading...",
+    "mostPopular": "Most Popular",
+    "subscribe": "Subscribe",
+    "processing": "Processing...",
+    "pleaseSelectShop": "Please select a shop first",
+    "needShop": "You need to create a shop first before subscribing.",
+    "goToMyShop": "Go to My Shop",
+    "basicPlan": "Basic Plan",
+    "basicPlanPrice": "$9.99/month",
+    "basicPlanFeatures": [
+      "Up to 1 shop",
+      "Basic booking management",
+      "Email support",
+      "Basic analytics"
+    ],
+    "premiumPlan": "Premium Plan",
+    "premiumPlanPrice": "$29.99/month",
+    "premiumPlanFeatures": [
+      "Up to 3 shops",
+      "Advanced booking management",
+      "Priority customer support",
+      "Analytics dashboard",
+      "AI assistant support"
+    ]
+  },
   "line": {
     "loginWithLine": "Login with LINE",
     "connectLineAccount": "Connect LINE Account",
@@ -837,6 +876,45 @@
     "failedToGetOAuthUrl": "Failed to get LINE OAuth URL",
     "failedToConnect": "Failed to connect LINE account",
     "connectedSuccessfully": "LINE account connected successfully!"
+  },
+  "support": {
+    "title": "Contact Support",
+    "subtitle": "Get help from our support team",
+    "unavailable": "Support feature is currently unavailable."
+  },
+  "subscription": {
+    "title": "Subscription Plans",
+    "subtitle": "Choose a plan that fits your business needs",
+    "selectShop": "Select Shop",
+    "currentSubscription": "Current Subscription",
+    "status": "Status",
+    "renews": "Renews",
+    "shop": "Shop",
+    "manageSubscription": "Manage Subscription",
+    "loading": "Loading...",
+    "mostPopular": "Most Popular",
+    "subscribe": "Subscribe",
+    "processing": "Processing...",
+    "pleaseSelectShop": "Please select a shop first",
+    "needShop": "You need to create a shop first before subscribing.",
+    "goToMyShop": "Go to My Shop",
+    "basicPlan": "Basic Plan",
+    "basicPlanPrice": "$9.99/month",
+    "basicPlanFeatures": [
+      "Up to 1 shop",
+      "Basic booking management",
+      "Email support",
+      "Basic analytics"
+    ],
+    "premiumPlan": "Premium Plan",
+    "premiumPlanPrice": "$29.99/month",
+    "premiumPlanFeatures": [
+      "Up to 3 shops",
+      "Advanced booking management",
+      "Priority customer support",
+      "Analytics dashboard",
+      "AI assistant support"
+    ]
   },
   "dashboard": {
     "title": "Dashboard",
