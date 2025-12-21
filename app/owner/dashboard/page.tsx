@@ -10,6 +10,7 @@ import { apiUrl } from '@/lib/apiClient';
 import Link from 'next/link';
 import { useAIConversation } from '@/lib/useAIConversation';
 import FloatingHelpButton from '../../components/FloatingHelpButton';
+import { useTranslations } from 'next-intl';
 
 interface Claim {
   id: string;
@@ -46,6 +47,7 @@ interface Booking {
 export default function OwnerDashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const t = useTranslations();
   const [claims, setClaims] = useState<Claim[]>([]);
   const [shop, setShop] = useState<Shop | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -310,28 +312,28 @@ export default function OwnerDashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+        <h1 className="text-3xl font-bold mb-6">{t('dashboard.title')}</h1>
 
         {/* Overview Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-sm text-gray-600 mb-2">Today's Bookings</p>
+            <p className="text-sm text-gray-600 mb-2">{t('dashboard.todaysBookings')}</p>
             <p className="text-3xl font-bold">{todayBookingsCount}</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-sm text-gray-600 mb-2">Pending Bookings</p>
+            <p className="text-sm text-gray-600 mb-2">{t('dashboard.pendingBookings')}</p>
             <p className="text-3xl font-bold">{pendingBookingsCount}</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-sm text-gray-600 mb-2">Unread Messages</p>
+            <p className="text-sm text-gray-600 mb-2">{t('dashboard.unreadMessages')}</p>
             <p className="text-3xl font-bold">{unreadMessagesCount}</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-sm text-gray-600 mb-2">Shop Status</p>
+            <p className="text-sm text-gray-600 mb-2">{t('dashboard.shopStatus')}</p>
             <p className="text-lg font-semibold">
-              {shopVerificationStatus === 'verified' ? '✅ Verified' : 
-               shopVerificationStatus === 'pending' ? '⏳ Pending' : 
-               '❌ Unverified'}
+              {shopVerificationStatus === 'verified' ? `✅ ${t('dashboard.verified')}` : 
+               shopVerificationStatus === 'pending' ? `⏳ ${t('dashboard.pending')}` : 
+               `❌ ${t('dashboard.unverified')}`}
             </p>
           </div>
         </div>
@@ -340,36 +342,36 @@ export default function OwnerDashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Shop Status Card */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">Shop Status</h2>
+            <h2 className="text-xl font-bold mb-4">{t('dashboard.shopStatus')}</h2>
             {shopVerificationStatus === 'verified' && hasShop ? (
               <div className="mb-4 p-4 bg-green-50 border-l-4 border-green-400 rounded">
-                <h3 className="font-semibold text-green-900 mb-2">Shop Verified</h3>
+                <h3 className="font-semibold text-green-900 mb-2">{t('dashboard.shopVerified')}</h3>
                 <p className="text-green-700">
-                  Your shop is verified and active. You can manage bookings, services, and settings.
+                  {t('dashboard.shopVerifiedDesc')}
                 </p>
                 {shop && (
                   <p className="text-green-700 mt-1">
-                    Shop: <span className="font-bold">{shop.name}</span>
+                    {t('dashboard.shop')}: <span className="font-bold">{shop.name}</span>
                   </p>
                 )}
                 <Link href="/owner/shop-profile" className="mt-3 inline-block text-sm font-medium text-green-800 hover:text-green-900">
-                  Manage Your Shop →
+                  {t('dashboard.manageYourShop')} →
                 </Link>
               </div>
             ) : (shopVerificationStatus === 'pending' || hasPendingVerification) ? (
               <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
-                <h3 className="font-semibold text-yellow-900 mb-2">Claim Under Review</h3>
+                <h3 className="font-semibold text-yellow-900 mb-2">{t('dashboard.claimUnderReview')}</h3>
                 <p className="text-yellow-700">
-                  Your shop claim is currently being reviewed.
+                  {t('dashboard.claimUnderReviewDesc')}
                 </p>
                 {currentClaim && (
                   <>
                     <p className="text-yellow-700 mt-1">
-                      Status: <span className="font-bold">{currentClaim.status}</span>
+                      {t('dashboard.status')}: <span className="font-bold">{currentClaim.status}</span>
                     </p>
                     {currentClaim.shop && (
                       <p className="text-yellow-700 mt-1">
-                        Shop: {currentClaim.shop.name}
+                        {t('dashboard.shop')}: {currentClaim.shop.name}
                       </p>
                     )}
                   </>
@@ -378,20 +380,20 @@ export default function OwnerDashboardPage() {
                   href="/owner/claim"
                   className="mt-3 inline-block text-sm font-medium text-yellow-800 hover:text-yellow-900"
                 >
-                  View Claim Details →
+                  {t('dashboard.viewClaimDetails')} →
                 </Link>
               </div>
             ) : (
               <div className="mb-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
-                <h3 className="font-semibold text-blue-900 mb-2">Get Started</h3>
+                <h3 className="font-semibold text-blue-900 mb-2">{t('dashboard.getStarted')}</h3>
                 <p className="text-blue-700 mb-3">
-                  Claim a shop to start managing bookings and services.
+                  {t('dashboard.getStartedDesc')}
                 </p>
                 <Link
                   href="/owner/claim"
                   className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
-                  Claim a Shop
+                  {t('dashboard.claimAShop')}
                 </Link>
               </div>
             )}
@@ -399,23 +401,23 @@ export default function OwnerDashboardPage() {
 
           {/* AI Assistant Card */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">Owner AI Assistant</h2>
+            <h2 className="text-xl font-bold mb-4">{t('dashboard.ownerAIAssistant')}</h2>
             <AIAssistantCard shopId={shop?.id} />
           </div>
         </div>
 
         {/* Recent Activity */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
+          <h2 className="text-xl font-bold mb-4">{t('dashboard.recentActivity')}</h2>
           {bookings.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('common.date')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('common.time')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('myShop.customer')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('common.status')}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -428,7 +430,7 @@ export default function OwnerDashboardPage() {
                         {booking.booking_time}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {booking.customer_name || 'N/A'}
+                        {booking.customer_name || t('dashboard.na')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -436,7 +438,7 @@ export default function OwnerDashboardPage() {
                           booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
-                          {booking.status}
+                          {t(`status.${booking.status}`)}
                         </span>
                       </td>
                     </tr>
@@ -445,12 +447,12 @@ export default function OwnerDashboardPage() {
               </table>
             </div>
           ) : (
-            <p className="text-gray-600">No recent bookings</p>
+            <p className="text-gray-600">{t('dashboard.noRecentBookings')}</p>
           )}
           {bookings.length > 5 && (
             <div className="mt-4">
               <Link href="/owner/bookings" className="text-blue-600 hover:text-blue-800">
-                View all bookings →
+                {t('dashboard.viewAllBookings')} →
               </Link>
             </div>
           )}
@@ -466,6 +468,7 @@ export default function OwnerDashboardPage() {
 // AI Assistant Card Component
 function AIAssistantCard({ shopId }: { shopId?: string }) {
   const { user } = useAuth();
+  const t = useTranslations();
   const { messages, addMessage, saving } = useAIConversation({
     userType: 'owner',
     userId: user?.id || undefined,
@@ -484,7 +487,7 @@ function AIAssistantCard({ shopId }: { shopId?: string }) {
     <div className="space-y-4">
       <div className="h-32 overflow-y-auto border rounded-lg p-3 bg-gray-50">
         {messages.length === 0 ? (
-          <p className="text-sm text-gray-500">Start a conversation with your AI assistant</p>
+          <p className="text-sm text-gray-500">{t('dashboard.startAIConversation')}</p>
         ) : (
           <div className="space-y-2">
             {messages.slice(-3).map((msg, idx) => (
@@ -509,7 +512,7 @@ function AIAssistantCard({ shopId }: { shopId?: string }) {
             }
           }}
           className="flex-1 px-3 py-2 border rounded-lg text-sm"
-          placeholder="Ask a question..."
+          placeholder={t('dashboard.askAQuestion')}
           disabled={saving}
         />
         <button
@@ -517,11 +520,11 @@ function AIAssistantCard({ shopId }: { shopId?: string }) {
           disabled={saving || !input.trim()}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
         >
-          Send
+          {t('chat.send')}
         </button>
       </div>
       <Link href="/owner/ai" className="text-sm text-blue-600 hover:text-blue-800">
-        Open full AI Assistant →
+        {t('dashboard.openFullAIAssistant')} →
       </Link>
     </div>
   );

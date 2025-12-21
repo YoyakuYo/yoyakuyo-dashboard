@@ -66,6 +66,39 @@
     "kanagawa": "가나가와현",
     "aichi": "아이치현",
     "fukuoka": "후쿠오카현"
+  },
+  "dashboard": {
+    "title": "대시보드",
+    "todaysBookings": "오늘의 예약",
+    "pendingBookings": "대기 중인 예약",
+    "unreadMessages": "읽지 않은 메시지",
+    "shopStatus": "매장 상태",
+    "verified": "확인됨",
+    "pending": "대기 중",
+    "unverified": "미확인",
+    "shopVerified": "매장 확인됨",
+    "shopVerifiedDesc": "귀하의 매장이 확인되어 활성화되었습니다. 예약, 서비스 및 설정을 관리할 수 있습니다.",
+    "shop": "매장",
+    "manageYourShop": "매장 관리",
+    "claimUnderReview": "신청 검토 중",
+    "claimUnderReviewDesc": "매장 신청이 현재 검토 중입니다.",
+    "status": "상태",
+    "viewClaimDetails": "신청 세부 정보 보기",
+    "getStarted": "시작하기",
+    "getStartedDesc": "매장을 신청하여 예약 및 서비스 관리를 시작하세요.",
+    "claimAShop": "매장 신청",
+    "ownerAIAssistant": "소유자 AI 어시스턴트",
+    "recentActivity": "최근 활동",
+    "na": "해당 없음",
+    "noRecentBookings": "최근 예약이 없습니다",
+    "viewAllBookings": "모든 예약 보기",
+    "startAIConversation": "AI 어시스턴트와 대화 시작",
+    "askAQuestion": "질문하기...",
+    "openFullAIAssistant": "전체 AI 어시스턴트 열기",
+    "notifications": {
+      "pending": "대기 중인 예약이 있습니다",
+      "none": "대기 중인 예약이 없습니다"
+    }
   }
 }
 
