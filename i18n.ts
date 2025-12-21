@@ -1,9 +1,9 @@
 import { getRequestConfig } from 'next-intl/server';
 import { cookies } from 'next/headers';
 
-export type SupportedLocale = 'ja' | 'en' | 'zh' | 'pt-BR' | 'es';
+export type SupportedLocale = 'ja' | 'en' | 'zh' | 'pt-BR' | 'es' | 'ko';
 
-export const supportedLocales: SupportedLocale[] = ['ja', 'en', 'zh', 'pt-BR', 'es'];
+export const supportedLocales: SupportedLocale[] = ['ja', 'en', 'zh', 'pt-BR', 'es', 'ko'];
 
 export default getRequestConfig(async () => {
   let locale: SupportedLocale = 'ja'; // Default to Japanese

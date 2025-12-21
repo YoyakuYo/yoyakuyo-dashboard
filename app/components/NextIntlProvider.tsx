@@ -9,6 +9,7 @@ import jaMessages from '../../messages/ja.json';
 import zhMessages from '../../messages/zh.json';
 import esMessages from '../../messages/es.json';
 import ptBRMessages from '../../messages/pt-BR.json';
+import koMessages from '../../messages/ko.json';
 
 // Ensure messages are always valid objects
 const messageMap: Record<SupportedLocale, any> = {
@@ -17,6 +18,7 @@ const messageMap: Record<SupportedLocale, any> = {
   'zh': zhMessages && typeof zhMessages === 'object' ? zhMessages : {},
   'es': esMessages && typeof esMessages === 'object' ? esMessages : {},
   'pt-BR': ptBRMessages && typeof ptBRMessages === 'object' ? ptBRMessages : {},
+  'ko': koMessages && typeof koMessages === 'object' ? koMessages : {},
 };
 
 // Get locale from cookie or localStorage (synchronous for initial render)
@@ -126,6 +128,7 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
       'zh': '照片',
       'es': 'Fotos',
       'pt-BR': 'Fotos',
+      'ko': '사진',
     };
     safeMessages.shops = {
       ...safeMessages.shops,

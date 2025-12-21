@@ -10,6 +10,7 @@ const languages: Array<{ code: SupportedLocale; name: string }> = [
   { code: 'zh', name: '中文' },
   { code: 'es', name: 'Español' },
   { code: 'pt-BR', name: 'Português' },
+  { code: 'ko', name: '한국어' },
 ];
 
 export function LanguageSwitcher() {
