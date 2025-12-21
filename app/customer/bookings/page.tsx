@@ -212,8 +212,6 @@ function CustomerBookingsPageContent() {
       setLoading(false);
       return;
     }
-    
-    const allBookingsFinal = bookings;
 
     // Apply filter
     let filteredBookings = bookings;
