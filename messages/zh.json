@@ -638,6 +638,45 @@
     "cancelled": "已取消",
     "completed": "已完成"
   },
+  "support": {
+    "title": "联系支持",
+    "subtitle": "从我们的支持团队获得帮助",
+    "unavailable": "支持功能目前不可用。"
+  },
+  "subscription": {
+    "title": "订阅计划",
+    "subtitle": "选择适合您业务需求的计划",
+    "selectShop": "选择店铺",
+    "currentSubscription": "当前订阅",
+    "status": "状态",
+    "renews": "续订",
+    "shop": "店铺",
+    "manageSubscription": "管理订阅",
+    "loading": "加载中...",
+    "mostPopular": "最受欢迎",
+    "subscribe": "订阅",
+    "processing": "处理中...",
+    "pleaseSelectShop": "请先选择店铺",
+    "needShop": "在订阅之前，您需要先创建一个店铺。",
+    "goToMyShop": "前往我的店铺",
+    "basicPlan": "基础计划",
+    "basicPlanPrice": "$9.99/月",
+    "basicPlanFeatures": [
+      "最多1个店铺",
+      "基本预约管理",
+      "电子邮件支持",
+      "基本分析"
+    ],
+    "premiumPlan": "高级计划",
+    "premiumPlanPrice": "$29.99/月",
+    "premiumPlanFeatures": [
+      "最多3个店铺",
+      "高级预约管理",
+      "优先客户支持",
+      "分析仪表板",
+      "AI助手支持"
+    ]
+  },
   "line": {
     "loginWithLine": "使用LINE登录",
     "connectLineAccount": "连接LINE账户",

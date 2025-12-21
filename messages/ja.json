@@ -817,6 +817,45 @@
     "emailNotificationsCustomerMessages": "顧客メッセージのメール通知",
     "pushNotifications": "プッシュ通知（利用可能な場合）"
   },
+  "support": {
+    "title": "サポートに連絡",
+    "subtitle": "サポートチームからヘルプを受け取る",
+    "unavailable": "サポート機能は現在利用できません。"
+  },
+  "subscription": {
+    "title": "サブスクリプションプラン",
+    "subtitle": "ビジネスニーズに合うプランを選択",
+    "selectShop": "店舗を選択",
+    "currentSubscription": "現在のサブスクリプション",
+    "status": "ステータス",
+    "renews": "更新",
+    "shop": "店舗",
+    "manageSubscription": "サブスクリプションを管理",
+    "loading": "読み込み中...",
+    "mostPopular": "最も人気",
+    "subscribe": "購読",
+    "processing": "処理中...",
+    "pleaseSelectShop": "まず店舗を選択してください",
+    "needShop": "購読する前に、まず店舗を作成する必要があります。",
+    "goToMyShop": "マイショップへ",
+    "basicPlan": "ベーシックプラン",
+    "basicPlanPrice": "$9.99/月",
+    "basicPlanFeatures": [
+      "最大1店舗",
+      "基本的な予約管理",
+      "メールサポート",
+      "基本的な分析"
+    ],
+    "premiumPlan": "プレミアムプラン",
+    "premiumPlanPrice": "$29.99/月",
+    "premiumPlanFeatures": [
+      "最大3店舗",
+      "高度な予約管理",
+      "優先顧客サポート",
+      "分析ダッシュボード",
+      "AIアシスタントサポート"
+    ]
+  },
   "line": {
     "loginWithLine": "LINEでログイン",
     "connectLineAccount": "LINEアカウントを接続",

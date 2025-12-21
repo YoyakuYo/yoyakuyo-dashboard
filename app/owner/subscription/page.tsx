@@ -93,7 +93,7 @@ export default function SubscriptionPage() {
 
   const handleSubscribe = async (plan: 'basic' | 'premium') => {
     if (!user?.id || !selectedShopId) {
-      alert('Please select a shop first');
+      alert(t('subscription.pleaseSelectShop'));
       return;
     }
 
@@ -182,28 +182,17 @@ export default function SubscriptionPage() {
   const plans = [
     {
       id: 'basic' as const,
-      name: 'Basic Plan',
+      name: t('subscription.basicPlan'),
       price: '¥5,000',
       period: '/month',
-      features: [
-        'Up to 1 shop',
-        'Basic booking management',
-        'Customer messaging',
-        'AI assistant support',
-      ],
+      features: t.raw('subscription.basicPlanFeatures') as string[],
     },
     {
       id: 'premium' as const,
-      name: 'Premium Plan',
+      name: t('subscription.premiumPlan'),
       price: '¥10,000',
       period: '/month',
-      features: [
-        'Up to 3 shops',
-        'Advanced booking management',
-        'Priority customer support',
-        'Analytics dashboard',
-        'AI assistant support',
-      ],
+      features: t.raw('subscription.premiumPlanFeatures') as string[],
       popular: true,
     },
   ];
@@ -211,15 +200,15 @@ export default function SubscriptionPage() {
   return (
     <div className="p-8 max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Subscription Plans</h1>
-        <p className="text-gray-600">Choose a plan that fits your business needs</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('subscription.title')}</h1>
+        <p className="text-gray-600">{t('subscription.subtitle')}</p>
       </div>
 
       {/* Shop Selection */}
       {shops.length > 0 && (
         <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Shop
+            {t('subscription.selectShop')}
           </label>
           <select
             value={selectedShopId}
@@ -285,7 +274,7 @@ export default function SubscriptionPage() {
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                   <span className="bg-blue-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                    Most Popular
+                    {t('subscription.mostPopular')}
                   </span>
                 </div>
               )}
@@ -325,7 +314,7 @@ export default function SubscriptionPage() {
                     : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {subscribing ? 'Processing...' : 'Subscribe'}
+                {subscribing ? t('subscription.processing') : t('subscription.subscribe')}
               </button>
             </div>
           ))}
@@ -334,12 +323,12 @@ export default function SubscriptionPage() {
 
       {shops.length === 0 && (
         <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200">
-          <p className="text-gray-600 mb-4">You need to create a shop first before subscribing.</p>
+          <p className="text-gray-600 mb-4">{t('subscription.needShop')}</p>
           <button
             onClick={() => router.push('/shops')}
             className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Go to My Shop
+            {t('subscription.goToMyShop')}
           </button>
         </div>
       )}

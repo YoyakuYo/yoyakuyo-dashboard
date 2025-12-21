@@ -638,6 +638,45 @@
     "cancelled": "Cancelado",
     "completed": "Completado"
   },
+  "support": {
+    "title": "Contactar Soporte",
+    "subtitle": "Obtenga ayuda de nuestro equipo de soporte",
+    "unavailable": "La función de soporte no está disponible actualmente."
+  },
+  "subscription": {
+    "title": "Planes de Suscripción",
+    "subtitle": "Elija un plan que se adapte a las necesidades de su negocio",
+    "selectShop": "Seleccionar Tienda",
+    "currentSubscription": "Suscripción Actual",
+    "status": "Estado",
+    "renews": "Se Renueva",
+    "shop": "Tienda",
+    "manageSubscription": "Gestionar Suscripción",
+    "loading": "Cargando...",
+    "mostPopular": "Más Popular",
+    "subscribe": "Suscribirse",
+    "processing": "Procesando...",
+    "pleaseSelectShop": "Por favor seleccione una tienda primero",
+    "needShop": "Necesita crear una tienda primero antes de suscribirse.",
+    "goToMyShop": "Ir a Mi Tienda",
+    "basicPlan": "Plan Básico",
+    "basicPlanPrice": "$9.99/mes",
+    "basicPlanFeatures": [
+      "Hasta 1 tienda",
+      "Gestión básica de reservas",
+      "Soporte por correo electrónico",
+      "Análisis básico"
+    ],
+    "premiumPlan": "Plan Premium",
+    "premiumPlanPrice": "$29.99/mes",
+    "premiumPlanFeatures": [
+      "Hasta 3 tiendas",
+      "Gestión avanzada de reservas",
+      "Soporte prioritario al cliente",
+      "Panel de análisis",
+      "Soporte de asistente IA"
+    ]
+  },
   "line": {
     "loginWithLine": "Iniciar sesión con LINE",
     "connectLineAccount": "Conectar cuenta LINE",
