@@ -76,49 +76,130 @@ function CustomerBookingsPageContent() {
     let bookings: any[] = [];
     let bookingsError: any = null;
 
-    // Build query with multiple filters - try all possible fields
-    // Query by customer_profile_id, user_id, or customer_id (for old bookings)
-    let query = supabase
-      .from("bookings")
-      .select(`
-        *,
-        shops (
-          id,
-          name,
-          address,
-          phone
-        ),
-        services (
-          id,
-          name,
-          price
-        )
-      `);
+    // Query bookings by all possible fields and combine results
+    // Try customer_profile_id, user_id, and customer_id separately, then merge
+    const allBookings: any[] = [];
+    const seenIds = new Set<string>();
 
-    // Build OR conditions for Supabase PostgREST
-    // Format: "field1.eq.value1,field2.eq.value2"
-    const orConditions: string[] = [];
-    
+    // Try customer_profile_id first
     if (customerProfileId) {
-      orConditions.push(`customer_profile_id.eq.${customerProfileId}`);
-    }
-    
-    // Always check user_id
-    orConditions.push(`user_id.eq.${user.id}`);
-    
-    // Also check customer_id as fallback for old bookings
-    // Note: customer_id might be the old structure where it equals user.id
-    orConditions.push(`customer_id.eq.${user.id}`);
+      try {
+        const { data: profileData, error: profileError } = await supabase
+          .from("bookings")
+          .select(`
+            *,
+            shops (
+              id,
+              name,
+              address,
+              phone
+            ),
+            services (
+              id,
+              name,
+              price
+            )
+          `)
+          .eq("customer_profile_id", customerProfileId)
+          .order("created_at", { ascending: false });
 
-    // Use .or() with comma-separated conditions
-    if (orConditions.length > 0) {
-      query = query.or(orConditions.join(','));
+        if (!profileError && profileData) {
+          profileData.forEach(booking => {
+            if (!seenIds.has(booking.id)) {
+              allBookings.push(booking);
+              seenIds.add(booking.id);
+            }
+          });
+        }
+      } catch (e) {
+        // Column might not exist, ignore
+      }
     }
 
-    const { data, error } = await query.order("created_at", { ascending: false });
+    // Try user_id
+    try {
+      const { data: userData, error: userError } = await supabase
+        .from("bookings")
+        .select(`
+          *,
+          shops (
+            id,
+            name,
+            address,
+            phone
+          ),
+          services (
+            id,
+            name,
+            price
+          )
+        `)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (!userError && userData) {
+        userData.forEach(booking => {
+          if (!seenIds.has(booking.id)) {
+            allBookings.push(booking);
+            seenIds.add(booking.id);
+          }
+        });
+      }
+    } catch (e) {
+      // Column might not exist, ignore
+    }
+
+    // Try customer_id (for old bookings)
+    try {
+      const { data: customerData, error: customerError } = await supabase
+        .from("bookings")
+        .select(`
+          *,
+          shops (
+            id,
+            name,
+            address,
+            phone
+          ),
+          services (
+            id,
+            name,
+            price
+          )
+        `)
+        .eq("customer_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (!customerError && customerData) {
+        customerData.forEach(booking => {
+          if (!seenIds.has(booking.id)) {
+            allBookings.push(booking);
+            seenIds.add(booking.id);
+          }
+        });
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+
+    // Sort by created_at descending
+    allBookings.sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return dateB - dateA;
+    });
+
+    const data = allBookings;
+    const error = null;
     
-    console.log('[Customer Bookings] Query conditions:', orConditions);
-    console.log('[Customer Bookings] Query result count:', data?.length || 0);
+    console.log('[Customer Bookings] Found bookings:', {
+      customerProfileId,
+      userId: user.id,
+      totalBookings: data.length,
+      byProfile: customerProfileId ? data.filter(b => b.customer_profile_id === customerProfileId).length : 0,
+      byUserId: data.filter(b => b.user_id === user.id).length,
+      byCustomerId: data.filter(b => b.customer_id === user.id).length
+    });
 
     if (error) {
       // If error is "column does not exist", try simpler queries
