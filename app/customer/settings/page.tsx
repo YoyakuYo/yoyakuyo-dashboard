@@ -206,7 +206,7 @@ export default function CustomerSettingsPage() {
 
           <div>
             <label htmlFor="date_of_birth" className="block text-sm font-medium text-gray-700 mb-2">
-              Date of Birth
+              {t('customer.dateOfBirth')}
             </label>
             <input
               id="date_of_birth"
@@ -218,12 +218,12 @@ export default function CustomerSettingsPage() {
           </div>
 
           <div className="border-t pt-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Address Information</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('customer.addressInformation')}</h3>
             
             <div className="space-y-4">
               <div>
                 <label htmlFor="address_line1" className="block text-sm font-medium text-gray-700 mb-2">
-                  Address Line 1
+                  {t('customer.addressLine1')}
                 </label>
                 <input
                   id="address_line1"
@@ -250,7 +250,7 @@ export default function CustomerSettingsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                    City
+                    {t('common.city')}
                   </label>
                   <input
                     id="city"
@@ -263,7 +263,7 @@ export default function CustomerSettingsPage() {
 
                 <div>
                   <label htmlFor="prefecture" className="block text-sm font-medium text-gray-700 mb-2">
-                    Prefecture
+                    {t('browse.prefecture')}
                   </label>
                   <input
                     id="prefecture"
@@ -277,7 +277,7 @@ export default function CustomerSettingsPage() {
 
               <div>
                 <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700 mb-2">
-                  Postal Code
+                  {t('myShop.zipCode')}
                 </label>
                 <input
                   id="postal_code"

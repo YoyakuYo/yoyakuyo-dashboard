@@ -45,7 +45,8 @@
     "required": "Required",
     "characters": "characters",
     "viewDetails": "View Details",
-    "cannotBeChanged": "cannot be changed"
+    "cannotBeChanged": "cannot be changed",
+    "city": "City"
   },
   "auth": {
     "signInToShop": "Sign in to your shop",
@@ -310,6 +311,7 @@
     "failedToReschedule": "Failed to reschedule booking",
     "failedToCreate": "Failed to create booking. Please try again.",
     "noBookingsFound": "No bookings found.",
+    "payNow": "Pay Now",
     "guestBooking": "Book as Guest",
     "guestBookingDesc": "No account required. Fill in your details to make a booking.",
     "selectShop": "Select Shop",
@@ -963,7 +965,11 @@
     },
     "profile": "Profile",
     "customer": "Customer",
-    "profileInformation": "Profile Information"
+    "profileInformation": "Profile Information",
+    "dateOfBirth": "Date of Birth",
+    "addressInformation": "Address Information",
+    "addressLine1": "Address Line 1",
+    "addressLine2": "Address Line 2"
   },
   "verification": {
     "verified": "Verified",

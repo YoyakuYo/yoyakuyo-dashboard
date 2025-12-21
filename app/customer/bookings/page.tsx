@@ -216,7 +216,7 @@ function CustomerBookingsPageContent() {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {booking.shops?.name || "Unknown Shop"}
+                      {booking.shops?.name || t('common.unknown')}
                     </h3>
                     <span
                       className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
@@ -266,7 +266,7 @@ function CustomerBookingsPageContent() {
                       href={`/book/${booking.shops.id}/payment?bookingId=${booking.id}`}
                       className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors text-center"
                     >
-                      Pay Now
+                      {t('booking.payNow')}
                     </Link>
                   )}
                   {booking.shops?.id && (
