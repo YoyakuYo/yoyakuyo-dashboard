@@ -8,6 +8,300 @@ import { findCustomerByMagicCode, ensureCustomerId } from '../services/customerI
 const router = Router();
 const dbClient = supabaseAdmin || supabase;
 
+// ============================================
+// Customer Bookings Endpoint (must be before parameterized routes)
+// ============================================
+
+// GET /customers/bookings - Get customer's bookings
+// ONLY authenticated users (LINE and web customers) can view bookings
+router.get('/bookings', async (req: Request, res: Response) => {
+  try {
+    const userId = req.headers['x-user-id'] as string;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required. Only customers with accounts can view bookings.' });
+    }
+
+    // Verify user exists in auth.users
+    const { data: authUser, error: authError } = await dbClient.auth.admin.getUserById(userId);
+    if (authError || !authUser?.user) {
+      console.error('Auth user verification failed:', authError?.message);
+      return res.status(401).json({ error: 'Invalid user. Authentication required.' });
+    }
+
+    // Find customer profile by customer_auth_id or fallback to id
+    let { data: profile, error: profileError } = await dbClient
+      .from('customer_profiles')
+      .select('id, email, name')
+      .eq('customer_auth_id', userId)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Error fetching customer profile:', profileError);
+      return res.status(500).json({ error: 'Failed to fetch customer profile' });
+    }
+
+    if (!profile?.id) {
+      // Auto-create customer profile if it doesn't exist
+      try {
+        const userEmail = authUser?.user?.email || '';
+        const userName = authUser?.user?.user_metadata?.name || authUser?.user?.email?.split('@')[0] || 'Customer';
+        
+        const { data: profileId, error: createError } = await dbClient
+          .rpc('create_customer_profile', {
+            p_customer_auth_id: userId,
+            p_email: userEmail,
+            p_name: userName,
+            p_phone: null
+          });
+
+        if (createError || !profileId) {
+          console.error('Error creating customer profile:', createError);
+          return res.status(500).json({ error: 'Failed to create customer profile' });
+        }
+
+        // Fetch the newly created profile
+        const { data: newProfile } = await dbClient
+          .from('customer_profiles')
+          .select('id, email, name')
+          .eq('id', profileId)
+          .single();
+
+        if (!newProfile?.id) {
+          return res.status(500).json({ error: 'Failed to retrieve created profile' });
+        }
+        profile = newProfile;
+        console.log('[Customers API] Auto-created profile for user:', userId);
+      } catch (createErr: any) {
+        console.error('Error auto-creating customer profile:', createErr);
+        return res.status(500).json({ error: 'Failed to create customer profile', details: createErr.message });
+      }
+    }
+
+    // Query bookings by customer_profile_id, user_id, and customer_id (for old bookings)
+    const allBookings: any[] = [];
+    const seenIds = new Set<string>();
+
+    // Try customer_profile_id first
+    if (profile.id) {
+      const { data: profileBookings, error: profileError } = await dbClient
+        .from("bookings")
+        .select(`
+          *,
+          shops (
+            id,
+            name,
+            address,
+            phone
+          ),
+          services (
+            id,
+            name,
+            price
+          )
+        `)
+        .eq("customer_profile_id", profile.id)
+        .order("created_at", { ascending: false });
+
+      if (!profileError && profileBookings) {
+        profileBookings.forEach((booking: any) => {
+          if (!seenIds.has(booking.id)) {
+            allBookings.push(booking);
+            seenIds.add(booking.id);
+          }
+        });
+      }
+    }
+
+    // Try user_id
+    const { data: userBookings, error: userError } = await dbClient
+      .from("bookings")
+      .select(`
+        *,
+        shops (
+          id,
+          name,
+          address,
+          phone
+        ),
+        services (
+          id,
+          name,
+          price
+        )
+      `)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (!userError && userBookings) {
+      userBookings.forEach((booking: any) => {
+        if (!seenIds.has(booking.id)) {
+          allBookings.push(booking);
+          seenIds.add(booking.id);
+        }
+      });
+    }
+
+    // Try customer_id (for old bookings)
+    const { data: customerBookings, error: customerError } = await dbClient
+      .from("bookings")
+      .select(`
+        *,
+        shops (
+          id,
+          name,
+          address,
+          phone
+        ),
+        services (
+          id,
+          name,
+          price
+        )
+      `)
+      .eq("customer_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (!customerError && customerBookings) {
+      customerBookings.forEach((booking: any) => {
+        if (!seenIds.has(booking.id)) {
+          allBookings.push(booking);
+          seenIds.add(booking.id);
+        }
+      });
+    }
+
+    // Sort by created_at descending
+    allBookings.sort((a: any, b: any) => {
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return dateB - dateA;
+    });
+
+    // Remove duplicates
+    const uniqueBookings = allBookings.filter((booking, index, self) =>
+      index === self.findIndex((b) => b.id === booking.id)
+    );
+
+    return res.json({ bookings: uniqueBookings });
+  } catch (error: any) {
+    console.error('Error in GET /customers/bookings:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// Customer Favorites Endpoints
+// ============================================
+
+// GET /customers/favorites - Get customer's favorite shops
+// ONLY authenticated users (LINE and web customers) can view favorites
+router.get('/favorites', async (req: Request, res: Response) => {
+  try {
+    const userId = req.headers['x-user-id'] as string;
+    
+    // STRICT: Require authentication - only customers with accounts can view favorites
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required. Only customers with accounts can view favorites.' });
+    }
+
+    // Verify user exists in auth system
+    try {
+      const { data: authUser, error: authError } = await dbClient.auth.admin.getUserById(userId);
+      if (authError || !authUser?.user) {
+        return res.status(401).json({ error: 'Invalid user. Authentication required.' });
+      }
+    } catch (authCheckErr) {
+      return res.status(401).json({ error: 'Authentication verification failed. Only customers with accounts can view favorites.' });
+    }
+
+    // Get customer profile by customer_auth_id
+    let { data: profile, error: profileError } = await dbClient
+      .from('customer_profiles')
+      .select('id')
+      .eq('customer_auth_id', userId)
+      .maybeSingle();
+
+    if (profileError || !profile?.id) {
+      // Try fallback: check if customer_profiles.id = user.id (old structure)
+      const { data: profileFallback } = await dbClient
+        .from('customer_profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (profileFallback?.id) {
+        profile = profileFallback;
+      } else {
+        // Auto-create customer profile if it doesn't exist
+        try {
+          const { data: authUser } = await dbClient.auth.admin.getUserById(userId);
+          const userEmail = authUser?.user?.email || '';
+          const userName = authUser?.user?.user_metadata?.name || authUser?.user?.email?.split('@')[0] || 'Customer';
+          
+          const { data: profileId, error: createError } = await dbClient
+            .rpc('create_customer_profile', {
+              p_customer_auth_id: userId,
+              p_email: userEmail,
+              p_name: userName,
+              p_phone: null
+            });
+
+          if (createError || !profileId) {
+            console.error('Error creating customer profile:', createError);
+            return res.status(500).json({ error: 'Failed to create customer profile' });
+          }
+
+          // Fetch the newly created profile
+          const { data: newProfile } = await dbClient
+            .from('customer_profiles')
+            .select('id')
+            .eq('id', profileId)
+            .single();
+
+          if (!newProfile?.id) {
+            return res.status(500).json({ error: 'Failed to retrieve created profile' });
+          }
+
+          profile = newProfile;
+        } catch (createErr: any) {
+          console.error('Error auto-creating customer profile:', createErr);
+          return res.status(500).json({ error: 'Failed to create customer profile', details: createErr.message });
+        }
+      }
+    }
+
+    // Get favorites for this customer profile
+    const { data: favorites, error: favoritesError } = await dbClient
+      .from('customer_favorites')
+      .select(`
+        *,
+        shops (
+          id,
+          name,
+          address,
+          phone,
+          description,
+          category,
+          main_image_url,
+          rating,
+          review_count
+        )
+      `)
+      .eq('customer_id', profile.id)
+      .order('created_at', { ascending: false });
+
+    if (favoritesError) {
+      console.error('Error fetching favorites:', favoritesError);
+      return res.status(500).json({ error: 'Failed to fetch favorites' });
+    }
+
+    return res.json({ favorites: favorites || [] });
+  } catch (error: any) {
+    console.error('Error in GET /customers/favorites:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /customers/magic/:magicCode - Find customer by magic code
 router.get('/magic/:magicCode', async (req: Request, res: Response) => {
   try {
@@ -96,7 +390,7 @@ router.post('/:id/push-subscription', async (req: Request, res: Response) => {
 });
 
 // ============================================
-// Customer Favorites Endpoints
+// Customer Bookings Endpoint
 // ============================================
 
 // GET /customers/bookings - Get customer's bookings
