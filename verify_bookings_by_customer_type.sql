@@ -164,7 +164,8 @@ ORDER BY booking_count DESC;
 -- ============================================
 -- PART 8: Show bookings for a specific customer type (example: web customers)
 -- ============================================
--- Web customers (have user_id or customer_profile_id OR source = 'web')
+-- Web customers: source = 'web' OR (has customer_profile_id AND source != 'line')
+-- Note: LINE bookings also have user_id set (from backfill), so we must check source first
 SELECT 
   'Web Customer Bookings' as category,
   b.id,
@@ -180,8 +181,11 @@ SELECT
   cp.email as profile_email
 FROM bookings b
 LEFT JOIN customer_profiles cp ON cp.id = b.customer_profile_id
-WHERE (b.user_id IS NOT NULL OR b.customer_profile_id IS NOT NULL OR b.source = 'web')
-  AND (b.source IS NULL OR b.source != 'line')  -- Exclude LINE bookings
+WHERE (
+  b.source = 'web'  -- Explicitly marked as web
+  OR 
+  (b.customer_profile_id IS NOT NULL AND (b.source IS NULL OR b.source != 'line'))  -- Has profile and not LINE
+)
 ORDER BY b.created_at DESC
 LIMIT 10;
 
