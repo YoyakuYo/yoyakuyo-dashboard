@@ -350,6 +350,24 @@ export default function PublicShopDetailPage() {
     setBookingError(null);
     setBookingSuccess(false);
 
+    // Validation for guest users
+    if (!user) {
+      if (!customerName.trim()) {
+        setBookingError(t('booking.enterName') || 'Please enter your name');
+        return;
+      }
+      if (!customerEmail.trim()) {
+        setBookingError(t('booking.enterEmail') || 'Please enter your email');
+        return;
+      }
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(customerEmail)) {
+        setBookingError(t('booking.invalidEmail') || 'Please enter a valid email address');
+        return;
+      }
+    }
+
     try {
       // Calculate start_time and end_time from bookingDate and bookingTime
       const startDateTime = new Date(`${bookingDate}T${bookingTime}`);

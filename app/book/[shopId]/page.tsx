@@ -168,6 +168,16 @@ export default function PublicBookingPage() {
       alert(t('booking.enterName') || 'Please enter your name');
       return;
     }
+    if (!email.trim()) {
+      alert(t('booking.enterEmail') || 'Please enter your email');
+      return;
+    }
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      alert(t('booking.invalidEmail') || 'Please enter a valid email address');
+      return;
+    }
 
     setBookingLoading(true);
 
@@ -310,20 +320,32 @@ export default function PublicBookingPage() {
 
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
-            <input
-              type="text"
-              placeholder={t('booking.yourName')}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2"
-            />
-            <input
-              type="email"
-              placeholder={t('booking.yourEmail')}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            />
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('booking.yourName')} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                placeholder={t('booking.yourName')}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('common.email')} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                placeholder={t('booking.yourEmail') || t('common.email')}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </div>
           </div>
 
           <button

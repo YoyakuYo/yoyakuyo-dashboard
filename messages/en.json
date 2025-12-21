@@ -1191,6 +1191,8 @@
     "whatPeopleSay": "What People Say About Us",
     "subscribeTitle": "Subscribe to get information, latest news and other interesting offers about Yoyaku Yo",
     "yourEmail": "Your email",
+    "enterEmail": "Please enter your email",
+    "invalidEmail": "Please enter a valid email address",
     "subscribe": "Subscribe",
     "company": "Company",
     "careers": "Careers",
