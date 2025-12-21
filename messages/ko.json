@@ -212,7 +212,22 @@
     "noReviews": "아직 리뷰가 없습니다",
     "addFirstReview": "이 매장의 첫 번째 리뷰를 작성하세요",
     "tellUsAboutExperience": "경험에 대해 알려주세요 (선택 사항)",
-    "experiencePlaceholder": "무엇이 좋았나요? 무엇을 개선할 수 있을까요? 생각을 공유해주세요..."
+    "experiencePlaceholder": "무엇이 좋았나요? 무엇을 개선할 수 있을까요? 생각을 공유해주세요...",
+    "pleaseEnterName": "이름을 입력해주세요",
+    "pleaseProvideRating": "평점 또는 댓글을 입력해주세요",
+    "reviewMaxLength": "리뷰는 2000자 이하여야 합니다",
+    "commentMaxLength": "댓글은 2000자 이하여야 합니다",
+    "pleaseSelectRating": "평점을 선택해주세요",
+    "failedToSubmit": "리뷰 제출에 실패했습니다",
+    "feedbackHelps": "귀하의 피드백은 Yoyaku Yo 개선에 도움이 됩니다.",
+    "enterYourName": "이름 입력",
+    "whatOthersAreSaying": "다른 사람들의 의견"
+  },
+  "notifications": {
+    "notSupported": "이 브라우저에서는 푸시 알림을 지원하지 않습니다",
+    "blockedInstructions": "알림이 차단되었습니다. 활성화하려면:\n\n1. URL 옆의 자물쇠/정보 아이콘(🔒 또는 ℹ️)을 클릭하세요\n2. \"알림\"을 찾아 \"허용\"으로 변경하세요\n3. 페이지를 새로고침하고 다시 시도하세요",
+    "enabled": "푸시 알림 활성화됨",
+    "enable": "푸시 알림 활성화"
   },
   "customer": {
     "nav": {

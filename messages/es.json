@@ -742,6 +742,12 @@
     "pageTitle": "Qué Ofrece Yoyaku Yo",
     "pageSubtitle": "Una plataforma simple y poderosa para clientes y propietarios de tiendas."
   },
+  "notifications": {
+    "notSupported": "Las notificaciones push no son compatibles con este navegador",
+    "blockedInstructions": "Las notificaciones están bloqueadas. Para habilitar:\n\n1. Haz clic en el icono de candado/información (🔒 o ℹ️) junto a la URL\n2. Encuentra \"Notificaciones\" y cámbialo a \"Permitir\"\n3. Actualiza la página e inténtalo de nuevo",
+    "enabled": "Notificaciones Push Habilitadas",
+    "enable": "Habilitar Notificaciones Push"
+  },
   "customer": {
     "nav": {
       "home": "Inicio",
@@ -1332,7 +1338,16 @@
     "noReviews": "No reviews yet",
     "addFirstReview": "Be the first to review this shop",
     "tellUsAboutExperience": "Cuéntanos sobre tu experiencia (opcional)",
-    "experiencePlaceholder": "¿Qué te gustó? ¿Qué podríamos mejorar? Comparte tus pensamientos..."
+    "experiencePlaceholder": "¿Qué te gustó? ¿Qué podríamos mejorar? Comparte tus pensamientos...",
+    "pleaseEnterName": "Por favor ingresa tu nombre",
+    "pleaseProvideRating": "Por favor proporciona una calificación o comentario",
+    "reviewMaxLength": "La reseña debe tener 2000 caracteres o menos",
+    "commentMaxLength": "El comentario debe tener 2000 caracteres o menos",
+    "pleaseSelectRating": "Por favor selecciona una calificación",
+    "failedToSubmit": "Error al enviar reseña",
+    "feedbackHelps": "Tus comentarios nos ayudan a mejorar Yoyaku Yo.",
+    "enterYourName": "Ingresa tu nombre",
+    "whatOthersAreSaying": "Lo Que Dicen Otros"
   },
   "messages": {
     "title": "Mensajes",

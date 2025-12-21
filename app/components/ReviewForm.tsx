@@ -44,17 +44,17 @@ export default function ReviewForm({
     
     // PART 1: Validate guest name if guest
     if (isGuest && !guestName.trim()) {
-      setError('Please enter your name');
+      setError(t('reviews.pleaseEnterName'));
       return;
     }
 
     if (rating === 0) {
-      setError('Please select a rating');
+      setError(t('reviews.pleaseSelectRating'));
       return;
     }
 
     if (comment.length > 2000) {
-      setError('Comment must be 2000 characters or less');
+      setError(t('reviews.commentMaxLength'));
       return;
     }
 
@@ -72,7 +72,7 @@ export default function ReviewForm({
         photos: photos.length > 0 ? photos : undefined,
       });
     } catch (err: any) {
-      setError(err.message || 'Failed to submit review');
+      setError(err.message || t('reviews.failedToSubmit'));
     } finally {
       setSubmitting(false);
     }

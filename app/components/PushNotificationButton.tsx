@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { usePushNotifications } from '@/lib/usePushNotifications';
 import { useAuth } from '@/lib/useAuth';
+import { useTranslations } from 'next-intl';
 
 interface PushNotificationButtonProps {
   userType: 'owner' | 'customer';
@@ -13,6 +14,7 @@ export default function PushNotificationButton({ userType, className = '' }: Pus
   const { user } = useAuth();
   const { isSupported, isSubscribed, loading, subscribe, unsubscribe } = usePushNotifications();
   const [isToggling, setIsToggling] = useState(false);
+  const t = useTranslations();
 
   if (!user) {
     return null; // Don't show if not logged in
@@ -24,7 +26,7 @@ export default function PushNotificationButton({ userType, className = '' }: Pus
         disabled
         className={`px-4 py-2 bg-gray-300 text-gray-600 rounded-lg cursor-not-allowed ${className}`}
       >
-        Loading...
+        {t('common.loading')}
       </button>
     );
   }
@@ -32,7 +34,7 @@ export default function PushNotificationButton({ userType, className = '' }: Pus
   if (!isSupported) {
     return (
       <div className={`text-sm text-gray-500 ${className}`}>
-        Push notifications not supported in this browser
+        {t('notifications.notSupported')}
       </div>
     );
   }
@@ -45,12 +47,7 @@ export default function PushNotificationButton({ userType, className = '' }: Pus
       } else {
         // Check permission before attempting subscription
         if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
-          alert(
-            'Notifications are blocked. To enable:\n\n' +
-            '1. Click the lock/info icon (🔒 or ℹ️) next to the URL\n' +
-            '2. Find "Notifications" and change to "Allow"\n' +
-            '3. Refresh the page and try again'
-          );
+          alert(t('notifications.blockedInstructions'));
           setIsToggling(false);
           return;
         }
@@ -77,14 +74,14 @@ export default function PushNotificationButton({ userType, className = '' }: Pus
       } disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
     >
       {isToggling ? (
-        'Processing...'
+        t('common.updating')
       ) : isSubscribed ? (
         <>
-          🔔 Push Notifications Enabled
+          🔔 {t('notifications.enabled')}
         </>
       ) : (
         <>
-          🔕 Enable Push Notifications
+          🔕 {t('notifications.enable')}
         </>
       )}
     </button>

@@ -776,7 +776,16 @@
     "noReviews": "レビューはまだありません",
     "addFirstReview": "最初のレビューを書いてみませんか",
     "tellUsAboutExperience": "体験について教えてください（任意）",
-    "experiencePlaceholder": "何が良かったですか？改善できる点は？ご意見をお聞かせください..."
+    "experiencePlaceholder": "何が良かったですか？改善できる点は？ご意見をお聞かせください...",
+    "pleaseEnterName": "お名前を入力してください",
+    "pleaseProvideRating": "評価またはコメントを入力してください",
+    "reviewMaxLength": "レビューは2000文字以内で入力してください",
+    "commentMaxLength": "コメントは2000文字以内で入力してください",
+    "pleaseSelectRating": "評価を選択してください",
+    "failedToSubmit": "レビューの送信に失敗しました",
+    "feedbackHelps": "ご意見はYoyaku Yoの改善に役立ちます。",
+    "enterYourName": "お名前を入力",
+    "whatOthersAreSaying": "他のお客様の声",
     "characters": "文字",
     "description": "お客様が体験について語っている声をご覧ください",
     "browseShops": "店舗を探す",
@@ -922,6 +931,12 @@
   "service": {
     "pageTitle": "Yoyaku Yoのサービス",
     "pageSubtitle": "お客様と店舗のためのシンプルで強力なプラットフォーム。"
+  },
+  "notifications": {
+    "notSupported": "このブラウザではプッシュ通知がサポートされていません",
+    "blockedInstructions": "通知がブロックされています。有効にするには:\n\n1. URLの横にあるロック/情報アイコン（🔒またはℹ️）をクリック\n2. \"通知\"を見つけて\"許可\"に変更\n3. ページを更新して再試行",
+    "enabled": "プッシュ通知が有効",
+    "enable": "プッシュ通知を有効にする"
   },
   "customer": {
     "nav": {

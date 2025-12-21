@@ -60,18 +60,18 @@ export default function ReviewsSection() {
     
     // PART 1: Validate guest name if guest
     if (isGuest && !guestName.trim()) {
-      setError('Please enter your name');
+      setError(t('reviews.pleaseEnterName'));
       return;
     }
 
     // Rating is optional - allow submission with just a comment
     if (rating === 0 && (!comment || comment.trim().length === 0)) {
-      setError('Please provide a rating or comment');
+      setError(t('reviews.pleaseProvideRating'));
       return;
     }
 
     if (comment && comment.length > 2000) {
-      setError('Review must be 2000 characters or less');
+      setError(t('reviews.reviewMaxLength'));
       return;
     }
 
@@ -100,7 +100,7 @@ export default function ReviewsSection() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to submit review' }));
         console.error('[ReviewsSection] Review submission failed:', response.status, errorData);
-        throw new Error(errorData.error || 'Failed to submit review');
+        throw new Error(errorData.error || t('reviews.failedToSubmit'));
       }
 
       const submittedReview = await response.json();
@@ -121,7 +121,7 @@ export default function ReviewsSection() {
         setSubmitted(false);
       }, 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to submit review');
+      setError(err.message || t('reviews.failedToSubmit'));
     } finally {
       setSubmitting(false);
     }
@@ -144,7 +144,7 @@ export default function ReviewsSection() {
           <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-6 text-center">
             <div className="text-4xl mb-2">✓</div>
             <h3 className="text-lg font-semibold text-green-800 mb-1">Thank you for your review!</h3>
-            <p className="text-green-700 text-sm">Your feedback helps us improve Yoyaku Yo.</p>
+            <p className="text-green-700 text-sm">{t('reviews.feedbackHelps')}</p>
           </div>
         )}
 
@@ -163,7 +163,7 @@ export default function ReviewsSection() {
                   required
                   maxLength={100}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter your name"
+                  placeholder={t('reviews.enterYourName')}
                 />
               </div>
             )}
@@ -247,7 +247,7 @@ export default function ReviewsSection() {
         {/* Display Submitted Reviews - ALWAYS VISIBLE */}
         <div className="mt-12">
           <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            {reviews.length > 0 ? 'What Others Are Saying' : 'Reviews'}
+            {reviews.length > 0 ? t('reviews.whatOthersAreSaying') : t('reviews.title')}
           </h3>
           
           {loadingReviews ? (

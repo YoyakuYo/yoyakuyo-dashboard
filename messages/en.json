@@ -779,7 +779,16 @@
     "noReviews": "No reviews yet",
     "addFirstReview": "Be the first to review this shop",
     "tellUsAboutExperience": "Tell us about your experience (optional)",
-    "experiencePlaceholder": "What did you like? What could we improve? Share your thoughts..."
+    "experiencePlaceholder": "What did you like? What could we improve? Share your thoughts...",
+    "pleaseEnterName": "Please enter your name",
+    "pleaseProvideRating": "Please provide a rating or comment",
+    "reviewMaxLength": "Review must be 2000 characters or less",
+    "commentMaxLength": "Comment must be 2000 characters or less",
+    "pleaseSelectRating": "Please select a rating",
+    "failedToSubmit": "Failed to submit review",
+    "feedbackHelps": "Your feedback helps us improve Yoyaku Yo.",
+    "enterYourName": "Enter your name",
+    "whatOthersAreSaying": "What Others Are Saying"
   },
   "analytics": {
     "title": "Analytics",
@@ -952,6 +961,12 @@
       "pending": "You have pending bookings",
       "none": "No pending bookings"
     }
+  },
+  "notifications": {
+    "notSupported": "Push notifications not supported in this browser",
+    "blockedInstructions": "Notifications are blocked. To enable:\n\n1. Click the lock/info icon (🔒 or ℹ️) next to the URL\n2. Find \"Notifications\" and change to \"Allow\"\n3. Refresh the page and try again",
+    "enabled": "Push Notifications Enabled",
+    "enable": "Enable Push Notifications"
   },
   "customer": {
     "nav": {

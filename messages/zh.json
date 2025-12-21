@@ -742,6 +742,12 @@
     "pageTitle": "Yoyaku Yo 提供什么",
     "pageSubtitle": "为客户和店铺所有者提供的简单而强大的平台。"
   },
+  "notifications": {
+    "notSupported": "此浏览器不支持推送通知",
+    "blockedInstructions": "通知已被阻止。要启用:\n\n1. 点击URL旁边的锁定/信息图标（🔒或ℹ️）\n2. 找到\"通知\"并将其更改为\"允许\"\n3. 刷新页面并重试",
+    "enabled": "推送通知已启用",
+    "enable": "启用推送通知"
+  },
   "customer": {
     "nav": {
       "home": "首页",
@@ -1332,7 +1338,16 @@
     "noReviews": "No reviews yet",
     "addFirstReview": "Be the first to review this shop",
     "tellUsAboutExperience": "告诉我们您的体验（可选）",
-    "experiencePlaceholder": "您喜欢什么？我们可以改进什么？分享您的想法..."
+    "experiencePlaceholder": "您喜欢什么？我们可以改进什么？分享您的想法...",
+    "pleaseEnterName": "请输入您的姓名",
+    "pleaseProvideRating": "请提供评分或评论",
+    "reviewMaxLength": "评论必须在2000个字符以内",
+    "commentMaxLength": "评论必须在2000个字符以内",
+    "pleaseSelectRating": "请选择评分",
+    "failedToSubmit": "提交评论失败",
+    "feedbackHelps": "您的反馈有助于我们改进Yoyaku Yo。",
+    "enterYourName": "输入您的姓名",
+    "whatOthersAreSaying": "其他人的评价"
   },
   "messages": {
     "title": "消息",
