@@ -26,17 +26,52 @@ export default function CustomerFavoritesPage() {
     const supabase = getSupabaseClient();
     
     // First, get customer_profile_id from customer_auth_id
-    const { data: profile } = await supabase
+    let { data: profile } = await supabase
       .from("customer_profiles")
       .select("id")
       .eq("customer_auth_id", user.id)
       .maybeSingle();
 
+    // If no profile exists, create one using the database function
     if (!profile?.id) {
-      console.warn("Customer profile not found for user:", user.id);
-      setFavorites([]);
-      setLoading(false);
-      return;
+      console.log("Profile not found, creating new profile...");
+      const { data: profileId, error: createError } = await supabase
+        .rpc('create_customer_profile', {
+          p_customer_auth_id: user.id,
+          p_email: user.email || "",
+          p_name: user.name || user.email?.split('@')[0] || "Customer",
+          p_phone: null
+        });
+
+      if (createError) {
+        console.error("Error creating profile:", createError);
+        setFavorites([]);
+        setLoading(false);
+        return;
+      }
+
+      if (profileId) {
+        // Fetch the newly created profile
+        const { data: newProfile } = await supabase
+          .from("customer_profiles")
+          .select("id")
+          .eq("id", profileId)
+          .maybeSingle();
+
+        if (newProfile) {
+          profile = newProfile;
+        } else {
+          console.error("Error fetching newly created profile");
+          setFavorites([]);
+          setLoading(false);
+          return;
+        }
+      } else {
+        console.error("No profile ID returned from create function");
+        setFavorites([]);
+        setLoading(false);
+        return;
+      }
     }
 
     const { data, error } = await supabase

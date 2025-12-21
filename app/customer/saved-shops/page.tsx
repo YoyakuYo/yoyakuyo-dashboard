@@ -26,54 +26,52 @@ export default function CustomerSavedShopsPage() {
     const supabase = getSupabaseClient();
     
     // Get customer_profile_id from customer_auth_id
-    const { data: profile } = await supabase
+    let { data: profile } = await supabase
       .from("customer_profiles")
       .select("id")
       .eq("customer_auth_id", user.id)
       .maybeSingle();
 
+    // If no profile exists, create one using the database function
     if (!profile?.id) {
-      // Try fallback: check if customer_profiles.id = user.id (old structure)
-      const { data: profileFallback } = await supabase
-        .from("customer_profiles")
-        .select("id")
-        .eq("id", user.id)
-        .maybeSingle();
-      
-      if (!profileFallback?.id) {
-        console.warn("Customer profile not found for user:", user.id);
+      console.log("Profile not found, creating new profile...");
+      const { data: profileId, error: createError } = await supabase
+        .rpc('create_customer_profile', {
+          p_customer_auth_id: user.id,
+          p_email: user.email || "",
+          p_name: user.name || user.email?.split('@')[0] || "Customer",
+          p_phone: null
+        });
+
+      if (createError) {
+        console.error("Error creating profile:", createError);
         setSavedShops([]);
         setLoading(false);
         return;
       }
-      
-      // Use fallback profile
-      const { data, error } = await supabase
-        .from("customer_favorites")
-        .select(`
-          *,
-          shops (
-            id,
-            name,
-            address,
-            phone,
-            description,
-            category,
-            main_image_url,
-            rating,
-            review_count
-          )
-        `)
-        .eq("customer_id", profileFallback.id)
-        .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error loading saved shops:", error);
+      if (profileId) {
+        // Fetch the newly created profile
+        const { data: newProfile } = await supabase
+          .from("customer_profiles")
+          .select("id")
+          .eq("id", profileId)
+          .maybeSingle();
+
+        if (newProfile) {
+          profile = newProfile;
+        } else {
+          console.error("Error fetching newly created profile");
+          setSavedShops([]);
+          setLoading(false);
+          return;
+        }
       } else {
-        setSavedShops(data || []);
+        console.error("No profile ID returned from create function");
+        setSavedShops([]);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
-      return;
     }
 
     // Use profile.id as customer_id

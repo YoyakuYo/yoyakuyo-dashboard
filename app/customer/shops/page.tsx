@@ -184,36 +184,49 @@ export default function CustomerShopsPage() {
       const supabase = getSupabaseClient();
       
       // First, get customer_profile_id from customer_auth_id
-      const { data: profile } = await supabase
+      let { data: profile } = await supabase
         .from("customer_profiles")
         .select("id")
         .eq("customer_auth_id", user.id)
         .maybeSingle();
 
+      // If no profile exists, create one using the database function
       if (!profile?.id) {
-        // Try fallback: check if customer_profiles.id = user.id (old structure)
-        const { data: profileFallback } = await supabase
-          .from("customer_profiles")
-          .select("id")
-          .eq("id", user.id)
-          .maybeSingle();
-        
-        if (!profileFallback?.id) {
-          console.warn("Customer profile not found for user:", user.id);
+        console.log("Profile not found, creating new profile...");
+        const { data: profileId, error: createError } = await supabase
+          .rpc('create_customer_profile', {
+            p_customer_auth_id: user.id,
+            p_email: user.email || "",
+            p_name: user.name || user.email?.split('@')[0] || "Customer",
+            p_phone: null
+          });
+
+        if (createError) {
+          console.error("Error creating profile:", createError);
           setFavorites(new Set());
           return;
         }
-        
-        // Use fallback profile
-        const { data } = await supabase
-          .from("customer_favorites")
-          .select("shop_id")
-          .eq("customer_id", profileFallback.id);
 
-        if (data) {
-          setFavorites(new Set(data.map((f) => f.shop_id)));
+        if (profileId) {
+          // Fetch the newly created profile
+          const { data: newProfile } = await supabase
+            .from("customer_profiles")
+            .select("id")
+            .eq("id", profileId)
+            .maybeSingle();
+
+          if (newProfile) {
+            profile = newProfile;
+          } else {
+            console.error("Error fetching newly created profile");
+            setFavorites(new Set());
+            return;
+          }
+        } else {
+          console.error("No profile ID returned from create function");
+          setFavorites(new Set());
+          return;
         }
-        return;
       }
 
       // Use profile.id as customer_id
