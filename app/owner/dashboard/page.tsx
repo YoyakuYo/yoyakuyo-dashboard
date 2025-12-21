@@ -174,9 +174,11 @@ export default function OwnerDashboardPage() {
         
         // Calculate today's bookings
         const today = new Date().toISOString().split('T')[0];
-        const todayCount = allBookings.filter((b: Booking) => 
-          b.booking_date === today
-        ).length;
+        const todayCount = allBookings.filter((b: Booking) => {
+          // Check both booking_date and start_time fields
+          const bookingDate = b.booking_date || (b.start_time ? b.start_time.split('T')[0] : null);
+          return bookingDate === today;
+        }).length;
         setTodayBookingsCount(todayCount);
         
         // Calculate pending bookings
@@ -193,20 +195,20 @@ export default function OwnerDashboardPage() {
   const loadUnreadMessages = async () => {
     if (!user?.id) return;
     try {
-      // Load customer messages
-      const customerRes = await fetch(`${apiUrl}/api/messages/customer/threads`, {
+      // Use the proper unread summary endpoint for owners
+      const res = await fetch(`${apiUrl}/messages/owner/unread-summary`, {
         headers: { 'x-user-id': user.id },
       });
-      let customerUnread = 0;
-      if (customerRes.ok) {
-        const customerData = await customerRes.json();
-        // Count unread messages (simplified - would need proper unread tracking)
-        customerUnread = customerData.threads?.length || 0;
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadMessagesCount(data.unreadCount || 0);
+      } else {
+        console.error('Failed to load unread messages:', res.status);
+        setUnreadMessagesCount(0);
       }
-      
-      setUnreadMessagesCount(customerUnread);
     } catch (error) {
       console.error('Error loading unread messages:', error);
+      setUnreadMessagesCount(0);
     }
   };
   
