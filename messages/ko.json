@@ -346,7 +346,7 @@
     "enterEmail": "이메일을 입력해주세요",
     "invalidEmail": "유효한 이메일 주소를 입력해주세요",
     "enterName": "이름을 입력해주세요",
-    "yourEmail": "이메일"
+    "yourEmail": "이메일",
     "confirmationEmailSent": "확인 이메일이 전송되었습니다.",
     "viewBookingDetails": "예약 세부 정보 보기",
     "bookingNotFound": "예약을 찾을 수 없습니다",
