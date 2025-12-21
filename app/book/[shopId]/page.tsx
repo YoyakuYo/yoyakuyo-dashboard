@@ -355,12 +355,12 @@ export default function PublicBookingPage() {
             ) : !availabilityChecked ? (
               <p className="text-gray-500 text-sm">{t('booking.clickCheckAvailability') || 'Click "Check Availability" to see available timeslots'}</p>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
                 {timeslots.map((timeslot) => (
                   <button
                     key={timeslot.id}
                     onClick={() => setSelectedTimeslot(timeslot)}
-                    className={`px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors ${
+                    className={`w-full px-4 py-3 border rounded-lg hover:bg-gray-50 transition-colors text-left ${
                       selectedTimeslot?.id === timeslot.id
                         ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
                         : 'border-gray-300'
