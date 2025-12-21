@@ -99,8 +99,8 @@ router.post("/", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "type and shop_id are required" });
     }
 
-    // Get customer profile
-    const { data: customerProfile, error: profileError } = await dbClient
+    // Get customer profile - auto-create if it doesn't exist
+    let { data: customerProfile, error: profileError } = await dbClient
       .from("customer_profiles")
       .select("id")
       .eq("customer_auth_id", userId)
@@ -114,59 +114,45 @@ router.post("/", async (req: Request, res: Response) => {
         .eq("id", userId)
         .maybeSingle();
       
-      if (!profileFallback?.id) {
-        return res.status(404).json({ error: "Customer profile not found" });
-      }
+      if (profileFallback?.id) {
+        customerProfile = profileFallback;
+      } else {
+        // Auto-create customer profile if it doesn't exist
+        try {
+          const { data: authUser } = await dbClient.auth.admin.getUserById(userId);
+          const userEmail = authUser?.user?.email || '';
+          const userName = authUser?.user?.user_metadata?.name || authUser?.user?.email?.split('@')[0] || 'Customer';
+          
+          const { data: profileId, error: createError } = await dbClient
+            .rpc('create_customer_profile', {
+              p_customer_auth_id: userId,
+              p_email: userEmail,
+              p_name: userName,
+              p_phone: null
+            });
 
-      // Get owner_id from shop if not provided
-      let finalOwnerId = owner_id;
-      if (!finalOwnerId) {
-        const { data: shop } = await dbClient
-          .from("shops")
-          .select("owner_user_id")
-          .eq("id", shop_id)
-          .single();
-        
-        if (!shop?.owner_user_id) {
-          return res.status(404).json({ error: "Shop owner not found" });
+          if (createError || !profileId) {
+            console.error('Error creating customer profile:', createError);
+            return res.status(500).json({ error: 'Failed to create customer profile' });
+          }
+
+          // Fetch the newly created profile
+          const { data: newProfile } = await dbClient
+            .from("customer_profiles")
+            .select("id")
+            .eq("id", profileId)
+            .single();
+
+          if (!newProfile?.id) {
+            return res.status(500).json({ error: 'Failed to retrieve created profile' });
+          }
+
+          customerProfile = newProfile;
+        } catch (createErr: any) {
+          console.error('Error auto-creating customer profile:', createErr);
+          return res.status(500).json({ error: 'Failed to create customer profile', details: createErr.message });
         }
-        finalOwnerId = shop.owner_user_id;
       }
-
-      // Check if conversation already exists
-      // Note: conversations.customer_id references users(id), so we use userId
-      const { data: existing } = await dbClient
-        .from("conversations")
-        .select("id")
-        .eq("type", type)
-        .eq("shop_id", shop_id)
-        .eq("customer_id", userId)
-        .eq("owner_id", finalOwnerId)
-        .maybeSingle();
-
-      if (existing) {
-        return res.json({ conversation: existing });
-      }
-
-      // Create new conversation
-      // Note: conversations.customer_id references users(id), so we use userId
-      const { data: conversation, error: createError } = await dbClient
-        .from("conversations")
-        .insert({
-          type,
-          shop_id,
-          customer_id: userId,
-          owner_id: finalOwnerId,
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        console.error("Error creating conversation:", createError);
-        return res.status(500).json({ error: "Failed to create conversation" });
-      }
-
-      return res.json({ conversation });
     }
 
     // Get owner_id from shop if not provided
