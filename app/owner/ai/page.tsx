@@ -5,7 +5,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/lib/useAuth";
-import { useRouter } from "next/navigation';
+import { useRouter } from "next/navigation";
 import { useAIConversation } from "@/lib/useAIConversation";
 import { apiUrl } from "@/lib/apiClient";
 import { useTranslations } from 'next-intl';
