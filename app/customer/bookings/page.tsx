@@ -71,38 +71,80 @@ function CustomerBookingsPageContent() {
 
     const customerProfileId = customerProfile?.id;
 
-    // Query bookings - try customer_profile_id first, then fallback to user_id
+    // Query bookings - try customer_profile_id first, then user_id, then customer_id (for old bookings)
     // Handle case where customer_profile_id column might not exist yet
     let bookings: any[] = [];
     let bookingsError: any = null;
 
-    if (customerProfileId) {
-      // Try querying by customer_profile_id first
-      const { data, error } = await supabase
-        .from("bookings")
-        .select(`
-          *,
-          shops (
-            id,
-            name,
-            address,
-            phone
-          ),
-          services (
-            id,
-            name,
-            price
-          )
-        `)
-        .eq("customer_profile_id", customerProfileId)
-        .order("created_at", { ascending: false });
+    // Build query with multiple filters using .or() to check all possible fields
+    let query = supabase
+      .from("bookings")
+      .select(`
+        *,
+        shops (
+          id,
+          name,
+          address,
+          phone
+        ),
+        services (
+          id,
+          name,
+          price
+        )
+      `);
 
-      if (error) {
-        // If error is "column does not exist", fallback to user_id
-        if (error.code === '42703' || error.message?.includes('does not exist')) {
-          console.warn('[Customer Bookings] customer_profile_id column not found, falling back to user_id');
-          // Fallback to user_id query
-          const { data: fallbackData, error: fallbackError } = await supabase
+    // Try to query by customer_profile_id, user_id, or customer_id (for old bookings)
+    // Use .or() to check multiple conditions
+    const orConditions: string[] = [];
+    
+    if (customerProfileId) {
+      orConditions.push(`customer_profile_id.eq.${customerProfileId}`);
+    }
+    
+    // Always check user_id
+    orConditions.push(`user_id.eq.${user.id}`);
+    
+    // Also check customer_id as fallback for old bookings
+    // Note: customer_id might be the old structure where it equals user.id
+    orConditions.push(`customer_id.eq.${user.id}`);
+
+    if (orConditions.length > 0) {
+      query = query.or(orConditions.join(','));
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
+
+    if (error) {
+      // If error is "column does not exist", try simpler queries
+      if (error.code === '42703' || error.message?.includes('does not exist')) {
+        console.warn('[Customer Bookings] Some columns not found, trying fallback queries');
+        
+        // Try user_id only
+        const { data: userData, error: userError } = await supabase
+          .from("bookings")
+          .select(`
+            *,
+            shops (
+              id,
+              name,
+              address,
+              phone
+            ),
+            services (
+              id,
+              name,
+              price
+            )
+          `)
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+        
+        if (!userError && userData) {
+          bookings = userData || [];
+        } else {
+          // Last resort: try customer_id
+          const { data: customerData, error: customerError } = await supabase
             .from("bookings")
             .select(`
               *,
@@ -118,40 +160,23 @@ function CustomerBookingsPageContent() {
                 price
               )
             `)
-            .eq("user_id", user.id)
+            .eq("customer_id", user.id)
             .order("created_at", { ascending: false });
           
-          bookings = fallbackData || [];
-          bookingsError = fallbackError;
-        } else {
-          bookingsError = error;
+          bookings = customerData || [];
+          bookingsError = customerError;
         }
       } else {
-        bookings = data || [];
+        bookingsError = error;
       }
     } else {
-      // No customer profile, query by user_id only
-      const { data, error } = await supabase
-        .from("bookings")
-        .select(`
-          *,
-          shops (
-            id,
-            name,
-            address,
-            phone
-          ),
-          services (
-            id,
-            name,
-            price
-          )
-        `)
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      
       bookings = data || [];
-      bookingsError = error;
+      
+      // Remove duplicates (in case a booking matches multiple conditions)
+      const uniqueBookings = bookings.filter((booking, index, self) =>
+        index === self.findIndex((b) => b.id === booking.id)
+      );
+      bookings = uniqueBookings;
     }
     
     if (bookingsError) {
