@@ -72,33 +72,87 @@ function CustomerBookingsPageContent() {
     const customerProfileId = customerProfile?.id;
 
     // Query bookings - try customer_profile_id first, then fallback to user_id
-    let query = supabase
-      .from("bookings")
-      .select(`
-        *,
-        shops (
-          id,
-          name,
-          address,
-          phone
-        ),
-        services (
-          id,
-          name,
-          price
-        )
-      `);
+    // Handle case where customer_profile_id column might not exist yet
+    let bookings: any[] = [];
+    let bookingsError: any = null;
 
-    // Filter by customer_profile_id if available, otherwise use user_id
     if (customerProfileId) {
-      query = query.eq("customer_profile_id", customerProfileId);
-    } else {
-      // Fallback: try user_id (for backward compatibility or if profile doesn't exist)
-      query = query.eq("user_id", user.id);
-    }
+      // Try querying by customer_profile_id first
+      const { data, error } = await supabase
+        .from("bookings")
+        .select(`
+          *,
+          shops (
+            id,
+            name,
+            address,
+            phone
+          ),
+          services (
+            id,
+            name,
+            price
+          )
+        `)
+        .eq("customer_profile_id", customerProfileId)
+        .order("created_at", { ascending: false });
 
-    const { data: bookings, error: bookingsError } = await query
-      .order("created_at", { ascending: false });
+      if (error) {
+        // If error is "column does not exist", fallback to user_id
+        if (error.code === '42703' || error.message?.includes('does not exist')) {
+          console.warn('[Customer Bookings] customer_profile_id column not found, falling back to user_id');
+          // Fallback to user_id query
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from("bookings")
+            .select(`
+              *,
+              shops (
+                id,
+                name,
+                address,
+                phone
+              ),
+              services (
+                id,
+                name,
+                price
+              )
+            `)
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false });
+          
+          bookings = fallbackData || [];
+          bookingsError = fallbackError;
+        } else {
+          bookingsError = error;
+        }
+      } else {
+        bookings = data || [];
+      }
+    } else {
+      // No customer profile, query by user_id only
+      const { data, error } = await supabase
+        .from("bookings")
+        .select(`
+          *,
+          shops (
+            id,
+            name,
+            address,
+            phone
+          ),
+          services (
+            id,
+            name,
+            price
+          )
+        `)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      
+      bookings = data || [];
+      bookingsError = error;
+    }
     
     if (bookingsError) {
       console.error("Error fetching bookings:", bookingsError);
@@ -132,22 +186,29 @@ function CustomerBookingsPageContent() {
       console.error("Error loading bookings:", bookingsError);
     }
 
-    // DEBUG ASSERTION: Check for orphaned bookings
-    // If there are bookings for customer_profile_id but not showing up, log error
-    if (allBookings.length === 0 && customerProfileId) {
-      // Check if there are any bookings that might belong to this user but have wrong customer_profile_id
-      const { data: orphanedCheck } = await supabase
-        .from("bookings")
-        .select("id, user_id, customer_profile_id")
-        .eq("customer_profile_id", customerProfileId)
-        .limit(1)
-        .maybeSingle();
-      
-      if (orphanedCheck) {
-        console.error(`[Customer Bookings] ❌ ORPHANED BOOKING DETECTED!`);
-        console.error(`[Customer Bookings] ❌ Booking ${orphanedCheck.id} has customer_profile_id=${orphanedCheck.customer_profile_id} but user_id=${orphanedCheck.user_id}`);
-        console.error(`[Customer Bookings] ❌ Dashboard user_id=${user.id} does not match booking.user_id`);
-        console.error(`[Customer Bookings] ❌ This booking will NOT appear in dashboard!`);
+    // DEBUG ASSERTION: Check for orphaned bookings (only if customer_profile_id column exists)
+    // Skip this check if we already fell back to user_id query
+    if (allBookings.length === 0 && customerProfileId && !bookingsError) {
+      // Try to check for orphaned bookings, but handle case where column doesn't exist
+      try {
+        const { data: orphanedCheck, error: orphanedError } = await supabase
+          .from("bookings")
+          .select("id, user_id, customer_profile_id")
+          .eq("customer_profile_id", customerProfileId)
+          .limit(1)
+          .maybeSingle();
+        
+        // If column doesn't exist, skip orphaned check
+        if (orphanedError && (orphanedError.code === '42703' || orphanedError.message?.includes('does not exist'))) {
+          // Column doesn't exist, skip check
+        } else if (orphanedCheck) {
+          console.error(`[Customer Bookings] ❌ ORPHANED BOOKING DETECTED!`);
+          console.error(`[Customer Bookings] ❌ Booking ${orphanedCheck.id} has customer_profile_id=${orphanedCheck.customer_profile_id} but user_id=${orphanedCheck.user_id}`);
+          console.error(`[Customer Bookings] ❌ Dashboard user_id=${user.id} does not match booking.user_id`);
+          console.error(`[Customer Bookings] ❌ This booking will NOT appear in dashboard!`);
+        }
+      } catch (e) {
+        // Silently ignore errors in debug check
       }
     }
     
