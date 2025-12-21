@@ -156,6 +156,7 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
             'zh': '照片',
             'es': 'Fotos',
             'pt-BR': 'Fotos',
+            'ko': '사진',
           };
           return photoTexts[locale] || 'Photos';
         }
