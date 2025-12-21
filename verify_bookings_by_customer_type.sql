@@ -115,11 +115,10 @@ ORDER BY ordinal_position;
 SELECT 
   cp.id as profile_id,
   cp.customer_auth_id,
-  cp.email,
-  cp.name,
+  cp.email as profile_email,
+  cp.name as profile_name,
   c.id as customer_id,
-  c.email as customer_email,
-  c.name as customer_name,
+  c.role as customer_role,
   -- Check if this profile has bookings
   (SELECT COUNT(*) FROM bookings b WHERE b.customer_profile_id = cp.id) as bookings_count,
   -- Check if this customer has bookings via customer_id
