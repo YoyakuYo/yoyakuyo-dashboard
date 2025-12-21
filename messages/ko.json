@@ -8,6 +8,8 @@
   "nav": {
     "dashboard": "대시보드",
     "myShop": "내 매장",
+    "bookings": "예약",
+    "calendar": "캘린더",
     "messages": "메시지",
     "aiAssistant": "AI 어시스턴트",
     "contactSupport": "고객 지원",
@@ -58,6 +60,14 @@
     "spa_massage": "스파 및 마사지",
     "hotels_ryokan": "호텔 및 여관",
     "restaurants_izakaya": "레스토랑 및 이자카야"
+  },
+  "bookings": {
+    "all": "전체",
+    "upcoming": "예정",
+    "pending": "대기 중",
+    "confirmed": "확정",
+    "completed": "완료",
+    "cancelled": "취소됨"
   },
   "prefectures": {
     "tokyo": "도쿄도",
@@ -333,7 +343,10 @@
     "submitBooking": "예약 제출",
     "haveAccount": "계정이 있으신가요?",
     "fillRequiredFields": "모든 필수 필드를 입력해주세요",
+    "enterEmail": "이메일을 입력해주세요",
     "invalidEmail": "유효한 이메일 주소를 입력해주세요",
+    "enterName": "이름을 입력해주세요",
+    "yourEmail": "이메일"
     "confirmationEmailSent": "확인 이메일이 전송되었습니다.",
     "viewBookingDetails": "예약 세부 정보 보기",
     "bookingNotFound": "예약을 찾을 수 없습니다",
