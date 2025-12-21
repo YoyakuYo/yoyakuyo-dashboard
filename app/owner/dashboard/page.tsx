@@ -428,10 +428,17 @@ export default function OwnerDashboardPage() {
                   {bookings.slice(0, 5).map((booking) => (
                     <tr key={booking.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(booking.booking_date).toLocaleDateString()}
+                        {booking.booking_date 
+                          ? new Date(booking.booking_date).toLocaleDateString()
+                          : booking.start_time
+                          ? new Date(booking.start_time).toLocaleDateString()
+                          : booking.date
+                          ? new Date(booking.date).toLocaleDateString()
+                          : t('dashboard.na')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {booking.booking_time}
+                        {booking.booking_time || 
+                         (booking.start_time ? new Date(booking.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : t('dashboard.na'))}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {booking.customer_name || t('dashboard.na')}
