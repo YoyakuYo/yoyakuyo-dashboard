@@ -115,6 +115,13 @@ function CustomerBookingsPageContent() {
     }
 
     // FALLBACK: Direct Supabase query (will be blocked by RLS for custom auth users)
+    // This should not be reached if API endpoint works, but kept as fallback
+    if (!user?.id) {
+      setBookings([]);
+      setLoading(false);
+      return;
+    }
+
     const supabase = getSupabaseClient();
     
     // Get customer profile ID first
