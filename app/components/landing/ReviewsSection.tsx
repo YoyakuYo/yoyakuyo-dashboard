@@ -209,7 +209,7 @@ export default function ReviewsSection() {
             {/* Review Comment */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tell us about your experience (optional)
+                {t('reviews.tellUsAboutExperience')}
               </label>
               <textarea
                 value={comment}
@@ -217,10 +217,10 @@ export default function ReviewsSection() {
                 rows={6}
                 maxLength={2000}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                placeholder="What did you like? What could we improve? Share your thoughts..."
+                placeholder={t('reviews.experiencePlaceholder')}
               />
               <div className="text-xs text-gray-500 mt-1 text-right">
-                {comment.length}/2000 characters
+                {comment.length}/2000 {t('common.characters')}
               </div>
             </div>
 
@@ -238,7 +238,7 @@ export default function ReviewsSection() {
                 disabled={submitting}
                 className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {submitting ? 'Submitting...' : 'Submit Review'}
+                {submitting ? t('common.submitting') : t('reviews.submit')}
               </button>
             </div>
           </form>

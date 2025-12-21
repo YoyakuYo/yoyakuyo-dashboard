@@ -774,6 +774,8 @@
     "respond": "レビューに返信",
     "noReviews": "レビューはまだありません",
     "addFirstReview": "最初のレビューを書いてみませんか",
+    "tellUsAboutExperience": "体験について教えてください（任意）",
+    "experiencePlaceholder": "何が良かったですか？改善できる点は？ご意見をお聞かせください..."
     "characters": "文字",
     "description": "お客様が体験について語っている声をご覧ください",
     "browseShops": "店舗を探す",

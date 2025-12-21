@@ -194,6 +194,26 @@
     "failedToConnect": "LINE 계정 연결 실패",
     "connectedSuccessfully": "LINE 계정이 성공적으로 연결되었습니다!"
   },
+  "reviews": {
+    "title": "리뷰",
+    "description": "고객들이 경험에 대해 말하는 내용을 확인하세요",
+    "browseShops": "매장 둘러보기",
+    "viewAllShops": "모든 매장 및 리뷰 보기",
+    "writeReview": "리뷰 작성",
+    "rating": "평점",
+    "comment": "댓글",
+    "photos": "사진",
+    "submit": "리뷰 제출",
+    "averageRating": "평균 평점",
+    "totalReviews": "총 리뷰 수",
+    "verified": "확인된 예약",
+    "ownerResponse": "소유자 응답",
+    "respond": "리뷰에 응답",
+    "noReviews": "아직 리뷰가 없습니다",
+    "addFirstReview": "이 매장의 첫 번째 리뷰를 작성하세요",
+    "tellUsAboutExperience": "경험에 대해 알려주세요 (선택 사항)",
+    "experiencePlaceholder": "무엇이 좋았나요? 무엇을 개선할 수 있을까요? 생각을 공유해주세요..."
+  },
   "dashboard": {
     "title": "대시보드",
     "todaysBookings": "오늘의 예약",

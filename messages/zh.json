@@ -1325,7 +1325,9 @@
     "ownerResponse": "Owner Response",
     "respond": "Respond to Review",
     "noReviews": "No reviews yet",
-    "addFirstReview": "Be the first to review this shop"
+    "addFirstReview": "Be the first to review this shop",
+    "tellUsAboutExperience": "告诉我们您的体验（可选）",
+    "experiencePlaceholder": "您喜欢什么？我们可以改进什么？分享您的想法..."
   },
   "messages": {
     "title": "消息",

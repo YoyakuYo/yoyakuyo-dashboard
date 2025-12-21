@@ -777,7 +777,9 @@
     "ownerResponse": "Owner Response",
     "respond": "Respond to Review",
     "noReviews": "No reviews yet",
-    "addFirstReview": "Be the first to review this shop"
+    "addFirstReview": "Be the first to review this shop",
+    "tellUsAboutExperience": "Tell us about your experience (optional)",
+    "experiencePlaceholder": "What did you like? What could we improve? Share your thoughts..."
   },
   "analytics": {
     "title": "Analytics",

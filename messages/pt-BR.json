@@ -1330,7 +1330,9 @@
     "ownerResponse": "Owner Response",
     "respond": "Respond to Review",
     "noReviews": "No reviews yet",
-    "addFirstReview": "Be the first to review this shop"
+    "addFirstReview": "Be the first to review this shop",
+    "tellUsAboutExperience": "Conte-nos sobre sua experiência (opcional)",
+    "experiencePlaceholder": "O que você gostou? O que poderíamos melhorar? Compartilhe seus pensamentos..."
   },
   "messages": {
     "title": "Mensagens",
