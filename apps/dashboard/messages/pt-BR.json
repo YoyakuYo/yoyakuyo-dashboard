@@ -1,3 +1,17 @@
 {
-  ... (all keys from en.json filled, fallback to English where translation missing)
+  ...conteúdo existente...
+  "nav": {
+    "shops": "Lojas",
+    "ownerLogin": "Login do Proprietário",
+    "myShop": "Minha Loja",
+    "aiAssistant": "Assistente IA",
+    "bookings": "Reservas",
+    "logout": "Sair",
+    "dashboard": "Painel",
+    "messages": "Mensagens",
+    "settings": "Configurações",
+    "contactSupport": "Suporte ao Cliente",
+    "subscriptions": "Assinaturas e Cobrança"
+  },
+  ...conteúdo existente...
 }

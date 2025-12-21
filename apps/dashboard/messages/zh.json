@@ -1,3 +1,17 @@
 {
-  ... (all keys from en.json filled, fallback to English where translation missing)
+  ...现有内容...
+  "nav": {
+    "shops": "店铺",
+    "ownerLogin": "商户登录",
+    "myShop": "我的商铺",
+    "aiAssistant": "AI助手",
+    "bookings": "预订",
+    "logout": "登出",
+    "dashboard": "仪表板",
+    "messages": "消息",
+    "settings": "设置",
+    "contactSupport": "联系客服",
+    "subscriptions": "订阅和账单"
+  },
+  ...现有内容...
 }

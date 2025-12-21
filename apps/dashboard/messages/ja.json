@@ -1,3 +1,17 @@
 {
-  ... (all keys from en.json filled, fallback to English where translation missing)
+  ...既存の内容...
+  "nav": {
+    "shops": "店舗",
+    "ownerLogin": "オーナーログイン",
+    "myShop": "マイショップ",
+    "aiAssistant": "AIアシスタント",
+    "bookings": "予約",
+    "logout": "ログアウト",
+    "dashboard": "ダッシュボード",
+    "messages": "メッセージ",
+    "settings": "設定",
+    "contactSupport": "サポートに連絡",
+    "subscriptions": "サブスクリプションと請求"
+  },
+  ...既存の内容...
 }
