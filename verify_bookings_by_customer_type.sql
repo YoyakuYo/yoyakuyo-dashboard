@@ -65,6 +65,18 @@ FROM bookings
 WHERE source = 'web'
 UNION ALL
 SELECT 
+  'Bookings with user_id set (Web customers)',
+  COUNT(*)
+FROM bookings
+WHERE user_id IS NOT NULL
+UNION ALL
+SELECT 
+  'Bookings with customer_profile_id set (Web customers)',
+  COUNT(*)
+FROM bookings
+WHERE customer_profile_id IS NOT NULL
+UNION ALL
+SELECT 
   'Bookings with NULL for all customer fields',
   COUNT(*)
 FROM bookings
@@ -152,13 +164,14 @@ ORDER BY booking_count DESC;
 -- ============================================
 -- PART 8: Show bookings for a specific customer type (example: web customers)
 -- ============================================
--- Web customers (have user_id or customer_profile_id)
+-- Web customers (have user_id or customer_profile_id OR source = 'web')
 SELECT 
   'Web Customer Bookings' as category,
   b.id,
   b.customer_id,
   b.user_id,
   b.customer_profile_id,
+  b.source,
   b.customer_name,
   b.shop_id,
   b.status,
@@ -167,7 +180,8 @@ SELECT
   cp.email as profile_email
 FROM bookings b
 LEFT JOIN customer_profiles cp ON cp.id = b.customer_profile_id
-WHERE b.user_id IS NOT NULL OR b.customer_profile_id IS NOT NULL
+WHERE (b.user_id IS NOT NULL OR b.customer_profile_id IS NOT NULL OR b.source = 'web')
+  AND (b.source IS NULL OR b.source != 'line')  -- Exclude LINE bookings
 ORDER BY b.created_at DESC
 LIMIT 10;
 
