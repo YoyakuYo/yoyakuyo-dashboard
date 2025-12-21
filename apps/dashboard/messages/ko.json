@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "common": {
     "save": "저장",
@@ -229,3 +230,5 @@
     "okinawa": "오키나와현"
   }
 }
+=======
+>>>>>>> a688b69f (feat(i18n): fully localize owner dashboard for 6 languages)
