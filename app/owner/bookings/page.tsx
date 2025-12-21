@@ -105,7 +105,8 @@ export default function OwnerBookingsPage() {
     if (!user?.id) return;
     try {
       setLoading(true);
-      const res = await fetch(`${apiUrl}/bookings?owner=true`, {
+      // API filters by x-user-id header to get owner's bookings
+      const res = await fetch(`${apiUrl}/bookings`, {
         headers: {
           'x-user-id': user.id,
         },
@@ -113,8 +114,14 @@ export default function OwnerBookingsPage() {
 
       if (res.ok) {
         const data = await res.json();
-        const bookingsArray = data.bookings || (Array.isArray(data) ? data : []);
+        // Handle both array response and object with bookings property
+        const bookingsArray = Array.isArray(data) 
+          ? data 
+          : (data.bookings || []);
         setBookings(bookingsArray);
+      } else {
+        console.error('Failed to load bookings:', res.status);
+        setBookings([]);
       }
     } catch (error) {
       console.error("Error loading bookings:", error);

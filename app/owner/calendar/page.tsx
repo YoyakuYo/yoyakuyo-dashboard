@@ -144,8 +144,23 @@ export default function OwnerCalendarPage() {
         if (data.shops && data.shops.length > 0) {
           const shopData = data.shops[0];
           setShop(shopData);
-          setOpeningHours(shopData.opening_hours || {});
+          // Parse opening_hours if it's a string, otherwise use as-is
+          let hours = shopData.opening_hours;
+          if (typeof hours === 'string') {
+            try {
+              hours = JSON.parse(hours);
+            } catch (e) {
+              console.error('Error parsing opening_hours:', e);
+              hours = {};
+            }
+          }
+          setOpeningHours(hours || {});
+        } else {
+          setMessage({ type: 'error', text: t('myShop.noShop') });
         }
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        setMessage({ type: 'error', text: errorData.error || t('common.error') });
       }
     } catch (error) {
       console.error('Error loading shop:', error);
