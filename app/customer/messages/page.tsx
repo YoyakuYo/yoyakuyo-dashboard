@@ -72,19 +72,17 @@ function CustomerMessagesPageContent() {
 
   // Handle shopId parameter - find or create conversation for this shop
   useEffect(() => {
-    if (shopIdParam && user) {
+    if (shopIdParam && user && !loading) {
+      console.log('[Customer Messages] shopIdParam effect triggered:', { shopIdParam, conversationsCount: conversations.length, loading });
+      
       // First, check if conversation already exists in loaded conversations
       const existingConv = conversations.find(c => c.shop_id === shopIdParam);
       if (existingConv) {
+        console.log('[Customer Messages] Found existing conversation in list:', existingConv.id);
         setSelectedConversationId(existingConv.id);
       } else {
-        // If conversations haven't loaded yet, wait for them to load first
-        // Otherwise, create new conversation
-        if (conversations.length === 0 && loading) {
-          // Still loading, wait for loadConversations to finish
-          return;
-        }
-        // Conversations loaded but not found, or still loading - create it
+        // Conversations loaded but not found - create it
+        console.log('[Customer Messages] No conversation found, creating for shop:', shopIdParam);
         createConversationForShop(shopIdParam);
       }
     }
