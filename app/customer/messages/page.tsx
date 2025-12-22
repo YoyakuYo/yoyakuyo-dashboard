@@ -55,6 +55,11 @@ function CustomerMessagesPageContent() {
   const searchParams = useSearchParams();
   const shopIdParam = searchParams.get('shopId');
   const bookingIdParam = searchParams.get('bookingId');
+  
+  // Debug: Log shopIdParam on mount and when it changes
+  useEffect(() => {
+    console.log('[Customer Messages] URL params:', { shopIdParam, bookingIdParam, user: user?.id });
+  }, [shopIdParam, bookingIdParam, user]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -72,19 +77,30 @@ function CustomerMessagesPageContent() {
 
   // Handle shopId parameter - find or create conversation for this shop
   useEffect(() => {
+    console.log('[Customer Messages] shopIdParam useEffect check:', { 
+      shopIdParam, 
+      hasUser: !!user, 
+      loading, 
+      conversationsCount: conversations.length 
+    });
+    
     if (shopIdParam && user && !loading) {
-      console.log('[Customer Messages] shopIdParam effect triggered:', { shopIdParam, conversationsCount: conversations.length, loading });
+      console.log('[Customer Messages] ✅ shopIdParam effect triggered:', { shopIdParam, conversationsCount: conversations.length, loading });
       
       // First, check if conversation already exists in loaded conversations
       const existingConv = conversations.find(c => c.shop_id === shopIdParam);
       if (existingConv) {
-        console.log('[Customer Messages] Found existing conversation in list:', existingConv.id);
+        console.log('[Customer Messages] ✅ Found existing conversation in list:', existingConv.id);
         setSelectedConversationId(existingConv.id);
       } else {
         // Conversations loaded but not found - create it
-        console.log('[Customer Messages] No conversation found, creating for shop:', shopIdParam);
+        console.log('[Customer Messages] ❌ No conversation found, creating for shop:', shopIdParam);
         createConversationForShop(shopIdParam);
       }
+    } else {
+      console.log('[Customer Messages] ⏸️ shopIdParam effect skipped:', { 
+        reason: !shopIdParam ? 'no shopIdParam' : !user ? 'no user' : 'still loading'
+      });
     }
   }, [shopIdParam, user, conversations, loading]);
 
