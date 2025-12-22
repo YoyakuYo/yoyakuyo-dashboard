@@ -71,17 +71,23 @@ function CustomerMessagesPageContent() {
 
   // Handle shopId parameter - find or create conversation for this shop
   useEffect(() => {
-    if (shopIdParam && user && conversations.length > 0) {
-      // Find existing conversation for this shop
+    if (shopIdParam && user) {
+      // First, check if conversation already exists in loaded conversations
       const existingConv = conversations.find(c => c.shop_id === shopIdParam);
       if (existingConv) {
         setSelectedConversationId(existingConv.id);
       } else {
-        // Create new conversation
+        // If conversations haven't loaded yet, wait for them to load first
+        // Otherwise, create new conversation
+        if (conversations.length === 0 && loading) {
+          // Still loading, wait for loadConversations to finish
+          return;
+        }
+        // Conversations loaded but not found, or still loading - create it
         createConversationForShop(shopIdParam);
       }
     }
-  }, [shopIdParam, user, conversations]);
+  }, [shopIdParam, user, conversations, loading]);
 
   // Handle bookingId parameter - find conversation created by booking trigger
   useEffect(() => {
