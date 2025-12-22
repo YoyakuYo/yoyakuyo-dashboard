@@ -101,11 +101,13 @@ WHERE NOT EXISTS (
 )
 AND c.role != 'owner'; -- Owners don't need bookings
 
--- PART 8: Customer type distribution
+-- PART 8: Customer type distribution (CORRECTED - LINE takes priority)
+-- NOTE: LINE customers are checked FIRST, so customers with both LINE and auth.users are correctly classified as LINE
 SELECT 
   CASE 
     WHEN EXISTS (SELECT 1 FROM line_accounts la WHERE la.customer_id = c.id) THEN 'LINE'
-    WHEN EXISTS (SELECT 1 FROM auth.users au WHERE au.id = c.id) THEN 'WEB'
+    WHEN EXISTS (SELECT 1 FROM auth.users au WHERE au.id = c.id 
+                 AND (au.email NOT LIKE '%@line.user' OR au.email IS NULL)) THEN 'WEB'
     WHEN role = 'guest' THEN 'GUEST'
     WHEN role = 'owner' THEN 'OWNER'
     ELSE 'UNKNOWN'
@@ -115,7 +117,8 @@ FROM customers c
 GROUP BY 
   CASE 
     WHEN EXISTS (SELECT 1 FROM line_accounts la WHERE la.customer_id = c.id) THEN 'LINE'
-    WHEN EXISTS (SELECT 1 FROM auth.users au WHERE au.id = c.id) THEN 'WEB'
+    WHEN EXISTS (SELECT 1 FROM auth.users au WHERE au.id = c.id 
+                 AND (au.email NOT LIKE '%@line.user' OR au.email IS NULL)) THEN 'WEB'
     WHEN role = 'guest' THEN 'GUEST'
     WHEN role = 'owner' THEN 'OWNER'
     ELSE 'UNKNOWN'
@@ -129,7 +132,8 @@ SELECT
   c.created_at,
   CASE 
     WHEN EXISTS (SELECT 1 FROM line_accounts la WHERE la.customer_id = c.id) THEN 'LINE'
-    WHEN EXISTS (SELECT 1 FROM auth.users au WHERE au.id = c.id) THEN 'WEB'
+    WHEN EXISTS (SELECT 1 FROM auth.users au WHERE au.id = c.id 
+                 AND (au.email NOT LIKE '%@line.user' OR au.email IS NULL)) THEN 'WEB'
     WHEN role = 'guest' THEN 'GUEST'
     WHEN role = 'owner' THEN 'OWNER'
     ELSE 'UNKNOWN'
@@ -149,7 +153,8 @@ SELECT
   c.role,
   CASE 
     WHEN EXISTS (SELECT 1 FROM line_accounts la WHERE la.customer_id = c.id) THEN 'LINE'
-    WHEN EXISTS (SELECT 1 FROM auth.users au WHERE au.id = c.id) THEN 'WEB'
+    WHEN EXISTS (SELECT 1 FROM auth.users au WHERE au.id = c.id 
+                 AND (au.email NOT LIKE '%@line.user' OR au.email IS NULL)) THEN 'WEB'
     WHEN role = 'guest' THEN 'GUEST'
     WHEN role = 'owner' THEN 'OWNER'
     ELSE 'UNKNOWN'
