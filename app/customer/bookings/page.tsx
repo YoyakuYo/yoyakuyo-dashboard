@@ -27,28 +27,40 @@ function CustomerBookingsPageContent() {
   }, [user, filter, setUnreadBookingsCount]);
 
   // Subscribe to real-time booking updates
+  // MUST wait for customer.id to be resolved before subscribing
   useEffect(() => {
     if (!user?.id) return;
 
     const supabase = getSupabaseClient();
-    
-    // Get customer_id first (for WEB: customers.id = auth.users.id)
+    let channel: any = null;
+
+    // STEP 1: Resolve WEB customer correctly
     supabase
       .from('customers')
       .select('id')
-      .eq('id', user.id)
-      .single()
+      .eq('user_id', user.id)
+      .eq('source', 'web')
+      .maybeSingle()
       .then(({ data: customer, error: customerError }) => {
-        if (customerError || !customer?.id) {
-          console.error('[Customer Bookings] Failed to get customer_id for realtime:', customerError);
+        if (customerError) {
+          console.error('[Customer Bookings] Error resolving customer:', customerError);
+          return;
+        }
+
+        if (!customer?.id) {
+          console.error('WEB CUSTOMER RESOLUTION FAILED', {
+            authUserId: user.id,
+            error: 'Customer not found in customers table',
+            query: 'customers WHERE user_id = ' + user.id + ' AND source = web'
+          });
           return;
         }
 
         const customerId = customer.id;
-        console.log('[Customer Bookings] Subscribing to bookings for customer_id:', customerId);
+        console.log('[Customer Bookings] Customer resolved, subscribing to bookings for customer_id:', customerId);
 
-        // Subscribe to bookings by customer_id (canonical system)
-        const channel = supabase
+        // STEP 2: Only subscribe AFTER customer.id is confirmed
+        channel = supabase
           .channel("customer-bookings-subscription")
           .on(
             "postgres_changes",
@@ -66,11 +78,16 @@ function CustomerBookingsPageContent() {
           .subscribe((status) => {
             console.log('[Customer Bookings] Realtime subscription status:', status);
           });
-
-        return () => {
-          supabase.removeChannel(channel);
-        };
+      })
+      .catch((err) => {
+        console.error('[Customer Bookings] Failed to resolve customer for realtime:', err);
       });
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, [user]);
 
   const loadBookings = async () => {
