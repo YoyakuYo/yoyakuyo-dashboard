@@ -1,15 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 import { useCustomerNotifications } from "./CustomerNotificationContext";
 import NotificationDot from "@/app/components/NotificationDot";
 
 export default function CustomerSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations();
+  const { signOut } = useCustomAuth();
   const { unreadNotificationsCount, unreadBookingsCount, unreadMessagesCount } = useCustomerNotifications();
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/");
+  };
 
   const isActive = (path: string) => {
     if (path === "/customer/home") {
@@ -75,6 +83,29 @@ export default function CustomerSidebar() {
               )}
             </Link>
           ))}
+          
+          {/* Logout Button - Separated at the bottom */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full text-red-600 hover:bg-red-50 font-medium"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+              <span>{t('nav.logout') || 'Logout'}</span>
+            </button>
+          </div>
         </nav>
       </div>
     </aside>
