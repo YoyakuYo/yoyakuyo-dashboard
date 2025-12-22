@@ -223,17 +223,16 @@ function CustomerMessagesPageContent() {
         console.log('[Customer Messages] Loaded conversations:', convs?.length || 0, convs);
         setConversations(convs || []);
         
-        // After loading conversations, check if we need to create one for shopIdParam
+        // After loading conversations, check if we need to select one for shopIdParam
+        // Note: Don't create conversation here - let the shopIdParam useEffect handle it
+        // This prevents duplicate creation attempts
         if (shopIdParam) {
           const existingConv = (convs || []).find((c: Conversation) => c.shop_id === shopIdParam);
           if (existingConv) {
             console.log('[Customer Messages] Found existing conversation for shop:', shopIdParam, existingConv.id);
             setSelectedConversationId(existingConv.id);
-          } else {
-            // Conversation doesn't exist, create it
-            console.log('[Customer Messages] No conversation found for shop:', shopIdParam, 'Creating...');
-            await createConversationForShop(shopIdParam);
           }
+          // If not found, the shopIdParam useEffect will create it after loading completes
         }
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
