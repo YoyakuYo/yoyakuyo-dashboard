@@ -157,11 +157,16 @@ function CustomerMessagesPageContent() {
   };
 
   const createConversationForShop = async (shopId: string) => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.error('[Customer Messages] Cannot create conversation: user.id is missing');
+      return;
+    }
 
     try {
+      console.log('[Customer Messages] Creating conversation for shop:', shopId, 'user:', user.id);
       // Use internal messaging API (same as LINE customers) for consistency
       // This API handles web customers automatically via x-user-id header
+      // Note: customer_type and customer_ref are determined by the backend from x-user-id
       const res = await messagingFetch(
         `${apiUrl}/api/internal-messaging/conversations`,
         {
@@ -169,29 +174,32 @@ function CustomerMessagesPageContent() {
           userId: user.id,
           body: {
             shop_id: shopId,
-            customer_type: 'web',
-            customer_ref: user.id, // For web: customer_ref = user.id (canonical system)
+            // Don't pass customer_type/customer_ref - backend determines from x-user-id
           },
         }
       );
 
+      console.log('[Customer Messages] Create conversation response status:', res.status);
+
       if (res.ok) {
         const data = await res.json();
+        console.log('[Customer Messages] Create conversation response:', data);
         const conversationId = data.conversation_id || data.conversation?.id;
         if (conversationId) {
+          console.log('[Customer Messages] ✅ Conversation created:', conversationId);
           setSelectedConversationId(conversationId);
           await loadConversations(); // Refresh conversation list
         } else {
-          console.error("No conversation_id in response:", data);
+          console.error("[Customer Messages] ❌ No conversation_id in response:", data);
           alert('Failed to create conversation: Invalid response');
         }
       } else {
         const error = await res.json().catch(() => ({ error: 'Unknown error' }));
-        console.error("Failed to create conversation:", res.status, error);
+        console.error("[Customer Messages] ❌ Failed to create conversation:", res.status, error);
         alert(error.error || 'Failed to create conversation');
       }
     } catch (error) {
-      console.error("Error creating conversation:", error);
+      console.error("[Customer Messages] ❌ Error creating conversation:", error);
       alert('Failed to create conversation');
     }
   };
@@ -203,6 +211,7 @@ function CustomerMessagesPageContent() {
     }
 
     try {
+      console.log('[Customer Messages] Loading conversations for user:', user.id);
       // Use internal messaging API (same as LINE customers) for consistency
       const res = await messagingFetch(
         `${apiUrl}/api/internal-messaging/conversations`,
@@ -213,24 +222,27 @@ function CustomerMessagesPageContent() {
 
       if (res.ok) {
         const { conversations: convs } = await res.json();
+        console.log('[Customer Messages] Loaded conversations:', convs?.length || 0, convs);
         setConversations(convs || []);
         
         // After loading conversations, check if we need to create one for shopIdParam
         if (shopIdParam) {
           const existingConv = (convs || []).find((c: Conversation) => c.shop_id === shopIdParam);
           if (existingConv) {
+            console.log('[Customer Messages] Found existing conversation for shop:', shopIdParam, existingConv.id);
             setSelectedConversationId(existingConv.id);
           } else {
             // Conversation doesn't exist, create it
+            console.log('[Customer Messages] No conversation found for shop:', shopIdParam, 'Creating...');
             await createConversationForShop(shopIdParam);
           }
         }
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
-        console.error("Failed to load conversations:", res.status, errorData);
+        console.error("[Customer Messages] Failed to load conversations:", res.status, errorData);
       }
     } catch (error) {
-      console.error("Error loading conversations:", error);
+      console.error("[Customer Messages] Error loading conversations:", error);
     } finally {
       setLoading(false);
     }
