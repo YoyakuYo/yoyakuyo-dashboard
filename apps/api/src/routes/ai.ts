@@ -30,7 +30,7 @@ router.post("/chat", async (req: Request, res: Response) => {
             
             const actualMessage = lastUserMessage.content.trim();
             const actualSource = role === 'customer' ? 'customer' : role === 'owner' ? 'owner' : source || 'customer';
-            const actualShopId = shopId || req.body.shopContext?.shopId || null;
+            let actualShopId = shopId || req.body.shopContext?.shopId || null;
             
             // For customer chat without shopId, use a default shop or handle differently
             // For general customer chat (like /customer/chat), we'll use a placeholder shopId

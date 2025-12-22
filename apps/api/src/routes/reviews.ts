@@ -154,7 +154,7 @@ router.post('/', async (req: Request, res: Response) => {
         .eq("customer_auth_id", webUserId)
         .maybeSingle();
 
-      let finalCustomerId = customer_id;
+      let finalCustomerId: string | null = customer_id || null;
 
       if (customerProfile?.id) {
         authorType = 'user';
@@ -178,11 +178,6 @@ router.post('/', async (req: Request, res: Response) => {
           authorType = 'guest';
           finalGuestName = guest_name || 'Guest';
         }
-      }
-
-      // Update customer_id for use in review data
-      if (authorType === 'user') {
-        customer_id = finalCustomerId;
       }
     } 
     // STEP 3: Guest user (no authentication)
@@ -232,7 +227,7 @@ router.post('/', async (req: Request, res: Response) => {
       reviewData.user_id = null;
       reviewData.guest_name = null;
     } else if (authorType === 'user') {
-      reviewData.customer_id = customer_id || null;
+      reviewData.customer_id = finalCustomerId || null;
       reviewData.user_id = userId || null;
       reviewData.line_user_id = null;
       reviewData.guest_name = null;
@@ -266,14 +261,6 @@ router.post('/', async (req: Request, res: Response) => {
     await updateShopRatingStats(shop_id);
 
     return res.status(201).json(newReview);
-      photos: photos || null,
-    });
-
-    if (!result.success) {
-      return res.status(400).json({ error: result.error });
-    }
-
-    return res.status(201).json(result.review);
   } catch (error: any) {
     console.error('Error in POST /reviews:', error);
     return res.status(500).json({ error: 'Internal server error' });
