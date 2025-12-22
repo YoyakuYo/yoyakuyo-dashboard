@@ -35,11 +35,11 @@ function CustomerBookingsPageContent() {
     let channel: any = null;
 
     // STEP 1: Resolve WEB customer correctly
+    // For WEB customers: customers.id = auth.users.id (canonical system)
     supabase
       .from('customers')
       .select('id')
-      .eq('user_id', user.id)
-      .eq('source', 'web')
+      .eq('id', user.id)
       .maybeSingle()
       .then(({ data: customer, error: customerError }) => {
         if (customerError) {
@@ -51,7 +51,8 @@ function CustomerBookingsPageContent() {
           console.error('WEB CUSTOMER RESOLUTION FAILED', {
             authUserId: user.id,
             error: 'Customer not found in customers table',
-            query: 'customers WHERE user_id = ' + user.id + ' AND source = web'
+            query: 'customers WHERE id = ' + user.id,
+            note: 'For WEB customers, customers.id should equal auth.users.id'
           });
           return;
         }
