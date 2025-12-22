@@ -55,11 +55,6 @@ function CustomerMessagesPageContent() {
   const searchParams = useSearchParams();
   const shopIdParam = searchParams.get('shopId');
   const bookingIdParam = searchParams.get('bookingId');
-  
-  // Debug: Log shopIdParam on mount and when it changes
-  useEffect(() => {
-    console.log('[Customer Messages] URL params:', { shopIdParam, bookingIdParam, user: user?.id });
-  }, [shopIdParam, bookingIdParam, user]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -77,30 +72,19 @@ function CustomerMessagesPageContent() {
 
   // Handle shopId parameter - find or create conversation for this shop
   useEffect(() => {
-    console.log('[Customer Messages] shopIdParam useEffect check:', { 
-      shopIdParam, 
-      hasUser: !!user, 
-      loading, 
-      conversationsCount: conversations.length 
-    });
-    
     if (shopIdParam && user && !loading) {
-      console.log('[Customer Messages] ✅ shopIdParam effect triggered:', { shopIdParam, conversationsCount: conversations.length, loading });
+      console.log('[Customer Messages] shopIdParam effect triggered:', { shopIdParam, conversationsCount: conversations.length, loading });
       
       // First, check if conversation already exists in loaded conversations
       const existingConv = conversations.find(c => c.shop_id === shopIdParam);
       if (existingConv) {
-        console.log('[Customer Messages] ✅ Found existing conversation in list:', existingConv.id);
+        console.log('[Customer Messages] Found existing conversation in list:', existingConv.id);
         setSelectedConversationId(existingConv.id);
       } else {
         // Conversations loaded but not found - create it
-        console.log('[Customer Messages] ❌ No conversation found, creating for shop:', shopIdParam);
+        console.log('[Customer Messages] No conversation found, creating for shop:', shopIdParam);
         createConversationForShop(shopIdParam);
       }
-    } else {
-      console.log('[Customer Messages] ⏸️ shopIdParam effect skipped:', { 
-        reason: !shopIdParam ? 'no shopIdParam' : !user ? 'no user' : 'still loading'
-      });
     }
   }, [shopIdParam, user, conversations, loading]);
 
@@ -138,35 +122,27 @@ function CustomerMessagesPageContent() {
     if (!user?.id) return;
 
     try {
-      // Get booking details to find shop_id
-      const supabase = getSupabaseClient();
-      const { data: booking } = await supabase
-        .from('bookings')
-        .select('shop_id, customer_id, customer_profile_id')
-        .eq('id', bookingId)
-        .single();
+      // Use API to get booking details (bypasses RLS)
+      const res = await fetch(`${apiUrl}/bookings/${bookingId}`, {
+        headers: {
+          'x-user-id': user.id,
+        },
+      });
 
-      if (booking?.shop_id) {
-        // Find conversation for this shop and customer
-        const { data: conversations } = await supabase
-          .from('conversations')
-          .select('id')
-          .eq('shop_id', booking.shop_id)
-          .eq('customer_id', user.id)
-          .eq('type', 'customer_owner')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (conversations) {
-          setSelectedConversationId(conversations.id);
-        } else {
-          // Conversation should have been auto-created, but if not, create it
+      if (res.ok) {
+        const { booking } = await res.json();
+        if (booking?.shop_id) {
+          // Use internal messaging API to find or create conversation
+          // The API will handle finding existing conversations or creating new ones
           await createConversationForShop(booking.shop_id);
         }
+      } else {
+        console.warn('[Customer Messages] Could not fetch booking details:', res.status);
+        // If booking fetch fails, we can't find the shop_id, so skip conversation creation
       }
     } catch (error) {
-      console.error("Error finding conversation for booking:", error);
+      console.error("[Customer Messages] Error finding conversation for booking:", error);
+      // Don't throw - this is a non-critical feature
     }
   };
 
