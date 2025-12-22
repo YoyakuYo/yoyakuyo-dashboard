@@ -86,6 +86,11 @@ router.get('/bookings', async (req: Request, res: Response) => {
     const allBookings: any[] = [];
     const seenIds = new Set<string>();
 
+    console.log('[Customers API] Fetching bookings for:', {
+      userId,
+      customerProfileId: profile.id,
+    });
+
     // Try customer_profile_id first
     if (profile.id) {
       const { data: profileBookings, error: profileError } = await dbClient
@@ -106,6 +111,13 @@ router.get('/bookings', async (req: Request, res: Response) => {
         `)
         .eq("customer_profile_id", profile.id)
         .order("created_at", { ascending: false });
+
+      console.log('[Customers API] Query by customer_profile_id:', {
+        profileId: profile.id,
+        found: profileBookings?.length || 0,
+        error: profileError?.message,
+        bookingIds: profileBookings?.map((b: any) => b.id) || [],
+      });
 
       if (!profileError && profileBookings) {
         profileBookings.forEach((booking: any) => {
@@ -137,6 +149,13 @@ router.get('/bookings', async (req: Request, res: Response) => {
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
+    console.log('[Customers API] Query by user_id:', {
+      userId,
+      found: userBookings?.length || 0,
+      error: userError?.message,
+      bookingIds: userBookings?.map((b: any) => b.id) || [],
+    });
+
     if (!userError && userBookings) {
       userBookings.forEach((booking: any) => {
         if (!seenIds.has(booking.id)) {
@@ -166,6 +185,13 @@ router.get('/bookings', async (req: Request, res: Response) => {
       .eq("customer_id", userId)
       .order("created_at", { ascending: false });
 
+    console.log('[Customers API] Query by customer_id:', {
+      customerId: userId,
+      found: customerBookings?.length || 0,
+      error: customerError?.message,
+      bookingIds: customerBookings?.map((b: any) => b.id) || [],
+    });
+
     if (!customerError && customerBookings) {
       customerBookings.forEach((booking: any) => {
         if (!seenIds.has(booking.id)) {
@@ -174,6 +200,11 @@ router.get('/bookings', async (req: Request, res: Response) => {
         }
       });
     }
+
+    console.log('[Customers API] Total bookings found:', {
+      total: allBookings.length,
+      uniqueIds: Array.from(seenIds),
+    });
 
     // Sort by created_at descending
     allBookings.sort((a: any, b: any) => {
