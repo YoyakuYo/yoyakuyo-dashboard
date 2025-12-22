@@ -36,12 +36,14 @@ function CustomerBookingsPageContent() {
 
     // STEP 1: Resolve WEB customer correctly
     // For WEB customers: customers.id = auth.users.id (canonical system)
-    supabase
-      .from('customers')
-      .select('id')
-      .eq('id', user.id)
-      .maybeSingle()
-      .then(({ data: customer, error: customerError }) => {
+    (async () => {
+      try {
+        const { data: customer, error: customerError } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+
         if (customerError) {
           console.error('[Customer Bookings] Error resolving customer:', customerError);
           return;
@@ -79,10 +81,10 @@ function CustomerBookingsPageContent() {
           .subscribe((status) => {
             console.log('[Customer Bookings] Realtime subscription status:', status);
           });
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('[Customer Bookings] Failed to resolve customer for realtime:', err);
-      });
+      }
+    })();
 
     return () => {
       if (channel) {
