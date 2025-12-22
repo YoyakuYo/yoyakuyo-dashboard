@@ -190,22 +190,22 @@ export default function AnalyticsPage() {
     return null;
   }
 
-  // Prepare chart data
-  const revenueChartData = revenueData?.daily.map((d) => ({
+  // Prepare chart data (handle both function results and direct query results)
+  const revenueChartData = revenueData?.daily?.map((d: any) => ({
     x: new Date(d.booking_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    y: parseFloat(d.revenue.toString()),
+    y: parseFloat((d.revenue || 0).toString()),
   })) || [];
 
-  const bookingsChartData = bookingData?.grouped.map((g) => ({
+  const bookingsChartData = bookingData?.grouped?.map((g: any) => ({
     label: new Date(g.period).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    value: g.total,
+    value: g.total || 0,
   })) || [];
 
   const bookingStatusChartData = bookingData?.totals ? [
-    { label: "Completed", value: bookingData.totals.completed, color: "#10B981" },
-    { label: "Confirmed", value: bookingData.totals.confirmed, color: "#3B82F6" },
-    { label: "Pending", value: bookingData.totals.pending, color: "#F59E0B" },
-    { label: "Cancelled", value: bookingData.totals.cancelled, color: "#EF4444" },
+    { label: "Completed", value: bookingData.totals.completed || 0, color: "#10B981" },
+    { label: "Confirmed", value: bookingData.totals.confirmed || 0, color: "#3B82F6" },
+    { label: "Pending", value: bookingData.totals.pending || 0, color: "#F59E0B" },
+    { label: "Cancelled", value: bookingData.totals.cancelled || 0, color: "#EF4444" },
   ] : [];
 
   return (
