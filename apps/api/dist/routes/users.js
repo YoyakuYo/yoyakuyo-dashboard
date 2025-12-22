@@ -16,10 +16,18 @@ const supabase_js_1 = require("@supabase/supabase-js");
 const router = (0, express_1.Router)();
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const dbClient = (0, supabase_js_1.createClient)(supabaseUrl, supabaseServiceKey);
+if (!supabaseUrl || !supabaseServiceKey) {
+    console.error("⚠️ SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for /users routes");
+}
+const dbClient = (supabaseUrl && supabaseServiceKey)
+    ? (0, supabase_js_1.createClient)(supabaseUrl, supabaseServiceKey)
+    : null;
 // GET /users/me - Get current user's preferences
 router.get("/me", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        if (!dbClient) {
+            return res.status(500).json({ error: "Database not configured. SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required." });
+        }
         const userId = req.headers['x-user-id'];
         if (!userId) {
             return res.status(401).json({ error: "User ID required" });
@@ -51,6 +59,9 @@ router.get("/me", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 // PATCH /users/me/preferences - Update user preferences
 router.patch("/me/preferences", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        if (!dbClient) {
+            return res.status(500).json({ error: "Database not configured. SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required." });
+        }
         const userId = req.headers['x-user-id'];
         const { preferredLanguage } = req.body;
         console.log(`[Users] Updating preferences - userId: ${userId}, language: ${preferredLanguage}`);

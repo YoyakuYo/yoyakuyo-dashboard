@@ -100,14 +100,23 @@ router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const owner_user_id = req.query.owner_user_id; // Filter by owner
         const unclaimedParam = req.query.unclaimed;
         const unclaimed = unclaimedParam === 'true'; // Filter unclaimed shops
+        // Pagination params
+        const limitParam = req.query.limit;
+        const offsetParam = req.query.offset;
+        const pageParam = req.query.page;
+        const usePagination = limitParam || pageParam; // Enable pagination if limit or page is provided
+        // Calculate pagination
+        const limit = usePagination ? Math.min(parseInt(limitParam || '50'), 1000) : undefined;
+        const page = pageParam ? parseInt(pageParam) : undefined;
+        const offset = offsetParam ? parseInt(offsetParam) : (page ? (page - 1) * (limit || 50) : undefined);
         console.log('=== GET /shops START ===');
-        console.log('Query params:', { search, category_id, category, owner_user_id, unclaimed });
+        console.log('Query params:', { search, category_id, category, owner_user_id, unclaimed, limit, offset, page, usePagination });
         console.log('Using client:', supabase_1.supabaseAdmin ? 'service role (bypasses RLS)' : 'anon (subject to RLS)');
         // If unclaimed filter is set, fetch shops with owner_user_id IS NULL
         if (unclaimed) {
             let query = dbClient
                 .from("shops")
-                .select("*")
+                .select("*", { count: usePagination ? 'exact' : undefined })
                 .is("owner_user_id", null)
                 .order("name", { ascending: true });
             if (search && search.trim()) {
@@ -116,7 +125,11 @@ router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             if (category_id && category_id.trim() && category_id !== 'all' && category_id !== 'null') {
                 query = query.eq("category_id", category_id);
             }
-            const { data, error } = yield query;
+            // Apply pagination if enabled
+            if (usePagination && limit !== undefined && offset !== undefined) {
+                query = query.range(offset, offset + limit - 1);
+            }
+            const { data, error, count } = yield query;
             if (error) {
                 console.error('Error fetching unclaimed shops:', error);
                 return res.status(500).json({ error: error.message });
@@ -138,9 +151,75 @@ router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             }
             // Attach category data to shops
             const shopsWithCategories = shops.map((shop) => (Object.assign(Object.assign({}, shop), { categories: shop.category_id ? categoryMap.get(shop.category_id) || null : null })));
+            // Return paginated response if pagination is enabled
+            if (usePagination) {
+                return res.json({
+                    shops: shopsWithCategories,
+                    pagination: {
+                        limit: limit || 50,
+                        offset: offset || 0,
+                        page: page || Math.floor((offset || 0) / (limit || 50)) + 1,
+                        total: count || shopsWithCategories.length,
+                        hasMore: limit !== undefined && shopsWithCategories.length === limit
+                    }
+                });
+            }
             return res.json(shopsWithCategories);
         }
-        // Use batch fetching helper to get all shops (overcomes 1000 row limit)
+        // If pagination is enabled, use direct query instead of fetchAllShops
+        if (usePagination && limit !== undefined && offset !== undefined) {
+            let query = dbClient
+                .from("shops")
+                .select("*", { count: 'exact' })
+                .order("name", { ascending: true })
+                .range(offset, offset + limit - 1);
+            // Apply filters
+            if (search && search.trim()) {
+                query = query.ilike("name", `%${search.trim()}%`);
+            }
+            if (category_id && category_id.trim() && category_id !== 'all' && category_id !== 'null') {
+                query = query.eq("category_id", category_id);
+            }
+            if (category && category.trim() && category !== 'all') {
+                query = query.eq("category", category);
+            }
+            if (owner_user_id && owner_user_id.trim()) {
+                query = query.eq("owner_user_id", owner_user_id);
+            }
+            const { data, error, count } = yield query;
+            if (error) {
+                console.error('Error fetching shops:', error);
+                return res.status(500).json({ error: error.message });
+            }
+            const shops = Array.isArray(data) ? data : [];
+            // Fetch categories separately
+            const categoryIds = [...new Set(shops.map((shop) => shop.category_id).filter(Boolean))];
+            const categoryMap = new Map();
+            if (categoryIds.length > 0) {
+                const { data: categories, error: catError } = yield dbClient
+                    .from("categories")
+                    .select("id, name, description")
+                    .in("id", categoryIds);
+                if (!catError && categories) {
+                    categories.forEach((cat) => {
+                        categoryMap.set(cat.id, cat);
+                    });
+                }
+            }
+            const shopsWithCategories = shops.map((shop) => (Object.assign(Object.assign({}, shop), { categories: shop.category_id ? categoryMap.get(shop.category_id) || null : null })));
+            console.log(`=== GET /shops END (paginated) === Shops: ${shopsWithCategories.length}, Total: ${count}`);
+            return res.json({
+                shops: shopsWithCategories,
+                pagination: {
+                    limit,
+                    offset,
+                    page: page || Math.floor(offset / limit) + 1,
+                    total: count || shopsWithCategories.length,
+                    hasMore: shopsWithCategories.length === limit
+                }
+            });
+        }
+        // Use batch fetching helper to get all shops (overcomes 1000 row limit) - for backward compatibility
         const data = yield fetchAllShops(dbClient, search, category_id, category, owner_user_id);
         console.log(`=== GET /shops END === Total shops: ${data.length}`);
         // If filtering by owner_user_id and no shops found, return 404
@@ -1037,6 +1116,42 @@ router.patch("/:id", (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
     catch (e) {
         console.error('Error updating shop:', e);
+        return res.status(500).json({ error: e.message });
+    }
+}));
+// GET /shops/prefecture-counts - Get shop counts per prefecture for a category
+router.get("/prefecture-counts", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const categoryId = req.query.category;
+        if (!categoryId) {
+            return res.status(400).json({ error: "Category parameter is required" });
+        }
+        // Validate UUID format
+        if (!isValidUUID(categoryId)) {
+            return res.status(400).json({ error: "Invalid category ID format" });
+        }
+        // Get all shops for this category
+        const { data: shops, error } = yield dbClient
+            .from("shops")
+            .select("prefecture")
+            .eq("category_id", categoryId)
+            .or("claim_status.is.null,claim_status.neq.hidden");
+        if (error) {
+            console.error("Error fetching shops for prefecture counts:", error);
+            return res.status(500).json({ error: "Failed to fetch shops" });
+        }
+        // Count shops per prefecture
+        const prefectureCounts = {};
+        if (shops) {
+            for (const shop of shops) {
+                const prefecture = shop.prefecture || "Unknown";
+                prefectureCounts[prefecture] = (prefectureCounts[prefecture] || 0) + 1;
+            }
+        }
+        return res.json(prefectureCounts);
+    }
+    catch (e) {
+        console.error("Error in prefecture-counts endpoint:", e);
         return res.status(500).json({ error: e.message });
     }
 }));

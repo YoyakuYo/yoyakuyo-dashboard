@@ -91,19 +91,32 @@ function createBookingFromAi(input) {
                     error: 'endTime must be after startTime',
                 };
             }
-            // Create or find customer record (NO email/phone - only name)
-            // Use a placeholder email for customer lookup (will be replaced by permanent ID system)
-            const placeholderEmail = `customer_${Date.now()}@yoyaku-yo.temp`;
-            const { customerId } = yield (0, customerService_1.findOrCreateCustomer)(placeholderEmail, input.customerName, undefined // No phone
-            );
-            // Ensure customer has permanent ID and magic code
-            if (customerId) {
-                try {
-                    yield (0, customerIdService_1.ensureCustomerId)(customerId, input.customerName);
-                }
-                catch (idError) {
-                    console.error('Error ensuring customer ID:', idError);
-                    // Continue even if ID generation fails
+            // Get customer_profile_id if provided (for logged-in customers)
+            let customerProfileId = input.customerProfileId || null;
+            // If customerProfileId is provided, use it directly
+            // Otherwise, create/find customer as before
+            let customerId = null;
+            if (customerProfileId) {
+                // For logged-in customers, we can use customer_profile_id directly
+                // customer_id can be null or we can try to get it from customer_profile
+                // For now, we'll leave customer_id as null when customerProfileId is provided
+            }
+            else {
+                // Create or find customer record (NO email/phone - only name)
+                // Use a placeholder email for customer lookup (will be replaced by permanent ID system)
+                const placeholderEmail = `customer_${Date.now()}@yoyaku-yo.temp`;
+                const { customerId: createdCustomerId } = yield (0, customerService_1.findOrCreateCustomer)(placeholderEmail, input.customerName, undefined // No phone
+                );
+                customerId = createdCustomerId || null;
+                // Ensure customer has permanent ID and magic code
+                if (customerId) {
+                    try {
+                        yield (0, customerIdService_1.ensureCustomerId)(customerId, input.customerName);
+                    }
+                    catch (idError) {
+                        console.error('Error ensuring customer ID:', idError);
+                        // Continue even if ID generation fails
+                    }
                 }
             }
             // Prepare booking data (same structure as manual booking flow)
@@ -120,6 +133,7 @@ function createBookingFromAi(input) {
                 language_code: input.languageCode || null,
                 notes: input.notes || null,
                 customer_id: input.customerId || customerId || null, // Use created customer ID if available
+                customer_profile_id: customerProfileId || null, // Add customer_profile_id for logged-in customers
                 status: 'pending', // Same default as manual booking flow
                 created_by_ai: true, // Mark as AI-created booking
             };

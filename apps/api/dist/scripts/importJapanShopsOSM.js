@@ -56,6 +56,9 @@ const fs = __importStar(require("fs"));
 dotenv_1.default.config({ path: path_1.default.resolve(__dirname, "../../.env") });
 // Checkpoint file to resume from where we left off
 const CHECKPOINT_FILE = path_1.default.resolve(__dirname, "../../import_checkpoint.json");
+// Local dataset file to save/load shops
+const DATA_DIR = path_1.default.resolve(__dirname, "../../data");
+const DATASET_FILE = path_1.default.resolve(DATA_DIR, "shops_backup.json");
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -376,18 +379,19 @@ function categorizeShop(name, address) {
         return "Beauty Salon";
     return "Unknown";
 }
-// Check for duplicate shop
+// Check for duplicate shop - PRIORITIZE osm_id check
 function isDuplicate(shop) {
     return __awaiter(this, void 0, void 0, function* () {
-        // Check by OSM ID
+        // PRIMARY CHECK: OSM ID (most reliable unique identifier)
         if (shop.osm_id) {
             const { data } = yield supabase
                 .from("shops")
                 .select("id")
                 .eq("osm_id", shop.osm_id.toString())
                 .maybeSingle();
-            if (data)
-                return { isDuplicate: true, existingId: data.id };
+            if (data) {
+                return { isDuplicate: true, existingId: data.id, reason: "osm_id match" };
+            }
         }
         // Check by coordinates (within 50m)
         if (shop.latitude && shop.longitude) {
@@ -639,6 +643,55 @@ function saveCheckpoint(processed) {
         console.warn("⚠️  Could not save checkpoint:", error);
     }
 }
+// Load shops dataset from local file
+function loadLocalDataset() {
+    try {
+        if (fs.existsSync(DATASET_FILE)) {
+            const fileContent = fs.readFileSync(DATASET_FILE, 'utf-8');
+            const data = JSON.parse(fileContent);
+            // Convert array back to Map
+            const shopsMap = new Map();
+            if (Array.isArray(data.shops)) {
+                for (const shop of data.shops) {
+                    if (shop.osm_id) {
+                        shopsMap.set(shop.osm_id, shop);
+                    }
+                }
+            }
+            console.log(`📂 Loaded ${shopsMap.size} shops from local dataset`);
+            console.log(`   File: ${DATASET_FILE}`);
+            console.log(`   Saved: ${data.timestamp || 'unknown'}`);
+            return shopsMap;
+        }
+    }
+    catch (error) {
+        console.warn("⚠️  Could not load local dataset:", error);
+    }
+    return null;
+}
+// Save shops dataset to local file
+function saveLocalDataset(shops) {
+    try {
+        // Ensure data directory exists
+        if (!fs.existsSync(DATA_DIR)) {
+            fs.mkdirSync(DATA_DIR, { recursive: true });
+        }
+        // Convert Map to array for JSON serialization
+        const shopsArray = Array.from(shops.values());
+        const dataset = {
+            shops: shopsArray,
+            count: shopsArray.length,
+            timestamp: new Date().toISOString(),
+            source: "OpenStreetMap/Nominatim",
+        };
+        fs.writeFileSync(DATASET_FILE, JSON.stringify(dataset, null, 2));
+        console.log(`💾 Saved ${shops.size} shops to local dataset`);
+        console.log(`   File: ${DATASET_FILE}`);
+    }
+    catch (error) {
+        console.warn("⚠️  Could not save local dataset:", error);
+    }
+}
 // Statistics
 const stats = {
     totalFound: 0,
@@ -882,147 +935,199 @@ function importJapanShops() {
     return __awaiter(this, void 0, void 0, function* () {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
         console.log("🚀 Starting Japan-wide Shop Importer (OpenStreetMap)\n");
-        // Fetch all Japanese cities with >1000 inhabitants
-        const japaneseCities = yield fetchAllJapaneseCities();
-        // Combine existing locations with all Japanese cities
-        const allLocations = [...JAPAN_LOCATIONS, ...japaneseCities];
-        console.log(`📍 Total locations to search: ${allLocations.length}`);
-        console.log(`   - Predefined locations: ${JAPAN_LOCATIONS.length}`);
-        console.log(`   - Japanese cities (>1000 pop): ${japaneseCities.length}`);
-        console.log(`🔍 Using ${SEARCH_TERMS.length} search terms\n`);
-        console.log("⏳ This will take a while (respecting rate limits)...\n");
-        // Load checkpoint
-        const processedSearches = loadCheckpoint();
-        const allShops = new Map(); // Use OSM ID as key to avoid duplicates
-        // Phase 1: Search all locations
-        for (let locIndex = 0; locIndex < allLocations.length; locIndex++) {
-            const location = allLocations[locIndex];
-            console.log(`\n📍 [${locIndex + 1}/${allLocations.length}] Processing: ${location.name}`);
-            console.log("─".repeat(60));
-            for (let termIndex = 0; termIndex < SEARCH_TERMS.length; termIndex++) {
-                const term = SEARCH_TERMS[termIndex];
-                const checkpointKey = `${location.name}::${term}`;
-                // Skip if already processed
-                if (processedSearches.has(checkpointKey)) {
-                    console.log(`  ⏭️  [${termIndex + 1}/${SEARCH_TERMS.length}] Skipping (already processed): "${term}"`);
-                    stats.skipped++;
-                    continue;
-                }
-                console.log(`  🔍 [${termIndex + 1}/${SEARCH_TERMS.length}] Searching: "${term}"`);
-                // Use Overpass API for major cities (faster and more comprehensive)
-                const isMajorCity = location.name.includes('Tokyo') ||
-                    location.name.includes('Osaka') ||
-                    location.name.includes('Kyoto') ||
-                    location.name.includes('Yokohama') ||
-                    location.name.includes('Nagoya') ||
-                    location.name.includes('Sapporo') ||
-                    location.name.includes('Fukuoka');
-                let results = [];
-                // For major cities, use Overpass API first (more comprehensive)
-                if (isMajorCity && termIndex === 0) {
-                    // Use Overpass for first search term to get all shops in area
-                    const overpassResults = yield queryShopsViaOverpass(location, 10); // 10km radius for major cities
-                    results.push(...overpassResults);
-                    yield sleep(2000); // Rate limit
-                }
-                // Also use Nominatim search with pagination (up to 5000 results)
-                const nominatimResults = yield searchOSMWithPagination(term, location, 5000);
-                results.push(...nominatimResults);
-                stats.totalFound += results.length;
-                for (const place of results) {
-                    const osmId = (_a = place.osm_id) === null || _a === void 0 ? void 0 : _a.toString();
-                    if (!osmId || allShops.has(osmId))
-                        continue;
-                    // Handle both Nominatim and Overpass formats
-                    const displayName = place.display_name || '';
-                    const name = displayName.split(',')[0].trim() || ((_b = place.tags) === null || _b === void 0 ? void 0 : _b.name) || '';
-                    const address = displayName || place.address || '';
-                    const lat = parseFloat(place.lat || place.latitude);
-                    const lng = parseFloat(place.lon || place.longitude);
-                    if (!name || isNaN(lat) || isNaN(lng))
-                        continue; // Skip invalid entries
-                    // EXCLUDE NON-BOOKING BUSINESSES
-                    const nameLower = name.toLowerCase();
-                    const addressLower = (address || '').toLowerCase();
-                    const combinedLower = `${nameLower} ${addressLower}`;
-                    // Exclude konbini/convenience stores
-                    if (combinedLower.match(/コンビニ|コンビニエンスストア|konbini|convenience store|convenience/i)) {
-                        continue;
-                    }
-                    // Exclude supermarkets (but allow スーパー銭湯 - super sento)
-                    if (combinedLower.match(/スーパーマーケット|スーパーストア|supermarket|grocery store|grocery/i) &&
-                        !combinedLower.match(/スーパー銭湯|super.*sento|super.*sentō/i)) {
-                        continue;
-                    }
-                    // Exclude retail stores
-                    if (combinedLower.match(/\b(shop|store|retail|小売|販売店|雑貨店|ドラッグストア|drugstore|pharmacy|薬局)\b/i) &&
-                        !combinedLower.match(/(beauty|salon|hairdresser|nail|ネイル|美容|ヘア|サロン)/i)) {
-                        continue;
-                    }
-                    // Exclude fast food and walk-in restaurants
-                    if (combinedLower.match(/fast food|takeout|take.out|drive.through|drive.thru|ファストフード|テイクアウト|食堂|shokudo|ラーメン|ramen|うどん|udon|そば|soba|立ち食い|立ち飲み/i)) {
-                        continue;
-                    }
-                    // Exclude hospitals (emergency care, no booking)
-                    if (combinedLower.match(/\b(hospital|病院|総合病院|大学病院)\b/i)) {
-                        continue;
-                    }
-                    // Exclude gyms and fitness centers (typically no booking)
-                    if (combinedLower.match(/\b(gym|fitness|ジム|フィットネス|スポーツクラブ|sports club|fitness centre|fitness center)\b/i)) {
-                        continue;
-                    }
-                    // Exclude public pools and water parks (typically no booking)
-                    if (combinedLower.match(/\b(swimming pool|プール|水泳場|water park|ウォーターパーク)\b/i)) {
-                        continue;
-                    }
-                    // Exclude camping sites (typically no booking)
-                    if (combinedLower.match(/\b(camp site|campsite|camping|キャンプ場|キャンピング)\b/i)) {
-                        continue;
-                    }
-                    // Exclude tourism apartments (typically no booking)
-                    if (combinedLower.match(/\b(tourism apartment|apartment|アパート|マンション|rental apartment)\b/i)) {
-                        continue;
-                    }
-                    const shop = {
-                        name: name,
-                        address: address,
-                        latitude: lat,
-                        longitude: lng,
-                        city: ((_c = place.address) === null || _c === void 0 ? void 0 : _c.city) || ((_d = place.address) === null || _d === void 0 ? void 0 : _d.town) || ((_e = place.address) === null || _e === void 0 ? void 0 : _e.village) || ((_f = place.tags) === null || _f === void 0 ? void 0 : _f['addr:city']) || ((_g = place.tags) === null || _g === void 0 ? void 0 : _g['addr:town']) || null,
-                        country: ((_h = place.address) === null || _h === void 0 ? void 0 : _h.country) || ((_j = place.tags) === null || _j === void 0 ? void 0 : _j['addr:country']) || "Japan",
-                        zip_code: ((_k = place.address) === null || _k === void 0 ? void 0 : _k.postcode) || ((_l = place.tags) === null || _l === void 0 ? void 0 : _l['addr:postcode']) || null,
-                        phone: null,
-                        email: "",
-                        website: null,
-                        osm_id: osmId,
-                        osm_type: place.osm_type || place.type || 'node',
-                        category: categorizeShop(name, address),
-                    };
-                    allShops.set(osmId, shop);
-                }
-                // Mark as processed after successful search
-                processedSearches.add(checkpointKey);
-                saveCheckpoint(processedSearches);
-                // Rate limit: 2 seconds between requests (more conservative to avoid 503 errors)
-                yield sleep(2000);
-            }
-            console.log(`  ✓ Found ${allShops.size} unique shops so far (${stats.skipped} searches skipped)`);
+        // Check if local dataset exists
+        let allShops = loadLocalDataset();
+        let useLocalDataset = allShops !== null;
+        let allLocations = [];
+        if (useLocalDataset && allShops) {
+            console.log("✅ USING LOCAL DATASET");
+            console.log("   Skipping API requests, using cached data\n");
         }
-        console.log(`\n${"=".repeat(60)}`);
-        console.log(`📊 Phase 1 Complete: Found ${allShops.size} unique shops`);
-        console.log(`📍 Searched ${allLocations.length} locations across Japan`);
-        console.log("=".repeat(60));
+        else {
+            console.log("🌐 FETCHING FROM OSM");
+            console.log("   No local dataset found, fetching from OpenStreetMap API\n");
+            // Fetch all Japanese cities with >1000 inhabitants
+            const japaneseCities = yield fetchAllJapaneseCities();
+            // Combine existing locations with all Japanese cities
+            allLocations = [...JAPAN_LOCATIONS, ...japaneseCities];
+            console.log(`📍 Total locations to search: ${allLocations.length}`);
+            console.log(`   - Predefined locations: ${JAPAN_LOCATIONS.length}`);
+            console.log(`   - Japanese cities (>1000 pop): ${japaneseCities.length}`);
+            console.log(`🔍 Using ${SEARCH_TERMS.length} search terms\n`);
+            console.log("⏳ This will take a while (respecting rate limits)...\n");
+            // Load checkpoint
+            const processedSearches = loadCheckpoint();
+            allShops = new Map(); // Use OSM ID as key to avoid duplicates
+            // Phase 1: Search all locations
+            for (let locIndex = 0; locIndex < allLocations.length; locIndex++) {
+                const location = allLocations[locIndex];
+                console.log(`\n📍 [${locIndex + 1}/${allLocations.length}] Processing: ${location.name}`);
+                console.log("─".repeat(60));
+                for (let termIndex = 0; termIndex < SEARCH_TERMS.length; termIndex++) {
+                    const term = SEARCH_TERMS[termIndex];
+                    const checkpointKey = `${location.name}::${term}`;
+                    // Skip if already processed
+                    if (processedSearches.has(checkpointKey)) {
+                        console.log(`  ⏭️  [${termIndex + 1}/${SEARCH_TERMS.length}] Skipping (already processed): "${term}"`);
+                        stats.skipped++;
+                        continue;
+                    }
+                    console.log(`  🔍 [${termIndex + 1}/${SEARCH_TERMS.length}] Searching: "${term}"`);
+                    // Use Overpass API for major cities (faster and more comprehensive)
+                    const isMajorCity = location.name.includes('Tokyo') ||
+                        location.name.includes('Osaka') ||
+                        location.name.includes('Kyoto') ||
+                        location.name.includes('Yokohama') ||
+                        location.name.includes('Nagoya') ||
+                        location.name.includes('Sapporo') ||
+                        location.name.includes('Fukuoka');
+                    let results = [];
+                    // For major cities, use Overpass API first (more comprehensive)
+                    if (isMajorCity && termIndex === 0) {
+                        // Use Overpass for first search term to get all shops in area
+                        const overpassResults = yield queryShopsViaOverpass(location, 10); // 10km radius for major cities
+                        results.push(...overpassResults);
+                        yield sleep(2000); // Rate limit
+                    }
+                    // Also use Nominatim search with pagination (up to 5000 results)
+                    const nominatimResults = yield searchOSMWithPagination(term, location, 5000);
+                    results.push(...nominatimResults);
+                    stats.totalFound += results.length;
+                    for (const place of results) {
+                        const osmId = (_a = place.osm_id) === null || _a === void 0 ? void 0 : _a.toString();
+                        if (!osmId || allShops.has(osmId))
+                            continue;
+                        // Handle both Nominatim and Overpass formats
+                        const displayName = place.display_name || '';
+                        const name = displayName.split(',')[0].trim() || ((_b = place.tags) === null || _b === void 0 ? void 0 : _b.name) || '';
+                        const address = displayName || place.address || '';
+                        const lat = parseFloat(place.lat || place.latitude);
+                        const lng = parseFloat(place.lon || place.longitude);
+                        if (!name || isNaN(lat) || isNaN(lng))
+                            continue; // Skip invalid entries
+                        // EXCLUDE NON-BOOKING BUSINESSES
+                        const nameLower = name.toLowerCase();
+                        const addressLower = (address || '').toLowerCase();
+                        const combinedLower = `${nameLower} ${addressLower}`;
+                        // Exclude konbini/convenience stores
+                        if (combinedLower.match(/コンビニ|コンビニエンスストア|konbini|convenience store|convenience/i)) {
+                            continue;
+                        }
+                        // Exclude supermarkets (but allow スーパー銭湯 - super sento)
+                        if (combinedLower.match(/スーパーマーケット|スーパーストア|supermarket|grocery store|grocery/i) &&
+                            !combinedLower.match(/スーパー銭湯|super.*sento|super.*sentō/i)) {
+                            continue;
+                        }
+                        // Exclude retail stores
+                        if (combinedLower.match(/\b(shop|store|retail|小売|販売店|雑貨店|ドラッグストア|drugstore|pharmacy|薬局)\b/i) &&
+                            !combinedLower.match(/(beauty|salon|hairdresser|nail|ネイル|美容|ヘア|サロン)/i)) {
+                            continue;
+                        }
+                        // Exclude fast food and walk-in restaurants
+                        if (combinedLower.match(/fast food|takeout|take.out|drive.through|drive.thru|ファストフード|テイクアウト|食堂|shokudo|ラーメン|ramen|うどん|udon|そば|soba|立ち食い|立ち飲み/i)) {
+                            continue;
+                        }
+                        // Exclude hospitals (emergency care, no booking)
+                        if (combinedLower.match(/\b(hospital|病院|総合病院|大学病院)\b/i)) {
+                            continue;
+                        }
+                        // Exclude gyms and fitness centers (typically no booking)
+                        if (combinedLower.match(/\b(gym|fitness|ジム|フィットネス|スポーツクラブ|sports club|fitness centre|fitness center)\b/i)) {
+                            continue;
+                        }
+                        // Exclude public pools and water parks (typically no booking)
+                        if (combinedLower.match(/\b(swimming pool|プール|水泳場|water park|ウォーターパーク)\b/i)) {
+                            continue;
+                        }
+                        // Exclude camping sites (typically no booking)
+                        if (combinedLower.match(/\b(camp site|campsite|camping|キャンプ場|キャンピング)\b/i)) {
+                            continue;
+                        }
+                        // Exclude tourism apartments (typically no booking)
+                        if (combinedLower.match(/\b(tourism apartment|apartment|アパート|マンション|rental apartment)\b/i)) {
+                            continue;
+                        }
+                        const shop = {
+                            name: name,
+                            address: address,
+                            latitude: lat,
+                            longitude: lng,
+                            city: ((_c = place.address) === null || _c === void 0 ? void 0 : _c.city) || ((_d = place.address) === null || _d === void 0 ? void 0 : _d.town) || ((_e = place.address) === null || _e === void 0 ? void 0 : _e.village) || ((_f = place.tags) === null || _f === void 0 ? void 0 : _f['addr:city']) || ((_g = place.tags) === null || _g === void 0 ? void 0 : _g['addr:town']) || null,
+                            country: ((_h = place.address) === null || _h === void 0 ? void 0 : _h.country) || ((_j = place.tags) === null || _j === void 0 ? void 0 : _j['addr:country']) || "Japan",
+                            zip_code: ((_k = place.address) === null || _k === void 0 ? void 0 : _k.postcode) || ((_l = place.tags) === null || _l === void 0 ? void 0 : _l['addr:postcode']) || null,
+                            phone: null,
+                            email: "",
+                            website: null,
+                            osm_id: osmId,
+                            osm_type: place.osm_type || place.type || 'node',
+                            category: categorizeShop(name, address),
+                        };
+                        allShops.set(osmId, shop);
+                    }
+                    // Mark as processed after successful search
+                    processedSearches.add(checkpointKey);
+                    saveCheckpoint(processedSearches);
+                    // Rate limit: 2 seconds between requests (more conservative to avoid 503 errors)
+                    yield sleep(2000);
+                }
+                console.log(`  ✓ Found ${allShops.size} unique shops so far (${stats.skipped} searches skipped)`);
+            }
+            console.log(`\n${"=".repeat(60)}`);
+            console.log(`📊 Phase 1 Complete: Found ${allShops.size} unique shops`);
+            console.log(`📍 Searched ${allLocations.length} locations across Japan`);
+            console.log("=".repeat(60));
+            // Save dataset to local file after fetching
+            saveLocalDataset(allShops);
+        }
+        // Ensure allShops is not null before proceeding
+        if (!allShops) {
+            console.error("❌ Error: Failed to load shops dataset");
+            return;
+        }
         // Phase 2: Check duplicates and insert
         console.log("\n💾 Phase 2: Checking duplicates and inserting shops...\n");
         const shopsToInsert = [];
         const categoryIds = {};
-        // Get all category IDs
+        // Get all category IDs and create missing categories dynamically
         const { data: categories } = yield supabase.from("categories").select("id, name");
         if (categories) {
             for (const cat of categories) {
                 categoryIds[cat.name] = cat.id;
             }
         }
+        // Function to get or create category by name
+        const getOrCreateCategoryId = (categoryName) => __awaiter(this, void 0, void 0, function* () {
+            // Check if category already exists
+            if (categoryIds[categoryName]) {
+                return categoryIds[categoryName];
+            }
+            // Create missing category
+            const { data: newCategory, error } = yield supabase
+                .from("categories")
+                .insert([{ name: categoryName, description: `Auto-created during shop import` }])
+                .select("id")
+                .single();
+            if (error) {
+                // If insert fails (e.g., duplicate), fetch existing category
+                const { data: existing } = yield supabase
+                    .from("categories")
+                    .select("id")
+                    .eq("name", categoryName)
+                    .single();
+                if (existing) {
+                    categoryIds[categoryName] = existing.id;
+                    return existing.id;
+                }
+                console.warn(`⚠️  Could not create category "${categoryName}":`, error.message);
+                return categoryIds["Unknown"] || null;
+            }
+            if (newCategory) {
+                categoryIds[categoryName] = newCategory.id;
+                console.log(`  ✓ Created new category: "${categoryName}"`);
+                return newCategory.id;
+            }
+            return categoryIds["Unknown"] || null;
+        });
         let processed = 0;
         for (const [osmId, shop] of allShops.entries()) {
             processed++;
@@ -1038,7 +1143,12 @@ function importJapanShops() {
             if (shop.category === "Unknown") {
                 continue;
             }
-            const categoryId = categoryIds[shop.category] || categoryIds["Unknown"];
+            // Get or create category ID dynamically
+            const categoryId = yield getOrCreateCategoryId(shop.category);
+            if (!categoryId) {
+                console.warn(`⚠️  Skipping shop "${shop.name}" - could not resolve category "${shop.category}"`);
+                continue;
+            }
             shopsToInsert.push({
                 name: shop.name,
                 address: shop.address,

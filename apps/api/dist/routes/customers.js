@@ -16,6 +16,275 @@ const supabase_1 = require("../lib/supabase");
 const customerIdService_1 = require("../services/customerIdService");
 const router = (0, express_1.Router)();
 const dbClient = supabase_1.supabaseAdmin || supabase_1.supabase;
+// ============================================
+// Customer Bookings Endpoint (must be before parameterized routes)
+// ============================================
+// Health check for bookings endpoint
+router.get('/bookings/health', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    return res.json({ status: 'ok', message: 'Bookings endpoint is available' });
+}));
+// GET /customers/bookings - Get customer's bookings
+// ONLY authenticated users (LINE and web customers) can view bookings
+router.get('/bookings', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d, _e;
+    try {
+        const userId = req.headers['x-user-id'];
+        if (!userId) {
+            return res.status(401).json({ error: 'Authentication required. Only customers with accounts can view bookings.' });
+        }
+        // Verify user exists in auth.users
+        const { data: authUser, error: authError } = yield dbClient.auth.admin.getUserById(userId);
+        if (authError || !(authUser === null || authUser === void 0 ? void 0 : authUser.user)) {
+            console.error('Auth user verification failed:', authError === null || authError === void 0 ? void 0 : authError.message);
+            return res.status(401).json({ error: 'Invalid user. Authentication required.' });
+        }
+        // Find customer profile by customer_auth_id or fallback to id
+        let { data: profile, error: profileError } = yield dbClient
+            .from('customer_profiles')
+            .select('id, email, name')
+            .eq('customer_auth_id', userId)
+            .maybeSingle();
+        if (profileError) {
+            console.error('Error fetching customer profile:', profileError);
+            return res.status(500).json({ error: 'Failed to fetch customer profile' });
+        }
+        if (!(profile === null || profile === void 0 ? void 0 : profile.id)) {
+            // Auto-create customer profile if it doesn't exist
+            try {
+                const userEmail = ((_a = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _a === void 0 ? void 0 : _a.email) || '';
+                const userName = ((_c = (_b = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _b === void 0 ? void 0 : _b.user_metadata) === null || _c === void 0 ? void 0 : _c.name) || ((_e = (_d = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _d === void 0 ? void 0 : _d.email) === null || _e === void 0 ? void 0 : _e.split('@')[0]) || 'Customer';
+                const { data: profileId, error: createError } = yield dbClient
+                    .rpc('create_customer_profile', {
+                    p_customer_auth_id: userId,
+                    p_email: userEmail,
+                    p_name: userName,
+                    p_phone: null
+                });
+                if (createError || !profileId) {
+                    console.error('Error creating customer profile:', createError);
+                    return res.status(500).json({ error: 'Failed to create customer profile' });
+                }
+                // Fetch the newly created profile
+                const { data: newProfile } = yield dbClient
+                    .from('customer_profiles')
+                    .select('id, email, name')
+                    .eq('id', profileId)
+                    .single();
+                if (!(newProfile === null || newProfile === void 0 ? void 0 : newProfile.id)) {
+                    return res.status(500).json({ error: 'Failed to retrieve created profile' });
+                }
+                profile = newProfile;
+                console.log('[Customers API] Auto-created profile for user:', userId);
+            }
+            catch (createErr) {
+                console.error('Error auto-creating customer profile:', createErr);
+                return res.status(500).json({ error: 'Failed to create customer profile', details: createErr.message });
+            }
+        }
+        // Query bookings by customer_profile_id, user_id, and customer_id (for old bookings)
+        const allBookings = [];
+        const seenIds = new Set();
+        // Try customer_profile_id first
+        if (profile.id) {
+            const { data: profileBookings, error: profileError } = yield dbClient
+                .from("bookings")
+                .select(`
+          *,
+          shops (
+            id,
+            name,
+            address,
+            phone
+          ),
+          services (
+            id,
+            name,
+            price
+          )
+        `)
+                .eq("customer_profile_id", profile.id)
+                .order("created_at", { ascending: false });
+            if (!profileError && profileBookings) {
+                profileBookings.forEach((booking) => {
+                    if (!seenIds.has(booking.id)) {
+                        allBookings.push(booking);
+                        seenIds.add(booking.id);
+                    }
+                });
+            }
+        }
+        // Try user_id
+        const { data: userBookings, error: userError } = yield dbClient
+            .from("bookings")
+            .select(`
+        *,
+        shops (
+          id,
+          name,
+          address,
+          phone
+        ),
+        services (
+          id,
+          name,
+          price
+        )
+      `)
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false });
+        if (!userError && userBookings) {
+            userBookings.forEach((booking) => {
+                if (!seenIds.has(booking.id)) {
+                    allBookings.push(booking);
+                    seenIds.add(booking.id);
+                }
+            });
+        }
+        // Try customer_id (for old bookings)
+        const { data: customerBookings, error: customerError } = yield dbClient
+            .from("bookings")
+            .select(`
+        *,
+        shops (
+          id,
+          name,
+          address,
+          phone
+        ),
+        services (
+          id,
+          name,
+          price
+        )
+      `)
+            .eq("customer_id", userId)
+            .order("created_at", { ascending: false });
+        if (!customerError && customerBookings) {
+            customerBookings.forEach((booking) => {
+                if (!seenIds.has(booking.id)) {
+                    allBookings.push(booking);
+                    seenIds.add(booking.id);
+                }
+            });
+        }
+        // Sort by created_at descending
+        allBookings.sort((a, b) => {
+            const dateA = new Date(a.created_at || 0).getTime();
+            const dateB = new Date(b.created_at || 0).getTime();
+            return dateB - dateA;
+        });
+        // Remove duplicates
+        const uniqueBookings = allBookings.filter((booking, index, self) => index === self.findIndex((b) => b.id === booking.id));
+        return res.json({ bookings: uniqueBookings });
+    }
+    catch (error) {
+        console.error('Error in GET /customers/bookings:', error);
+        return res.status(500).json({ error: error.message });
+    }
+}));
+// ============================================
+// Customer Favorites Endpoints
+// ============================================
+// GET /customers/favorites - Get customer's favorite shops
+// ONLY authenticated users (LINE and web customers) can view favorites
+router.get('/favorites', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d, _e;
+    try {
+        const userId = req.headers['x-user-id'];
+        // STRICT: Require authentication - only customers with accounts can view favorites
+        if (!userId) {
+            return res.status(401).json({ error: 'Authentication required. Only customers with accounts can view favorites.' });
+        }
+        // Verify user exists in auth system
+        try {
+            const { data: authUser, error: authError } = yield dbClient.auth.admin.getUserById(userId);
+            if (authError || !(authUser === null || authUser === void 0 ? void 0 : authUser.user)) {
+                return res.status(401).json({ error: 'Invalid user. Authentication required.' });
+            }
+        }
+        catch (authCheckErr) {
+            return res.status(401).json({ error: 'Authentication verification failed. Only customers with accounts can view favorites.' });
+        }
+        // Get customer profile by customer_auth_id
+        let { data: profile, error: profileError } = yield dbClient
+            .from('customer_profiles')
+            .select('id')
+            .eq('customer_auth_id', userId)
+            .maybeSingle();
+        if (profileError || !(profile === null || profile === void 0 ? void 0 : profile.id)) {
+            // Try fallback: check if customer_profiles.id = user.id (old structure)
+            const { data: profileFallback } = yield dbClient
+                .from('customer_profiles')
+                .select('id')
+                .eq('id', userId)
+                .maybeSingle();
+            if (profileFallback === null || profileFallback === void 0 ? void 0 : profileFallback.id) {
+                profile = profileFallback;
+            }
+            else {
+                // Auto-create customer profile if it doesn't exist
+                try {
+                    const { data: authUser } = yield dbClient.auth.admin.getUserById(userId);
+                    const userEmail = ((_a = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _a === void 0 ? void 0 : _a.email) || '';
+                    const userName = ((_c = (_b = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _b === void 0 ? void 0 : _b.user_metadata) === null || _c === void 0 ? void 0 : _c.name) || ((_e = (_d = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _d === void 0 ? void 0 : _d.email) === null || _e === void 0 ? void 0 : _e.split('@')[0]) || 'Customer';
+                    const { data: profileId, error: createError } = yield dbClient
+                        .rpc('create_customer_profile', {
+                        p_customer_auth_id: userId,
+                        p_email: userEmail,
+                        p_name: userName,
+                        p_phone: null
+                    });
+                    if (createError || !profileId) {
+                        console.error('Error creating customer profile:', createError);
+                        return res.status(500).json({ error: 'Failed to create customer profile' });
+                    }
+                    // Fetch the newly created profile
+                    const { data: newProfile } = yield dbClient
+                        .from('customer_profiles')
+                        .select('id')
+                        .eq('id', profileId)
+                        .single();
+                    if (!(newProfile === null || newProfile === void 0 ? void 0 : newProfile.id)) {
+                        return res.status(500).json({ error: 'Failed to retrieve created profile' });
+                    }
+                    profile = newProfile;
+                }
+                catch (createErr) {
+                    console.error('Error auto-creating customer profile:', createErr);
+                    return res.status(500).json({ error: 'Failed to create customer profile', details: createErr.message });
+                }
+            }
+        }
+        // Get favorites for this customer profile
+        const { data: favorites, error: favoritesError } = yield dbClient
+            .from('customer_favorites')
+            .select(`
+        *,
+        shops (
+          id,
+          name,
+          address,
+          phone,
+          description,
+          category,
+          main_image_url,
+          rating,
+          review_count
+        )
+      `)
+            .eq('customer_id', profile.id)
+            .order('created_at', { ascending: false });
+        if (favoritesError) {
+            console.error('Error fetching favorites:', favoritesError);
+            return res.status(500).json({ error: 'Failed to fetch favorites' });
+        }
+        return res.json({ favorites: favorites || [] });
+    }
+    catch (error) {
+        console.error('Error in GET /customers/favorites:', error);
+        return res.status(500).json({ error: error.message });
+    }
+}));
 // GET /customers/magic/:magicCode - Find customer by magic code
 router.get('/magic/:magicCode', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -87,6 +356,195 @@ router.post('/:id/push-subscription', (req, res) => __awaiter(void 0, void 0, vo
             error: 'Failed to save subscription',
             message: error.message
         });
+    }
+}));
+// POST /customers/favorites - Add a shop to favorites
+// ONLY authenticated users (LINE and web customers) can add favorites
+router.post('/favorites', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d, _e;
+    try {
+        const userId = req.headers['x-user-id'];
+        const { shop_id } = req.body;
+        // STRICT: Require authentication - only customers with accounts can add favorites
+        if (!userId) {
+            return res.status(401).json({ error: 'Authentication required. Only customers with accounts can add favorites.' });
+        }
+        // Verify user exists in auth system
+        try {
+            const { data: authUser, error: authError } = yield dbClient.auth.admin.getUserById(userId);
+            if (authError || !(authUser === null || authUser === void 0 ? void 0 : authUser.user)) {
+                return res.status(401).json({ error: 'Invalid user. Authentication required.' });
+            }
+        }
+        catch (authCheckErr) {
+            return res.status(401).json({ error: 'Authentication verification failed. Only customers with accounts can add favorites.' });
+        }
+        if (!shop_id) {
+            return res.status(400).json({ error: 'Shop ID is required' });
+        }
+        // Get customer profile by customer_auth_id
+        let { data: profile, error: profileError } = yield dbClient
+            .from('customer_profiles')
+            .select('id')
+            .eq('customer_auth_id', userId)
+            .maybeSingle();
+        if (profileError || !(profile === null || profile === void 0 ? void 0 : profile.id)) {
+            // Try fallback: check if customer_profiles.id = user.id (old structure)
+            const { data: profileFallback } = yield dbClient
+                .from('customer_profiles')
+                .select('id')
+                .eq('id', userId)
+                .maybeSingle();
+            if (profileFallback === null || profileFallback === void 0 ? void 0 : profileFallback.id) {
+                profile = profileFallback;
+            }
+            else {
+                // Auto-create customer profile if it doesn't exist
+                try {
+                    const { data: authUser } = yield dbClient.auth.admin.getUserById(userId);
+                    const userEmail = ((_a = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _a === void 0 ? void 0 : _a.email) || '';
+                    const userName = ((_c = (_b = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _b === void 0 ? void 0 : _b.user_metadata) === null || _c === void 0 ? void 0 : _c.name) || ((_e = (_d = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _d === void 0 ? void 0 : _d.email) === null || _e === void 0 ? void 0 : _e.split('@')[0]) || 'Customer';
+                    const { data: profileId, error: createError } = yield dbClient
+                        .rpc('create_customer_profile', {
+                        p_customer_auth_id: userId,
+                        p_email: userEmail,
+                        p_name: userName,
+                        p_phone: null
+                    });
+                    if (createError || !profileId) {
+                        console.error('Error creating customer profile:', createError);
+                        return res.status(500).json({ error: 'Failed to create customer profile' });
+                    }
+                    // Fetch the newly created profile
+                    const { data: newProfile } = yield dbClient
+                        .from('customer_profiles')
+                        .select('id')
+                        .eq('id', profileId)
+                        .single();
+                    if (!(newProfile === null || newProfile === void 0 ? void 0 : newProfile.id)) {
+                        return res.status(500).json({ error: 'Failed to retrieve created profile' });
+                    }
+                    profile = newProfile;
+                }
+                catch (createErr) {
+                    console.error('Error auto-creating customer profile:', createErr);
+                    return res.status(500).json({ error: 'Failed to create customer profile', details: createErr.message });
+                }
+            }
+        }
+        // Insert favorite
+        const { data: favorite, error: insertError } = yield dbClient
+            .from('customer_favorites')
+            .insert({
+            customer_id: profile.id,
+            shop_id: shop_id,
+        })
+            .select()
+            .single();
+        if (insertError) {
+            // Check if it's a duplicate (unique constraint violation)
+            if (insertError.code === '23505') {
+                return res.status(409).json({ error: 'Shop is already in favorites' });
+            }
+            console.error('Error adding favorite:', insertError);
+            return res.status(500).json({ error: 'Failed to add favorite' });
+        }
+        return res.json({ favorite });
+    }
+    catch (error) {
+        console.error('Error in POST /customers/favorites:', error);
+        return res.status(500).json({ error: error.message });
+    }
+}));
+// DELETE /customers/favorites/:shop_id - Remove a shop from favorites
+// ONLY authenticated users (LINE and web customers) can remove favorites
+router.delete('/favorites/:shop_id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d, _e;
+    try {
+        const userId = req.headers['x-user-id'];
+        const { shop_id } = req.params;
+        // STRICT: Require authentication - only customers with accounts can remove favorites
+        if (!userId) {
+            return res.status(401).json({ error: 'Authentication required. Only customers with accounts can remove favorites.' });
+        }
+        // Verify user exists in auth system
+        try {
+            const { data: authUser, error: authError } = yield dbClient.auth.admin.getUserById(userId);
+            if (authError || !(authUser === null || authUser === void 0 ? void 0 : authUser.user)) {
+                return res.status(401).json({ error: 'Invalid user. Authentication required.' });
+            }
+        }
+        catch (authCheckErr) {
+            return res.status(401).json({ error: 'Authentication verification failed. Only customers with accounts can remove favorites.' });
+        }
+        if (!shop_id) {
+            return res.status(400).json({ error: 'Shop ID is required' });
+        }
+        // Get customer profile by customer_auth_id
+        let { data: profile, error: profileError } = yield dbClient
+            .from('customer_profiles')
+            .select('id')
+            .eq('customer_auth_id', userId)
+            .maybeSingle();
+        if (profileError || !(profile === null || profile === void 0 ? void 0 : profile.id)) {
+            // Try fallback: check if customer_profiles.id = user.id (old structure)
+            const { data: profileFallback } = yield dbClient
+                .from('customer_profiles')
+                .select('id')
+                .eq('id', userId)
+                .maybeSingle();
+            if (profileFallback === null || profileFallback === void 0 ? void 0 : profileFallback.id) {
+                profile = profileFallback;
+            }
+            else {
+                // Auto-create customer profile if it doesn't exist
+                try {
+                    const { data: authUser } = yield dbClient.auth.admin.getUserById(userId);
+                    const userEmail = ((_a = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _a === void 0 ? void 0 : _a.email) || '';
+                    const userName = ((_c = (_b = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _b === void 0 ? void 0 : _b.user_metadata) === null || _c === void 0 ? void 0 : _c.name) || ((_e = (_d = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _d === void 0 ? void 0 : _d.email) === null || _e === void 0 ? void 0 : _e.split('@')[0]) || 'Customer';
+                    const { data: profileId, error: createError } = yield dbClient
+                        .rpc('create_customer_profile', {
+                        p_customer_auth_id: userId,
+                        p_email: userEmail,
+                        p_name: userName,
+                        p_phone: null
+                    });
+                    if (createError || !profileId) {
+                        console.error('Error creating customer profile:', createError);
+                        return res.status(500).json({ error: 'Failed to create customer profile' });
+                    }
+                    // Fetch the newly created profile
+                    const { data: newProfile } = yield dbClient
+                        .from('customer_profiles')
+                        .select('id')
+                        .eq('id', profileId)
+                        .single();
+                    if (!(newProfile === null || newProfile === void 0 ? void 0 : newProfile.id)) {
+                        return res.status(500).json({ error: 'Failed to retrieve created profile' });
+                    }
+                    profile = newProfile;
+                }
+                catch (createErr) {
+                    console.error('Error auto-creating customer profile:', createErr);
+                    return res.status(500).json({ error: 'Failed to create customer profile', details: createErr.message });
+                }
+            }
+        }
+        // Delete favorite
+        const { error: deleteError } = yield dbClient
+            .from('customer_favorites')
+            .delete()
+            .eq('customer_id', profile.id)
+            .eq('shop_id', shop_id);
+        if (deleteError) {
+            console.error('Error removing favorite:', deleteError);
+            return res.status(500).json({ error: 'Failed to remove favorite' });
+        }
+        return res.json({ success: true });
+    }
+    catch (error) {
+        console.error('Error in DELETE /customers/favorites/:shop_id:', error);
+        return res.status(500).json({ error: error.message });
     }
 }));
 exports.default = router;

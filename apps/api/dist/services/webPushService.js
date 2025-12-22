@@ -229,7 +229,7 @@ function notifyCustomerBookingChange(customerId, action, bookingDetails, reason)
                     .eq('id', customerId)
                     .single();
                 if (customer === null || customer === void 0 ? void 0 : customer.magic_code) {
-                    const frontendUrl = process.env.FRONTEND_URL || ((_a = process.env.NEXT_PUBLIC_API_URL) === null || _a === void 0 ? void 0 : _a.replace(':3000', ':3001')) || 'http://localhost:3001';
+                    const frontendUrl = process.env.FRONTEND_URL || ((_a = process.env.API_URL) === null || _a === void 0 ? void 0 : _a.replace(':3000', ':3001')) || 'http://localhost:3001';
                     chatUrl = `${frontendUrl}/c/${customer.magic_code}`;
                 }
             }

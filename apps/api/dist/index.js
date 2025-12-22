@@ -25,10 +25,21 @@ const reviews_1 = __importDefault(require("./routes/reviews"));
 const analytics_1 = __importDefault(require("./routes/analytics"));
 const line_1 = __importDefault(require("./routes/line"));
 const qr_1 = __importDefault(require("./routes/qr"));
+const subscriptions_1 = __importDefault(require("./routes/subscriptions"));
+const conversations_1 = __importDefault(require("./routes/conversations"));
 const path_1 = __importDefault(require("path"));
-dotenv_1.default.config({
-    path: path_1.default.resolve(__dirname, "../.env")
-});
+// Only load .env file if it exists (for local development)
+// In Vercel, environment variables are set in the dashboard
+if (process.env.NODE_ENV !== 'production') {
+    try {
+        dotenv_1.default.config({
+            path: path_1.default.resolve(__dirname, "../.env")
+        });
+    }
+    catch (error) {
+        // Ignore if .env file doesn't exist
+    }
+}
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 // Increase body size limits for JSON and URL-encoded data
@@ -58,6 +69,9 @@ app.use("/reviews", reviews_1.default);
 app.use("/analytics", analytics_1.default);
 app.use("/line", line_1.default);
 app.use("/qr", qr_1.default);
+app.use("/subscriptions", subscriptions_1.default);
 // Also mount LINE routes under /api/line for production/ngrok compatibility
 app.use("/api/line", line_1.default);
+// Mount conversations routes under /api/conversations
+app.use("/api/conversations", conversations_1.default);
 exports.default = app;

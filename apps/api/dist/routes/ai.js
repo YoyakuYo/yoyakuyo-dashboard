@@ -22,23 +22,53 @@ const calendarService_1 = require("../services/calendarService");
 const router = (0, express_1.Router)();
 const dbClient = supabase_1.supabaseAdmin || supabase_1.supabase;
 // POST /ai/chat - AI chat endpoint (legacy - uses shop_messages table)
+// Supports both legacy format (source, message, shopId) and unified format (role, messages)
 router.post("/chat", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e, _f;
     try {
-        const { shopId, bookingId, message, source } = req.body;
-        if (!shopId || !message) {
+        // Check if this is unified format (role + messages array)
+        const { role, messages: messagesArray, shopId, bookingId, message, source } = req.body;
+        // Handle unified format (role + messages array)
+        if (role && messagesArray && Array.isArray(messagesArray) && messagesArray.length > 0) {
+            // Get the last user message from the messages array
+            const lastUserMessage = messagesArray.filter((m) => m.role === "user").pop();
+            if (!lastUserMessage || !((_a = lastUserMessage.content) === null || _a === void 0 ? void 0 : _a.trim())) {
+                return res.status(400).json({ error: "Last message must be from user with content" });
+            }
+            const actualMessage = lastUserMessage.content.trim();
+            const actualSource = role === 'customer' ? 'customer' : role === 'owner' ? 'owner' : source || 'customer';
+            let actualShopId = shopId || ((_b = req.body.shopContext) === null || _b === void 0 ? void 0 : _b.shopId) || null;
+            // For customer chat without shopId, use a default shop or handle differently
+            // For general customer chat (like /customer/chat), we'll use a placeholder shopId
+            // This allows the chat to work but won't create shop-specific threads
+            if (!actualShopId && actualSource === 'customer') {
+                // Use a placeholder shopId for general customer chat
+                // The chat will work but won't be linked to a specific shop
+                actualShopId = '00000000-0000-0000-0000-000000000000'; // Placeholder UUID
+                console.log('[AI] Customer chat without shopId - using placeholder');
+            }
+            // Use the unified format but convert to legacy format for processing
+            req.body.shopId = actualShopId;
+            req.body.message = actualMessage;
+            req.body.source = actualSource;
+        }
+        // Now process with legacy format
+        const finalShopId = req.body.shopId;
+        const finalMessage = req.body.message;
+        const finalSource = req.body.source;
+        if (!finalShopId || !finalMessage) {
             return res.status(400).json({ error: "shopId and message are required" });
         }
-        const isCustomer = source === 'customer';
+        const isCustomer = finalSource === 'customer';
         // Find or create a thread for this shop/booking
         let threadId = null;
-        if (bookingId) {
+        if (req.body.bookingId) {
             // Try to find existing thread by bookingId
             const { data: existingThreads, error: findError } = yield dbClient
                 .from("shop_threads")
                 .select("id")
-                .eq("shop_id", shopId)
-                .eq("booking_id", bookingId)
+                .eq("shop_id", finalShopId)
+                .eq("booking_id", req.body.bookingId)
                 .limit(1);
             if (!findError && existingThreads && existingThreads.length > 0) {
                 threadId = existingThreads[0].id;
@@ -49,7 +79,7 @@ router.post("/chat", (req, res) => __awaiter(void 0, void 0, void 0, function* (
             const { data: shopThreads, error: findError } = yield dbClient
                 .from("shop_threads")
                 .select("id")
-                .eq("shop_id", shopId)
+                .eq("shop_id", finalShopId)
                 .limit(1);
             if (!findError && shopThreads && shopThreads.length > 0) {
                 threadId = shopThreads[0].id;
@@ -59,8 +89,8 @@ router.post("/chat", (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 const { data: newThread, error: threadError } = yield dbClient
                     .from("shop_threads")
                     .insert([{
-                        shop_id: shopId,
-                        booking_id: bookingId || null,
+                        shop_id: finalShopId,
+                        booking_id: req.body.bookingId || null,
                         customer_email: null,
                     }])
                     .select()
@@ -83,8 +113,8 @@ router.post("/chat", (req, res) => __awaiter(void 0, void 0, void 0, function* (
             console.error("Error fetching recent messages:", messagesError);
         }
         // Detect language using language detection service
-        let languageCode = yield (0, languageDetectionService_1.detectLanguage)(message);
-        console.log(`[AI] Detected language: ${languageCode} for message: "${message.substring(0, 50)}..."`);
+        let languageCode = yield (0, languageDetectionService_1.detectLanguage)(finalMessage);
+        console.log(`[AI] Detected language: ${languageCode} for message: "${finalMessage.substring(0, 50)}..."`);
         // For customers: use saved preferred language, or detect from message
         if (isCustomer && threadId) {
             const { data: threadData } = yield dbClient
@@ -93,19 +123,19 @@ router.post("/chat", (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 .eq("id", threadId)
                 .single();
             if (threadData === null || threadData === void 0 ? void 0 : threadData.customer_email) {
-                languageCode = yield (0, customerService_1.getCustomerLanguage)(threadData.customer_email, undefined, message);
+                languageCode = yield (0, customerService_1.getCustomerLanguage)(threadData.customer_email, undefined, finalMessage);
                 // Update customer language if not set
                 yield (0, customerService_1.updateCustomerLanguage)(threadData.customer_email, languageCode);
             }
         }
-        // Save customer message
+        // Save customer message to shop_messages (for thread-based system)
         const { data: customerMessage, error: saveError } = yield dbClient
             .from("shop_messages")
             .insert([
             {
                 thread_id: threadId,
                 sender_type: 'customer',
-                content: message,
+                content: finalMessage,
             }
         ])
             .select()
@@ -113,12 +143,30 @@ router.post("/chat", (req, res) => __awaiter(void 0, void 0, void 0, function* (
         if (saveError) {
             console.error("Error saving customer message:", saveError);
         }
+        // Also save to customer_ai_messages for persistent history
+        const customerId = req.body.customerId || req.body.customer_id || null; // Can be anonymous session ID
+        try {
+            yield dbClient
+                .from("customer_ai_messages")
+                .insert([
+                {
+                    customer_id: customerId,
+                    shop_id: finalShopId,
+                    role: 'user',
+                    message: finalMessage,
+                }
+            ]);
+        }
+        catch (customerMsgError) {
+            console.error("Error saving to customer_ai_messages:", customerMsgError);
+            // Continue even if this fails
+        }
         // Check if OpenAI API key is available
         const openaiApiKey = process.env.OPENAI_API_KEY;
         if (!openaiApiKey) {
             // Return a friendly stub response (multilingual)
             const stubResponse = yield (0, multilingualService_1.generateMultilingualResponse)('ai_unavailable', languageCode);
-            // Save AI response
+            // Save AI response to shop_messages
             if (threadId) {
                 yield dbClient
                     .from("shop_messages")
@@ -129,6 +177,23 @@ router.post("/chat", (req, res) => __awaiter(void 0, void 0, void 0, function* (
                         content: stubResponse,
                     }
                 ]);
+            }
+            // Also save to customer_ai_messages
+            const customerId = req.body.customerId || req.body.customer_id || null;
+            try {
+                yield dbClient
+                    .from("customer_ai_messages")
+                    .insert([
+                    {
+                        customer_id: customerId,
+                        shop_id: finalShopId,
+                        role: 'assistant',
+                        message: stubResponse,
+                    }
+                ]);
+            }
+            catch (customerMsgError) {
+                console.error("Error saving AI response to customer_ai_messages:", customerMsgError);
             }
             return res.json({
                 response: stubResponse,
@@ -143,7 +208,7 @@ router.post("/chat", (req, res) => __awaiter(void 0, void 0, void 0, function* (
         // Add current message
         conversationHistory.push({
             role: 'user',
-            content: message,
+            content: finalMessage,
         });
         // Get language name for the prompt
         const languageNames = {
@@ -154,7 +219,7 @@ router.post("/chat", (req, res) => __awaiter(void 0, void 0, void 0, function* (
         };
         const detectedLanguageName = languageNames[languageCode] || 'English';
         // Fetch shop details for context (legacy /ai/chat route)
-        const shop = yield (0, bookingService_1.getShopDetails)(shopId);
+        const shop = yield (0, bookingService_1.getShopDetails)(finalShopId);
         const shopName = (shop === null || shop === void 0 ? void 0 : shop.name) || 'our shop';
         const shopCategory = (shop === null || shop === void 0 ? void 0 : shop.category) || 'business';
         const shopDescription = (shop === null || shop === void 0 ? void 0 : shop.description) || '';
@@ -213,9 +278,9 @@ You MUST NOT suggest prices, change prices, or show revenue. You MUST NOT discus
                 let errorMessage = `OpenAI API error: ${openaiResponse.status}`;
                 try {
                     const errorJson = JSON.parse(errorText);
-                    errorMessage = `OpenAI API error: ${openaiResponse.status} - ${((_a = errorJson.error) === null || _a === void 0 ? void 0 : _a.message) || errorText}`;
+                    errorMessage = `OpenAI API error: ${openaiResponse.status} - ${((_c = errorJson.error) === null || _c === void 0 ? void 0 : _c.message) || errorText}`;
                 }
-                catch (_e) {
+                catch (_g) {
                     errorMessage = `OpenAI API error: ${openaiResponse.status} - ${errorText}`;
                 }
                 console.error("OpenAI API Error Details (legacy /ai/chat):", {
@@ -228,8 +293,8 @@ You MUST NOT suggest prices, change prices, or show revenue. You MUST NOT discus
                 throw new Error(errorMessage);
             }
             const openaiData = yield openaiResponse.json();
-            const aiResponse = ((_d = (_c = (_b = openaiData.choices) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.message) === null || _d === void 0 ? void 0 : _d.content) || '';
-            // Save AI response
+            const aiResponse = ((_f = (_e = (_d = openaiData.choices) === null || _d === void 0 ? void 0 : _d[0]) === null || _e === void 0 ? void 0 : _e.message) === null || _f === void 0 ? void 0 : _f.content) || '';
+            // Save AI response to shop_messages
             const { data: aiMessage, error: aiSaveError } = yield dbClient
                 .from("shop_messages")
                 .insert([
@@ -244,10 +309,27 @@ You MUST NOT suggest prices, change prices, or show revenue. You MUST NOT discus
             if (aiSaveError) {
                 console.error("Error saving AI message:", aiSaveError);
             }
+            // Also save to customer_ai_messages
+            const customerId = req.body.customerId || req.body.customer_id || null;
+            try {
+                yield dbClient
+                    .from("customer_ai_messages")
+                    .insert([
+                    {
+                        customer_id: customerId,
+                        shop_id: finalShopId,
+                        role: 'assistant',
+                        message: aiResponse,
+                    }
+                ]);
+            }
+            catch (customerMsgError) {
+                console.error("Error saving AI response to customer_ai_messages:", customerMsgError);
+            }
             // Check if AI wants to cancel or reschedule a booking
             // Simple keyword detection (can be enhanced)
             const lowerResponse = aiResponse.toLowerCase();
-            const lowerMessage = message.toLowerCase();
+            const lowerMessage = finalMessage.toLowerCase();
             // Multilingual cancellation keyword detection
             const cancelKeywords = ['cancel', 'cancellation', 'キャンセル', '取消', '取消し', 'annuler', 'stornieren', 'cancelar'];
             if (bookingId && cancelKeywords.some(keyword => lowerResponse.includes(keyword) || lowerMessage.includes(keyword))) {
@@ -1082,6 +1164,29 @@ DO NOT wait for additional confirmation - if customer says yes or agrees in ANY 
                                 }
                             }
                             else {
+                                // Get customer_profile_id if user is authenticated (logged-in customer)
+                                let customerProfileId = null;
+                                try {
+                                    const userId = req.body.userId || req.body.user_id || req.headers['x-user-id'] || null;
+                                    if (userId && isCustomer) {
+                                        // Get customer_profile_id from customer_auth_id
+                                        const { data: customerProfile, error: profileError } = yield dbClient
+                                            .from("customer_profiles")
+                                            .select("id")
+                                            .eq("customer_auth_id", userId)
+                                            .maybeSingle();
+                                        if (profileError) {
+                                            console.error("Error fetching customer profile:", profileError);
+                                        }
+                                        else if (customerProfile) {
+                                            customerProfileId = customerProfile.id;
+                                        }
+                                    }
+                                }
+                                catch (profileErr) {
+                                    console.error("Error getting customer_profile_id (non-blocking):", profileErr);
+                                    // Continue without customer_profile_id if lookup fails
+                                }
                                 // All required fields present, availability confirmed, and customer confirmed - create booking
                                 const bookingResult = yield (0, bookingService_1.createBookingFromAi)({
                                     shopId: shopId,
@@ -1096,6 +1201,7 @@ DO NOT wait for additional confirmation - if customer says yes or agrees in ANY 
                                     languageCode: languageCode,
                                     notes: `Created via AI chat. Service: ${functionArgs.serviceName || 'Unknown'}${functionArgs.staffName ? `, Staff: ${functionArgs.staffName}` : ''}`,
                                     source: 'ai',
+                                    customerProfileId: customerProfileId, // Pass customer_profile_id for logged-in customers
                                 });
                                 if (bookingResult.success && bookingResult.booking) {
                                     bookingCreated = true;
