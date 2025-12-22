@@ -44,7 +44,7 @@ CREATE VIEW owner_bookings AS
 SELECT
   b.*,
   s.name as shop_name,
-  s.owner_user_id as owner_id
+  COALESCE(s.owner_user_id, s.owner_id) as owner_id
 FROM bookings b
 JOIN shops s ON s.id = b.shop_id;
 
