@@ -141,6 +141,8 @@ function CustomerBookingsPageContent() {
 
         setBookings(filteredBookings);
         setLoading(false);
+        // Mark customer as resolved after successful API call (customer was created if needed)
+        setCustomerResolved(true);
         return;
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
