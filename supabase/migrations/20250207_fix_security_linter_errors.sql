@@ -37,7 +37,19 @@ ALTER VIEW verification_booking_customer_links SET (security_invoker = true);
 -- ============================================
 -- FIX 2: Remove SECURITY DEFINER from owner_bookings view
 -- ============================================
-ALTER VIEW IF EXISTS owner_bookings SET (security_invoker = true);
+-- Recreate view without SECURITY DEFINER
+DROP VIEW IF EXISTS owner_bookings CASCADE;
+
+CREATE VIEW owner_bookings AS
+SELECT
+  b.*,
+  s.name as shop_name,
+  s.owner_user_id as owner_id
+FROM bookings b
+JOIN shops s ON s.id = b.shop_id;
+
+-- Set security invoker (not definer)
+ALTER VIEW owner_bookings SET (security_invoker = true);
 
 -- ============================================
 -- FIX 3: Enable RLS on tables or drop backup tables
