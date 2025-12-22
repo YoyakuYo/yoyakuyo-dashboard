@@ -17,6 +17,16 @@ router.get('/bookings/health', async (req: Request, res: Response) => {
   return res.json({ status: 'ok', message: 'Bookings endpoint is available' });
 });
 
+// Test endpoint to verify routing is working
+router.get('/test', async (req: Request, res: Response) => {
+  return res.json({ 
+    status: 'ok', 
+    message: 'Customers router is working',
+    timestamp: new Date().toISOString(),
+    path: '/customers/test'
+  });
+});
+
 // GET /customers/bookings - Get customer's bookings
 // ONLY authenticated users (LINE and web customers) can view bookings
 router.get('/bookings', async (req: Request, res: Response) => {

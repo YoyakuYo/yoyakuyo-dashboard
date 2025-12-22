@@ -45,6 +45,9 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 app.get("/", (_, res) => res.send("Yoyaku Yo API running!"));
 
+// Health check endpoint
+app.get("/health", (_, res) => res.json({ status: "ok", service: "yoyaku-yo-api" }));
+
 // Handle favicon requests to prevent 404 errors
 app.get("/favicon.ico", (_, res) => {
   res.status(204).end();
