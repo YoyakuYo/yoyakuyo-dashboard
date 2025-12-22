@@ -202,7 +202,10 @@ function CustomerMessagesPageContent() {
   };
 
   const loadConversations = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch(`${apiUrl}/api/conversations?type=customer_owner`, {
@@ -212,8 +215,20 @@ function CustomerMessagesPageContent() {
       if (res.ok) {
         const { conversations: convs } = await res.json();
         setConversations(convs || []);
+        
+        // After loading conversations, check if we need to create one for shopIdParam
+        if (shopIdParam) {
+          const existingConv = (convs || []).find((c: Conversation) => c.shop_id === shopIdParam);
+          if (existingConv) {
+            setSelectedConversationId(existingConv.id);
+          } else {
+            // Conversation doesn't exist, create it
+            await createConversationForShop(shopIdParam);
+          }
+        }
       } else {
-        console.error("Failed to load conversations");
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error("Failed to load conversations:", res.status, errorData);
       }
     } catch (error) {
       console.error("Error loading conversations:", error);
