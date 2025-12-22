@@ -69,34 +69,12 @@ export default function CustomerHeader() {
           {t('home.title') || 'Yoyaku Yo'}
         </Link>
 
-        {/* Right side: Notifications, Logout Button, Profile */}
+        {/* Right side: Notifications, Profile */}
         <div className="flex items-center gap-4">
           {/* Notifications */}
           {profile && (
             <NotificationBell userType="customer" userId={profile.id} />
           )}
-
-          {/* Logout Button - Visible and accessible */}
-          <button
-            onClick={handleSignOut}
-            className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 transition-colors"
-            title={t('nav.logout') || 'Logout'}
-          >
-            <span className="hidden sm:inline">{t('nav.logout') || 'Logout'}</span>
-            <svg
-              className="w-5 h-5 sm:hidden"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-              />
-            </svg>
-          </button>
 
           {/* Profile Dropdown */}
           <div className="relative">
@@ -132,13 +110,17 @@ export default function CustomerHeader() {
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   onClick={() => setShowDropdown(false)}
                 >
-                  {t('customer.profile')}
+                  {t('customer.profile') || 'Settings'}
                 </Link>
+                <div className="border-t border-gray-200 my-1"></div>
                 <button
-                  onClick={handleSignOut}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() => {
+                    setShowDropdown(false);
+                    handleSignOut();
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                 >
-                  {t('nav.logout')}
+                  {t('nav.logout') || 'Logout'}
                 </button>
               </div>
             )}
