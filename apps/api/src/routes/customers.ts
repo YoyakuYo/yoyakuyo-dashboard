@@ -144,8 +144,9 @@ router.get('/bookings', async (req: Request, res: Response) => {
       willQueryByCustomerId: true,
     });
 
-    // Try customer_profile_id first
-    if (profile.id) {
+    // Try customer_profile_id first (if profile exists)
+    if (profile?.id) {
+      console.log(`[${requestId}] Query 1: Looking for bookings with customer_profile_id = ${profile.id}...`);
       const { data: profileBookings, error: profileError } = await dbClient
         .from("bookings")
         .select(`
@@ -165,11 +166,21 @@ router.get('/bookings', async (req: Request, res: Response) => {
         .eq("customer_profile_id", profile.id)
         .order("created_at", { ascending: false });
 
-      console.log('[Customers API] Query by customer_profile_id:', {
-        profileId: profile.id,
+      console.log(`[${requestId}] Query 1 result (customer_profile_id):`, {
+        queryValue: profile.id,
         found: profileBookings?.length || 0,
         error: profileError?.message,
+        errorCode: profileError?.code,
+        errorDetails: profileError?.details,
         bookingIds: profileBookings?.map((b: any) => b.id) || [],
+        bookingDetails: profileBookings?.map((b: any) => ({
+          id: b.id,
+          customer_profile_id: b.customer_profile_id,
+          user_id: b.user_id,
+          customer_id: b.customer_id,
+          status: b.status,
+          created_at: b.created_at,
+        })) || [],
       });
 
       if (!profileError && profileBookings) {
@@ -180,9 +191,12 @@ router.get('/bookings', async (req: Request, res: Response) => {
           }
         });
       }
+    } else {
+      console.log(`[${requestId}] ⚠️ Skipping customer_profile_id query (no profile found)`);
     }
 
     // Try user_id
+    console.log(`[${requestId}] Query 2: Looking for bookings with user_id = ${userId}...`);
     const { data: userBookings, error: userError } = await dbClient
       .from("bookings")
       .select(`
@@ -202,11 +216,21 @@ router.get('/bookings', async (req: Request, res: Response) => {
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
-    console.log('[Customers API] Query by user_id:', {
-      userId,
+    console.log(`[${requestId}] Query 2 result (user_id):`, {
+      queryValue: userId,
       found: userBookings?.length || 0,
       error: userError?.message,
+      errorCode: userError?.code,
+      errorDetails: userError?.details,
       bookingIds: userBookings?.map((b: any) => b.id) || [],
+      bookingDetails: userBookings?.map((b: any) => ({
+        id: b.id,
+        customer_profile_id: b.customer_profile_id,
+        user_id: b.user_id,
+        customer_id: b.customer_id,
+        status: b.status,
+        created_at: b.created_at,
+      })) || [],
     });
 
     if (!userError && userBookings) {
@@ -219,6 +243,7 @@ router.get('/bookings', async (req: Request, res: Response) => {
     }
 
     // Try customer_id (for old bookings)
+    console.log(`[${requestId}] Query 3: Looking for bookings with customer_id = ${userId}...`);
     const { data: customerBookings, error: customerError } = await dbClient
       .from("bookings")
       .select(`
@@ -238,11 +263,21 @@ router.get('/bookings', async (req: Request, res: Response) => {
       .eq("customer_id", userId)
       .order("created_at", { ascending: false });
 
-    console.log('[Customers API] Query by customer_id:', {
-      customerId: userId,
+    console.log(`[${requestId}] Query 3 result (customer_id):`, {
+      queryValue: userId,
       found: customerBookings?.length || 0,
       error: customerError?.message,
+      errorCode: customerError?.code,
+      errorDetails: customerError?.details,
       bookingIds: customerBookings?.map((b: any) => b.id) || [],
+      bookingDetails: customerBookings?.map((b: any) => ({
+        id: b.id,
+        customer_profile_id: b.customer_profile_id,
+        user_id: b.user_id,
+        customer_id: b.customer_id,
+        status: b.status,
+        created_at: b.created_at,
+      })) || [],
     });
 
     if (!customerError && customerBookings) {
@@ -254,7 +289,33 @@ router.get('/bookings', async (req: Request, res: Response) => {
       });
     }
 
-    console.log('[Customers API] Total bookings found:', {
+    // DIAGNOSTIC: Check what bookings actually exist in database for this user
+    console.log(`[${requestId}] DIAGNOSTIC: Checking all bookings in database...`);
+    const { data: allBookingsInDb, error: diagnosticError } = await dbClient
+      .from("bookings")
+      .select("id, customer_profile_id, user_id, customer_id, status, created_at, customer_name")
+      .or(`customer_profile_id.eq.${profile?.id || 'null'},user_id.eq.${userId},customer_id.eq.${userId}`)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    console.log(`[${requestId}] DIAGNOSTIC: All bookings matching any criteria:`, {
+      found: allBookingsInDb?.length || 0,
+      error: diagnosticError?.message,
+      bookings: allBookingsInDb?.map((b: any) => ({
+        id: b.id,
+        customer_profile_id: b.customer_profile_id,
+        user_id: b.user_id,
+        customer_id: b.customer_id,
+        status: b.status,
+        customer_name: b.customer_name,
+        created_at: b.created_at,
+        matchesProfileId: b.customer_profile_id === profile?.id,
+        matchesUserId: b.user_id === userId,
+        matchesCustomerId: b.customer_id === userId,
+      })) || [],
+    });
+
+    console.log(`[${requestId}] Total bookings found after all queries:`, {
       total: allBookings.length,
       uniqueIds: Array.from(seenIds),
     });
