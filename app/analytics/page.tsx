@@ -116,25 +116,41 @@ export default function AnalyticsPage() {
 
       if (revenueRes.ok) {
         const revenue = await revenueRes.json();
+        console.log("[Analytics] Revenue data loaded:", revenue);
         setRevenueData(revenue);
+      } else {
+        const error = await revenueRes.json().catch(() => ({ error: "Unknown error" }));
+        console.error("[Analytics] Revenue error:", error);
       }
 
       if (performanceRes.ok) {
         const performance = await performanceRes.json();
+        console.log("[Analytics] Performance data loaded:", performance);
         setPerformanceData(performance);
+      } else {
+        const error = await performanceRes.json().catch(() => ({ error: "Unknown error" }));
+        console.error("[Analytics] Performance error:", error);
       }
 
       if (customersRes.ok) {
         const customers = await customersRes.json();
+        console.log("[Analytics] Customers data loaded:", customers);
         setCustomerData(customers);
+      } else {
+        const error = await customersRes.json().catch(() => ({ error: "Unknown error" }));
+        console.error("[Analytics] Customers error:", error);
       }
 
       if (bookingsRes.ok) {
         const bookings = await bookingsRes.json();
+        console.log("[Analytics] Bookings data loaded:", bookings);
         setBookingData(bookings);
+      } else {
+        const error = await bookingsRes.json().catch(() => ({ error: "Unknown error" }));
+        console.error("[Analytics] Bookings error:", error);
       }
     } catch (error) {
-      console.error("Error loading analytics:", error);
+      console.error("[Analytics] Error loading analytics:", error);
     } finally {
       setLoading(false);
     }
