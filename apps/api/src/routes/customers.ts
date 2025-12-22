@@ -12,6 +12,11 @@ const dbClient = supabaseAdmin || supabase;
 // Customer Bookings Endpoint (must be before parameterized routes)
 // ============================================
 
+// Health check for bookings endpoint
+router.get('/bookings/health', async (req: Request, res: Response) => {
+  return res.json({ status: 'ok', message: 'Bookings endpoint is available' });
+});
+
 // GET /customers/bookings - Get customer's bookings
 // ONLY authenticated users (LINE and web customers) can view bookings
 router.get('/bookings', async (req: Request, res: Response) => {
