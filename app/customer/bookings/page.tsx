@@ -36,58 +36,32 @@ function CustomerBookingsPageContent() {
     const supabase = getSupabaseClient();
     let channel: any = null;
 
-    // STEP 1: Resolve WEB customer correctly
     // For WEB customers: customers.id = auth.users.id (canonical system)
     // Customer should exist now because loadBookings() API call created it
-    (async () => {
-      try {
-        const { data: customer, error: customerError } = await supabase
-          .from('customers')
-          .select('id')
-          .eq('id', user.id)
-          .maybeSingle();
+    // Use user.id directly as customer_id (canonical system)
+    const customerId = user.id;
+    console.log('[Customer Bookings] Subscribing to bookings for customer_id:', customerId);
 
-        if (customerError) {
-          console.error('[Customer Bookings] Error resolving customer:', customerError);
-          return;
+    // Subscribe to realtime updates using customer_id directly
+    // No need to query customers table - we know customer_id = user.id for WEB customers
+    channel = supabase
+      .channel("customer-bookings-subscription")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "bookings",
+          filter: `customer_id=eq.${customerId}`,
+        },
+        (payload) => {
+          console.log('[Customer Bookings] Realtime update:', payload);
+          loadBookings();
         }
-
-        if (!customer?.id) {
-          console.error('WEB CUSTOMER RESOLUTION FAILED', {
-            authUserId: user.id,
-            error: 'Customer not found in customers table',
-            query: 'customers WHERE id = ' + user.id,
-            note: 'For WEB customers, customers.id should equal auth.users.id. API should have auto-created this.'
-          });
-          return;
-        }
-
-        const customerId = customer.id;
-        console.log('[Customer Bookings] Customer resolved, subscribing to bookings for customer_id:', customerId);
-
-        // STEP 2: Only subscribe AFTER customer.id is confirmed
-        channel = supabase
-          .channel("customer-bookings-subscription")
-          .on(
-            "postgres_changes",
-            {
-              event: "*",
-              schema: "public",
-              table: "bookings",
-              filter: `customer_id=eq.${customerId}`,
-            },
-            (payload) => {
-              console.log('[Customer Bookings] Realtime update:', payload);
-              loadBookings();
-            }
-          )
-          .subscribe((status) => {
-            console.log('[Customer Bookings] Realtime subscription status:', status);
-          });
-      } catch (err) {
-        console.error('[Customer Bookings] Failed to resolve customer for realtime:', err);
-      }
-    })();
+      )
+      .subscribe((status) => {
+        console.log('[Customer Bookings] Realtime subscription status:', status);
+      });
 
     return () => {
       if (channel) {
@@ -299,7 +273,7 @@ function CustomerBookingsPageContent() {
                     </Link>
                   )}
                   <Link
-                    href={`/customer/bookings/${booking.id}`}
+                    href={`/customer/shops/${booking.shops?.id}?bookingId=${booking.id}`}
                     className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
                   >
                     {t('common.viewDetails') || 'View Details'}
