@@ -32,26 +32,45 @@ function CustomerBookingsPageContent() {
 
     const supabase = getSupabaseClient();
     
-    // Subscribe to bookings by canonical user_id
-    const channel = supabase
-      .channel("customer-bookings-subscription")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "bookings",
-          filter: `user_id.eq.${user.id}`,
-        },
-        () => {
-          loadBookings();
+    // Get customer_id first (for WEB: customers.id = auth.users.id)
+    supabase
+      .from('customers')
+      .select('id')
+      .eq('id', user.id)
+      .single()
+      .then(({ data: customer, error: customerError }) => {
+        if (customerError || !customer?.id) {
+          console.error('[Customer Bookings] Failed to get customer_id for realtime:', customerError);
+          return;
         }
-      )
-      .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+        const customerId = customer.id;
+        console.log('[Customer Bookings] Subscribing to bookings for customer_id:', customerId);
+
+        // Subscribe to bookings by customer_id (canonical system)
+        const channel = supabase
+          .channel("customer-bookings-subscription")
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "bookings",
+              filter: `customer_id=eq.${customerId}`,
+            },
+            (payload) => {
+              console.log('[Customer Bookings] Realtime update:', payload);
+              loadBookings();
+            }
+          )
+          .subscribe((status) => {
+            console.log('[Customer Bookings] Realtime subscription status:', status);
+          });
+
+        return () => {
+          supabase.removeChannel(channel);
+        };
+      });
   }, [user]);
 
   const loadBookings = async () => {

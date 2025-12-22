@@ -59,88 +59,56 @@ router.get('/bookings', async (req: Request, res: Response) => {
       metadata: authUser.user.user_metadata,
     });
 
-    // Find customer profile by customer_auth_id or fallback to id
-    console.log(`[${requestId}] Looking up customer profile by customer_auth_id = ${userId}...`);
-    let { data: profile, error: profileError } = await dbClient
-      .from('customer_profiles')
-      .select('id, email, name, customer_auth_id')
-      .eq('customer_auth_id', userId)
+    // STEP 1: Find customer.id from customers table (canonical system)
+    // For WEB customers: customers.id = auth.users.id
+    console.log(`[${requestId}] Looking up customer in customers table where id = ${userId}...`);
+    let { data: customer, error: customerError } = await dbClient
+      .from('customers')
+      .select('id, role')
+      .eq('id', userId)
       .maybeSingle();
 
-    console.log(`[${requestId}] Profile lookup by customer_auth_id result:`, {
-      profileFound: !!profile?.id,
-      profileId: profile?.id,
-      profileEmail: profile?.email,
-      profileName: profile?.name,
-      profileCustomerAuthId: profile?.customer_auth_id,
-      error: profileError?.message,
-      rawData: profile,
+    console.log(`[${requestId}] Customer lookup result:`, {
+      customerFound: !!customer?.id,
+      customerId: customer?.id,
+      customerRole: customer?.role,
+      error: customerError?.message,
+      rawData: customer,
     });
 
-    if (profileError) {
-      console.error(`[${requestId}] ❌ Error fetching customer profile:`, profileError);
-      return res.status(500).json({ error: 'Failed to fetch customer profile' });
+    if (customerError) {
+      console.error(`[${requestId}] ❌ Error fetching customer:`, customerError);
+      return res.status(500).json({ error: 'Failed to fetch customer' });
     }
 
-    // Fallback: if no profile found by customer_auth_id, try by id (old structure)
-    if (!profile?.id) {
-      console.log(`[${requestId}] Profile not found by customer_auth_id, trying by id = ${userId}...`);
-      const { data: profileById } = await dbClient
-        .from('customer_profiles')
-        .select('id, email, name, customer_auth_id')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      console.log(`[${requestId}] Profile lookup by id result:`, {
-        profileFound: !!profileById?.id,
-        profileId: profileById?.id,
-        rawData: profileById,
-      });
-      
-      if (profileById?.id) {
-        profile = profileById;
-        console.log(`[${requestId}] ✅ Found profile by id (old structure):`, profile.id);
-      }
-    } else {
-      console.log(`[${requestId}] ✅ Found profile by customer_auth_id:`, profile.id);
-    }
-
-    if (!profile?.id) {
-      // Auto-create customer profile if it doesn't exist
+    // Auto-create customer if it doesn't exist (for web customers)
+    if (!customer?.id) {
+      console.log(`[${requestId}] Customer not found, creating customer record...`);
       try {
-        const userEmail = authUser?.user?.email || '';
-        const userName = authUser?.user?.user_metadata?.name || authUser?.user?.email?.split('@')[0] || 'Customer';
-        
-        const { data: profileId, error: createError } = await dbClient
-          .rpc('create_customer_profile', {
-            p_customer_auth_id: userId,
-            p_email: userEmail,
-            p_name: userName,
-            p_phone: null
-          });
-
-        if (createError || !profileId) {
-          console.error('Error creating customer profile:', createError);
-          return res.status(500).json({ error: 'Failed to create customer profile' });
-        }
-
-        // Fetch the newly created profile
-        const { data: newProfile } = await dbClient
-          .from('customer_profiles')
-          .select('id, email, name')
-          .eq('id', profileId)
+        const { data: newCustomer, error: createError } = await dbClient
+          .from('customers')
+          .insert({
+            id: userId,
+            role: 'customer'
+          })
+          .select('id, role')
           .single();
 
-        if (!newProfile?.id) {
-          return res.status(500).json({ error: 'Failed to retrieve created profile' });
+        if (createError || !newCustomer?.id) {
+          console.error(`[${requestId}] ❌ Error creating customer:`, createError);
+          return res.status(500).json({ error: 'Failed to create customer', details: createError?.message });
         }
-        profile = newProfile;
-        console.log('[Customers API] Auto-created profile for user:', userId);
+
+        customer = newCustomer;
+        console.log(`[${requestId}] ✅ Auto-created customer:`, customer.id);
       } catch (createErr: any) {
-        console.error('Error auto-creating customer profile:', createErr);
-        return res.status(500).json({ error: 'Failed to create customer profile', details: createErr.message });
+        console.error(`[${requestId}] ❌ Error auto-creating customer:`, createErr);
+        return res.status(500).json({ error: 'Failed to create customer', details: createErr.message });
       }
     }
+
+    const customerId = customer.id;
+    console.log(`[${requestId}] ✅ Resolved customer_id:`, customerId);
 
     // Query bookings by customer_profile_id, user_id, and customer_id (for old bookings)
     // IMPORTANT: Even if profile lookup fails, we can still find bookings by user_id or customer_id
@@ -339,20 +307,15 @@ router.get('/bookings', async (req: Request, res: Response) => {
       return dateB - dateA;
     });
 
-    // Remove duplicates
-    const uniqueBookings = allBookings.filter((booking, index, self) =>
-      index === self.findIndex((b) => b.id === booking.id)
-    );
-
     console.log(`[${requestId}] Final result:`, {
-      totalUnique: uniqueBookings.length,
-      bookingIds: uniqueBookings.map((b: any) => b.id),
-      bookingStatuses: uniqueBookings.map((b: any) => b.status),
-      bookingDetails: uniqueBookings.map((b: any) => ({
+      totalBookings: allBookings.length,
+      customerId: customerId,
+      bookingIds: allBookings.map((b: any) => b.id),
+      bookingStatuses: allBookings.map((b: any) => b.status),
+      bookingDetails: allBookings.map((b: any) => ({
         id: b.id,
-        customer_profile_id: b.customer_profile_id,
-        user_id: b.user_id,
         customer_id: b.customer_id,
+        source: b.source,
         status: b.status,
         shop_name: b.shops?.name,
         service_name: b.services?.name,
@@ -360,7 +323,7 @@ router.get('/bookings', async (req: Request, res: Response) => {
     });
     console.log(`========== [${requestId}] GET /customers/bookings END ==========\n`);
 
-    return res.json({ bookings: uniqueBookings });
+    return res.json({ bookings: allBookings });
   } catch (error: any) {
     console.error('Error in GET /customers/bookings:', error);
     return res.status(500).json({ error: error.message });
