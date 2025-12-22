@@ -7,6 +7,7 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import { useCustomAuth } from "@/lib/useCustomAuth";
 import { apiUrl } from "@/lib/apiClient";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { messagingFetch } from "@/app/lib/messagingApiClient";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -159,40 +160,34 @@ function CustomerMessagesPageContent() {
     if (!user?.id) return;
 
     try {
-      // Get owner_id from shop
-      const supabase = getSupabaseClient();
-      const { data: shop } = await supabase
-        .from('shops')
-        .select('owner_user_id')
-        .eq('id', shopId)
-        .single();
-
-      if (!shop?.owner_user_id) {
-        alert('Shop owner not found');
-        return;
-      }
-
-      // Create conversation using API
-      const res = await fetch(`${apiUrl}/api/conversations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user.id,
-        },
-        body: JSON.stringify({
-          type: 'customer_owner',
-          shop_id: shopId,
-          customer_id: user.id,
-          owner_id: shop.owner_user_id,
-        }),
-      });
+      // Use internal messaging API (same as LINE customers) for consistency
+      // This API handles web customers automatically via x-user-id header
+      const res = await messagingFetch(
+        `${apiUrl}/api/internal-messaging/conversations`,
+        {
+          method: 'POST',
+          userId: user.id,
+          body: {
+            shop_id: shopId,
+            customer_type: 'web',
+            customer_ref: user.id, // For web: customer_ref = user.id (canonical system)
+          },
+        }
+      );
 
       if (res.ok) {
-        const { conversation } = await res.json();
-        setSelectedConversationId(conversation.id);
-        await loadConversations(); // Refresh conversation list
+        const data = await res.json();
+        const conversationId = data.conversation_id || data.conversation?.id;
+        if (conversationId) {
+          setSelectedConversationId(conversationId);
+          await loadConversations(); // Refresh conversation list
+        } else {
+          console.error("No conversation_id in response:", data);
+          alert('Failed to create conversation: Invalid response');
+        }
       } else {
-        const error = await res.json();
+        const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error("Failed to create conversation:", res.status, error);
         alert(error.error || 'Failed to create conversation');
       }
     } catch (error) {
@@ -208,9 +203,13 @@ function CustomerMessagesPageContent() {
     }
 
     try {
-      const res = await fetch(`${apiUrl}/api/conversations?type=customer_owner`, {
-        headers: { 'x-user-id': user.id },
-      });
+      // Use internal messaging API (same as LINE customers) for consistency
+      const res = await messagingFetch(
+        `${apiUrl}/api/internal-messaging/conversations`,
+        {
+          userId: user.id,
+        }
+      );
 
       if (res.ok) {
         const { conversations: convs } = await res.json();
@@ -241,15 +240,20 @@ function CustomerMessagesPageContent() {
     if (!user?.id) return;
 
     try {
-      const res = await fetch(`${apiUrl}/api/conversations/${conversationId}`, {
-        headers: { 'x-user-id': user.id },
-      });
+      // Use internal messaging API (same as LINE customers) for consistency
+      const res = await messagingFetch(
+        `${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`,
+        {
+          userId: user.id,
+        }
+      );
 
       if (res.ok) {
         const { messages: msgs } = await res.json();
         setMessages(msgs || []);
       } else {
-        console.error("Failed to load messages");
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error("Failed to load messages:", res.status, errorData);
       }
     } catch (error) {
       console.error("Error loading messages:", error);
@@ -303,16 +307,18 @@ function CustomerMessagesPageContent() {
     setSending(true);
 
     try {
-      const res = await fetch(`${apiUrl}/api/conversations/${selectedConversationId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user.id,
-        },
-        body: JSON.stringify({
-          content,
-        }),
-      });
+      // Use internal messaging API (same as LINE customers) for consistency
+      const res = await messagingFetch(
+        `${apiUrl}/api/internal-messaging/messages`,
+        {
+          method: 'POST',
+          userId: user.id,
+          body: {
+            conversation_id: selectedConversationId,
+            content,
+          },
+        }
+      );
 
       if (res.ok) {
         const { message } = await res.json();
@@ -320,7 +326,8 @@ function CustomerMessagesPageContent() {
         setMessages(prev => [...prev, message]);
         await loadConversations(); // Refresh conversation list to update updated_at
       } else {
-        const error = await res.json();
+        const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error("Failed to send message:", res.status, error);
         alert(error.error || 'Failed to send message');
         setInput(content);
       }
