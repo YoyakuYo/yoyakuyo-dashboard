@@ -124,7 +124,10 @@ END $$;
 -- VERIFICATION 4: Sample data inspection
 -- ============================================
 -- Create a view for easy inspection (doesn't modify data)
-CREATE OR REPLACE VIEW verification_booking_customer_links AS
+-- Drop view if it exists first to avoid conflicts
+DROP VIEW IF EXISTS verification_booking_customer_links;
+
+CREATE VIEW verification_booking_customer_links AS
 SELECT 
   b.id as booking_id,
   b.customer_id,
