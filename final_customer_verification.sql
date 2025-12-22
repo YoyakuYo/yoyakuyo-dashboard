@@ -50,7 +50,9 @@ WHERE
   au.email NOT LIKE '%@line.user'
   -- And does NOT have line_accounts (pure WEB customer)
   AND NOT EXISTS (SELECT 1 FROM line_accounts la WHERE la.customer_id = c.id)
-  AND c.role = 'customer';
+  -- EXCLUDE owners (owners are not customers)
+  AND c.role = 'customer'
+  AND c.role != 'owner';
 
 -- PART 3: LINE Customer Details
 SELECT 
@@ -76,7 +78,8 @@ SELECT
    INNER JOIN auth.users au ON au.id = c.id
    WHERE au.email NOT LIKE '%@line.user'
    AND NOT EXISTS (SELECT 1 FROM line_accounts la WHERE la.customer_id = c.id)
-   AND c.role = 'customer') as web_customer_count,
+   AND c.role = 'customer'
+   AND c.role != 'owner') as web_customer_count,
   (SELECT COUNT(*) FROM customers c
    INNER JOIN line_accounts la ON la.customer_id = c.id
    WHERE c.role = 'customer') as line_customer_count,
@@ -85,7 +88,8 @@ SELECT
           INNER JOIN auth.users au ON au.id = c.id
           WHERE au.email NOT LIKE '%@line.user'
           AND NOT EXISTS (SELECT 1 FROM line_accounts la WHERE la.customer_id = c.id)
-          AND c.role = 'customer') = 1
+          AND c.role = 'customer'
+          AND c.role != 'owner') = 1
      AND (SELECT COUNT(*) FROM customers c
           INNER JOIN line_accounts la ON la.customer_id = c.id
           WHERE c.role = 'customer') = 1

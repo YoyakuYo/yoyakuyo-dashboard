@@ -65,7 +65,7 @@ INNER JOIN customers c2 ON c2.id = au2.id
 WHERE au1.email NOT LIKE '%@line.user'
 ORDER BY au1.email;
 
--- PART 5: Show all WEB customers with their details
+-- PART 5: Show all WEB customers with their details (EXCLUDING owners)
 SELECT 
   'All WEB customers' as check_type,
   c.id as customer_id,
@@ -83,5 +83,6 @@ WHERE
   au.email NOT LIKE '%@line.user'
   AND NOT EXISTS (SELECT 1 FROM line_accounts la WHERE la.customer_id = c.id)
   AND c.role = 'customer'
+  AND c.role != 'owner'  -- EXCLUDE owners
 ORDER BY c.created_at DESC;
 
