@@ -122,3 +122,50 @@ GROUP BY
   END
 ORDER BY count DESC;
 
+-- PART 9: DETAILED CUSTOMER LIST - Shows all customers with full details
+SELECT 
+  c.id,
+  c.role,
+  c.created_at,
+  CASE 
+    WHEN EXISTS (SELECT 1 FROM line_accounts la WHERE la.customer_id = c.id) THEN 'LINE'
+    WHEN EXISTS (SELECT 1 FROM auth.users au WHERE au.id = c.id) THEN 'WEB'
+    WHEN role = 'guest' THEN 'GUEST'
+    WHEN role = 'owner' THEN 'OWNER'
+    ELSE 'UNKNOWN'
+  END as customer_type,
+  (SELECT COUNT(*) FROM bookings WHERE customer_id = c.id) as booking_count,
+  EXISTS (SELECT 1 FROM auth.users au WHERE au.id = c.id) as has_auth_user,
+  EXISTS (SELECT 1 FROM line_accounts la WHERE la.customer_id = c.id) as has_line_account,
+  (SELECT line_user_id FROM line_accounts la WHERE la.customer_id = c.id LIMIT 1) as line_user_id,
+  (SELECT email FROM auth.users au WHERE au.id = c.id) as auth_email
+FROM customers c
+ORDER BY c.created_at DESC;
+
+-- PART 10: Check for duplicate customer IDs or overlapping types
+SELECT 
+  'Potential duplicates or overlaps' as check_type,
+  c.id,
+  c.role,
+  CASE 
+    WHEN EXISTS (SELECT 1 FROM line_accounts la WHERE la.customer_id = c.id) THEN 'LINE'
+    WHEN EXISTS (SELECT 1 FROM auth.users au WHERE au.id = c.id) THEN 'WEB'
+    WHEN role = 'guest' THEN 'GUEST'
+    WHEN role = 'owner' THEN 'OWNER'
+    ELSE 'UNKNOWN'
+  END as customer_type,
+  EXISTS (SELECT 1 FROM auth.users au WHERE au.id = c.id) as has_auth_user,
+  EXISTS (SELECT 1 FROM line_accounts la WHERE la.customer_id = c.id) as has_line_account,
+  (SELECT COUNT(*) FROM bookings WHERE customer_id = c.id) as booking_count
+FROM customers c
+WHERE 
+  -- Check if customer has both auth.user AND line_account (shouldn't happen)
+  (EXISTS (SELECT 1 FROM auth.users au WHERE au.id = c.id) 
+   AND EXISTS (SELECT 1 FROM line_accounts la WHERE la.customer_id = c.id))
+  OR
+  -- Check if customer has neither (orphaned)
+  (NOT EXISTS (SELECT 1 FROM auth.users au WHERE au.id = c.id) 
+   AND NOT EXISTS (SELECT 1 FROM line_accounts la WHERE la.customer_id = c.id)
+   AND c.role != 'guest' AND c.role != 'owner')
+ORDER BY c.created_at DESC;
+
