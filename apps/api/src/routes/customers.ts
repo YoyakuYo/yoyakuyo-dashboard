@@ -299,8 +299,10 @@ router.get('/bookings', async (req: Request, res: Response) => {
       .limit(50);
 
     console.log(`[${requestId}] DIAGNOSTIC: All bookings matching any criteria:`, {
+      queryUsed: `customer_profile_id.eq.${profile?.id || 'null'} OR user_id.eq.${userId} OR customer_id.eq.${userId}`,
       found: allBookingsInDb?.length || 0,
       error: diagnosticError?.message,
+      errorCode: diagnosticError?.code,
       bookings: allBookingsInDb?.map((b: any) => ({
         id: b.id,
         customer_profile_id: b.customer_profile_id,
