@@ -4,11 +4,12 @@ import { supabase } from '../lib/supabase';
 
 const router = Router();
 
-// Initialize Stripe with secret key from environment
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+// Initialize Stripe with secret key from environment (only if key is provided)
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripe: Stripe | null = stripeSecretKey ? new Stripe(stripeSecretKey, {
   apiVersion: '2025-11-17.clover' as any,
   typescript: true,
-});
+}) : null;
 
 // Subscription plan configuration
 // These should match the Price IDs in your Stripe Dashboard
@@ -74,6 +75,13 @@ router.post('/create-checkout', async (req: Request, res: Response) => {
       .select('name')
       .eq('id', shopId)
       .single();
+
+    // Check if Stripe is configured
+    if (!stripe) {
+      return res.status(503).json({ 
+        error: 'Stripe is not configured. Please set STRIPE_SECRET_KEY in environment variables.' 
+      });
+    }
 
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
@@ -156,6 +164,13 @@ router.post('/create-portal', async (req: Request, res: Response) => {
       });
     }
 
+    // Check if Stripe is configured
+    if (!stripe) {
+      return res.status(503).json({ 
+        error: 'Stripe is not configured. Please set STRIPE_SECRET_KEY in environment variables.' 
+      });
+    }
+
     // Create portal session
     const session = await stripe.billingPortal.sessions.create({
       customer: subscription.stripe_customer_id,
@@ -197,7 +212,7 @@ router.get('/status/:ownerUserId', async (req: Request, res: Response) => {
 
     // If subscription exists, get latest info from Stripe
     let stripeSubscription = null;
-    if (subscription.stripe_subscription_id) {
+    if (subscription.stripe_subscription_id && stripe) {
       try {
         stripeSubscription = await stripe.subscriptions.retrieve(
           subscription.stripe_subscription_id
@@ -240,6 +255,11 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req: R
 
   let event: Stripe.Event;
 
+  if (!stripe) {
+    console.error('Stripe is not configured');
+    return res.status(503).send('Stripe is not configured');
+  }
+
   try {
     // Verify webhook signature
     event = stripe.webhooks.constructEvent(req.body, sig as string, webhookSecret);
@@ -255,7 +275,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req: R
         const session = event.data.object as Stripe.Checkout.Session;
         console.log('Checkout session completed:', session.id);
 
-        if (session.mode === 'subscription' && session.subscription) {
+        if (session.mode === 'subscription' && session.subscription && stripe) {
           const subscription = await stripe.subscriptions.retrieve(
             session.subscription as string
           );
