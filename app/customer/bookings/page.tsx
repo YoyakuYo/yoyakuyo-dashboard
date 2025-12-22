@@ -16,6 +16,7 @@ function CustomerBookingsPageContent() {
   const filter = searchParams.get("filter") || "all";
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [customerResolved, setCustomerResolved] = useState(false);
   const { setUnreadBookingsCount } = useCustomerNotifications();
 
   useEffect(() => {
@@ -28,17 +29,17 @@ function CustomerBookingsPageContent() {
 
   // Subscribe to real-time booking updates
   // MUST wait for customer.id to be resolved before subscribing
+  // Only start after loadBookings() succeeds (customer will be created by API)
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !customerResolved) return;
 
     const supabase = getSupabaseClient();
     let channel: any = null;
-    let timeoutId: NodeJS.Timeout | null = null;
 
-    // STEP 1: Resolve WEB customer correctly (with retry logic)
+    // STEP 1: Resolve WEB customer correctly
     // For WEB customers: customers.id = auth.users.id (canonical system)
-    // If customer doesn't exist, API will create it, so we retry after a delay
-    const setupRealtime = async (retryCount = 0) => {
+    // Customer should exist now because loadBookings() API call created it
+    (async () => {
       try {
         const { data: customer, error: customerError } = await supabase
           .from('customers')
@@ -52,21 +53,11 @@ function CustomerBookingsPageContent() {
         }
 
         if (!customer?.id) {
-          // Customer doesn't exist yet - API will create it when loadBookings() runs
-          // Retry after a short delay (max 3 retries)
-          if (retryCount < 3) {
-            console.log(`[Customer Bookings] Customer not found, retrying in 1s... (attempt ${retryCount + 1}/3)`);
-            timeoutId = setTimeout(() => {
-              setupRealtime(retryCount + 1);
-            }, 1000);
-            return;
-          }
-          
           console.error('WEB CUSTOMER RESOLUTION FAILED', {
             authUserId: user.id,
-            error: 'Customer not found in customers table after retries',
+            error: 'Customer not found in customers table',
             query: 'customers WHERE id = ' + user.id,
-            note: 'For WEB customers, customers.id should equal auth.users.id. API should auto-create this.'
+            note: 'For WEB customers, customers.id should equal auth.users.id. API should have auto-created this.'
           });
           return;
         }
@@ -96,22 +87,14 @@ function CustomerBookingsPageContent() {
       } catch (err) {
         console.error('[Customer Bookings] Failed to resolve customer for realtime:', err);
       }
-    };
-
-    // Start setup after a small delay to let loadBookings() create the customer first
-    timeoutId = setTimeout(() => {
-      setupRealtime(0);
-    }, 500);
+    })();
 
     return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
       if (channel) {
         supabase.removeChannel(channel);
       }
     };
-  }, [user]);
+  }, [user, customerResolved]);
 
   const loadBookings = async () => {
     if (!user?.id) {
