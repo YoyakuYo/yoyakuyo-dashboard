@@ -20,50 +20,79 @@ router.get('/bookings/health', async (req: Request, res: Response) => {
 // GET /customers/bookings - Get customer's bookings
 // ONLY authenticated users (LINE and web customers) can view bookings
 router.get('/bookings', async (req: Request, res: Response) => {
+  const requestId = Math.random().toString(36).substring(7);
+  console.log(`\n========== [${requestId}] GET /customers/bookings START ==========`);
+  console.log(`[${requestId}] Headers:`, JSON.stringify({
+    'x-user-id': req.headers['x-user-id'],
+    'user-agent': req.headers['user-agent']?.substring(0, 50),
+  }, null, 2));
+
   try {
     const userId = req.headers['x-user-id'] as string;
+    console.log(`[${requestId}] Received userId:`, userId);
+    
     if (!userId) {
+      console.log(`[${requestId}] ❌ No userId provided`);
       return res.status(401).json({ error: 'Authentication required. Only customers with accounts can view bookings.' });
     }
 
     // Verify user exists in auth.users
+    console.log(`[${requestId}] Verifying user in auth.users...`);
     const { data: authUser, error: authError } = await dbClient.auth.admin.getUserById(userId);
     if (authError || !authUser?.user) {
-      console.error('Auth user verification failed:', authError?.message);
+      console.error(`[${requestId}] ❌ Auth user verification failed:`, authError?.message);
       return res.status(401).json({ error: 'Invalid user. Authentication required.' });
     }
+    console.log(`[${requestId}] ✅ User verified in auth.users:`, {
+      id: authUser.user.id,
+      email: authUser.user.email,
+      metadata: authUser.user.user_metadata,
+    });
 
     // Find customer profile by customer_auth_id or fallback to id
+    console.log(`[${requestId}] Looking up customer profile by customer_auth_id = ${userId}...`);
     let { data: profile, error: profileError } = await dbClient
       .from('customer_profiles')
       .select('id, email, name, customer_auth_id')
       .eq('customer_auth_id', userId)
       .maybeSingle();
 
-    console.log('[Customers API] Profile lookup by customer_auth_id:', {
-      userId,
+    console.log(`[${requestId}] Profile lookup by customer_auth_id result:`, {
       profileFound: !!profile?.id,
       profileId: profile?.id,
+      profileEmail: profile?.email,
+      profileName: profile?.name,
+      profileCustomerAuthId: profile?.customer_auth_id,
       error: profileError?.message,
+      rawData: profile,
     });
 
     if (profileError) {
-      console.error('Error fetching customer profile:', profileError);
+      console.error(`[${requestId}] ❌ Error fetching customer profile:`, profileError);
       return res.status(500).json({ error: 'Failed to fetch customer profile' });
     }
 
     // Fallback: if no profile found by customer_auth_id, try by id (old structure)
     if (!profile?.id) {
+      console.log(`[${requestId}] Profile not found by customer_auth_id, trying by id = ${userId}...`);
       const { data: profileById } = await dbClient
         .from('customer_profiles')
         .select('id, email, name, customer_auth_id')
         .eq('id', userId)
         .maybeSingle();
       
+      console.log(`[${requestId}] Profile lookup by id result:`, {
+        profileFound: !!profileById?.id,
+        profileId: profileById?.id,
+        rawData: profileById,
+      });
+      
       if (profileById?.id) {
         profile = profileById;
-        console.log('[Customers API] Found profile by id (old structure):', profile.id);
+        console.log(`[${requestId}] ✅ Found profile by id (old structure):`, profile.id);
       }
+    } else {
+      console.log(`[${requestId}] ✅ Found profile by customer_auth_id:`, profile.id);
     }
 
     if (!profile?.id) {
@@ -242,11 +271,21 @@ router.get('/bookings', async (req: Request, res: Response) => {
       index === self.findIndex((b) => b.id === booking.id)
     );
 
-    console.log('[Customers API] Final result:', {
+    console.log(`[${requestId}] Final result:`, {
       totalUnique: uniqueBookings.length,
       bookingIds: uniqueBookings.map((b: any) => b.id),
       bookingStatuses: uniqueBookings.map((b: any) => b.status),
+      bookingDetails: uniqueBookings.map((b: any) => ({
+        id: b.id,
+        customer_profile_id: b.customer_profile_id,
+        user_id: b.user_id,
+        customer_id: b.customer_id,
+        status: b.status,
+        shop_name: b.shops?.name,
+        service_name: b.services?.name,
+      })),
     });
+    console.log(`========== [${requestId}] GET /customers/bookings END ==========\n`);
 
     return res.json({ bookings: uniqueBookings });
   } catch (error: any) {
