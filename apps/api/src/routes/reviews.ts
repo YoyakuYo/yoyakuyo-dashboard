@@ -132,6 +132,7 @@ router.post('/', async (req: Request, res: Response) => {
     let userId: string | null = null;
     let lineUserId: string | null = null;
     let finalGuestName: string | null = null;
+    let finalCustomerId: string | null = customer_id || null;
 
     // STEP 1: Check for LINE user FIRST
     const lineUserIdFromHeader = req.headers['x-line-user-id'] as string;
@@ -153,8 +154,6 @@ router.post('/', async (req: Request, res: Response) => {
         .select("id")
         .eq("customer_auth_id", webUserId)
         .maybeSingle();
-
-      let finalCustomerId: string | null = customer_id || null;
 
       if (customerProfile?.id) {
         authorType = 'user';

@@ -745,7 +745,7 @@ router.post("/chat-thread", async (req: Request, res: Response) => {
         // Add current message
         conversationHistory.push({
             role: 'user',
-            content: finalMessage,
+            content: message,
         });
 
         // Check conversation history to see if name was already collected
