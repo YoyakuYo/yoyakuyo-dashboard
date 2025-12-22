@@ -104,12 +104,15 @@ router.get('/bookings', async (req: Request, res: Response) => {
     }
 
     // Query bookings by customer_profile_id, user_id, and customer_id (for old bookings)
+    // IMPORTANT: Even if profile lookup fails, we can still find bookings by user_id or customer_id
     const allBookings: any[] = [];
     const seenIds = new Set<string>();
 
     console.log('[Customers API] Fetching bookings for:', {
       userId,
-      customerProfileId: profile.id,
+      customerProfileId: profile?.id || 'NOT FOUND',
+      willQueryByUserId: true,
+      willQueryByCustomerId: true,
     });
 
     // Try customer_profile_id first
