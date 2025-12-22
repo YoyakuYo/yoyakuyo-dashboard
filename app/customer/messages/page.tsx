@@ -119,26 +119,34 @@ function CustomerMessagesPageContent() {
   };
 
   const findConversationForBooking = async (bookingId: string) => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('[Customer Messages] findConversationForBooking: No user ID');
+      return;
+    }
 
     try {
-      // Use API to get booking details (bypasses RLS)
-      const res = await fetch(`${apiUrl}/bookings/${bookingId}`, {
+      console.log('[Customer Messages] Finding conversation for booking:', bookingId);
+      // Use customers/bookings API endpoint to get booking details (bypasses RLS)
+      const res = await fetch(`${apiUrl}/customers/bookings`, {
         headers: {
           'x-user-id': user.id,
         },
       });
 
       if (res.ok) {
-        const { booking } = await res.json();
-        if (booking?.shop_id) {
+        const { bookings } = await res.json();
+        const booking = bookings?.find((b: any) => b.id === bookingId);
+        
+        if (booking?.shops?.id) {
+          console.log('[Customer Messages] Found booking, shop_id:', booking.shops.id);
           // Use internal messaging API to find or create conversation
-          // The API will handle finding existing conversations or creating new ones
-          await createConversationForShop(booking.shop_id);
+          await createConversationForShop(booking.shops.id);
+        } else {
+          console.warn('[Customer Messages] Booking not found or no shop_id:', bookingId);
         }
       } else {
-        console.warn('[Customer Messages] Could not fetch booking details:', res.status);
-        // If booking fetch fails, we can't find the shop_id, so skip conversation creation
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.warn('[Customer Messages] Could not fetch bookings:', res.status, errorData);
       }
     } catch (error) {
       console.error("[Customer Messages] Error finding conversation for booking:", error);
