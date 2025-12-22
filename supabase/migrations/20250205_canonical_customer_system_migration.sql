@@ -140,23 +140,34 @@ WHERE b.customer_id IS NULL
 
 -- PART D: Create guest customers for bookings with no customer_id
 -- For bookings that still have NULL customer_id, create guest customer records
-INSERT INTO customers (id, role)
-SELECT 
-  gen_random_uuid() as id,
-  'guest' as role
-FROM bookings b
-WHERE b.customer_id IS NULL
-GROUP BY b.id  -- One customer per booking for now (can be optimized later)
-ON CONFLICT (id) DO NOTHING;
+-- Strategy: Create one guest customer per booking (can be optimized later to group by session)
 
--- Update bookings with newly created guest customers
-UPDATE bookings b
-SET customer_id = c.id
-FROM customers c
-WHERE b.customer_id IS NULL
-  AND c.role = 'guest'
-  AND c.id NOT IN (SELECT customer_id FROM bookings WHERE customer_id IS NOT NULL)
-LIMIT (SELECT COUNT(*) FROM bookings WHERE customer_id IS NULL);
+-- First, create guest customers for each booking that needs one
+DO $$
+DECLARE
+  booking_record RECORD;
+  guest_customer_id UUID;
+BEGIN
+  FOR booking_record IN 
+    SELECT id FROM bookings WHERE customer_id IS NULL
+  LOOP
+    -- Generate a new UUID for this guest customer
+    guest_customer_id := gen_random_uuid();
+    
+    -- Create guest customer
+    INSERT INTO customers (id, role)
+    VALUES (guest_customer_id, 'guest')
+    ON CONFLICT (id) DO NOTHING;
+    
+    -- Update the booking with the guest customer_id
+    UPDATE bookings
+    SET customer_id = guest_customer_id
+    WHERE id = booking_record.id
+      AND customer_id IS NULL;
+  END LOOP;
+  
+  RAISE NOTICE 'Created guest customers for bookings with NULL customer_id';
+END $$;
 
 -- ============================================
 -- STEP 5: VERIFICATION QUERIES
