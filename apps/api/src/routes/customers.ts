@@ -36,13 +36,34 @@ router.get('/bookings', async (req: Request, res: Response) => {
     // Find customer profile by customer_auth_id or fallback to id
     let { data: profile, error: profileError } = await dbClient
       .from('customer_profiles')
-      .select('id, email, name')
+      .select('id, email, name, customer_auth_id')
       .eq('customer_auth_id', userId)
       .maybeSingle();
+
+    console.log('[Customers API] Profile lookup by customer_auth_id:', {
+      userId,
+      profileFound: !!profile?.id,
+      profileId: profile?.id,
+      error: profileError?.message,
+    });
 
     if (profileError) {
       console.error('Error fetching customer profile:', profileError);
       return res.status(500).json({ error: 'Failed to fetch customer profile' });
+    }
+
+    // Fallback: if no profile found by customer_auth_id, try by id (old structure)
+    if (!profile?.id) {
+      const { data: profileById } = await dbClient
+        .from('customer_profiles')
+        .select('id, email, name, customer_auth_id')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (profileById?.id) {
+        profile = profileById;
+        console.log('[Customers API] Found profile by id (old structure):', profile.id);
+      }
     }
 
     if (!profile?.id) {
