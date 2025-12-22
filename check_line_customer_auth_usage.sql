@@ -43,7 +43,6 @@ SELECT
   au.email,
   au.created_at,
   au.last_sign_in_at,
-  au.user_metadata,
   'This is a LINE placeholder email' as note
 FROM auth.users au
 WHERE au.id = '78fea290-ef9a-43c8-96d6-90460c04efe5';
