@@ -33,10 +33,12 @@ function CustomerBookingsPageContent() {
 
     const supabase = getSupabaseClient();
     let channel: any = null;
+    let timeoutId: NodeJS.Timeout | null = null;
 
-    // STEP 1: Resolve WEB customer correctly
+    // STEP 1: Resolve WEB customer correctly (with retry logic)
     // For WEB customers: customers.id = auth.users.id (canonical system)
-    (async () => {
+    // If customer doesn't exist, API will create it, so we retry after a delay
+    const setupRealtime = async (retryCount = 0) => {
       try {
         const { data: customer, error: customerError } = await supabase
           .from('customers')
@@ -50,11 +52,21 @@ function CustomerBookingsPageContent() {
         }
 
         if (!customer?.id) {
+          // Customer doesn't exist yet - API will create it when loadBookings() runs
+          // Retry after a short delay (max 3 retries)
+          if (retryCount < 3) {
+            console.log(`[Customer Bookings] Customer not found, retrying in 1s... (attempt ${retryCount + 1}/3)`);
+            timeoutId = setTimeout(() => {
+              setupRealtime(retryCount + 1);
+            }, 1000);
+            return;
+          }
+          
           console.error('WEB CUSTOMER RESOLUTION FAILED', {
             authUserId: user.id,
-            error: 'Customer not found in customers table',
+            error: 'Customer not found in customers table after retries',
             query: 'customers WHERE id = ' + user.id,
-            note: 'For WEB customers, customers.id should equal auth.users.id'
+            note: 'For WEB customers, customers.id should equal auth.users.id. API should auto-create this.'
           });
           return;
         }
@@ -84,9 +96,17 @@ function CustomerBookingsPageContent() {
       } catch (err) {
         console.error('[Customer Bookings] Failed to resolve customer for realtime:', err);
       }
-    })();
+    };
+
+    // Start setup after a small delay to let loadBookings() create the customer first
+    timeoutId = setTimeout(() => {
+      setupRealtime(0);
+    }, 500);
 
     return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       if (channel) {
         supabase.removeChannel(channel);
       }
