@@ -239,6 +239,12 @@ router.get('/bookings', async (req: Request, res: Response) => {
       index === self.findIndex((b) => b.id === booking.id)
     );
 
+    console.log('[Customers API] Final result:', {
+      totalUnique: uniqueBookings.length,
+      bookingIds: uniqueBookings.map((b: any) => b.id),
+      bookingStatuses: uniqueBookings.map((b: any) => b.status),
+    });
+
     return res.json({ bookings: uniqueBookings });
   } catch (error: any) {
     console.error('Error in GET /customers/bookings:', error);
