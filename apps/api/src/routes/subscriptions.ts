@@ -6,7 +6,7 @@ const router = Router();
 
 // Initialize Stripe with secret key from environment
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-11-17.clover' as any,
   typescript: true,
 });
 
@@ -213,8 +213,8 @@ router.get('/status/:ownerUserId', async (req: Request, res: Response) => {
       plan: subscription.plan,
       shopId: subscription.shop_id,
       shopName: subscription.shops?.name,
-      currentPeriodEnd: stripeSubscription?.current_period_end 
-        ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
+      currentPeriodEnd: (stripeSubscription as any)?.current_period_end
+        ? new Date((stripeSubscription as any).current_period_end * 1000).toISOString()
         : null,
       cancelAtPeriodEnd: stripeSubscription?.cancel_at_period_end || false,
     });
@@ -310,7 +310,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req: R
         const invoice = event.data.object as Stripe.Invoice;
         console.log('Invoice payment succeeded:', invoice.id);
 
-        if (invoice.subscription) {
+        if ((invoice as any).subscription) {
           // Ensure subscription is marked as active
           await supabase
             .from('subscriptions')
@@ -318,7 +318,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req: R
               status: 'active',
               updated_at: new Date().toISOString(),
             })
-            .eq('stripe_subscription_id', invoice.subscription as string);
+            .eq('stripe_subscription_id', (invoice as any).subscription as string);
         }
         break;
       }
@@ -327,7 +327,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req: R
         const invoice = event.data.object as Stripe.Invoice;
         console.log('Invoice payment failed:', invoice.id);
 
-        if (invoice.subscription) {
+        if ((invoice as any).subscription) {
           // Mark subscription as past_due
           await supabase
             .from('subscriptions')
@@ -335,7 +335,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req: R
               status: 'past_due',
               updated_at: new Date().toISOString(),
             })
-            .eq('stripe_subscription_id', invoice.subscription as string);
+            .eq('stripe_subscription_id', (invoice as any).subscription as string);
         }
         break;
       }
