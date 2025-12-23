@@ -23,7 +23,7 @@ async function verifyShopOwnership(userId: string, shopId: string): Promise<bool
   return !error && data !== null;
 }
 
-// GET /analytics/revenue - Get revenue analytics for owner's shop
+// GET /analytics/revenue - Get booked value analytics for owner's shop (services selected by customers)
 router.get("/revenue", async (req: Request, res: Response) => {
   console.log("[Analytics] GET /analytics/revenue called");
   try {
@@ -48,60 +48,110 @@ router.get("/revenue", async (req: Request, res: Response) => {
 
     const shopId = shops[0].id;
 
-    // Get revenue analytics using optimized function or direct query
-    let revenueData: any = null;
-    const { data: revenueDataResult, error: revenueError } = await supabase
-      .rpc("get_shop_revenue_analytics", { p_shop_id: shopId });
+    // Calculate booked value from services selected in bookings (not payments since customers pay directly to shops)
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - periodDays);
 
-    if (revenueError || !revenueDataResult || revenueDataResult.length === 0) {
-      console.error("Error fetching revenue analytics (trying fallback):", revenueError);
-      // Fallback to direct query if function doesn't exist
-      const { data: bookings, error: bookingsError } = await supabase
-        .from("bookings")
-        .select(`
-          id,
-          status,
-          created_at,
-          customer_id,
-          payments(amount, status, created_at)
-        `)
-        .eq("shop_id", shopId);
+    // Get bookings with service information
+    const { data: bookings, error: bookingsError } = await supabase
+      .from("bookings")
+      .select(`
+        id,
+        status,
+        created_at,
+        service_id,
+        services(price, name)
+      `)
+      .eq("shop_id", shopId)
+      .gte("created_at", startDate.toISOString())
+      .neq("status", "cancelled"); // Exclude cancelled bookings
 
-      if (bookingsError) {
-        console.error("Fallback query also failed:", bookingsError);
-        return res.status(500).json({ error: "Failed to fetch revenue analytics" });
+    if (bookingsError) {
+      console.error("Error fetching bookings for revenue:", bookingsError);
+      return res.status(500).json({ error: "Failed to fetch revenue analytics" });
+    }
+
+    // Calculate booked value from service prices
+    let totalBookedValue = 0;
+    let completedBookedValue = 0;
+    const bookingsByDate: { [key: string]: number } = {};
+
+    bookings?.forEach((booking: any) => {
+      const servicePrice = booking.services?.price || 0;
+      totalBookedValue += servicePrice;
+
+      if (booking.status === "completed") {
+        completedBookedValue += servicePrice;
       }
 
-      // Calculate revenue from bookings
-      const allPayments = bookings?.flatMap((b: any) => b.payments || []) || [];
-      const completedPayments = allPayments.filter((p: any) => p.status === "completed");
-      const totalRevenue = completedPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
-      
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      
-      const revenueLast30Days = completedPayments
-        .filter((p: any) => new Date(p.created_at) >= thirtyDaysAgo)
-        .reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
-      const revenueLast7Days = completedPayments
-        .filter((p: any) => new Date(p.created_at) >= sevenDaysAgo)
-        .reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+      // Group by date for chart
+      const dateKey = new Date(booking.created_at).toISOString().split("T")[0];
+      bookingsByDate[dateKey] = (bookingsByDate[dateKey] || 0) + servicePrice;
+    });
 
-      const uniqueCustomers = new Set(bookings?.map((b: any) => b.customer_id).filter(Boolean) || []).size;
-      const newCustomers30Days = new Set(
-        bookings?.filter((b: any) => new Date(b.created_at) >= thirtyDaysAgo).map((b: any) => b.customer_id).filter(Boolean) || []
-      ).size;
+    // Calculate period metrics
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-      revenueData = {
-        shop_id: shopId,
-        total_bookings: bookings?.length || 0,
-        completed_bookings: bookings?.filter((b: any) => b.status === "completed").length || 0,
-        confirmed_bookings: bookings?.filter((b: any) => b.status === "confirmed").length || 0,
-        pending_bookings: bookings?.filter((b: any) => b.status === "pending").length || 0,
-        cancelled_bookings: bookings?.filter((b: any) => b.status === "cancelled").length || 0,
-        total_revenue: totalRevenue,
+    const bookedValueLast30Days = bookings
+      ?.filter((b: any) => new Date(b.created_at) >= thirtyDaysAgo)
+      .reduce((sum: number, b: any) => sum + (b.services?.price || 0), 0) || 0;
+
+    const bookedValueLast7Days = bookings
+      ?.filter((b: any) => new Date(b.created_at) >= sevenDaysAgo)
+      .reduce((sum: number, b: any) => sum + (b.services?.price || 0), 0) || 0;
+
+    const revenueData = [{
+      total_booked_value: totalBookedValue,
+      completed_booked_value: completedBookedValue,
+      booked_value_last_30_days: bookedValueLast30Days,
+      booked_value_last_7_days: bookedValueLast7Days,
+      total_bookings: bookings?.length || 0,
+      completed_bookings: bookings?.filter((b: any) => b.status === "completed").length || 0
+    }];
+
+    // Get daily booking analytics (booked value over time)
+    let dailyRevenue: any[] = [];
+    const startDateStr = startDate.toISOString().split("T")[0];
+
+    // Group bookings by date for the chart
+    const dailyBookings = bookings?.reduce((acc: any, booking: any) => {
+      const date = new Date(booking.created_at).toISOString().split("T")[0];
+      if (!acc[date]) {
+        acc[date] = {
+          booking_date: date,
+          bookings_count: 0,
+          completed_count: 0,
+          confirmed_count: 0,
+          pending_count: 0,
+          cancelled_count: 0,
+          booked_value: 0,
+          unique_customers: new Set(),
+        };
+      }
+      acc[date].bookings_count++;
+      if (booking.status === "completed") acc[date].completed_count++;
+      if (booking.status === "confirmed") acc[date].confirmed_count++;
+      if (booking.status === "pending") acc[date].pending_count++;
+      if (booking.status === "cancelled") acc[date].cancelled_count++;
+      acc[date].booked_value += booking.services?.price || 0;
+      if (booking.customer_id) acc[date].unique_customers.add(booking.customer_id);
+      return acc;
+    }, {}) || {};
+
+    dailyRevenue = Object.values(dailyBookings).map((day: any) => ({
+      ...day,
+      unique_customers: day.unique_customers.size,
+    }));
+
+    res.json({
+      summary: revenueData,
+      daily: dailyRevenue || [],
+      period_days: periodDays,
+      note: "Revenue shows booked value from selected services (customers pay directly to shops)"
+    });
         revenue_last_30_days: revenueLast30Days,
         revenue_last_7_days: revenueLast7Days,
         average_booking_value: completedPayments.length > 0 ? totalRevenue / completedPayments.length : 0,
@@ -126,21 +176,35 @@ router.get("/revenue", async (req: Request, res: Response) => {
 
     if (dailyError || !dailyRevenueResult) {
       console.error("Error fetching daily revenue (trying fallback):", dailyError);
-      // Fallback to direct query
+      // Fallback to direct query (separate queries to avoid relationship issues)
       const { data: bookings, error: bookingsError } = await supabase
         .from("bookings")
         .select(`
           id,
           status,
           created_at,
-          customer_id,
-          payments(amount, status)
+          customer_id
         `)
         .eq("shop_id", shopId)
         .gte("created_at", startDate.toISOString())
         .order("created_at", { ascending: true });
 
       if (!bookingsError && bookings) {
+        // Get payments for these bookings
+        const bookingIds = bookings.map(b => b.id).filter(id => id);
+        let payments = [];
+        if (bookingIds.length > 0) {
+          const { data: paymentsData, error: paymentsError } = await supabase
+            .from("payments")
+            .select("booking_id, amount, status")
+            .in("booking_id", bookingIds)
+            .eq("status", "completed");
+
+          if (!paymentsError) {
+            payments = paymentsData || [];
+          }
+        }
+
         // Group by date
         const dailyMap = new Map();
         bookings.forEach((booking: any) => {
@@ -163,10 +227,11 @@ router.get("/revenue", async (req: Request, res: Response) => {
           if (booking.status === "confirmed") day.confirmed_count++;
           if (booking.status === "pending") day.pending_count++;
           if (booking.status === "cancelled") day.cancelled_count++;
-          
-          const completedPayments = booking.payments?.filter((p: any) => p.status === "completed") || [];
-          day.revenue += completedPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
-          
+
+          // Find payments for this booking
+          const bookingPayments = payments.filter((p: any) => p.booking_id === booking.id);
+          day.revenue += bookingPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+
           if (booking.customer_id) day.unique_customers.add(booking.customer_id);
         });
 
@@ -211,20 +276,35 @@ router.get("/customers", async (req: Request, res: Response) => {
 
     const shopId = shops[0].id;
 
-    // Get customer analytics for this shop (direct query - no joins to avoid timeouts)
+    // Get customer analytics for this shop (separate queries to avoid relationship issues)
     const { data: bookings, error: bookingsError } = await supabase
       .from("bookings")
       .select(`
         customer_id,
         status,
         created_at,
-        payments(amount, status)
+        id
       `)
       .eq("shop_id", shopId);
 
     if (bookingsError) {
       console.error("Error fetching customer analytics:", bookingsError);
       return res.status(500).json({ error: "Failed to fetch customer analytics" });
+    }
+
+    // Get payments for these bookings
+    const bookingIds = bookings?.map(b => b.id).filter(id => id) || [];
+    let payments = [];
+    if (bookingIds.length > 0) {
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from("payments")
+        .select("booking_id, amount, status")
+        .in("booking_id", bookingIds)
+        .eq("status", "completed");
+
+      if (!paymentsError) {
+        payments = paymentsData || [];
+      }
     }
 
     // Process customer data
@@ -257,8 +337,9 @@ router.get("/customers", async (req: Request, res: Response) => {
         customer.cancelled_bookings++;
       }
 
-      const completedPayments = booking.payments?.filter((p: any) => p.status === "completed") || [];
-      const totalSpent = completedPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+      // Find payments for this booking
+      const bookingPayments = payments.filter((p: any) => p.booking_id === booking.id && p.status === "completed");
+      const totalSpent = bookingPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
       customer.total_spent += totalSpent;
 
       if (new Date(booking.created_at) < new Date(customer.first_booking)) {
@@ -329,7 +410,7 @@ router.get("/performance", async (req: Request, res: Response) => {
 
     if (performanceError || !performanceResult || performanceResult.length === 0) {
       console.error("Error fetching performance metrics (trying fallback):", performanceError);
-      // Fallback to direct query
+      // Fallback to direct query (use services for booked value instead of payments)
       const { data: bookings, error: bookingsError } = await supabase
         .from("bookings")
         .select(`
@@ -337,7 +418,7 @@ router.get("/performance", async (req: Request, res: Response) => {
           status,
           created_at,
           customer_id,
-          payments(amount, status, created_at)
+          services(price)
         `)
         .eq("shop_id", shopId);
 
@@ -358,10 +439,10 @@ router.get("/performance", async (req: Request, res: Response) => {
       const completionRate = totalBookings > 0 ? (completedBookings / totalBookings) * 100 : 0;
       const cancellationRate = totalBookings > 0 ? (cancelledBookings / totalBookings) * 100 : 0;
 
-      const allPayments = bookings?.flatMap((b: any) => b.payments || []) || [];
-      const completedPayments = allPayments.filter((p: any) => p.status === "completed");
-      const totalRevenue = completedPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
-      const avgBookingValue = completedPayments.length > 0 ? totalRevenue / completedPayments.length : 0;
+      // Calculate booked value from services (customers pay directly to shops)
+      const completedBookings = bookings?.filter((b: any) => b.status === "completed") || [];
+      const totalBookedValue = completedBookings.reduce((sum: number, b: any) => sum + (b.services?.price || 0), 0);
+      const avgBookingValue = completedBookings.length > 0 ? totalBookedValue / completedBookings.length : 0;
 
       const uniqueCustomers = new Set(bookings?.map((b: any) => b.customer_id).filter(Boolean) || []).size;
       const thirtyDaysAgo = new Date();
@@ -375,12 +456,12 @@ router.get("/performance", async (req: Request, res: Response) => {
       const bookingsLast7Days = bookings?.filter((b: any) => new Date(b.created_at) >= sevenDaysAgo).length || 0;
       const bookingsLast30Days = bookings?.filter((b: any) => new Date(b.created_at) >= thirtyDaysAgo).length || 0;
 
-      const revenueLast7Days = completedPayments
-        .filter((p: any) => new Date(p.created_at) >= sevenDaysAgo)
-        .reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
-      const revenueLast30Days = completedPayments
-        .filter((p: any) => new Date(p.created_at) >= thirtyDaysAgo)
-        .reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+      const bookedValueLast7Days = completedBookings
+        .filter((b: any) => new Date(b.created_at) >= sevenDaysAgo)
+        .reduce((sum: number, b: any) => sum + (b.services?.price || 0), 0);
+      const bookedValueLast30Days = completedBookings
+        .filter((b: any) => new Date(b.created_at) >= thirtyDaysAgo)
+        .reduce((sum: number, b: any) => sum + (b.services?.price || 0), 0);
 
       const avgRating = reviews && reviews.length > 0
         ? reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / reviews.length
@@ -393,7 +474,7 @@ router.get("/performance", async (req: Request, res: Response) => {
         cancelled_bookings: cancelledBookings,
         completion_rate: Math.round(completionRate * 100) / 100,
         cancellation_rate: Math.round(cancellationRate * 100) / 100,
-        total_revenue: totalRevenue,
+        total_booked_value: totalBookedValue,
         average_booking_value: avgBookingValue,
         unique_customers: uniqueCustomers,
         new_customers_30_days: newCustomers30Days,
@@ -401,8 +482,9 @@ router.get("/performance", async (req: Request, res: Response) => {
         average_rating: avgRating,
         bookings_last_7_days: bookingsLast7Days,
         bookings_last_30_days: bookingsLast30Days,
-        revenue_last_7_days: revenueLast7Days,
-        revenue_last_30_days: revenueLast30Days,
+        booked_value_last_7_days: bookedValueLast7Days,
+        booked_value_last_30_days: bookedValueLast30Days,
+        note: "Booked value shows service prices selected by customers (customers pay directly to shops)"
       };
     } else {
       performance = performanceResult[0];
@@ -561,7 +643,7 @@ router.get("/report", async (req: Request, res: Response) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - periodDays);
 
-    // Get all bookings for this shop
+    // Get all bookings for this shop (with service prices instead of payments)
     const { data: allBookings, error: bookingsError } = await supabase
       .from("bookings")
       .select(`
@@ -569,7 +651,7 @@ router.get("/report", async (req: Request, res: Response) => {
         status,
         created_at,
         customer_id,
-        payments(amount, status, created_at)
+        services(price)
       `)
       .eq("shop_id", shopId);
 
@@ -585,22 +667,21 @@ router.get("/report", async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to fetch analytics data" });
     }
 
-    // Calculate revenue data
-    const allPayments = allBookings?.flatMap((b: any) => b.payments || []) || [];
-    const completedPayments = allPayments.filter((p: any) => p.status === "completed");
-    const totalRevenue = completedPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+    // Calculate booked value data (customers pay directly to shops)
+    const completedBookings = allBookings?.filter((b: any) => b.status === "completed") || [];
+    const totalBookedValue = completedBookings.reduce((sum: number, b: any) => sum + (b.services?.price || 0), 0);
     
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const revenueLast30Days = completedPayments
-      .filter((p: any) => new Date(p.created_at) >= thirtyDaysAgo)
-      .reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
-    const revenueLast7Days = completedPayments
-      .filter((p: any) => new Date(p.created_at) >= sevenDaysAgo)
-      .reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+    const bookedValueLast30Days = completedBookings
+      .filter((b: any) => new Date(b.created_at) >= thirtyDaysAgo)
+      .reduce((sum: number, b: any) => sum + (b.services?.price || 0), 0);
+    const bookedValueLast7Days = completedBookings
+      .filter((b: any) => new Date(b.created_at) >= sevenDaysAgo)
+      .reduce((sum: number, b: any) => sum + (b.services?.price || 0), 0);
 
     const uniqueCustomers = new Set(allBookings?.map((b: any) => b.customer_id).filter(Boolean) || []).size;
     const newCustomers30Days = new Set(
@@ -614,10 +695,10 @@ router.get("/report", async (req: Request, res: Response) => {
       confirmed_bookings: allBookings?.filter((b: any) => b.status === "confirmed").length || 0,
       pending_bookings: allBookings?.filter((b: any) => b.status === "pending").length || 0,
       cancelled_bookings: allBookings?.filter((b: any) => b.status === "cancelled").length || 0,
-      total_revenue: totalRevenue,
-      revenue_last_30_days: revenueLast30Days,
-      revenue_last_7_days: revenueLast7Days,
-      average_booking_value: completedPayments.length > 0 ? totalRevenue / completedPayments.length : 0,
+      total_booked_value: totalBookedValue,
+      booked_value_last_30_days: bookedValueLast30Days,
+      booked_value_last_7_days: bookedValueLast7Days,
+      average_booking_value: completedBookings.length > 0 ? totalBookedValue / completedBookings.length : 0,
       unique_customers: uniqueCustomers,
       new_customers_30_days: newCustomers30Days,
     };
@@ -634,7 +715,7 @@ router.get("/report", async (req: Request, res: Response) => {
           confirmed_count: 0,
           pending_count: 0,
           cancelled_count: 0,
-          revenue: 0,
+          booked_value: 0,
           unique_customers: new Set(),
         });
       }
@@ -645,8 +726,10 @@ router.get("/report", async (req: Request, res: Response) => {
       if (booking.status === "pending") day.pending_count++;
       if (booking.status === "cancelled") day.cancelled_count++;
       
-      const dayPayments = booking.payments?.filter((p: any) => p.status === "completed") || [];
-      day.revenue += dayPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+      // Add service price to daily booked value (only for completed bookings)
+      if (booking.status === "completed") {
+        day.booked_value += booking.services?.price || 0;
+      }
       if (booking.customer_id) day.unique_customers.add(booking.customer_id);
     });
 
