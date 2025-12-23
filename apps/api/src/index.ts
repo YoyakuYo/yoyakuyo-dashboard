@@ -61,7 +61,9 @@ app.get("/test-analytics", (_, res) => {
     message: "Analytics routes test",
     routes: analyticsRoutes,
     analyticsRouterLoaded: typeof analytics !== "undefined",
-    timestamp: new Date().toISOString()
+    analyticsRouterType: typeof analytics,
+    timestamp: new Date().toISOString(),
+    commit: process.env.RENDER_GIT_COMMIT || "unknown"
   });
 });
 
