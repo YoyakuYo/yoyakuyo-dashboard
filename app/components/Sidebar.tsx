@@ -125,9 +125,9 @@ const Sidebar = React.memo(() => {
       onClick={() => setDrawerOpen(false)}
     >
       <nav
-        className="p-4 h-full flex flex-col"
+        className="p-4 h-full flex flex-col overflow-y-auto"
         onClick={e => e.stopPropagation() /* Prevent overlay close when clicking inside menu */}
-        style={{ minHeight: '100vh', width: '100%' }}
+        style={{ height: '100vh', width: '100%' }}
       >
         <button
           aria-label="Close menu"
