@@ -3,6 +3,9 @@ import { supabase } from "../lib/supabase";
 
 const router = Router();
 
+// Log route registration
+console.log("[Analytics Router] Initializing analytics routes...");
+
 // Helper to get user ID from headers
 function getUserId(req: Request): string | null {
   return (req.headers["x-user-id"] as string) || null;
@@ -22,6 +25,7 @@ async function verifyShopOwnership(userId: string, shopId: string): Promise<bool
 
 // GET /analytics/revenue - Get revenue analytics for owner's shop
 router.get("/revenue", async (req: Request, res: Response) => {
+  console.log("[Analytics] GET /analytics/revenue called");
   try {
     const userId = getUserId(req);
     if (!userId) {
@@ -826,4 +830,5 @@ router.get("/report", async (req: Request, res: Response) => {
   }
 });
 
+console.log("[Analytics Router] Routes registered: /revenue, /customers, /performance, /bookings, /report");
 export default router;
