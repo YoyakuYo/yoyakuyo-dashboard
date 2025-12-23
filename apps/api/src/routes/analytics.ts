@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { supabase } from "../lib/supabase";
+import { supabase, supabaseAdmin } from "../lib/supabase";
 
 const router = Router();
 
@@ -19,7 +19,7 @@ async function verifyShopOwnership(userId: string, shopId: string): Promise<bool
     .eq("id", shopId)
     .eq("owner_user_id", userId)
     .single();
-  
+
   return !error && data !== null;
 }
 
@@ -27,6 +27,10 @@ async function verifyShopOwnership(userId: string, shopId: string): Promise<bool
 router.get("/revenue", async (req: Request, res: Response) => {
   console.log("[Analytics] GET /analytics/revenue called");
   try {
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: "Database configuration error" });
+    }
+
     const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -36,7 +40,7 @@ router.get("/revenue", async (req: Request, res: Response) => {
     const periodDays = parseInt(period as string, 10);
 
     // Get owner's shop
-    const { data: shops, error: shopsError } = await supabase
+    const { data: shops, error: shopsError } = await supabaseAdmin
       .from("shops")
       .select("id")
       .eq("owner_user_id", userId)
@@ -53,7 +57,7 @@ router.get("/revenue", async (req: Request, res: Response) => {
     startDate.setDate(startDate.getDate() - periodDays);
 
     // Get bookings with service information
-    const { data: bookings, error: bookingsError } = await supabase
+    const { data: bookings, error: bookingsError } = await supabaseAdmin
       .from("bookings")
       .select(`
         id,
@@ -161,13 +165,17 @@ router.get("/revenue", async (req: Request, res: Response) => {
 // GET /analytics/customers - Get customer analytics
 router.get("/customers", async (req: Request, res: Response) => {
   try {
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: "Database configuration error" });
+    }
+
     const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
     // Get owner's shop
-    const { data: shops, error: shopsError } = await supabase
+    const { data: shops, error: shopsError } = await supabaseAdmin
       .from("shops")
       .select("id")
       .eq("owner_user_id", userId)
@@ -180,7 +188,7 @@ router.get("/customers", async (req: Request, res: Response) => {
     const shopId = shops[0].id;
 
     // Get customer analytics for this shop (separate queries to avoid relationship issues)
-    const { data: bookings, error: bookingsError } = await supabase
+    const { data: bookings, error: bookingsError } = await supabaseAdmin
       .from("bookings")
       .select(`
         customer_id,
@@ -274,13 +282,17 @@ router.get("/customers", async (req: Request, res: Response) => {
 // GET /analytics/performance - Get performance metrics
 router.get("/performance", async (req: Request, res: Response) => {
   try {
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: "Database configuration error" });
+    }
+
     const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
     // Get owner's shop
-    const { data: shops, error: shopsError } = await supabase
+    const { data: shops, error: shopsError } = await supabaseAdmin
       .from("shops")
       .select("id")
       .eq("owner_user_id", userId)
@@ -294,13 +306,13 @@ router.get("/performance", async (req: Request, res: Response) => {
 
     // Get performance metrics using optimized function or direct query
     let performance: any = null;
-    const { data: performanceResult, error: performanceError } = await supabase
+    const { data: performanceResult, error: performanceError } = await supabaseAdmin
       .rpc("get_shop_performance_metrics", { p_shop_id: shopId });
 
     if (performanceError || !performanceResult || performanceResult.length === 0) {
       console.error("Error fetching performance metrics (trying fallback):", performanceError);
       // Fallback to direct query (use services for booked value instead of payments)
-      const { data: bookings, error: bookingsError } = await supabase
+      const { data: bookings, error: bookingsError } = await supabaseAdmin
         .from("bookings")
         .select(`
           id,
@@ -311,7 +323,7 @@ router.get("/performance", async (req: Request, res: Response) => {
         `)
         .eq("shop_id", shopId);
 
-      const { data: reviews } = await supabase
+      const { data: reviews } = await supabaseAdmin
         .from("reviews")
         .select("id, rating")
         .eq("shop_id", shopId)
@@ -389,6 +401,10 @@ router.get("/performance", async (req: Request, res: Response) => {
 // GET /analytics/bookings - Get detailed booking analytics
 router.get("/bookings", async (req: Request, res: Response) => {
   try {
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: "Database configuration error" });
+    }
+
     const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -399,7 +415,7 @@ router.get("/bookings", async (req: Request, res: Response) => {
     const groupBy = group_by as string;
 
     // Get owner's shop
-    const { data: shops, error: shopsError } = await supabase
+    const { data: shops, error: shopsError } = await supabaseAdmin
       .from("shops")
       .select("id")
       .eq("owner_user_id", userId)
@@ -414,7 +430,7 @@ router.get("/bookings", async (req: Request, res: Response) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - periodDays);
 
-    let query = supabase
+    let query = supabaseAdmin
       .from("bookings")
       .select(`
         id,
@@ -504,6 +520,10 @@ router.get("/bookings", async (req: Request, res: Response) => {
 // GET /analytics/report - Generate comprehensive report
 router.get("/report", async (req: Request, res: Response) => {
   try {
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: "Database configuration error" });
+    }
+
     const userId = getUserId(req);
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -514,7 +534,7 @@ router.get("/report", async (req: Request, res: Response) => {
     const groupBy = group_by as string;
 
     // Get owner's shop
-    const { data: shops, error: shopsError } = await supabase
+    const { data: shops, error: shopsError } = await supabaseAdmin
       .from("shops")
       .select("id, name")
       .eq("owner_user_id", userId)
@@ -532,7 +552,7 @@ router.get("/report", async (req: Request, res: Response) => {
     startDate.setDate(startDate.getDate() - periodDays);
 
     // Get all bookings for this shop (with service prices instead of payments)
-    const { data: allBookings, error: bookingsError } = await supabase
+    const { data: allBookings, error: bookingsError } = await supabaseAdmin
       .from("bookings")
       .select(`
         id,
@@ -544,7 +564,7 @@ router.get("/report", async (req: Request, res: Response) => {
       .eq("shop_id", shopId);
 
     // Get reviews
-    const { data: reviews } = await supabase
+    const { data: reviews } = await supabaseAdmin
       .from("reviews")
       .select("id, rating")
       .eq("shop_id", shopId)
