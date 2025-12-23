@@ -28,7 +28,11 @@ router.get("/revenue", async (req: Request, res: Response) => {
   console.log("[Analytics] GET /analytics/revenue called");
   try {
     if (!supabaseAdmin) {
-      return res.status(500).json({ error: "Database configuration error" });
+      console.error("[Analytics] supabaseAdmin is null - SUPABASE_SERVICE_ROLE_KEY not configured");
+      return res.status(500).json({
+        error: "Database configuration error",
+        details: "SUPABASE_SERVICE_ROLE_KEY environment variable is missing"
+      });
     }
 
     const userId = getUserId(req);
@@ -39,15 +43,28 @@ router.get("/revenue", async (req: Request, res: Response) => {
     const { period = "30" } = req.query; // days
     const periodDays = parseInt(period as string, 10);
 
-    // Get owner's shop
+    // Get owner's shop (force service role to bypass RLS)
+    console.log(`[Analytics] Looking for shop owned by user: ${userId}`);
     const { data: shops, error: shopsError } = await supabaseAdmin
       .from("shops")
-      .select("id")
+      .select("id, name")
       .eq("owner_user_id", userId)
       .limit(1);
 
-    if (shopsError || !shops || shops.length === 0) {
-      return res.status(404).json({ error: "Shop not found" });
+    console.log(`[Analytics] Shops query result:`, { shops, error: shopsError });
+
+    if (shopsError) {
+      console.error("[Analytics] Shops query error:", shopsError);
+      return res.status(500).json({
+        error: "Database query failed",
+        details: shopsError.message,
+        code: shopsError.code
+      });
+    }
+
+    if (!shops || shops.length === 0) {
+      console.log(`[Analytics] No shops found for user: ${userId}`);
+      return res.status(404).json({ error: "Shop not found - you may not own any shops" });
     }
 
     const shopId = shops[0].id;
