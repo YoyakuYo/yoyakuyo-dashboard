@@ -420,8 +420,7 @@ router.get("/bookings", async (req: Request, res: Response) => {
         id,
         status,
         created_at,
-        customer_id,
-        payments(amount, status)
+        customer_id
       `)
       .eq("shop_id", shopId)
       .gte("created_at", startDate.toISOString())
@@ -468,8 +467,8 @@ router.get("/bookings", async (req: Request, res: Response) => {
       grouped[key].total++;
       grouped[key][booking.status] = (grouped[key][booking.status] || 0) + 1;
 
-      const completedPayments = booking.payments?.filter((p: any) => p.status === "completed") || [];
-      const revenue = completedPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+      // Use service price for revenue (customers pay directly to shops)
+      const revenue = booking.status === "completed" ? (booking.services?.price || 0) : 0;
       grouped[key].revenue += revenue;
     });
 
@@ -485,8 +484,8 @@ router.get("/bookings", async (req: Request, res: Response) => {
       completed: bookings?.filter((b: any) => b.status === "completed").length || 0,
       cancelled: bookings?.filter((b: any) => b.status === "cancelled").length || 0,
       revenue: bookings?.reduce((sum: number, b: any) => {
-        const completedPayments = b.payments?.filter((p: any) => p.status === "completed") || [];
-        return sum + completedPayments.reduce((s: number, p: any) => s + parseFloat(p.amount || 0), 0);
+        // Use service price for revenue (customers pay directly to shops)
+        return sum + (b.status === "completed" ? (b.services?.price || 0) : 0);
       }, 0) || 0,
     };
 
@@ -685,8 +684,8 @@ router.get("/report", async (req: Request, res: Response) => {
       if (booking.status === "completed") customer.completed_bookings++;
       if (booking.status === "cancelled") customer.cancelled_bookings++;
 
-      const customerPayments = booking.payments?.filter((p: any) => p.status === "completed") || [];
-      customer.total_spent += customerPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+      // Calculate spent from service price (customers pay directly to shops)
+      customer.total_spent += booking.status === "completed" ? (booking.services?.price || 0) : 0;
 
       if (new Date(booking.created_at) < new Date(customer.first_booking)) {
         customer.first_booking = booking.created_at;
@@ -740,8 +739,8 @@ router.get("/report", async (req: Request, res: Response) => {
       group.total++;
       group[booking.status] = (group[booking.status] || 0) + 1;
 
-      const periodPayments = booking.payments?.filter((p: any) => p.status === "completed") || [];
-      group.revenue += periodPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+      // Use service price for revenue (customers pay directly to shops)
+      group.revenue += booking.status === "completed" ? (booking.services?.price || 0) : 0;
     });
 
     const grouped = Array.from(groupedMap.values()).sort((a: any, b: any) => 
@@ -755,8 +754,8 @@ router.get("/report", async (req: Request, res: Response) => {
       completed: bookingsInPeriod.filter((b: any) => b.status === "completed").length,
       cancelled: bookingsInPeriod.filter((b: any) => b.status === "cancelled").length,
       revenue: bookingsInPeriod.reduce((sum: number, b: any) => {
-        const periodPayments = b.payments?.filter((p: any) => p.status === "completed") || [];
-        return sum + periodPayments.reduce((s: number, p: any) => s + parseFloat(p.amount || 0), 0);
+        // Use service price for revenue (customers pay directly to shops)
+        return sum + (b.status === "completed" ? (b.services?.price || 0) : 0);
       }, 0),
     };
 
