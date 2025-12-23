@@ -23,98 +23,93 @@ const dbClient = supabase_1.supabaseAdmin || supabase_1.supabase;
 router.get('/bookings/health', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     return res.json({ status: 'ok', message: 'Bookings endpoint is available' });
 }));
+// Test endpoint to verify routing is working
+router.get('/test', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    return res.json({
+        status: 'ok',
+        message: 'Customers router is working',
+        timestamp: new Date().toISOString(),
+        path: '/customers/test'
+    });
+}));
 // GET /customers/bookings - Get customer's bookings
 // ONLY authenticated users (LINE and web customers) can view bookings
 router.get('/bookings', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e;
+    var _a;
+    const requestId = Math.random().toString(36).substring(7);
+    console.log(`\n========== [${requestId}] GET /customers/bookings START ==========`);
+    console.log(`[${requestId}] Headers:`, JSON.stringify({
+        'x-user-id': req.headers['x-user-id'],
+        'user-agent': (_a = req.headers['user-agent']) === null || _a === void 0 ? void 0 : _a.substring(0, 50),
+    }, null, 2));
     try {
         const userId = req.headers['x-user-id'];
+        console.log(`[${requestId}] Received userId:`, userId);
         if (!userId) {
+            console.log(`[${requestId}] ❌ No userId provided`);
             return res.status(401).json({ error: 'Authentication required. Only customers with accounts can view bookings.' });
         }
         // Verify user exists in auth.users
+        console.log(`[${requestId}] Verifying user in auth.users...`);
         const { data: authUser, error: authError } = yield dbClient.auth.admin.getUserById(userId);
         if (authError || !(authUser === null || authUser === void 0 ? void 0 : authUser.user)) {
-            console.error('Auth user verification failed:', authError === null || authError === void 0 ? void 0 : authError.message);
+            console.error(`[${requestId}] ❌ Auth user verification failed:`, authError === null || authError === void 0 ? void 0 : authError.message);
             return res.status(401).json({ error: 'Invalid user. Authentication required.' });
         }
-        // Find customer profile by customer_auth_id or fallback to id
-        let { data: profile, error: profileError } = yield dbClient
-            .from('customer_profiles')
-            .select('id, email, name')
-            .eq('customer_auth_id', userId)
+        console.log(`[${requestId}] ✅ User verified in auth.users:`, {
+            id: authUser.user.id,
+            email: authUser.user.email,
+            metadata: authUser.user.user_metadata,
+        });
+        // STEP 1: Find customer.id from customers table (canonical system)
+        // For WEB customers: customers.id = auth.users.id
+        console.log(`[${requestId}] Looking up customer in customers table where id = ${userId}...`);
+        let { data: customer, error: customerError } = yield dbClient
+            .from('customers')
+            .select('id, role')
+            .eq('id', userId)
             .maybeSingle();
-        if (profileError) {
-            console.error('Error fetching customer profile:', profileError);
-            return res.status(500).json({ error: 'Failed to fetch customer profile' });
+        console.log(`[${requestId}] Customer lookup result:`, {
+            customerFound: !!(customer === null || customer === void 0 ? void 0 : customer.id),
+            customerId: customer === null || customer === void 0 ? void 0 : customer.id,
+            customerRole: customer === null || customer === void 0 ? void 0 : customer.role,
+            error: customerError === null || customerError === void 0 ? void 0 : customerError.message,
+            rawData: customer,
+        });
+        if (customerError) {
+            console.error(`[${requestId}] ❌ Error fetching customer:`, customerError);
+            return res.status(500).json({ error: 'Failed to fetch customer' });
         }
-        if (!(profile === null || profile === void 0 ? void 0 : profile.id)) {
-            // Auto-create customer profile if it doesn't exist
+        // Auto-create customer if it doesn't exist (for web customers)
+        if (!(customer === null || customer === void 0 ? void 0 : customer.id)) {
+            console.log(`[${requestId}] Customer not found, creating customer record...`);
             try {
-                const userEmail = ((_a = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _a === void 0 ? void 0 : _a.email) || '';
-                const userName = ((_c = (_b = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _b === void 0 ? void 0 : _b.user_metadata) === null || _c === void 0 ? void 0 : _c.name) || ((_e = (_d = authUser === null || authUser === void 0 ? void 0 : authUser.user) === null || _d === void 0 ? void 0 : _d.email) === null || _e === void 0 ? void 0 : _e.split('@')[0]) || 'Customer';
-                const { data: profileId, error: createError } = yield dbClient
-                    .rpc('create_customer_profile', {
-                    p_customer_auth_id: userId,
-                    p_email: userEmail,
-                    p_name: userName,
-                    p_phone: null
-                });
-                if (createError || !profileId) {
-                    console.error('Error creating customer profile:', createError);
-                    return res.status(500).json({ error: 'Failed to create customer profile' });
-                }
-                // Fetch the newly created profile
-                const { data: newProfile } = yield dbClient
-                    .from('customer_profiles')
-                    .select('id, email, name')
-                    .eq('id', profileId)
+                const { data: newCustomer, error: createError } = yield dbClient
+                    .from('customers')
+                    .insert({
+                    id: userId,
+                    role: 'customer'
+                })
+                    .select('id, role')
                     .single();
-                if (!(newProfile === null || newProfile === void 0 ? void 0 : newProfile.id)) {
-                    return res.status(500).json({ error: 'Failed to retrieve created profile' });
+                if (createError || !(newCustomer === null || newCustomer === void 0 ? void 0 : newCustomer.id)) {
+                    console.error(`[${requestId}] ❌ Error creating customer:`, createError);
+                    return res.status(500).json({ error: 'Failed to create customer', details: createError === null || createError === void 0 ? void 0 : createError.message });
                 }
-                profile = newProfile;
-                console.log('[Customers API] Auto-created profile for user:', userId);
+                customer = newCustomer;
+                console.log(`[${requestId}] ✅ Auto-created customer:`, customer.id);
             }
             catch (createErr) {
-                console.error('Error auto-creating customer profile:', createErr);
-                return res.status(500).json({ error: 'Failed to create customer profile', details: createErr.message });
+                console.error(`[${requestId}] ❌ Error auto-creating customer:`, createErr);
+                return res.status(500).json({ error: 'Failed to create customer', details: createErr.message });
             }
         }
-        // Query bookings by customer_profile_id, user_id, and customer_id (for old bookings)
-        const allBookings = [];
-        const seenIds = new Set();
-        // Try customer_profile_id first
-        if (profile.id) {
-            const { data: profileBookings, error: profileError } = yield dbClient
-                .from("bookings")
-                .select(`
-          *,
-          shops (
-            id,
-            name,
-            address,
-            phone
-          ),
-          services (
-            id,
-            name,
-            price
-          )
-        `)
-                .eq("customer_profile_id", profile.id)
-                .order("created_at", { ascending: false });
-            if (!profileError && profileBookings) {
-                profileBookings.forEach((booking) => {
-                    if (!seenIds.has(booking.id)) {
-                        allBookings.push(booking);
-                        seenIds.add(booking.id);
-                    }
-                });
-            }
-        }
-        // Try user_id
-        const { data: userBookings, error: userError } = yield dbClient
+        const customerId = customer.id;
+        console.log(`[${requestId}] ✅ Resolved customer_id:`, customerId);
+        // STEP 2: Fetch bookings by customer_id ONLY (canonical system)
+        // For WEB customers: bookings.customer_id = customers.id = auth.users.id
+        console.log(`[${requestId}] Fetching bookings by customer_id = ${customerId}...`);
+        const { data: bookings, error: bookingsError } = yield dbClient
             .from("bookings")
             .select(`
         *,
@@ -130,52 +125,73 @@ router.get('/bookings', (req, res) => __awaiter(void 0, void 0, void 0, function
           price
         )
       `)
-            .eq("user_id", userId)
+            .eq("customer_id", customerId)
             .order("created_at", { ascending: false });
-        if (!userError && userBookings) {
-            userBookings.forEach((booking) => {
-                if (!seenIds.has(booking.id)) {
-                    allBookings.push(booking);
-                    seenIds.add(booking.id);
-                }
-            });
+        console.log(`[${requestId}] Bookings query result:`, {
+            queryValue: customerId,
+            found: (bookings === null || bookings === void 0 ? void 0 : bookings.length) || 0,
+            error: bookingsError === null || bookingsError === void 0 ? void 0 : bookingsError.message,
+            errorCode: bookingsError === null || bookingsError === void 0 ? void 0 : bookingsError.code,
+            errorDetails: bookingsError === null || bookingsError === void 0 ? void 0 : bookingsError.details,
+            bookingIds: (bookings === null || bookings === void 0 ? void 0 : bookings.map((b) => b.id)) || [],
+            bookingDetails: (bookings === null || bookings === void 0 ? void 0 : bookings.map((b) => ({
+                id: b.id,
+                customer_id: b.customer_id,
+                source: b.source,
+                status: b.status,
+                created_at: b.created_at,
+            }))) || [],
+        });
+        if (bookingsError) {
+            console.error(`[${requestId}] ❌ Error fetching bookings:`, bookingsError);
+            return res.status(500).json({ error: 'Failed to fetch bookings', details: bookingsError.message });
         }
-        // Try customer_id (for old bookings)
-        const { data: customerBookings, error: customerError } = yield dbClient
+        const allBookings = bookings || [];
+        // DIAGNOSTIC: Check what bookings exist for this customer_id
+        console.log(`[${requestId}] DIAGNOSTIC: Verifying bookings in database...`);
+        const { data: diagnosticBookings, error: diagnosticError } = yield dbClient
             .from("bookings")
-            .select(`
-        *,
-        shops (
-          id,
-          name,
-          address,
-          phone
-        ),
-        services (
-          id,
-          name,
-          price
-        )
-      `)
-            .eq("customer_id", userId)
-            .order("created_at", { ascending: false });
-        if (!customerError && customerBookings) {
-            customerBookings.forEach((booking) => {
-                if (!seenIds.has(booking.id)) {
-                    allBookings.push(booking);
-                    seenIds.add(booking.id);
-                }
-            });
-        }
+            .select("id, customer_id, source, status, created_at, customer_name")
+            .eq("customer_id", customerId)
+            .order("created_at", { ascending: false })
+            .limit(50);
+        console.log(`[${requestId}] DIAGNOSTIC: Bookings for customer_id ${customerId}:`, {
+            found: (diagnosticBookings === null || diagnosticBookings === void 0 ? void 0 : diagnosticBookings.length) || 0,
+            error: diagnosticError === null || diagnosticError === void 0 ? void 0 : diagnosticError.message,
+            bookings: (diagnosticBookings === null || diagnosticBookings === void 0 ? void 0 : diagnosticBookings.map((b) => ({
+                id: b.id,
+                customer_id: b.customer_id,
+                source: b.source,
+                status: b.status,
+                created_at: b.created_at,
+            }))) || [],
+        });
         // Sort by created_at descending
         allBookings.sort((a, b) => {
             const dateA = new Date(a.created_at || 0).getTime();
             const dateB = new Date(b.created_at || 0).getTime();
             return dateB - dateA;
         });
-        // Remove duplicates
-        const uniqueBookings = allBookings.filter((booking, index, self) => index === self.findIndex((b) => b.id === booking.id));
-        return res.json({ bookings: uniqueBookings });
+        console.log(`[${requestId}] Final result:`, {
+            totalBookings: allBookings.length,
+            customerId: customerId,
+            userId: userId,
+            bookingIds: allBookings.map((b) => b.id),
+            bookingStatuses: allBookings.map((b) => b.status),
+            bookingDetails: allBookings.map((b) => {
+                var _a, _b;
+                return ({
+                    id: b.id,
+                    customer_id: b.customer_id,
+                    source: b.source,
+                    status: b.status,
+                    shop_name: (_a = b.shops) === null || _a === void 0 ? void 0 : _a.name,
+                    service_name: (_b = b.services) === null || _b === void 0 ? void 0 : _b.name,
+                });
+            }),
+        });
+        console.log(`========== [${requestId}] GET /customers/bookings END ==========\n`);
+        return res.json({ bookings: allBookings });
     }
     catch (error) {
         console.error('Error in GET /customers/bookings:', error);

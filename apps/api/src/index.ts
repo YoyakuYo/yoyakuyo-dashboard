@@ -70,6 +70,7 @@ app.use("/owner", owner);
 app.use("/calendar", calendar);
 app.use("/reviews", reviews);
 app.use("/analytics", analytics);
+console.log("✅ Analytics routes registered: /analytics/revenue, /analytics/customers, /analytics/performance, /analytics/bookings, /analytics/report");
 app.use("/line", line);
 app.use("/qr", qr);
 app.use("/subscriptions", subscriptions);
