@@ -48,6 +48,23 @@ app.get("/", (_, res) => res.send("Yoyaku Yo API running!"));
 // Health check endpoint
 app.get("/health", (_, res) => res.json({ status: "ok", service: "yoyaku-yo-api" }));
 
+// Test endpoint to verify analytics routes are loaded
+app.get("/test-analytics", (_, res) => {
+  const analyticsRoutes = [
+    "/analytics/revenue",
+    "/analytics/customers",
+    "/analytics/performance",
+    "/analytics/bookings",
+    "/analytics/report"
+  ];
+  res.json({
+    message: "Analytics routes test",
+    routes: analyticsRoutes,
+    analyticsRouterLoaded: typeof analytics !== "undefined",
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Handle favicon requests to prevent 404 errors
 app.get("/favicon.ico", (_, res) => {
   res.status(204).end();
