@@ -496,7 +496,8 @@ const MyShopPage = () => {
   const fetchBookings = async (shopId: string) => {
     if (!shopId || !user) return;
     try {
-      const res = await fetch(`${apiUrl}/bookings`, {
+      // Use owner bookings endpoint to get all bookings for this shop
+      const res = await fetch(`${apiUrl}/owner/bookings`, {
         headers: {
           'x-user-id': user.id,
         },
@@ -504,7 +505,7 @@ const MyShopPage = () => {
       if (res.ok) {
         const data = await res.json();
         // Filter to only this shop's bookings
-        const shopBookings = Array.isArray(data) 
+        const shopBookings = Array.isArray(data)
           ? data.filter((b: any) => b.shop_id === shopId)
           : [];
         setBookings(shopBookings);
