@@ -152,103 +152,6 @@ router.get("/revenue", async (req: Request, res: Response) => {
       period_days: periodDays,
       note: "Revenue shows booked value from selected services (customers pay directly to shops)"
     });
-        revenue_last_30_days: revenueLast30Days,
-        revenue_last_7_days: revenueLast7Days,
-        average_booking_value: completedPayments.length > 0 ? totalRevenue / completedPayments.length : 0,
-        unique_customers: uniqueCustomers,
-        new_customers_30_days: newCustomers30Days,
-      };
-    } else {
-      revenueData = revenueDataResult[0];
-    }
-
-    // Get daily revenue for the period using optimized function or direct query
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - periodDays);
-    const startDateStr = startDate.toISOString().split("T")[0];
-
-    let dailyRevenue: any[] = [];
-    const { data: dailyRevenueResult, error: dailyError } = await supabase
-      .rpc("get_booking_analytics_by_date", { 
-        p_shop_id: shopId,
-        p_start_date: startDateStr 
-      });
-
-    if (dailyError || !dailyRevenueResult) {
-      console.error("Error fetching daily revenue (trying fallback):", dailyError);
-      // Fallback to direct query (separate queries to avoid relationship issues)
-      const { data: bookings, error: bookingsError } = await supabase
-        .from("bookings")
-        .select(`
-          id,
-          status,
-          created_at,
-          customer_id
-        `)
-        .eq("shop_id", shopId)
-        .gte("created_at", startDate.toISOString())
-        .order("created_at", { ascending: true });
-
-      if (!bookingsError && bookings) {
-        // Get payments for these bookings
-        const bookingIds = bookings.map(b => b.id).filter(id => id);
-        let payments = [];
-        if (bookingIds.length > 0) {
-          const { data: paymentsData, error: paymentsError } = await supabase
-            .from("payments")
-            .select("booking_id, amount, status")
-            .in("booking_id", bookingIds)
-            .eq("status", "completed");
-
-          if (!paymentsError) {
-            payments = paymentsData || [];
-          }
-        }
-
-        // Group by date
-        const dailyMap = new Map();
-        bookings.forEach((booking: any) => {
-          const date = new Date(booking.created_at).toISOString().split("T")[0];
-          if (!dailyMap.has(date)) {
-            dailyMap.set(date, {
-              booking_date: date,
-              bookings_count: 0,
-              completed_count: 0,
-              confirmed_count: 0,
-              pending_count: 0,
-              cancelled_count: 0,
-              revenue: 0,
-              unique_customers: new Set(),
-            });
-          }
-          const day = dailyMap.get(date);
-          day.bookings_count++;
-          if (booking.status === "completed") day.completed_count++;
-          if (booking.status === "confirmed") day.confirmed_count++;
-          if (booking.status === "pending") day.pending_count++;
-          if (booking.status === "cancelled") day.cancelled_count++;
-
-          // Find payments for this booking
-          const bookingPayments = payments.filter((p: any) => p.booking_id === booking.id);
-          day.revenue += bookingPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
-
-          if (booking.customer_id) day.unique_customers.add(booking.customer_id);
-        });
-
-        dailyRevenue = Array.from(dailyMap.values()).map((day: any) => ({
-          ...day,
-          unique_customers: day.unique_customers.size,
-        }));
-      }
-    } else {
-      dailyRevenue = dailyRevenueResult || [];
-    }
-
-    res.json({
-      summary: revenueData,
-      daily: dailyRevenue || [],
-      period_days: periodDays,
-    });
   } catch (error: any) {
     console.error("Error in revenue analytics:", error);
     res.status(500).json({ error: error.message || "Internal server error" });
@@ -292,20 +195,7 @@ router.get("/customers", async (req: Request, res: Response) => {
       return res.status(500).json({ error: "Failed to fetch customer analytics" });
     }
 
-    // Get payments for these bookings
-    const bookingIds = bookings?.map(b => b.id).filter(id => id) || [];
-    let payments = [];
-    if (bookingIds.length > 0) {
-      const { data: paymentsData, error: paymentsError } = await supabase
-        .from("payments")
-        .select("booking_id, amount, status")
-        .in("booking_id", bookingIds)
-        .eq("status", "completed");
-
-      if (!paymentsError) {
-        payments = paymentsData || [];
-      }
-    }
+    // Note: Customers pay directly to shops, so we're calculating spent from service prices
 
     // Process customer data
     const customerMap = new Map();
@@ -337,9 +227,8 @@ router.get("/customers", async (req: Request, res: Response) => {
         customer.cancelled_bookings++;
       }
 
-      // Find payments for this booking
-      const bookingPayments = payments.filter((p: any) => p.booking_id === booking.id && p.status === "completed");
-      const totalSpent = bookingPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+      // Calculate spent from service price (customers pay directly to shops)
+      const totalSpent = booking.status === "completed" ? (booking.services?.price || 0) : 0;
       customer.total_spent += totalSpent;
 
       if (new Date(booking.created_at) < new Date(customer.first_booking)) {
@@ -434,9 +323,9 @@ router.get("/performance", async (req: Request, res: Response) => {
       }
 
       const totalBookings = bookings?.length || 0;
-      const completedBookings = bookings?.filter((b: any) => b.status === "completed").length || 0;
+      const completedBookingsCount = bookings?.filter((b: any) => b.status === "completed").length || 0;
       const cancelledBookings = bookings?.filter((b: any) => b.status === "cancelled").length || 0;
-      const completionRate = totalBookings > 0 ? (completedBookings / totalBookings) * 100 : 0;
+      const completionRate = totalBookings > 0 ? (completedBookingsCount / totalBookings) * 100 : 0;
       const cancellationRate = totalBookings > 0 ? (cancelledBookings / totalBookings) * 100 : 0;
 
       // Calculate booked value from services (customers pay directly to shops)
@@ -670,6 +559,7 @@ router.get("/report", async (req: Request, res: Response) => {
     // Calculate booked value data (customers pay directly to shops)
     const completedBookings = allBookings?.filter((b: any) => b.status === "completed") || [];
     const totalBookedValue = completedBookings.reduce((sum: number, b: any) => sum + (b.services?.price || 0), 0);
+    const avgBookingValue = completedBookings.length > 0 ? totalBookedValue / completedBookings.length : 0;
     
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -740,9 +630,9 @@ router.get("/report", async (req: Request, res: Response) => {
 
     // Calculate performance metrics
     const totalBookings = allBookings?.length || 0;
-    const completedBookings = allBookings?.filter((b: any) => b.status === "completed").length || 0;
+    const completedBookingsCount = allBookings?.filter((b: any) => b.status === "completed").length || 0;
     const cancelledBookings = allBookings?.filter((b: any) => b.status === "cancelled").length || 0;
-    const completionRate = totalBookings > 0 ? (completedBookings / totalBookings) * 100 : 0;
+    const completionRate = totalBookings > 0 ? (completedBookingsCount / totalBookings) * 100 : 0;
     const cancellationRate = totalBookings > 0 ? (cancelledBookings / totalBookings) * 100 : 0;
 
     const bookingsLast7Days = allBookings?.filter((b: any) => new Date(b.created_at) >= sevenDaysAgo).length || 0;
@@ -755,20 +645,21 @@ router.get("/report", async (req: Request, res: Response) => {
     const performance = {
       shop_id: shopId,
       total_bookings: totalBookings,
-      completed_bookings: completedBookings,
+      completed_bookings: completedBookingsCount,
       cancelled_bookings: cancelledBookings,
       completion_rate: Math.round(completionRate * 100) / 100,
       cancellation_rate: Math.round(cancellationRate * 100) / 100,
-      total_revenue: totalRevenue,
-      average_booking_value: completedPayments.length > 0 ? totalRevenue / completedPayments.length : 0,
+      total_booked_value: totalBookedValue,
+      average_booking_value: avgBookingValue,
       unique_customers: uniqueCustomers,
       new_customers_30_days: newCustomers30Days,
       total_reviews: reviews?.length || 0,
       average_rating: avgRating,
       bookings_last_7_days: bookingsLast7Days,
       bookings_last_30_days: bookingsLast30Days,
-      revenue_last_7_days: revenueLast7Days,
-      revenue_last_30_days: revenueLast30Days,
+      booked_value_last_7_days: bookedValueLast7Days,
+      booked_value_last_30_days: bookedValueLast30Days,
+      note: "Booked value shows service prices selected by customers (customers pay directly to shops)"
     };
 
     // Calculate customer analytics
