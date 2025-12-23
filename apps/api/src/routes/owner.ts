@@ -14,7 +14,10 @@ router.get('/bookings', async (req: Request, res: Response) => {
     }
 
     const userId = req.headers['x-user-id'] as string;
+    console.log('[Owner Bookings] Request for userId:', userId);
+
     if (!userId) {
+      console.log('[Owner Bookings] No userId in headers');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
@@ -24,16 +27,20 @@ router.get('/bookings', async (req: Request, res: Response) => {
       .select('id, name')
       .eq('owner_user_id', userId);
 
+    console.log('[Owner Bookings] Shops query result:', { shops, shopsError });
+
     if (shopsError) {
       console.error('Error fetching shops for owner:', shopsError);
       return res.status(500).json({ error: 'Failed to fetch shops' });
     }
 
     if (!shops || shops.length === 0) {
+      console.log('[Owner Bookings] No shops found for user');
       return res.json([]);
     }
 
     const shopIds = shops.map(shop => shop.id);
+    console.log('[Owner Bookings] Shop IDs to query:', shopIds);
 
     // Get all bookings for these shops with service information
     const { data: bookings, error: bookingsError } = await supabaseAdmin
@@ -55,6 +62,8 @@ router.get('/bookings', async (req: Request, res: Response) => {
       .in('shop_id', shopIds)
       .order('created_at', { ascending: false });
 
+    console.log('[Owner Bookings] Bookings query result:', { count: bookings?.length, bookingsError });
+
     if (bookingsError) {
       console.error('Error fetching bookings for owner:', bookingsError);
       return res.status(500).json({ error: 'Failed to fetch bookings' });
@@ -69,6 +78,7 @@ router.get('/bookings', async (req: Request, res: Response) => {
       };
     }) || [];
 
+    console.log('[Owner Bookings] Final response:', bookingsWithShopNames.length, 'bookings');
     res.json(bookingsWithShopNames);
   } catch (error: any) {
     console.error('Error in owner bookings:', error);

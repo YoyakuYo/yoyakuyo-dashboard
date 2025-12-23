@@ -494,23 +494,35 @@ const MyShopPage = () => {
   };
 
   const fetchBookings = async (shopId: string) => {
-    if (!shopId || !user) return;
+    if (!shopId || !user) {
+      console.log('fetchBookings: Missing shopId or user', { shopId, user: !!user });
+      return;
+    }
     try {
+      console.log('fetchBookings: Calling API for shop:', shopId);
       // Use owner bookings endpoint to get all bookings for this shop
       const res = await fetch(`${apiUrl}/owner/bookings`, {
         headers: {
           'x-user-id': user.id,
         },
       });
+      console.log('fetchBookings: API response status:', res.status);
+
       if (res.ok) {
         const data = await res.json();
+        console.log('fetchBookings: Raw API data:', data);
         // Filter to only this shop's bookings
         const shopBookings = Array.isArray(data)
           ? data.filter((b: any) => b.shop_id === shopId)
           : [];
+        console.log('fetchBookings: Filtered bookings for shop', shopId, ':', shopBookings);
         setBookings(shopBookings);
+      } else {
+        console.error('fetchBookings: API returned error', res.status, res.statusText);
+        setBookings([]);
       }
     } catch (error: any) {
+      console.error('fetchBookings: Exception:', error);
       // Silently handle connection errors (API server not running)
       if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
         console.error('Error fetching bookings:', error);
