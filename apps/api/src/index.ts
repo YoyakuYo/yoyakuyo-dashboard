@@ -4,9 +4,7 @@ import dotenv from "dotenv";
 import shops from "./routes/shops";
 import categories from "./routes/categories";
 import services from "./routes/services";
-import staff from "./routes/staff";
 import bookings from "./routes/bookings";
-import clients from "./routes/clients";
 import timeslots from "./routes/timeslots";
 import messages from "./routes/messages";
 import ai from "./routes/ai";
@@ -15,12 +13,8 @@ import photos from "./routes/photos";
 import users from "./routes/users";
 import customers from "./routes/customers";
 import owner from "./routes/owner";
-import calendar from "./routes/calendar";
 import reviews from "./routes/reviews";
 import analytics from "./routes/analytics";
-import line from "./routes/line";
-import qr from "./routes/qr";
-import subscriptions from "./routes/subscriptions";
 import conversations from "./routes/conversations";
 import path from "path";
 
@@ -75,9 +69,7 @@ app.get("/favicon.ico", (_, res) => {
 app.use("/shops", shops);
 app.use("/categories", categories);
 app.use("/services", services);
-app.use("/staff", staff);
 app.use("/bookings", bookings);
-app.use("/clients", clients);
 app.use("/timeslots", timeslots);
 app.use("/messages", messages);
 app.use("/ai", ai);
@@ -86,15 +78,9 @@ app.use("/photos", photos);
 app.use("/users", users);
 app.use("/customers", customers);
 app.use("/owner", owner);
-app.use("/calendar", calendar);
 app.use("/reviews", reviews);
 app.use("/analytics", analytics);
 console.log("✅ Analytics routes registered: /analytics/revenue, /analytics/customers, /analytics/performance, /analytics/bookings, /analytics/report");
-app.use("/line", line);
-app.use("/qr", qr);
-app.use("/subscriptions", subscriptions);
-// Also mount LINE routes under /api/line for production/ngrok compatibility
-app.use("/api/line", line);
 // Mount conversations routes under /api/conversations
 app.use("/api/conversations", conversations);
 
