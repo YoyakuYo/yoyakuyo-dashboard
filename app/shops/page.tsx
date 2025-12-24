@@ -1729,7 +1729,7 @@ const MyShopPage = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="min-w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('common.name')}</th>
@@ -1787,8 +1787,8 @@ const MyShopPage = () => {
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('myShop.customer')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('common.email')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('common.phone')}</th>
+                    <th className="hidden md:table-cell text-left py-3 px-4 font-semibold text-gray-700">{t('common.email')}</th>
+                    <th className="hidden md:table-cell text-left py-3 px-4 font-semibold text-gray-700">{t('common.phone')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('myShop.dateTime')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('myShop.service')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('common.status')}</th>
@@ -1801,8 +1801,8 @@ const MyShopPage = () => {
                       <td className="py-3 px-4 text-gray-900 font-medium">
                         {booking.customer_name || t('common.unknown')}
                       </td>
-                      <td className="py-3 px-4 text-gray-600">{booking.customer_email || 'N/A'}</td>
-                      <td className="py-3 px-4 text-gray-600">{booking.customer_phone || 'N/A'}</td>
+                      <td className="hidden md:table-cell py-3 px-4 text-gray-600 max-w-xs truncate">{booking.customer_email || 'N/A'}</td>
+                      <td className="hidden md:table-cell py-3 px-4 text-gray-600">{booking.customer_phone || 'N/A'}</td>
                       <td className="py-3 px-4 text-gray-700">
                         {booking.start_time ? new Date(booking.start_time).toLocaleString() : 'N/A'}
                       </td>
