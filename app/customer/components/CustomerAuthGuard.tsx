@@ -22,8 +22,8 @@ export default function CustomerAuthGuard({ children }: { children: React.ReactN
 
       // Check if user is a customer
       if (role !== 'customer') {
-        // User is an owner, redirect to owner dashboard
-        router.push("/dashboard");
+        // User is an owner, redirect to owner dashboard (My Shop)
+        router.push("/shops");
         return;
       }
 
