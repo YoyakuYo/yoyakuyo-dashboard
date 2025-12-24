@@ -252,7 +252,7 @@ const MyShopPage = () => {
   const [statusUpdateModal, setStatusUpdateModal] = useState<{
     isOpen: boolean;
     bookingId: string | null;
-    newStatus: 'confirmed' | 'rejected' | null;
+    newStatus: 'confirmed' | 'rejected' | 'completed' | null;
     bookingCustomerName: string | null;
   }>({
     isOpen: false,
@@ -845,9 +845,19 @@ const MyShopPage = () => {
       });
 
       if (res.ok) {
+        let successText: string;
+        if (statusUpdateModal.newStatus === 'confirmed') {
+          successText = t('myShop.bookingConfirmed');
+        } else if (statusUpdateModal.newStatus === 'rejected') {
+          successText = t('myShop.bookingRejected');
+        } else {
+          // completed
+          successText = 'Booking marked as completed.';
+        }
+
         setStatusUpdateMessage({
           type: 'success',
-          text: statusUpdateModal.newStatus === 'confirmed' ? t('myShop.bookingConfirmed') : t('myShop.bookingRejected'),
+          text: successText,
         });
         
         // Refresh bookings list
@@ -1877,6 +1887,20 @@ const MyShopPage = () => {
                               </button>
                             </>
                           )}
+                          {booking.status === 'confirmed' && (
+                            <button
+                              onClick={() =>
+                                openStatusUpdateModal(
+                                  booking.id,
+                                  'completed',
+                                  booking.customer_name || null
+                                )
+                              }
+                              className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                            >
+                              {t('status.completed')}
+                            </button>
+                          )}
                           {booking.status && booking.status !== 'cancelled' && booking.status !== 'completed' && (
                             <>
                               <button
@@ -2144,11 +2168,20 @@ const MyShopPage = () => {
             </button>
             
             <h3 className="text-xl font-bold text-gray-900 mb-4">
-              {statusUpdateModal.newStatus === 'confirmed' ? t('myShop.confirmBooking') : t('myShop.rejectBooking')}
+              {statusUpdateModal.newStatus === 'confirmed'
+                ? t('myShop.confirmBooking')
+                : statusUpdateModal.newStatus === 'completed'
+                ? 'Mark booking as completed'
+                : t('myShop.rejectBooking')}
             </h3>
             
             <p className="text-gray-600 mb-6">
-              {statusUpdateModal.newStatus === 'confirmed' ? t('myShop.areYouSureConfirm') : t('myShop.areYouSureReject')} {statusUpdateModal.bookingCustomerName ? `${t('common.for')} ${statusUpdateModal.bookingCustomerName}` : ''}?
+              {statusUpdateModal.newStatus === 'confirmed'
+                ? t('myShop.areYouSureConfirm')
+                : statusUpdateModal.newStatus === 'completed'
+                ? 'Are you sure you want to mark this booking as completed'
+                : t('myShop.areYouSureReject')}{' '}
+              {statusUpdateModal.bookingCustomerName ? `${t('common.for')} ${statusUpdateModal.bookingCustomerName}` : ''}?
             </p>
 
             {statusUpdateMessage && (
@@ -2177,10 +2210,18 @@ const MyShopPage = () => {
                 className={`px-4 py-2 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   statusUpdateModal.newStatus === 'confirmed'
                     ? 'bg-green-600 hover:bg-green-700'
+                    : statusUpdateModal.newStatus === 'completed'
+                    ? 'bg-blue-600 hover:bg-blue-700'
                     : 'bg-red-600 hover:bg-red-700'
                 }`}
               >
-                {statusUpdateLoading ? t('common.updating') : statusUpdateModal.newStatus === 'confirmed' ? t('common.confirm') : t('common.reject')}
+                {statusUpdateLoading
+                  ? t('common.updating')
+                  : statusUpdateModal.newStatus === 'confirmed'
+                  ? t('common.confirm')
+                  : statusUpdateModal.newStatus === 'completed'
+                  ? 'Complete'
+                  : t('common.reject')}
               </button>
             </div>
           </div>
