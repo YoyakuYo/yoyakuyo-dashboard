@@ -2185,10 +2185,18 @@ const MyShopPage = () => {
                 className={`px-4 py-2 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   statusUpdateModal.newStatus === 'confirmed'
                     ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-red-600 hover:bg-red-700'
+                    : statusUpdateModal.newStatus === 'completed'
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : 'b」と-레g:bg-red-700'
                 }`}
               >
-                {statusUpdateLoading ? t('common.updating') : statusUpdateModal.newStatus === 'confirmed' ? t('common.confirm') : t('common.reject')}
+                {statusUpdateLoading
+                  ? t('common.updating')
+                  : statusUpdateModal.newStatus === 'confirmed'
+                  ? t('common.confirm')
+                  : statusUpdateModal.newStatus === 'completed'
+                  ? 'Mark as completed'
+                  : t('common.reject')}
               </button>
             </div>
           </div>
