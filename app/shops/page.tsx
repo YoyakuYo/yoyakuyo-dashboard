@@ -2143,11 +2143,20 @@ const MyShopPage = () => {
             </button>
             
             <h3 className="text-xl font-bold text-gray-900 mb-4">
-              {statusUpdateModal.newStatus === 'confirmed' ? t('myShop.confirmBooking') : t('myShop.rejectBooking')}
+              {statusUpdateModal.newStatus === 'confirmed'
+                ? t('myShop.confirmBooking')
+                : statusUpdateModal.newStatus === 'completed'
+                ? 'Mark booking as completed'
+                : t('myShop.rejectBooking')}
             </h3>
             
             <p className="text-gray-600 mb-6">
-              {statusUpdateModal.newStatus === 'confirmed' ? t('myShop.areYouSureConfirm') : t('myShop.areYouSureReject')} {statusUpdateModal.bookingCustomerName ? `${t('common.for')} ${statusUpdateModal.bookingCustomerName}` : ''}?
+              {statusUpdateModal.newStatus === 'confirmed'
+                ? t('myShop.areYouSureConfirm')
+                : statusUpdateModal.newStatus === 'completed'
+                ? 'Are you sure you want to mark this booking as completed'
+                : t('myShop.areYouSureReject')}{' '}
+              {statusUpdateModal.bookingCustomerName ? `${t('common.for')} ${statusUpdateModal.bookingCustomerName}` : ''}?
             </p>
 
             {statusUpdateMessage && (
