@@ -25,7 +25,13 @@ interface PerformanceData {
   cancelled_bookings: number;
   completion_rate: number;
   cancellation_rate: number;
-  total_revenue: number;
+  // Revenue / booked value metrics
+  total_revenue?: number;
+  revenue_last_7_days?: number;
+  revenue_last_30_days?: number;
+  total_booked_value?: number;
+  booked_value_last_7_days?: number;
+  booked_value_last_30_days?: number;
   average_booking_value: number;
   unique_customers: number;
   new_customers_30_days: number;
@@ -33,8 +39,6 @@ interface PerformanceData {
   average_rating: number;
   bookings_last_7_days: number;
   bookings_last_30_days: number;
-  revenue_last_7_days: number;
-  revenue_last_30_days: number;
 }
 
 interface CustomerData {
@@ -190,11 +194,25 @@ export default function AnalyticsPage() {
     return null;
   }
 
+  const formatCurrency = (value: unknown) => {
+    const num = typeof value === "number" ? value : Number(value || 0);
+    if (Number.isNaN(num)) return "¥0";
+    return `¥${num.toLocaleString()}`;
+  };
+
   // Prepare chart data (handle both function results and direct query results)
-  const revenueChartData = revenueData?.daily?.map((d: any) => ({
-    x: new Date(d.booking_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    y: parseFloat((d.revenue || 0).toString()),
-  })) || [];
+  const revenueChartData =
+    revenueData?.daily?.map((d: any) => {
+      const raw = d.revenue ?? d.booked_value ?? 0;
+      const y = typeof raw === "number" ? raw : Number(raw || 0);
+      return {
+        x: new Date(d.booking_date).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+        y: Number.isNaN(y) ? 0 : y,
+      };
+    }) || [];
 
   const bookingsChartData = bookingData?.grouped?.map((g: any) => ({
     label: new Date(g.period).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
@@ -262,8 +280,12 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <AnalyticsCard
               title="Total Revenue"
-              value={`¥${performanceData?.total_revenue?.toLocaleString() || 0}`}
-              subtitle={`Last ${period} days`}
+              value={formatCurrency(
+                performanceData?.total_revenue ??
+                  performanceData?.total_booked_value ??
+                  0
+              )}
+              subtitle="All time (completed bookings)"
             />
             <AnalyticsCard
               title="Total Bookings"
@@ -308,20 +330,45 @@ export default function AnalyticsPage() {
       {/* Revenue Tab */}
       {activeTab === "revenue" && revenueData && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <AnalyticsCard
-              title="Total Revenue"
-              value={`¥${revenueData.summary?.total_revenue?.toLocaleString() || 0}`}
-            />
-            <AnalyticsCard
-              title="Last 30 Days"
-              value={`¥${revenueData.summary?.revenue_last_30_days?.toLocaleString() || 0}`}
-            />
-            <AnalyticsCard
-              title="Last 7 Days"
-              value={`¥${revenueData.summary?.revenue_last_7_days?.toLocaleString() || 0}`}
-            />
-          </div>
+          {(() => {
+            const rawSummary: any = revenueData.summary;
+            const summary = Array.isArray(rawSummary)
+              ? rawSummary[0] || {}
+              : rawSummary || {};
+
+            const totalRevenueValue =
+              summary.total_revenue ??
+              summary.total_booked_value ??
+              summary.totalBookedValue ??
+              0;
+
+            const last30Value =
+              summary.revenue_last_30_days ??
+              summary.booked_value_last_30_days ??
+              0;
+
+            const last7Value =
+              summary.revenue_last_7_days ??
+              summary.booked_value_last_7_days ??
+              0;
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <AnalyticsCard
+                  title="Total Revenue"
+                  value={formatCurrency(totalRevenueValue)}
+                />
+                <AnalyticsCard
+                  title="Last 30 Days"
+                  value={formatCurrency(last30Value)}
+                />
+                <AnalyticsCard
+                  title="Last 7 Days"
+                  value={formatCurrency(last7Value)}
+                />
+              </div>
+            );
+          })()}
 
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold mb-4">Daily Revenue</h3>
@@ -344,17 +391,27 @@ export default function AnalyticsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {revenueData.daily.slice(-10).reverse().map((day, idx) => (
-                    <tr key={idx}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(day.booking_date).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{day.bookings_count}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                        ¥{parseFloat(day.revenue.toString()).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
+                  {revenueData.daily
+                    .slice(-10)
+                    .reverse()
+                    .map((day: any, idx: number) => {
+                      const raw = day.revenue ?? day.booked_value ?? 0;
+                      const amount =
+                        typeof raw === "number" ? raw : Number(raw || 0);
+                      return (
+                        <tr key={idx}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {new Date(day.booking_date).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {day.bookings_count}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                            {formatCurrency(amount)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
@@ -380,7 +437,9 @@ export default function AnalyticsPage() {
             />
             <AnalyticsCard
               title="Avg Spent/Customer"
-              value={`¥${customerData.summary?.average_spent_per_customer?.toLocaleString() || 0}`}
+              value={formatCurrency(
+                customerData.summary?.average_spent_per_customer ?? 0
+              )}
             />
           </div>
 
@@ -409,7 +468,7 @@ export default function AnalyticsPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{customer.total_bookings}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{customer.completed_bookings}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                          ¥{customer.total_spent.toLocaleString()}
+                          {formatCurrency(customer.total_spent)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(customer.last_booking).toLocaleDateString()}
@@ -478,7 +537,7 @@ export default function AnalyticsPage() {
             />
             <AnalyticsCard
               title="Avg Booking Value"
-              value={`¥${performanceData.average_booking_value?.toLocaleString() || 0}`}
+              value={formatCurrency(performanceData.average_booking_value || 0)}
             />
             <AnalyticsCard
               title="Bookings (Last 7d)"
@@ -518,19 +577,39 @@ export default function AnalyticsPage() {
               <div className="space-y-4">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Revenue:</span>
-                  <span className="font-semibold text-green-600">¥{performanceData.total_revenue?.toLocaleString()}</span>
+                  <span className="font-semibold text-green-600">
+                    {formatCurrency(
+                      performanceData.total_revenue ??
+                        performanceData.total_booked_value ??
+                        0
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Last 30 Days:</span>
-                  <span className="font-semibold">¥{performanceData.revenue_last_30_days?.toLocaleString()}</span>
+                  <span className="font-semibold">
+                    {formatCurrency(
+                      performanceData.revenue_last_30_days ??
+                        performanceData.booked_value_last_30_days ??
+                        0
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Last 7 Days:</span>
-                  <span className="font-semibold">¥{performanceData.revenue_last_7_days?.toLocaleString()}</span>
+                  <span className="font-semibold">
+                    {formatCurrency(
+                      performanceData.revenue_last_7_days ??
+                        performanceData.booked_value_last_7_days ??
+                        0
+                    )}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Avg Booking Value:</span>
-                  <span className="font-semibold">¥{performanceData.average_booking_value?.toLocaleString()}</span>
+                  <span className="font-semibold">
+                    {formatCurrency(performanceData.average_booking_value || 0)}
+                  </span>
                 </div>
               </div>
             </div>

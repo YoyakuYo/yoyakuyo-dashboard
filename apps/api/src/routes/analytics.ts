@@ -321,92 +321,102 @@ router.get("/performance", async (req: Request, res: Response) => {
 
     const shopId = shops[0].id;
 
-    // Get performance metrics using optimized function or direct query
-    let performance: any = null;
-    const { data: performanceResult, error: performanceError } = await supabaseAdmin
-      .rpc("get_shop_performance_metrics", { p_shop_id: shopId });
+    // Compute performance metrics directly from bookings + reviews
+    const { data: bookings, error: bookingsError } = await supabaseAdmin
+      .from("bookings")
+      .select(`
+        id,
+        status,
+        created_at,
+        customer_id,
+        services(price)
+      `)
+      .eq("shop_id", shopId);
 
-    if (performanceError || !performanceResult || performanceResult.length === 0) {
-      console.error("Error fetching performance metrics (trying fallback):", performanceError);
-      // Fallback to direct query (use services for booked value instead of payments)
-      const { data: bookings, error: bookingsError } = await supabaseAdmin
-        .from("bookings")
-        .select(`
-          id,
-          status,
-          created_at,
-          customer_id,
-          services(price)
-        `)
-        .eq("shop_id", shopId);
+    const { data: reviews } = await supabaseAdmin
+      .from("reviews")
+      .select("id, rating")
+      .eq("shop_id", shopId)
+      .eq("status", "published");
 
-      const { data: reviews } = await supabaseAdmin
-        .from("reviews")
-        .select("id, rating")
-        .eq("shop_id", shopId)
-        .eq("status", "published");
+    if (bookingsError) {
+      console.error("Error fetching performance metrics:", bookingsError);
+      return res.status(500).json({ error: "Failed to fetch performance metrics" });
+    }
 
-      if (bookingsError) {
-        console.error("Fallback query also failed:", bookingsError);
-        return res.status(500).json({ error: "Failed to fetch performance metrics" });
-      }
+    const totalBookings = bookings?.length || 0;
+    const completedBookingsCount = bookings?.filter((b: any) => b.status === "completed").length || 0;
+    const cancelledBookings = bookings?.filter((b: any) => b.status === "cancelled").length || 0;
+    const completionRate = totalBookings > 0 ? (completedBookingsCount / totalBookings) * 100 : 0;
+    const cancellationRate = totalBookings > 0 ? (cancelledBookings / totalBookings) * 100 : 0;
 
-      const totalBookings = bookings?.length || 0;
-      const completedBookingsCount = bookings?.filter((b: any) => b.status === "completed").length || 0;
-      const cancelledBookings = bookings?.filter((b: any) => b.status === "cancelled").length || 0;
-      const completionRate = totalBookings > 0 ? (completedBookingsCount / totalBookings) * 100 : 0;
-      const cancellationRate = totalBookings > 0 ? (cancelledBookings / totalBookings) * 100 : 0;
+    // Calculate booked value (revenue) from services (customers pay directly to shops)
+    const completedBookings = bookings?.filter((b: any) => b.status === "completed") || [];
+    const totalBookedValue = completedBookings.reduce(
+      (sum: number, b: any) => sum + (b.services?.price || 0),
+      0
+    );
+    const avgBookingValue =
+      completedBookings.length > 0 ? totalBookedValue / completedBookings.length : 0;
 
-      // Calculate booked value from services (customers pay directly to shops)
-      const completedBookings = bookings?.filter((b: any) => b.status === "completed") || [];
-      const totalBookedValue = completedBookings.reduce((sum: number, b: any) => sum + (b.services?.price || 0), 0);
-      const avgBookingValue = completedBookings.length > 0 ? totalBookedValue / completedBookings.length : 0;
+    const uniqueCustomers = new Set(
+      bookings?.map((b: any) => b.customer_id).filter(Boolean) || []
+    ).size;
 
-      const uniqueCustomers = new Set(bookings?.map((b: any) => b.customer_id).filter(Boolean) || []).size;
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const newCustomers30Days = new Set(
-        bookings?.filter((b: any) => new Date(b.created_at) >= thirtyDaysAgo).map((b: any) => b.customer_id).filter(Boolean) || []
-      ).size;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const newCustomers30Days = new Set(
+      bookings
+        ?.filter((b: any) => new Date(b.created_at) >= thirtyDaysAgo)
+        .map((b: any) => b.customer_id)
+        .filter(Boolean) || []
+    ).size;
 
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const bookingsLast7Days = bookings?.filter((b: any) => new Date(b.created_at) >= sevenDaysAgo).length || 0;
-      const bookingsLast30Days = bookings?.filter((b: any) => new Date(b.created_at) >= thirtyDaysAgo).length || 0;
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const bookingsLast7Days =
+      bookings?.filter((b: any) => new Date(b.created_at) >= sevenDaysAgo).length || 0;
+    const bookingsLast30Days =
+      bookings?.filter((b: any) => new Date(b.created_at) >= thirtyDaysAgo).length || 0;
 
-      const bookedValueLast7Days = completedBookings
-        .filter((b: any) => new Date(b.created_at) >= sevenDaysAgo)
-        .reduce((sum: number, b: any) => sum + (b.services?.price || 0), 0);
-      const bookedValueLast30Days = completedBookings
-        .filter((b: any) => new Date(b.created_at) >= thirtyDaysAgo)
-        .reduce((sum: number, b: any) => sum + (b.services?.price || 0), 0);
+    const bookedValueLast7Days = completedBookings
+      .filter((b: any) => new Date(b.created_at) >= sevenDaysAgo)
+      .reduce((sum: number, b: any) => sum + (b.services?.price || 0), 0);
 
-      const avgRating = reviews && reviews.length > 0
+    const bookedValueLast30Days = completedBookings
+      .filter((b: any) => new Date(b.created_at) >= thirtyDaysAgo)
+      .reduce((sum: number, b: any) => sum + (b.services?.price || 0), 0);
+
+    const avgRating =
+      reviews && reviews.length > 0
         ? reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / reviews.length
         : 0;
 
-      performance = {
-        shop_id: shopId,
-        total_bookings: totalBookings,
-        completed_bookings: completedBookings,
-        cancelled_bookings: cancelledBookings,
-        completion_rate: Math.round(completionRate * 100) / 100,
-        cancellation_rate: Math.round(cancellationRate * 100) / 100,
-        total_booked_value: totalBookedValue,
-        average_booking_value: avgBookingValue,
-        unique_customers: uniqueCustomers,
-        new_customers_30_days: newCustomers30Days,
-        total_reviews: reviews?.length || 0,
-        average_rating: avgRating,
-        bookings_last_7_days: bookingsLast7Days,
-        bookings_last_30_days: bookingsLast30Days,
-        booked_value_last_7_days: bookedValueLast7Days,
-        booked_value_last_30_days: bookedValueLast30Days,
-        note: "Booked value shows service prices selected by customers (customers pay directly to shops)"
-      };
-    } else {
-      performance = performanceResult[0];
-    }
+    const performance = {
+      shop_id: shopId,
+      total_bookings: totalBookings,
+      completed_bookings: completedBookingsCount,
+      cancelled_bookings: cancelledBookings,
+      completion_rate: Math.round(completionRate * 100) / 100,
+      cancellation_rate: Math.round(cancellationRate * 100) / 100,
+      // Revenue (booked value from services)
+      total_revenue: totalBookedValue,
+      total_booked_value: totalBookedValue,
+      average_booking_value: avgBookingValue,
+      revenue_last_7_days: bookedValueLast7Days,
+      revenue_last_30_days: bookedValueLast30Days,
+      booked_value_last_7_days: bookedValueLast7Days,
+      booked_value_last_30_days: bookedValueLast30Days,
+      // Customer / review stats
+      unique_customers: uniqueCustomers,
+      new_customers_30_days: newCustomers30Days,
+      total_reviews: reviews?.length || 0,
+      average_rating: avgRating,
+      bookings_last_7_days: bookingsLast7Days,
+      bookings_last_30_days: bookingsLast30Days,
+      note:
+        "Revenue shows service prices selected by customers (customers pay directly to shops)",
+    };
 
     res.json(performance);
   } catch (error: any) {
