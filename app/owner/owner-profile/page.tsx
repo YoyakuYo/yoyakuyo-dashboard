@@ -9,7 +9,7 @@ export default function OwnerProfilePage() {
   const router = useRouter();
   
   useEffect(() => {
-    router.replace('/owner/dashboard');
+    router.replace('/owner/shop-profile');
   }, [router]);
 
   return null;

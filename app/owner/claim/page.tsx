@@ -1212,7 +1212,7 @@ export default function ClaimShopPage() {
               </div>
               <div className="mt-8">
                 <button
-                  onClick={() => router.push('/owner/dashboard')}
+                  onClick={() => router.push('/owner/shop-profile')}
                   className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {t('claim.backToDashboard')}

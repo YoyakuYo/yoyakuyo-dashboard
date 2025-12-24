@@ -64,7 +64,7 @@ export default function OwnerSupportPage() {
   return (
     <div className="p-8">
       <div className="mb-6">
-        <Link href="/owner/dashboard" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
+        <Link href="/owner/shop-profile" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
           ← {t('common.back')} {t('nav.dashboard')}
         </Link>
         <h1 className="text-3xl font-bold text-gray-900">{t('support.title')}</h1>
@@ -74,7 +74,7 @@ export default function OwnerSupportPage() {
       <div className="bg-white rounded-lg shadow border border-gray-200 p-8 text-center">
         <p className="text-gray-600 mb-4">{t('support.unavailable')}</p>
         <Link
-          href="/owner/dashboard"
+          href="/owner/shop-profile"
           className="text-blue-600 hover:text-blue-800 font-medium"
         >
           {t('common.back')} {t('nav.dashboard')} →

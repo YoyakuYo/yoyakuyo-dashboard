@@ -105,8 +105,8 @@ const Sidebar = React.memo(() => {
     subscriptionRef.current = channel;
   };
 
+  // Owner navigation: put "My Shop" at the top and remove the legacy Dashboard link
   const navItems = [
-    { href: '/owner/dashboard', labelKey: 'nav.dashboard', icon: '🏠' },
     { href: '/owner/shop-profile', labelKey: 'nav.myShop', icon: '🏪' },
     { href: '/owner/bookings', labelKey: 'nav.bookings', icon: '📅' },
     { href: '/owner/calendar', labelKey: 'nav.calendar', icon: '📆' },

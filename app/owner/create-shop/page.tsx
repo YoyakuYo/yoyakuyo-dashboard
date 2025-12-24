@@ -280,7 +280,7 @@ export default function CreateShopPage() {
       }
 
       // Success - redirect to dashboard
-      router.push('/owner/dashboard');
+      router.push('/owner/shop-profile');
     } catch (error: any) {
       console.error('Error creating shop:', error);
       setError(error.message || 'Failed to create shop. Please try again.');
