@@ -28,7 +28,7 @@ export default function Sidebar() {
     },
     {
       href: '/owner/analytics',
-      label: 'Analytics',
+      label: t('nav.analytics'),
       icon: '📈',
     },
     {
