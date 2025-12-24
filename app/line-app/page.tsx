@@ -369,7 +369,9 @@ function LineAppPageContent() {
             </div>
             {/* PART 5: Language Selector */}
             <div className="flex items-center gap-3">
-              <label className="text-sm text-gray-600">{language === 'ja' ? '言語:' : 'Language:'}</label>
+              <label className="text-sm text-gray-600">
+                {language === "ja" ? "言語:" : "Language:"}
+              </label>
               <select
                 value={language}
                 onChange={(e) => {
@@ -380,6 +382,10 @@ function LineAppPageContent() {
               >
                 <option value="ja">日本語</option>
                 <option value="en">English</option>
+                <option value="es">Español</option>
+                <option value="pt-BR">Português</option>
+                <option value="ko">한국어</option>
+                <option value="zh">中文</option>
               </select>
             </div>
           </div>

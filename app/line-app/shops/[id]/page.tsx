@@ -81,6 +81,11 @@ export default function LineShopDetailPage() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [lineUserId, setLineUserId] = useState<string>("");
 
+  // Favorites state for LINE customers (parity with web customers)
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+
   useEffect(() => {
     if (!shopId) return;
 
@@ -126,6 +131,149 @@ export default function LineShopDetailPage() {
     };
     getLineUserId();
   }, [shopId]);
+
+  // Initialize canonical customerId for LINE user (used for favorites)
+  useEffect(() => {
+    const initCustomer = async () => {
+      if (typeof window === "undefined" || !window.liff || !apiUrl) {
+        return;
+      }
+
+      try {
+        let idToken: string | null = null;
+
+        try {
+          idToken = await window.liff.getIDToken();
+        } catch (err) {
+          console.error("[LINE Favorites] Failed to get ID token:", err);
+        }
+
+        if (!idToken) {
+          return;
+        }
+
+        const verifyRes = await fetch(`${apiUrl}/api/line/liff/verify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id_token: idToken }),
+        });
+
+        if (!verifyRes.ok) {
+          console.warn("[LINE Favorites] Failed to verify ID token for favorites");
+          return;
+        }
+
+        const verifyData = await verifyRes.json();
+        if (verifyData?.customer_id) {
+          setCustomerId(verifyData.customer_id);
+        }
+      } catch (err) {
+        console.error("[LINE Favorites] Error initializing customer:", err);
+      }
+    };
+
+    initCustomer();
+  }, []);
+
+  // Load favorite status for this shop when customerId is available
+  useEffect(() => {
+    const loadFavoriteStatus = async () => {
+      if (!customerId || !apiUrl || !shopId) return;
+
+      try {
+        const res = await fetch(`${apiUrl}/customers/favorites`, {
+          headers: {
+            "x-user-id": customerId,
+          },
+        });
+
+        if (!res.ok) {
+          console.warn("[LINE Favorites] Failed to load favorites:", res.status);
+          return;
+        }
+
+        const data = await res.json();
+        const favorites = Array.isArray(data)
+          ? data
+          : Array.isArray(data.favorites)
+          ? data.favorites
+          : [];
+
+        const isFav = favorites.some(
+          (f: any) => f.shop_id === shopId || f.shops?.id === shopId
+        );
+        setIsFavorite(isFav);
+      } catch (err) {
+        console.error("[LINE Favorites] Error loading favorites:", err);
+      }
+    };
+
+    loadFavoriteStatus();
+  }, [customerId, shopId]);
+
+  const toggleFavorite = async () => {
+    if (!apiUrl) {
+      alert("API URL is not configured. Please try again later.");
+      return;
+    }
+
+    if (!customerId) {
+      alert("Please open this page from the LINE app while logged in to save favorites.");
+      return;
+    }
+
+    if (!shopId) return;
+
+    setFavoriteLoading(true);
+
+    try {
+      if (isFavorite) {
+        // Remove favorite
+        const res = await fetch(`${apiUrl}/customers/favorites/${shopId}`, {
+          method: "DELETE",
+          headers: {
+            "x-user-id": customerId,
+          },
+        });
+
+        if (res.ok) {
+          setIsFavorite(false);
+        } else {
+          const errorData = await res.json().catch(() => ({}));
+          console.error("[LINE Favorites] Failed to remove favorite:", errorData);
+          alert(errorData.error || "Failed to remove favorite");
+        }
+      } else {
+        // Add favorite
+        const res = await fetch(`${apiUrl}/customers/favorites`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": customerId,
+          },
+          body: JSON.stringify({ shop_id: shopId }),
+        });
+
+        if (res.ok) {
+          setIsFavorite(true);
+        } else {
+          const errorData = await res.json().catch(() => ({}));
+          console.error("[LINE Favorites] Failed to add favorite:", errorData);
+          if (res.status === 409) {
+            // Already favorited; just mark as favorite in UI
+            setIsFavorite(true);
+          } else {
+            alert(errorData.error || "Failed to add favorite");
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error("[LINE Favorites] Error toggling favorite:", err);
+      alert(err?.message || "Failed to update favorite");
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
   
   // Fetch reviews
   useEffect(() => {
@@ -403,7 +551,8 @@ export default function LineShopDetailPage() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
             <button
               onClick={() => router.back()}
               className="text-gray-600 hover:text-gray-900"
@@ -411,6 +560,20 @@ export default function LineShopDetailPage() {
               ← Back
             </button>
             <h1 className="text-lg font-bold text-gray-900">{shop.name}</h1>
+            </div>
+            <button
+              type="button"
+              onClick={toggleFavorite}
+              disabled={favoriteLoading}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                isFavorite
+                  ? "bg-red-50 border-red-300 text-red-600"
+                  : "bg-white border-gray-300 text-gray-700"
+              }`}
+            >
+              <span>{isFavorite ? "♥" : "♡"}</span>
+              <span>{isFavorite ? "Saved" : "Save"}</span>
+            </button>
           </div>
         </div>
       </header>
