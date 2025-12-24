@@ -228,7 +228,7 @@ const MyShopPage = () => {
   const [statusUpdateModal, setStatusUpdateModal] = useState<{
     isOpen: boolean;
     bookingId: string | null;
-    newStatus: 'confirmed' | 'rejected' | null;
+    newStatus: 'confirmed' | 'rejected' | 'completed' | null;
     bookingCustomerName: string | null;
   }>({
     isOpen: false,
@@ -733,7 +733,11 @@ const MyShopPage = () => {
   };
 
   // Booking status handlers
-  const openStatusUpdateModal = (bookingId: string, newStatus: 'confirmed' | 'rejected', customerName: string | null) => {
+  const openStatusUpdateModal = (
+    bookingId: string,
+    newStatus: 'confirmed' | 'rejected' | 'completed',
+    customerName: string | null
+  ) => {
     setStatusUpdateModal({
       isOpen: true,
       bookingId,
@@ -772,9 +776,19 @@ const MyShopPage = () => {
       });
 
       if (res.ok) {
+        let successText: string;
+        if (statusUpdateModal.newStatus === 'confirmed') {
+          successText = t('myShop.bookingConfirmed');
+        } else if (statusUpdateModal.newStatus === 'rejected') {
+          successText = t('myShop.bookingRejected');
+        } else {
+          // completed
+          successText = 'Booking marked as completed.';
+        }
+
         setStatusUpdateMessage({
           type: 'success',
-          text: statusUpdateModal.newStatus === 'confirmed' ? t('myShop.bookingConfirmed') : t('myShop.bookingRejected'),
+          text: successText,
         });
         
         // Refresh bookings list
@@ -1811,29 +1825,63 @@ const MyShopPage = () => {
                           {(!booking.status || booking.status === 'pending') && (
                             <>
                               <button
-                                onClick={() => openStatusUpdateModal(booking.id, 'confirmed', booking.customer_name || null)}
+                                onClick={() =>
+                                  openStatusUpdateModal(
+                                    booking.id,
+                                    'confirmed',
+                                    booking.customer_name || null
+                                  )
+                                }
                                 className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
                               >
                                 {t('common.confirm')}
                               </button>
                               <button
-                                onClick={() => openStatusUpdateModal(booking.id, 'rejected', booking.customer_name || null)}
+                                onClick={() =>
+                                  openStatusUpdateModal(
+                                    booking.id,
+                                    'rejected',
+                                    booking.customer_name || null
+                                  )
+                                }
                                 className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium"
                               >
                                 {t('common.reject')}
                               </button>
                             </>
                           )}
+                          {booking.status === 'confirmed' && (
+                            <button
+                              onClick={() =>
+                                openStatusUpdateModal(
+                                  booking.id,
+                                  'completed',
+                                  booking.customer_name || null
+                                )
+                              }
+                              className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                            >
+                              {t('status.completed')}
+                            </button>
+                          )}
                           {booking.status && booking.status !== 'cancelled' && booking.status !== 'completed' && (
                             <>
                               <button
-                                onClick={() => openCancelModal(booking.id, booking.customer_name || null)}
+                                onClick={() =>
+                                  openCancelModal(booking.id, booking.customer_name || null)
+                                }
                                 className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium"
                               >
                                 {t('booking.cancelBooking')}
                               </button>
                               <button
-                                onClick={() => openRescheduleModal(booking.id, booking.customer_name || null, booking.start_time)}
+                                onClick={() =>
+                                  openRescheduleModal(
+                                    booking.id,
+                                    booking.customer_name || null,
+                                    booking.start_time
+                                  )
+                                }
                                 className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
                               >
                                 {t('booking.rescheduleBooking')}
