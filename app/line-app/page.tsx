@@ -22,6 +22,286 @@ interface Shop {
   category?: string;
 }
 
+// Simple multi-language labels for LINE app UI
+const LINE_LANGS = ["ja", "en", "es", "pt", "ko", "zh"] as const;
+type LineLang = (typeof LINE_LANGS)[number];
+
+const normalizeLineLang = (lang: string): LineLang => {
+  if (lang.startsWith("pt")) return "pt";
+  if (lang === "es") return "es";
+  if (lang === "ko") return "ko";
+  if (lang === "zh") return "zh";
+  if (lang === "en") return "en";
+  return "ja";
+};
+
+const lineTexts = {
+  languageLabel: {
+    ja: "言語:",
+    en: "Language:",
+    es: "Idioma:",
+    pt: "Idioma:",
+    ko: "언어:",
+    zh: "语言：",
+  },
+  searchPlaceholder: {
+    ja: "店舗名、場所で検索...",
+    en: "Search shops by name, location...",
+    es: "Buscar tiendas por nombre o ubicación...",
+    pt: "Busque lojas por nome ou localização...",
+    ko: "상호명이나 위치로 매장을 검색하세요...",
+    zh: "按店名或位置搜索店铺...",
+  },
+  allCategories: {
+    ja: "すべてのカテゴリ",
+    en: "All Categories",
+    es: "Todas las categorías",
+    pt: "Todas as categorias",
+    ko: "전체 카테고리",
+    zh: "所有类别",
+  },
+  cat_beauty: {
+    ja: "美容サービス",
+    en: "Beauty Services",
+    es: "Servicios de belleza",
+    pt: "Serviços de beleza",
+    ko: "미용 서비스",
+    zh: "美容服务",
+  },
+  cat_spa: {
+    ja: "スパ・温泉・リラクゼーション",
+    en: "Spa & Onsen",
+    es: "Spa y onsen",
+    pt: "Spa e onsen",
+    ko: "스파 & 온천",
+    zh: "水疗与温泉",
+  },
+  cat_hotels: {
+    ja: "ホテル・宿泊",
+    en: "Hotels & Stays",
+    es: "Hoteles y estancias",
+    pt: "Hotéis e estadias",
+    ko: "호텔 및 숙박",
+    zh: "酒店与住宿",
+  },
+  cat_dining: {
+    ja: "飲食・居酒屋",
+    en: "Dining & Izakaya",
+    es: "Restaurantes e izakayas",
+    pt: "Restaurantes e izakayas",
+    ko: "식당 & 이자카야",
+    zh: "餐饮和居酒屋",
+  },
+  cat_clinics: {
+    ja: "クリニック・医療",
+    en: "Clinics & Medical Care",
+    es: "Clínicas y atención médica",
+    pt: "Clínicas e cuidados médicos",
+    ko: "클리닉 & 의료",
+    zh: "诊所与医疗护理",
+  },
+  cat_activities: {
+    ja: "アクティビティ・スポーツ",
+    en: "Activities & Sports",
+    es: "Actividades y deportes",
+    pt: "Atividades e esportes",
+    ko: "액티비티 & 스포츠",
+    zh: "活动与运动",
+  },
+  allPrefectures: {
+    ja: "すべての都道府県",
+    en: "All Prefectures",
+    es: "Todas las prefecturas",
+    pt: "Todas as províncias",
+    ko: "전체 지역",
+    zh: "所有都道府县",
+  },
+  pref_tokyo: {
+    ja: "東京",
+    en: "Tokyo",
+    es: "Tokio",
+    pt: "Tóquio",
+    ko: "도쿄",
+    zh: "东京",
+  },
+  pref_osaka: {
+    ja: "大阪",
+    en: "Osaka",
+    es: "Osaka",
+    pt: "Osaka",
+    ko: "오사카",
+    zh: "大阪",
+  },
+  pref_kyoto: {
+    ja: "京都",
+    en: "Kyoto",
+    es: "Kioto",
+    pt: "Quioto",
+    ko: "교토",
+    zh: "京都",
+  },
+  pref_hokkaido: {
+    ja: "北海道",
+    en: "Hokkaido",
+    es: "Hokkaido",
+    pt: "Hokkaido",
+    ko: "홋카이도",
+    zh: "北海道",
+  },
+  searchButton: {
+    ja: "検索",
+    en: "Search",
+    es: "Buscar",
+    pt: "Buscar",
+    ko: "검색",
+    zh: "搜索",
+  },
+  noShops: {
+    ja: "店舗が見つかりませんでした。フィルターを調整してください。",
+    en: "No shops found. Try adjusting your filters.",
+    es: "No se encontraron tiendas. Intenta ajustar los filtros.",
+    pt: "Nenhuma loja encontrada. Tente ajustar os filtros.",
+    ko: "매장을 찾을 수 없습니다. 필터를 변경해 보세요.",
+    zh: "未找到店铺，请尝试调整筛选条件。",
+  },
+  bookNow: {
+    ja: "今すぐ予約",
+    en: "Book Now",
+    es: "Reservar ahora",
+    pt: "Reservar agora",
+    ko: "지금 예약",
+    zh: "立即预约",
+  },
+  bookingsTitle: {
+    ja: "予約一覧",
+    en: "My Bookings",
+    es: "Mis reservas",
+    pt: "Minhas reservas",
+    ko: "내 예약",
+    zh: "我的预约",
+  },
+  bookingsSubtitle: {
+    ja: "予約を表示・管理する",
+    en: "View and manage your bookings",
+    es: "Ver y gestionar tus reservas",
+    pt: "Ver e gerenciar suas reservas",
+    ko: "예약을 확인하고 관리하세요",
+    zh: "查看和管理您的预约",
+  },
+  bookingsButton: {
+    ja: "すべての予約を表示",
+    en: "View All Bookings",
+    es: "Ver todas las reservas",
+    pt: "Ver todas as reservas",
+    ko: "모든 예약 보기",
+    zh: "查看全部预约",
+  },
+  inboxTitle: {
+    ja: "受信箱",
+    en: "Inbox",
+    es: "Bandeja de entrada",
+    pt: "Caixa de entrada",
+    ko: "받은 메시지함",
+    zh: "收件箱",
+  },
+  inboxSubtitle: {
+    ja: "メッセージを管理するには、受信箱ページに移動してください。",
+    en: "Navigate to the inbox page to manage your messages.",
+    es: "Ve a la página de bandeja de entrada para gestionar tus mensajes.",
+    pt: "Vá para a página da caixa de entrada para gerenciar suas mensagens.",
+    ko: "메시지를 관리하려면 받은 메시지함 페이지로 이동하세요.",
+    zh: "前往收件箱页面管理您的消息。",
+  },
+  inboxButton: {
+    ja: "受信箱を開く",
+    en: "Open Inbox",
+    es: "Abrir bandeja de entrada",
+    pt: "Abrir caixa de entrada",
+    ko: "받은 메시지함 열기",
+    zh: "打开收件箱",
+  },
+  aiTitle: {
+    ja: "AIアシスタント",
+    en: "AI Assistant",
+    es: "Asistente de IA",
+    pt: "Assistente de IA",
+    ko: "AI 도우미",
+    zh: "AI 助手",
+  },
+  aiSubtitle: {
+    ja: "右下のチャットバブルを使用してAIアシスタントとチャットしてください。",
+    en: "Use the floating chat bubble in the bottom right corner to chat with the AI assistant.",
+    es: "Usa la burbuja de chat flotante en la esquina inferior derecha para hablar con el asistente de IA.",
+    pt: "Use a bolha de chat flutuante no canto inferior direito para falar com o assistente de IA.",
+    ko: "오른쪽 하단의 말풍선을 눌러 AI 도우미와 대화하세요.",
+    zh: "使用右下角的聊天气泡与 AI 助手聊天。",
+  },
+  nav_search: {
+    ja: "検索",
+    en: "Search",
+    es: "Buscar",
+    pt: "Buscar",
+    ko: "검색",
+    zh: "搜索",
+  },
+  nav_booking: {
+    ja: "予約",
+    en: "Booking",
+    es: "Reservas",
+    pt: "Reservas",
+    ko: "예약",
+    zh: "预约",
+  },
+  nav_inbox: {
+    ja: "受信箱",
+    en: "Inbox",
+    es: "Bandeja",
+    pt: "Caixa",
+    ko: "받은함",
+    zh: "收件箱",
+  },
+  nav_ai: {
+    ja: "AI相談",
+    en: "AI Help",
+    es: "Ayuda IA",
+    pt: "Ajuda IA",
+    ko: "AI 도움",
+    zh: "AI 帮助",
+  },
+  favoritesTitle: {
+    ja: "保存したお店",
+    en: "Saved Shops",
+    es: "Tiendas guardadas",
+    pt: "Lojas salvas",
+    ko: "저장된 가게",
+    zh: "已保存的店铺",
+  },
+  favoritesSubtitle: {
+    ja: "お気に入りに追加したお店を確認できます。",
+    en: "See the shops you have saved as favorites.",
+    es: "Ve las tiendas que has guardado como favoritas.",
+    pt: "Veja as lojas que você salvou como favoritas.",
+    ko: "즐겨찾기에 추가한 가게를 확인하세요.",
+    zh: "查看您收藏的店铺。",
+  },
+  favoritesButton: {
+    ja: "保存したお店を見る",
+    en: "View Saved Shops",
+    es: "Ver tiendas guardadas",
+    pt: "Ver lojas salvas",
+    ko: "저장된 가게 보기",
+    zh: "查看已保存的店铺",
+  },
+  nav_favorites: {
+    ja: "保存",
+    en: "Saved",
+    es: "Guardados",
+    pt: "Salvos",
+    ko: "저장됨",
+    zh: "已保存",
+  },
+};
+
 function LineAppPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -52,6 +332,12 @@ function LineAppPageContent() {
       // Dispatch custom event to trigger rerenders in child components
       window.dispatchEvent(new CustomEvent('lineAppLanguageChanged', { detail: { language: newLang } }));
     }
+  };
+
+  const langKey = normalizeLineLang(language);
+  const tx = (key: keyof typeof lineTexts) => {
+    const entry = lineTexts[key];
+    return entry[langKey] || entry.en;
   };
 
   const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID || "";
@@ -370,7 +656,7 @@ function LineAppPageContent() {
             {/* PART 5: Language Selector */}
             <div className="flex items-center gap-3">
               <label className="text-sm text-gray-600">
-                {language === "ja" ? "言語:" : "Language:"}
+                {tx("languageLabel")}
               </label>
               <select
                 value={language}
@@ -403,7 +689,7 @@ function LineAppPageContent() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyPress={(e) => e.key === "Enter" && searchShops()}
-                    placeholder={language === 'ja' ? '店舗名、場所で検索...' : 'Search shops by name, location...'}
+                    placeholder={tx("searchPlaceholder")}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                   <div className="grid grid-cols-2 gap-3">
@@ -412,31 +698,31 @@ function LineAppPageContent() {
                       onChange={(e) => setSelectedCategory(e.target.value)}
                       className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="all">{language === 'ja' ? 'すべてのカテゴリ' : 'All Categories'}</option>
-                      <option value="beauty_services">{language === 'ja' ? '美容サービス' : 'Beauty Services'}</option>
-                      <option value="spa_onsen_relaxation">{language === 'ja' ? 'スパ・温泉・リラクゼーション' : 'Spa & Onsen'}</option>
-                      <option value="hotels_stays">{language === 'ja' ? 'ホテル・宿泊' : 'Hotels & Stays'}</option>
-                      <option value="dining_izakaya">{language === 'ja' ? '飲食・居酒屋' : 'Dining & Izakaya'}</option>
-                      <option value="clinics_medical_care">{language === 'ja' ? 'クリニック・医療' : 'Clinics & Medical Care'}</option>
-                      <option value="activities_sports">{language === 'ja' ? 'アクティビティ・スポーツ' : 'Activities & Sports'}</option>
+                      <option value="all">{tx("allCategories")}</option>
+                      <option value="beauty_services">{tx("cat_beauty")}</option>
+                      <option value="spa_onsen_relaxation">{tx("cat_spa")}</option>
+                      <option value="hotels_stays">{tx("cat_hotels")}</option>
+                      <option value="dining_izakaya">{tx("cat_dining")}</option>
+                      <option value="clinics_medical_care">{tx("cat_clinics")}</option>
+                      <option value="activities_sports">{tx("cat_activities")}</option>
                     </select>
                     <select
                       value={selectedPrefecture}
                       onChange={(e) => setSelectedPrefecture(e.target.value)}
                       className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="all">{language === 'ja' ? 'すべての都道府県' : 'All Prefectures'}</option>
-                      <option value="tokyo">{language === 'ja' ? '東京' : 'Tokyo'}</option>
-                      <option value="osaka">{language === 'ja' ? '大阪' : 'Osaka'}</option>
-                      <option value="kyoto">{language === 'ja' ? '京都' : 'Kyoto'}</option>
-                      <option value="hokkaido">{language === 'ja' ? '北海道' : 'Hokkaido'}</option>
+                      <option value="all">{tx("allPrefectures")}</option>
+                      <option value="tokyo">{tx("pref_tokyo")}</option>
+                      <option value="osaka">{tx("pref_osaka")}</option>
+                      <option value="kyoto">{tx("pref_kyoto")}</option>
+                      <option value="hokkaido">{tx("pref_hokkaido")}</option>
                     </select>
                   </div>
                   <button
                     onClick={searchShops}
                     className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                   >
-                    {language === 'ja' ? '検索' : 'Search'}
+                    {tx("searchButton")}
                   </button>
                 </div>
               </div>
@@ -451,7 +737,7 @@ function LineAppPageContent() {
                 </div>
               ) : shops.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-gray-600">{language === 'ja' ? '店舗が見つかりませんでした。フィルターを調整してください。' : 'No shops found. Try adjusting your filters.'}</p>
+                  <p className="text-gray-600">{tx("noShops")}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -479,7 +765,7 @@ function LineAppPageContent() {
                           <p className="text-sm text-gray-500 line-clamp-2">{shop.description}</p>
                         )}
                       <span className="mt-4 inline-block w-full text-center bg-blue-600 text-white py-2 rounded-lg font-semibold">
-                        {language === 'ja' ? '今すぐ予約' : 'Book Now'}
+                        {tx("bookNow")}
                       </span>
                     </div>
                   </button>
@@ -493,13 +779,13 @@ function LineAppPageContent() {
         {activeTab === "booking" && (
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{language === 'ja' ? '予約一覧' : 'My Bookings'}</h2>
-              <p className="text-gray-600">{language === 'ja' ? '予約を表示・管理する' : 'View and manage your bookings'}</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">{tx("bookingsTitle")}</h2>
+              <p className="text-gray-600">{tx("bookingsSubtitle")}</p>
               <button
                 onClick={() => router.push("/line-app/bookings")}
                 className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
               >
-                {language === 'ja' ? 'すべての予約を表示' : 'View All Bookings'}
+                {tx("bookingsButton")}
               </button>
             </div>
           </div>
@@ -508,13 +794,13 @@ function LineAppPageContent() {
         {activeTab === "inbox" && (
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="bg-white rounded-xl border border-gray-200 p-6 min-h-[400px]">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{language === 'ja' ? '受信箱' : 'Inbox'}</h2>
-              <p className="text-gray-600 mb-4">{language === 'ja' ? 'メッセージを管理するには、受信箱ページに移動してください。' : 'Navigate to the inbox page to manage your messages.'}</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">{tx("inboxTitle")}</h2>
+              <p className="text-gray-600 mb-4">{tx("inboxSubtitle")}</p>
               <button
                 onClick={() => router.push("/line-app/inbox")}
                 className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
               >
-                {language === 'ja' ? '受信箱を開く' : 'Open Inbox'}
+                {tx("inboxButton")}
               </button>
             </div>
           </div>
@@ -523,8 +809,23 @@ function LineAppPageContent() {
         {activeTab === "ai" && (
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="bg-white rounded-xl border border-gray-200 p-6 min-h-[400px]">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{language === 'ja' ? 'AIアシスタント' : 'AI Assistant'}</h2>
-              <p className="text-gray-600 mb-4">{language === 'ja' ? '右下のチャットバブルを使用してAIアシスタントとチャットしてください。' : 'Use the floating chat bubble in the bottom right corner to chat with the AI assistant.'}</p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">{tx("aiTitle")}</h2>
+              <p className="text-gray-600 mb-4">{tx("aiSubtitle")}</p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "favorites" && (
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">{tx("favoritesTitle")}</h2>
+              <p className="text-gray-600">{tx("favoritesSubtitle")}</p>
+              <button
+                onClick={() => router.push("/line-app/favorites")}
+                className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+              >
+                {tx("favoritesButton")}
+              </button>
             </div>
           </div>
         )}
@@ -551,28 +852,37 @@ function LineAppPageContent() {
                 className={`flex flex-col items-center py-2 ${activeTab === "search" ? "text-blue-600" : "text-gray-600"}`}
               >
                 <span className="text-2xl">🔍</span>
-                <span className="text-xs mt-1">{language === 'ja' ? '検索' : 'Search'}</span>
+                <span className="text-xs mt-1">{tx("nav_search")}</span>
               </button>
               <button
                 onClick={() => navigateToTab("booking")}
                 className={`flex flex-col items-center py-2 ${activeTab === "booking" ? "text-blue-600" : "text-gray-600"}`}
               >
                 <span className="text-2xl">📋</span>
-                <span className="text-xs mt-1">{language === 'ja' ? '予約' : 'Booking'}</span>
+                <span className="text-xs mt-1">{tx("nav_booking")}</span>
               </button>
               <button
                 onClick={() => navigateToTab("inbox")}
                 className={`flex flex-col items-center py-2 ${activeTab === "inbox" ? "text-blue-600" : "text-gray-600"}`}
               >
                 <span className="text-2xl">📬</span>
-                <span className="text-xs mt-1">{language === 'ja' ? '受信箱' : 'Inbox'}</span>
+                <span className="text-xs mt-1">{tx("nav_inbox")}</span>
               </button>
               <button
                 onClick={() => navigateToTab("ai")}
                 className={`flex flex-col items-center py-2 ${activeTab === "ai" ? "text-blue-600" : "text-gray-600"}`}
               >
                 <span className="text-2xl">🤖</span>
-                <span className="text-xs mt-1">{language === 'ja' ? 'AI相談' : 'AI Help'}</span>
+                <span className="text-xs mt-1">{tx("nav_ai")}</span>
+              </button>
+              <button
+                onClick={() => navigateToTab("favorites")}
+                className={`flex flex-col items-center py-2 ${
+                  activeTab === "favorites" ? "text-blue-600" : "text-gray-600"
+                }`}
+              >
+                <span className="text-2xl">⭐</span>
+                <span className="text-xs mt-1">{tx("nav_favorites")}</span>
               </button>
             </div>
           </div>
