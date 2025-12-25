@@ -48,6 +48,24 @@ app.use(express_1.default.urlencoded({ extended: true, limit: "10mb" }));
 app.get("/", (_, res) => res.send("Yoyaku Yo API running!"));
 // Health check endpoint
 app.get("/health", (_, res) => res.json({ status: "ok", service: "yoyaku-yo-api" }));
+// Test endpoint to verify analytics routes are loaded
+app.get("/test-analytics", (_, res) => {
+    const analyticsRoutes = [
+        "/analytics/revenue",
+        "/analytics/customers",
+        "/analytics/performance",
+        "/analytics/bookings",
+        "/analytics/report"
+    ];
+    res.json({
+        message: "Analytics routes test",
+        routes: analyticsRoutes,
+        analyticsRouterLoaded: typeof analytics_1.default !== "undefined",
+        analyticsRouterType: typeof analytics_1.default,
+        timestamp: new Date().toISOString(),
+        commit: process.env.RENDER_GIT_COMMIT || "unknown"
+    });
+});
 // Handle favicon requests to prevent 404 errors
 app.get("/favicon.ico", (_, res) => {
     res.status(204).end();
@@ -69,6 +87,7 @@ app.use("/owner", owner_1.default);
 app.use("/calendar", calendar_1.default);
 app.use("/reviews", reviews_1.default);
 app.use("/analytics", analytics_1.default);
+console.log("✅ Analytics routes registered: /analytics/revenue, /analytics/customers, /analytics/performance, /analytics/bookings, /analytics/report");
 app.use("/line", line_1.default);
 app.use("/qr", qr_1.default);
 app.use("/subscriptions", subscriptions_1.default);

@@ -12,6 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const supabase_1 = require("../lib/supabase");
 const router = (0, express_1.Router)();
+// Log route registration
+console.log("[Analytics Router] Initializing analytics routes...");
 // Helper to get user ID from headers
 function getUserId(req) {
     return req.headers["x-user-id"] || null;
@@ -30,6 +32,7 @@ function verifyShopOwnership(userId, shopId) {
 }
 // GET /analytics/revenue - Get revenue analytics for owner's shop
 router.get("/revenue", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("[Analytics] GET /analytics/revenue called");
     try {
         const userId = getUserId(req);
         if (!userId) {
@@ -747,4 +750,5 @@ router.get("/report", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         res.status(500).json({ error: error.message || "Internal server error" });
     }
 }));
+console.log("[Analytics Router] Routes registered: /revenue, /customers, /performance, /bookings, /report");
 exports.default = router;
