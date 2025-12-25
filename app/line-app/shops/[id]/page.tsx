@@ -955,6 +955,7 @@ export default function LineShopDetailPage() {
         </div>
       </div>
     </div>
+  </>
   );
 }
 
