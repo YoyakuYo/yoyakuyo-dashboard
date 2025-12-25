@@ -138,16 +138,29 @@ export default function LineFavoritesPage() {
 
         const verifyData = await verifyRes.json();
         const customerId = verifyData?.customer_id as string | undefined;
-        if (!customerId) {
-          setError("Could not resolve customer");
-          setLoading(false);
-          return;
+        
+        // Get LINE user ID for headers
+        const profile = await window.liff.getProfile();
+        const lineUserId = profile.userId;
+        
+        // Build headers - ALWAYS include LINE identity
+        const headers: Record<string, string> = {
+          "x-line-user-id": lineUserId,
+        };
+        
+        // Include customer_id if available, but don't require it
+        if (customerId) {
+          headers["x-user-id"] = customerId;
+          headers["x-customer-id"] = customerId;
+        }
+        
+        // Include ID token
+        if (idToken) {
+          headers["x-id-token"] = idToken;
         }
 
         const favRes = await fetch(`${apiUrl}/customers/favorites`, {
-          headers: {
-            "x-user-id": customerId,
-          },
+          headers,
         });
 
         if (!favRes.ok) {

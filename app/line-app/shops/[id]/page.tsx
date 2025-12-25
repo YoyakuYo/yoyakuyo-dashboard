@@ -217,23 +217,54 @@ export default function LineShopDetailPage() {
       return;
     }
 
-    if (!customerId) {
+    if (!shopId) return;
+
+    // Get LINE identity - ALWAYS send headers even if customerId resolution failed
+    let lineUserId = "";
+    let idToken: string | null = null;
+    
+    if (typeof window !== "undefined" && window.liff) {
+      try {
+        const profile = await window.liff.getProfile();
+        lineUserId = profile.userId;
+        idToken = await window.liff.getIDToken();
+      } catch (err) {
+        console.error("[LINE Favorites] Failed to get LINE identity:", err);
+        alert("Please open this page from the LINE app while logged in to save favorites.");
+        return;
+      }
+    }
+
+    if (!lineUserId) {
       alert("Please open this page from the LINE app while logged in to save favorites.");
       return;
     }
 
-    if (!shopId) return;
-
     setFavoriteLoading(true);
 
     try {
+      // Build headers - ALWAYS include LINE identity
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "x-line-user-id": lineUserId,
+      };
+      
+      // Include customer_id if available, but don't require it
+      if (customerId) {
+        headers["x-user-id"] = customerId;
+        headers["x-customer-id"] = customerId;
+      }
+      
+      // Include ID token if available
+      if (idToken) {
+        headers["x-id-token"] = idToken;
+      }
+
       if (isFavorite) {
         // Remove favorite
         const res = await fetch(`${apiUrl}/customers/favorites/${shopId}`, {
           method: "DELETE",
-          headers: {
-            "x-user-id": customerId,
-          },
+          headers,
         });
 
         if (res.ok) {
@@ -247,10 +278,7 @@ export default function LineShopDetailPage() {
         // Add favorite
         const res = await fetch(`${apiUrl}/customers/favorites`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-user-id": customerId,
-          },
+          headers,
           body: JSON.stringify({ shop_id: shopId }),
         });
 

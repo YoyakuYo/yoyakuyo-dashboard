@@ -14,6 +14,7 @@ interface MessagingApiOptions {
 /**
  * Resolve canonical user_id from LINE user
  * For LINE users, we need to map line_user_id -> customer_id
+ * FALLBACK: Try multiple endpoints to ensure we get customer_id
  */
 async function resolveUserId(options: MessagingApiOptions): Promise<string | null> {
   const { lineUserId, idToken, userId, bookingToken } = options;
@@ -25,6 +26,7 @@ async function resolveUserId(options: MessagingApiOptions): Promise<string | nul
   
   // If LINE user, resolve customer_id from line_accounts
   if (lineUserId && idToken) {
+    // Try resolve-user-id endpoint first
     try {
       const res = await fetch(`${apiUrl}/api/internal-messaging/resolve-user-id`, {
         method: 'POST',
@@ -38,18 +40,39 @@ async function resolveUserId(options: MessagingApiOptions): Promise<string | nul
       
       if (res.ok) {
         const data = await res.json();
-        const userId = data.user_id || data.customer_id;
-        if (userId) {
-          console.log('[Messaging API Client] ✅ Resolved user_id:', userId, 'from LINE user:', lineUserId);
-          return userId;
+        const resolvedUserId = data.user_id || data.customer_id;
+        if (resolvedUserId) {
+          console.log('[Messaging API Client] ✅ Resolved user_id via resolve-user-id:', resolvedUserId);
+          return resolvedUserId;
         }
-      } else {
-        const errorData = await res.json().catch(() => ({}));
-        console.error('[Messaging API Client] ❌ Failed to resolve user_id:', errorData);
       }
     } catch (error) {
-      console.error('[Messaging API Client] Error resolving user_id:', error);
+      console.warn('[Messaging API Client] ⚠️ resolve-user-id failed, trying fallback:', error);
     }
+    
+    // FALLBACK: Try liff/verify endpoint
+    try {
+      const verifyRes = await fetch(`${apiUrl}/api/line/liff/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id_token: idToken }),
+      });
+      
+      if (verifyRes.ok) {
+        const verifyData = await verifyRes.json();
+        const resolvedUserId = verifyData.customer_id || verifyData.user_id;
+        if (resolvedUserId) {
+          console.log('[Messaging API Client] ✅ Resolved user_id via liff/verify:', resolvedUserId);
+          return resolvedUserId;
+        }
+      }
+    } catch (error) {
+      console.warn('[Messaging API Client] ⚠️ liff/verify fallback also failed:', error);
+    }
+    
+    console.error('[Messaging API Client] ❌ All resolution methods failed for LINE user:', lineUserId);
   }
   
   // For guests, return null (they use booking_token)
@@ -62,22 +85,15 @@ async function resolveUserId(options: MessagingApiOptions): Promise<string | nul
 
 /**
  * Get auth headers for messaging API calls
- * ALWAYS includes X-User-Id if available
+ * ALWAYS includes identity headers - NEVER relies on Supabase Auth
  */
 export async function getMessagingAuthHeaders(options: MessagingApiOptions): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
   
-  // Resolve canonical user_id
-  const userId = await resolveUserId(options);
-  
-  // ALWAYS inject X-User-Id if available
-  if (userId) {
-    headers['x-user-id'] = userId;
-  }
-  
-  // Also include original identity headers for backward compatibility
+  // CRITICAL: ALWAYS send LINE identity headers if available
+  // Backend will resolve customer_id from these headers
   if (options.lineUserId) {
     headers['x-line-user-id'] = options.lineUserId;
   }
@@ -86,12 +102,29 @@ export async function getMessagingAuthHeaders(options: MessagingApiOptions): Pro
     headers['x-id-token'] = options.idToken;
   }
   
-  if (options.userId) {
-    headers['x-user-id'] = options.userId; // Override with direct userId if provided
+  // Try to resolve canonical user_id, but don't block if it fails
+  // Backend can resolve from line_user_id if needed
+  try {
+    const userId = await resolveUserId(options);
+    if (userId) {
+      headers['x-user-id'] = userId;
+      headers['x-customer-id'] = userId; // Also send as customer-id for compatibility
+    }
+  } catch (error) {
+    console.warn('[Messaging API Client] ⚠️ Failed to resolve user_id, but continuing with LINE headers:', error);
+    // Continue anyway - backend can resolve from x-line-user-id
   }
   
+  // Web user ID (direct)
+  if (options.userId) {
+    headers['x-user-id'] = options.userId;
+    headers['x-customer-id'] = options.userId;
+  }
+  
+  // Guest booking token
   if (options.bookingToken) {
     headers['x-booking-token'] = options.bookingToken;
+    headers['x-guest-id'] = options.bookingToken;
   }
   
   return headers;
