@@ -55,6 +55,9 @@ interface Review {
 }
 
 export default function LineShopDetailPage() {
+  // --- DEBUG overlay for identity headers ---
+  const [debugHeaders, setDebugHeaders] = useState<Record<string,string>>({});
+  const [debugError, setDebugError] = useState("");
   const params = useParams();
   const router = useRouter();
   const shopId = params.id as string;
@@ -298,8 +301,8 @@ export default function LineShopDetailPage() {
       if (finalCustomerId) headers["x-customer-id"] = finalCustomerId;
       if (lineUserId) headers["x-line-user-id"] = lineUserId;
       // Future: if (guestId) headers["x-guest-id"] = guestId;
-      // Do NOT send x-user-id or x-id-token for public API
-
+      setDebugHeaders(headers);
+      setDebugError("");
 
       if (isFavorite) {
         // Remove favorite
@@ -339,18 +342,10 @@ export default function LineShopDetailPage() {
           });
           
           if (res.status === 409) {
-            // Already favorited; just mark as favorite in UI
             setIsFavorite(true);
-          } else if (res.status === 401) {
-            // Authentication error - show detailed message
-            const errorMsg = errorData.error || "Authentication failed";
-            console.error("[LINE Favorites] ❌ Auth error details:", {
-              customer_id: finalCustomerId,
-              line_user_id: lineUserId,
-              backend_error: errorData,
-            });
-            alert(`${errorMsg}. Please try refreshing the page.`);
           } else {
+            // Show in overlay
+            setDebugError(JSON.stringify(errorData?.error || errorData || "Unknown error", null, 2));
             alert(errorData.error || "Failed to add favorite");
           }
         }
@@ -635,7 +630,14 @@ export default function LineShopDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <>
+      {(Object.keys(debugHeaders).length > 0 || debugError) && (
+        <div style={{ position: 'fixed', bottom: 16, left: 16, background: '#ffefe0', color: '#b00', padding: 12, borderRadius: 8, fontSize: 13, zIndex: 11000, width: 360, maxWidth: '90vw' }}>
+          <div>Headers sent:<pre style={{margin:0}}>{JSON.stringify(debugHeaders, null, 2)}</pre></div>
+          {debugError && <div style={{ marginTop: 10 }}>Backend error:<pre style={{margin:0}}>{debugError}</pre></div>}
+        </div>
+      )}
+      <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
