@@ -247,11 +247,14 @@ export default function LineShopDetailPage() {
       // customer_id from verify endpoint IS the auth.users.id
       // get_or_create_customer_from_line creates both auth.users and customers records
       // So we MUST resolve customer_id before making the API call
+      // ALWAYS call verify endpoint to ensure customer exists in auth.users
       let finalCustomerId = customerId;
       
-      if (!finalCustomerId && idToken) {
-        // Try to resolve customer_id from verify endpoint
+      // ALWAYS verify and create customer if needed (even if customerId exists in state)
+      // This ensures the customer exists in auth.users before the backend check
+      if (idToken) {
         try {
+          console.log("[LINE Favorites] Verifying LINE user and ensuring customer exists in auth.users...");
           const verifyRes = await fetch(`${apiUrl}/api/line/liff/verify`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -260,23 +263,33 @@ export default function LineShopDetailPage() {
           
           if (verifyRes.ok) {
             const verifyData = await verifyRes.json();
-            finalCustomerId = verifyData?.customer_id;
-            if (finalCustomerId) {
+            const verifiedCustomerId = verifyData?.customer_id;
+            if (verifiedCustomerId) {
+              console.log("[LINE Favorites] ✅ Verified customer_id:", verifiedCustomerId);
+              finalCustomerId = verifiedCustomerId;
               // Update state for future calls
-              setCustomerId(finalCustomerId);
+              setCustomerId(verifiedCustomerId);
+            } else {
+              console.error("[LINE Favorites] ❌ Verify endpoint did not return customer_id");
             }
+          } else {
+            const errorData = await verifyRes.json().catch(() => ({}));
+            console.error("[LINE Favorites] ❌ Verify endpoint failed:", errorData);
           }
         } catch (err) {
-          console.warn("[LINE Favorites] Failed to resolve customer_id:", err);
+          console.error("[LINE Favorites] ❌ Error calling verify endpoint:", err);
         }
       }
       
       // Backend REQUIRES x-user-id to check auth.users
       if (!finalCustomerId) {
+        console.error("[LINE Favorites] ❌ No customer_id available after verification");
         alert("Failed to verify your identity. Please try again.");
         setFavoriteLoading(false);
         return;
       }
+      
+      console.log("[LINE Favorites] Using customer_id for API call:", finalCustomerId);
       
       // Build headers - MUST include customer_id as x-user-id
       const headers: Record<string, string> = {
@@ -317,10 +330,29 @@ export default function LineShopDetailPage() {
           setIsFavorite(true);
         } else {
           const errorData = await res.json().catch(() => ({}));
-          console.error("[LINE Favorites] Failed to add favorite:", errorData);
+          console.error("[LINE Favorites] ❌ Failed to add favorite:", {
+            status: res.status,
+            statusText: res.statusText,
+            error: errorData,
+            headers: {
+              'x-user-id': finalCustomerId,
+              'x-line-user-id': lineUserId,
+              'x-id-token': idToken ? 'present' : 'missing',
+            },
+          });
+          
           if (res.status === 409) {
             // Already favorited; just mark as favorite in UI
             setIsFavorite(true);
+          } else if (res.status === 401) {
+            // Authentication error - show detailed message
+            const errorMsg = errorData.error || "Authentication failed";
+            console.error("[LINE Favorites] ❌ Auth error details:", {
+              customer_id: finalCustomerId,
+              line_user_id: lineUserId,
+              backend_error: errorData,
+            });
+            alert(`${errorMsg}. Please try refreshing the page.`);
           } else {
             alert(errorData.error || "Failed to add favorite");
           }
