@@ -291,18 +291,15 @@ export default function LineShopDetailPage() {
       
       console.log("[LINE Favorites] Using customer_id for API call:", finalCustomerId);
       
-      // Build headers - MUST include customer_id as x-user-id
+      // Build headers for customer contract
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-        "x-user-id": finalCustomerId, // REQUIRED: Backend checks auth.users with this
-        "x-customer-id": finalCustomerId, // Also send as customer-id for compatibility
-        "x-line-user-id": lineUserId, // Include LINE identity for logging
       };
-      
-      // Include ID token if available
-      if (idToken) {
-        headers["x-id-token"] = idToken;
-      }
+      if (finalCustomerId) headers["x-customer-id"] = finalCustomerId;
+      if (lineUserId) headers["x-line-user-id"] = lineUserId;
+      // Future: if (guestId) headers["x-guest-id"] = guestId;
+      // Do NOT send x-user-id or x-id-token for public API
+
 
       if (isFavorite) {
         // Remove favorite
