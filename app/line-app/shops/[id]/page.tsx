@@ -243,17 +243,48 @@ export default function LineShopDetailPage() {
     setFavoriteLoading(true);
 
     try {
-      // Build headers - ALWAYS include LINE identity
+      // CRITICAL: Backend /customers/favorites requires x-user-id (customer_id)
+      // customer_id from verify endpoint IS the auth.users.id
+      // get_or_create_customer_from_line creates both auth.users and customers records
+      // So we MUST resolve customer_id before making the API call
+      let finalCustomerId = customerId;
+      
+      if (!finalCustomerId && idToken) {
+        // Try to resolve customer_id from verify endpoint
+        try {
+          const verifyRes = await fetch(`${apiUrl}/api/line/liff/verify`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id_token: idToken }),
+          });
+          
+          if (verifyRes.ok) {
+            const verifyData = await verifyRes.json();
+            finalCustomerId = verifyData?.customer_id;
+            if (finalCustomerId) {
+              // Update state for future calls
+              setCustomerId(finalCustomerId);
+            }
+          }
+        } catch (err) {
+          console.warn("[LINE Favorites] Failed to resolve customer_id:", err);
+        }
+      }
+      
+      // Backend REQUIRES x-user-id to check auth.users
+      if (!finalCustomerId) {
+        alert("Failed to verify your identity. Please try again.");
+        setFavoriteLoading(false);
+        return;
+      }
+      
+      // Build headers - MUST include customer_id as x-user-id
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-        "x-line-user-id": lineUserId,
+        "x-user-id": finalCustomerId, // REQUIRED: Backend checks auth.users with this
+        "x-customer-id": finalCustomerId, // Also send as customer-id for compatibility
+        "x-line-user-id": lineUserId, // Include LINE identity for logging
       };
-      
-      // Include customer_id if available, but don't require it
-      if (customerId) {
-        headers["x-user-id"] = customerId;
-        headers["x-customer-id"] = customerId;
-      }
       
       // Include ID token if available
       if (idToken) {

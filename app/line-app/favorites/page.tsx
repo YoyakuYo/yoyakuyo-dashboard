@@ -139,20 +139,26 @@ export default function LineFavoritesPage() {
         const verifyData = await verifyRes.json();
         const customerId = verifyData?.customer_id as string | undefined;
         
-        // Get LINE user ID for headers
+        // CRITICAL: customer_id from verify endpoint IS the auth.users.id
+        // get_or_create_customer_from_line creates both auth.users and customers records
+        // So customer_id MUST exist in auth.users for the backend check to pass
+        if (!customerId) {
+          setError("Failed to resolve customer identity. Please try again.");
+          setLoading(false);
+          return;
+        }
+        
+        // Get LINE user ID for headers (for logging/debugging)
         const profile = await window.liff.getProfile();
         const lineUserId = profile.userId;
         
-        // Build headers - ALWAYS include LINE identity
+        // Build headers - MUST include customer_id as x-user-id for backend auth check
+        // Backend /customers/favorites checks auth.users using x-user-id
         const headers: Record<string, string> = {
-          "x-line-user-id": lineUserId,
+          "x-user-id": customerId, // REQUIRED: Backend checks auth.users with this
+          "x-customer-id": customerId, // Also send as customer-id for compatibility
+          "x-line-user-id": lineUserId, // Include LINE identity for logging
         };
-        
-        // Include customer_id if available, but don't require it
-        if (customerId) {
-          headers["x-user-id"] = customerId;
-          headers["x-customer-id"] = customerId;
-        }
         
         // Include ID token
         if (idToken) {
