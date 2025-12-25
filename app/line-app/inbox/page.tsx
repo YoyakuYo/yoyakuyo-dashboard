@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 import { messagingFetch } from "@/app/lib/messagingApiClient";
 import { createClient } from "@supabase/supabase-js";
+import { useLineAppI18n } from "../i18n";
 
 // Supabase client will be initialized with JWT from backend
 // This is set in the component after verifying LINE ID token
@@ -41,6 +42,7 @@ interface Message {
 }
 
 function LineInboxPageContent() {
+  const { t } = useLineAppI18n();
   // VISIBLE DEBUG STATE (for phone testing - no console access)
   const [rtDebug, setRtDebug] = useState<string>("");
   const [rtStatus, setRtStatus] = useState<string>("");
@@ -1119,7 +1121,7 @@ function LineInboxPageContent() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">{language === 'ja' ? '読み込み中...' : 'Loading...'}</p>
+          <p className="mt-4 text-gray-600">{t("loading")}</p>
         </div>
       </div>
     );
@@ -1134,12 +1136,12 @@ function LineInboxPageContent() {
         <header className="bg-white border-b border-gray-200 flex-shrink-0 z-10">
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold text-gray-900">{language === 'ja' ? '受信箱' : 'Inbox'}</h1>
+              <h1 className="text-xl font-bold text-gray-900">{t("inboxTitleShort")}</h1>
               <button
                 onClick={() => router.push("/line-app")}
                 className="text-sm text-blue-600 hover:text-blue-700"
               >
-                {language === 'ja' ? '戻る' : 'Back'}
+                {t("back")}
               </button>
             </div>
           </div>
@@ -1160,7 +1162,7 @@ function LineInboxPageContent() {
               <div className="md:hidden border-b border-gray-200">
                 <div className="p-3 flex-shrink-0">
                   <h2 className="font-semibold text-gray-900 text-sm">
-                    {language === 'ja' ? '会話を選択' : 'Select a conversation'}
+                    {t("selectConversation")}
                   </h2>
                 </div>
                 <div className="max-h-48 overflow-y-auto">
@@ -1198,12 +1200,12 @@ function LineInboxPageContent() {
               {conversations.length >= 2 && (
                 <div className="w-1/3 border-r border-gray-200 flex flex-col min-w-0 hidden md:flex">
                 <div className="p-3 border-b border-gray-200 flex-shrink-0">
-                  <h2 className="font-semibold text-gray-900 text-sm">{language === 'ja' ? '会話' : 'Conversations'}</h2>
+                  <h2 className="font-semibold text-gray-900 text-sm">{t("conversationsTitle")}</h2>
                 </div>
                 <div className="flex-1 overflow-y-auto min-h-0">
                   {conversations.length === 0 ? (
                     <div className="p-4 text-center text-gray-500">
-                      <p className="text-sm">{language === 'ja' ? '会話がありません' : 'No conversations yet'}</p>
+                      <p className="text-sm">{t("noConversationsYet")}</p>
                     </div>
                   ) : (
                     conversations.map((conv) => (
@@ -1250,16 +1252,16 @@ function LineInboxPageContent() {
                     {loadingMessages ? (
                       <div className="text-center text-gray-500">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="mt-2 text-sm">{language === 'ja' ? 'メッセージを読み込み中...' : 'Loading messages...'}</p>
+                        <p className="mt-2 text-sm">{t("loadingMessages")}</p>
                       </div>
                     ) : error ? (
                       <div className="text-center text-red-600 mt-8 p-4 bg-red-50 rounded-lg border border-red-200">
-                        <p className="font-semibold">⚠️ {language === 'ja' ? 'エラー' : 'Error'}</p>
+                        <p className="font-semibold">⚠️ {t("error")}</p>
                         <p className="text-sm mt-2">{error}</p>
                       </div>
                     ) : messages.length === 0 ? (
                       <div className="text-center text-gray-500 mt-8">
-                        <p>{language === 'ja' ? 'メッセージがありません。会話を始めましょう！' : 'No messages yet. Start the conversation!'}</p>
+                        <p>{t("noMessagesYet")}</p>
                       </div>
                     ) : (
                       messages.map((message) => {
@@ -1335,7 +1337,7 @@ function LineInboxPageContent() {
                             sendMessage();
                           }
                         }}
-                        placeholder={language === 'ja' ? 'メッセージを入力...' : 'Type a message...'}
+                        placeholder={t("typeMessage")}
                         rows={2}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
                         disabled={sending}
@@ -1345,7 +1347,7 @@ function LineInboxPageContent() {
                         disabled={sending || !newMessage.trim()}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm whitespace-nowrap"
                       >
-                        {sending ? (language === 'ja' ? '送信中...' : 'Sending...') : (language === 'ja' ? '送信' : 'Send')}
+                        {sending ? t("sending") : t("send")}
                       </button>
                     </div>
                   </div>
@@ -1354,11 +1356,11 @@ function LineInboxPageContent() {
                 <div className="flex-1 flex items-center justify-center">
                   <div className="text-center text-gray-500">
                     {conversations.length >= 2 ? (
-                      <p className="text-lg">{language === 'ja' ? '会話を選択してください' : 'Select a conversation'}</p>
+                      <p className="text-lg">{t("selectConversation")}</p>
                     ) : conversations.length === 1 ? (
-                      <p className="text-lg">{language === 'ja' ? '読み込み中...' : 'Loading conversation...'}</p>
+                      <p className="text-lg">{t("loading")}</p>
                     ) : (
-                      <p className="text-lg">{language === 'ja' ? '会話がありません' : 'No conversations yet'}</p>
+                      <p className="text-lg">{t("noConversationsYet")}</p>
                     )}
                   </div>
                 </div>

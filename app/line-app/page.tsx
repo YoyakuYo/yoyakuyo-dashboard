@@ -3,8 +3,9 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
-import { BrowseAIAssistant } from "@/app/browse/components/BrowseAIAssistant";
 import { BrowseAIProvider } from "@/app/components/BrowseAIContext";
+import { useLineAppI18n } from "./i18n";
+import { LineAIAssistantPanel } from "./components/LineAIAssistantPanel";
 
 // LINE LIFF SDK types
 declare global {
@@ -230,7 +231,7 @@ const lineTexts = {
   },
   aiSubtitle: {
     ja: "右下のチャットバブルを使用してAIアシスタントとチャットしてください。",
-    en: "Use the floating chat bubble in the bottom right corner to chat with the AI assistant.",
+    en: "Open the AI tab to chat with the AI assistant.",
     es: "Usa la burbuja de chat flotante en la esquina inferior derecha para hablar con el asistente de IA.",
     pt: "Use a bolha de chat flutuante no canto inferior direito para falar com o assistente de IA.",
     ko: "오른쪽 하단의 말풍선을 눌러 AI 도우미와 대화하세요.",
@@ -305,6 +306,7 @@ const lineTexts = {
 function LineAppPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { t, language } = useLineAppI18n();
   const [liffInitialized, setLiffInitialized] = useState(false);
   const [lineUser, setLineUser] = useState<any>(null);
   const [lineUserId, setLineUserId] = useState<string>("");
@@ -316,23 +318,6 @@ function LineAppPageContent() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("search");
-  // PART 5: Language selector state - with global state management
-  const [language, setLanguage] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('line_app_language') || 'ja';
-    }
-    return 'ja';
-  });
-
-  // Update language and trigger rerender
-  const updateLanguage = (newLang: string) => {
-    setLanguage(newLang);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('line_app_language', newLang);
-      // Dispatch custom event to trigger rerenders in child components
-      window.dispatchEvent(new CustomEvent('lineAppLanguageChanged', { detail: { language: newLang } }));
-    }
-  };
 
   const langKey = normalizeLineLang(language);
   const tx = (key: keyof typeof lineTexts) => {
@@ -626,7 +611,7 @@ function LineAppPageContent() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading LINE profile...</p>
+          <p className="mt-4 text-gray-600">{t("loading")}</p>
         </div>
       </div>
     );
@@ -636,10 +621,10 @@ function LineAppPageContent() {
     <BrowseAIProvider>
       <div className="min-h-screen bg-gray-50 pb-20">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <header className="bg-white border-b border-gray-200 sticky top-14 z-10">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between mb-3">
-              <h1 className="text-xl font-bold text-gray-900">Yoyaku Yo</h1>
+              <h1 className="text-xl font-bold text-gray-900">{t("appName")}</h1>
               {lineUser && (
                 <div className="flex items-center gap-2">
                   {lineUser.pictureUrl && (
@@ -652,27 +637,6 @@ function LineAppPageContent() {
                   <span className="text-sm text-gray-700">{lineUser.displayName}</span>
                 </div>
               )}
-            </div>
-            {/* PART 5: Language Selector */}
-            <div className="flex items-center gap-3">
-              <label className="text-sm text-gray-600">
-                {tx("languageLabel")}
-              </label>
-              <select
-                value={language}
-                onChange={(e) => {
-                  const newLang = e.target.value;
-                  updateLanguage(newLang);
-                }}
-                className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="ja">日本語</option>
-                <option value="en">English</option>
-                <option value="es">Español</option>
-                <option value="pt-BR">Português</option>
-                <option value="ko">한국어</option>
-                <option value="zh">中文</option>
-              </select>
             </div>
           </div>
         </header>
@@ -807,12 +771,14 @@ function LineAppPageContent() {
         )}
 
         {activeTab === "ai" && (
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-6 min-h-[400px]">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{tx("aiTitle")}</h2>
-              <p className="text-gray-600 mb-4">{tx("aiSubtitle")}</p>
-            </div>
-          </div>
+          <LineAIAssistantPanel
+            shops={shops}
+            selectedPrefecture={selectedPrefecture !== "all" ? selectedPrefecture : undefined}
+            selectedCategoryId={selectedCategory !== "all" ? selectedCategory : undefined}
+            searchQuery={searchQuery || undefined}
+            lineUserId={lineUserId}
+            lineCustomerProfileId={lineCustomerProfileId}
+          />
         )}
 
         {activeTab === "favorites" && (
@@ -829,19 +795,6 @@ function LineAppPageContent() {
             </div>
           </div>
         )}
-
-        {/* AI Assistant - Only show floating bubble, remove duplicate chat tab */}
-        <BrowseAIAssistant
-          shops={shops}
-          selectedPrefecture={selectedPrefecture !== "all" ? selectedPrefecture : undefined}
-          selectedCity={undefined}
-          selectedCategoryId={selectedCategory !== "all" ? selectedCategory : undefined}
-          searchQuery={searchQuery || undefined}
-          locale="ja"
-          lineUserId={lineUserId}
-          lineCustomerProfileId={lineCustomerProfileId}
-        />
-
 
         {/* Navigation Footer */}
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-20">
@@ -898,7 +851,7 @@ export default function LineAppPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading LINE App...</p>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     }>

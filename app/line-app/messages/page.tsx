@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 import { createClient } from "@supabase/supabase-js";
+import { useLineAppI18n } from "../i18n";
 
 // Initialize Supabase client for realtime
 // PART 4: Realtime subscription for live message updates
@@ -31,6 +32,7 @@ interface Message {
 }
 
 export default function MessagesPage() {
+  const { t } = useLineAppI18n();
   const searchParams = useSearchParams();
   const shopId = searchParams.get('shop_id');
   const bookingId = searchParams.get('booking_id');
@@ -270,7 +272,7 @@ export default function MessagesPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading messages...</p>
+          <p className="text-gray-600">{t("loadingMessages")}</p>
         </div>
       </div>
     );
@@ -279,15 +281,15 @@ export default function MessagesPage() {
   return (
     <div className="bg-gray-50 flex flex-col" style={{ height: '100dvh', maxHeight: '100dvh' }}>
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10">
-        <h1 className="text-lg font-semibold text-gray-900">Messages</h1>
+      <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-14 z-10">
+        <h1 className="text-lg font-semibold text-gray-900">{t("messagesTitle")}</h1>
       </div>
 
       {/* Messages List */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.length === 0 ? (
           <div className="text-center text-gray-500 mt-8">
-            <p>No messages yet. Start the conversation!</p>
+            <p>{t("noMessagesYet")}</p>
           </div>
         ) : (
           messages.map((message) => {
@@ -316,7 +318,7 @@ export default function MessagesPage() {
                   }}
                 >
                   {isAI && (
-                    <p className="text-xs font-semibold text-purple-700 mb-1">AI Assistant</p>
+                    <p className="text-xs font-semibold text-purple-700 mb-1">{t("aiTitle")}</p>
                   )}
                   <p className="text-sm whitespace-pre-wrap break-words">{message.body}</p>
                   <p
@@ -350,7 +352,7 @@ export default function MessagesPage() {
                 sendMessage();
               }
             }}
-            placeholder="Type a message..."
+            placeholder={t("typeMessage")}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
             disabled={sending || !conversationId}
           />

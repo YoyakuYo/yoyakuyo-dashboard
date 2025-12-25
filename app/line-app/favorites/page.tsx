@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
+import { useLineAppI18n } from "../i18n";
 
 declare global {
   interface Window {
@@ -26,91 +27,24 @@ interface FavoriteRecord {
   shops?: FavoriteShop;
 }
 
-type LineLang = "ja" | "en" | "es" | "pt" | "ko" | "zh";
-
-const normalizeLineLang = (lang: string): LineLang => {
-  if (lang.startsWith("pt")) return "pt";
-  if (lang === "es") return "es";
-  if (lang === "ko") return "ko";
-  if (lang === "zh") return "zh";
-  if (lang === "en") return "en";
-  return "ja";
-};
-
-const texts = {
-  title: {
-    ja: "保存したお店",
-    en: "Saved Shops",
-    es: "Tiendas guardadas",
-    pt: "Lojas salvas",
-    ko: "저장된 가게",
-    zh: "已保存的店铺",
-  },
-  noFavorites: {
-    ja: "まだ保存したお店がありません。",
-    en: "You have not saved any shops yet.",
-    es: "Todavía no has guardado ninguna tienda.",
-    pt: "Você ainda não salvou nenhuma loja.",
-    ko: "아직 저장한 가게가 없습니다.",
-    zh: "您还没有保存任何店铺。",
-  },
-  browseButton: {
-    ja: "お店を探す",
-    en: "Browse shops",
-    es: "Buscar tiendas",
-    pt: "Procurar lojas",
-    ko: "가게 찾기",
-    zh: "浏览店铺",
-  },
-  backButton: {
-    ja: "戻る",
-    en: "Back",
-    es: "Volver",
-    pt: "Voltar",
-    ko: "뒤로",
-    zh: "返回",
-  },
-  bookButton: {
-    ja: "予約する",
-    en: "Book",
-    es: "Reservar",
-    pt: "Reservar",
-    ko: "예약",
-    zh: "预约",
-  },
-};
-
 export default function LineFavoritesPage() {
   const router = useRouter();
+  const { t: li } = useLineAppI18n();
   const [favorites, setFavorites] = useState<FavoriteRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [language, setLanguage] = useState<LineLang>("ja");
-
-  const t = (key: keyof typeof texts) => {
-    const langKey = normalizeLineLang(language);
-    const entry = texts[key];
-    return entry[langKey] || entry.en;
-  };
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedLang = window.localStorage.getItem("line_app_language") || "ja";
-      setLanguage(normalizeLineLang(storedLang));
-    }
-  }, []);
 
   useEffect(() => {
     const loadFavorites = async () => {
       if (!apiUrl) {
-        setError("API URL not configured");
+        setError(li("apiUrlNotConfigured"));
         setLoading(false);
         return;
       }
 
       try {
         if (typeof window === "undefined" || !window.liff) {
-          setError("LINE app is not available");
+          setError(li("lineAppNotAvailable"));
           setLoading(false);
           return;
         }
@@ -118,7 +52,7 @@ export default function LineFavoritesPage() {
         await window.liff.ready;
         const idToken = await window.liff.getIDToken();
         if (!idToken) {
-          setError("Failed to get LINE ID token");
+          setError(li("lineAppNotAvailable"));
           setLoading(false);
           return;
         }
@@ -131,7 +65,7 @@ export default function LineFavoritesPage() {
         });
 
         if (!verifyRes.ok) {
-          setError("Failed to verify LINE user");
+          setError(li("failedToVerifyLineUser"));
           setLoading(false);
           return;
         }
@@ -143,7 +77,7 @@ export default function LineFavoritesPage() {
         // get_or_create_customer_from_line creates both auth.users and customers records
         // So customer_id MUST exist in auth.users for the backend check to pass
         if (!customerId) {
-          setError("Failed to resolve customer identity. Please try again.");
+          setError(li("failedToVerifyLineUser"));
           setLoading(false);
           return;
         }
@@ -201,15 +135,15 @@ export default function LineFavoritesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-4">
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-white border-b border-gray-200 sticky top-14 z-10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => router.back()}
             className="text-sm text-gray-600 hover:text-gray-900"
           >
-            ← {t("backButton")}
+            ← {li("back")}
           </button>
-          <h1 className="text-lg font-bold text-gray-900">{t("title")}</h1>
+          <h1 className="text-lg font-bold text-gray-900">{li("savedShopsTitle")}</h1>
           <span className="w-8" />
         </div>
       </header>
@@ -218,6 +152,7 @@ export default function LineFavoritesPage() {
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">{li("loading")}</p>
           </div>
         ) : error ? (
           <div className="bg-white rounded-xl border border-red-200 p-6 text-center">
@@ -225,12 +160,12 @@ export default function LineFavoritesPage() {
           </div>
         ) : favorites.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-            <p className="text-gray-600 mb-4">{t("noFavorites")}</p>
+            <p className="text-gray-600 mb-4">{li("noSavedShops")}</p>
             <button
               onClick={() => router.push("/line-app?tab=search")}
               className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
             >
-              {t("browseButton")}
+              {li("browseShops")}
             </button>
           </div>
         ) : (
@@ -267,13 +202,13 @@ export default function LineFavoritesPage() {
                         onClick={() => router.push(`/line-app/shops/${shop.id}`)}
                         className="flex-1 px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50"
                       >
-                        {t("browseButton")}
+                        {li("browseShops")}
                       </button>
                       <button
                         onClick={() => router.push(`/line-app/shops/${shop.id}`)}
                         className="flex-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
                       >
-                        {t("bookButton")}
+                        {li("bookNow")}
                       </button>
                     </div>
                   </div>

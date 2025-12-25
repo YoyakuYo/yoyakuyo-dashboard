@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
+import { useLineAppI18n } from "../../i18n";
 
 export const dynamic = 'force-dynamic';
 
@@ -48,6 +49,7 @@ function LineBookingPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { t } = useLineAppI18n();
   const shopId = params.shopId as string;
   const serviceId = searchParams.get("service_id");
   
@@ -343,7 +345,7 @@ function LineBookingPageContent() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Initializing LINE app...</p>
+          <p className="mt-4 text-gray-600">{t("loading")}</p>
         </div>
       </div>
     );
@@ -376,17 +378,17 @@ function LineBookingPageContent() {
             onClick={() => router.back()}
             className="text-gray-600 hover:text-gray-900"
           >
-            ← Back
+            ← {t("back")}
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">Book Appointment</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t("bookAppointment")}</h1>
         </div>
 
         {service ? (
           <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">{service.name}</h2>
-            <p className="text-gray-600">Duration: {service.duration} minutes</p>
+            <p className="text-gray-600">{t("durationLabel")}: {service.duration} {t("minutes")}</p>
             {service.price && (
-              <p className="text-gray-900 font-bold mt-2">Price: ¥{service.price}</p>
+              <p className="text-gray-900 font-bold mt-2">{t("priceLabel")}: ¥{service.price}</p>
             )}
           </div>
         ) : (
@@ -401,7 +403,7 @@ function LineBookingPageContent() {
           {/* Date Selection */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Date
+              {t("selectDate")}
             </label>
             <select
               value={selectedDate}
@@ -409,7 +411,7 @@ function LineBookingPageContent() {
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Choose a date</option>
+              <option value="">{t("chooseDate")}</option>
               {getAvailableDates().map((date) => (
                 <option key={date} value={date}>
                   {new Date(date).toLocaleDateString("en-US", {
@@ -427,13 +429,13 @@ function LineBookingPageContent() {
           {selectedDate && (
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Time
+                {t("selectTime")}
               </label>
               {loading ? (
-                <p className="text-gray-600">Loading available times...</p>
+                <p className="text-gray-600">{t("loadingTimes")}</p>
               ) : timeSlots.length === 0 ? (
                 <div className="space-y-2">
-                  <p className="text-gray-600">No available times for this date</p>
+                  <p className="text-gray-600">{t("noAvailableTimes")}</p>
                   <p className="text-gray-500 text-sm">
                     This shop may be closed on this date, or all timeslots are booked. Please try another date.
                   </p>
@@ -469,7 +471,7 @@ function LineBookingPageContent() {
             disabled={!selectedDate || !selectedTime || submitting}
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            {submitting ? "Booking..." : "Confirm Booking"}
+            {submitting ? t("bookingSubmitting") : t("confirmBooking")}
           </button>
         </form>
       </div>
@@ -483,7 +485,7 @@ export default function LineBookingPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading booking page...</p>
+          <p className="mt-4 text-gray-600">{/* shell handles locale */}Loading...</p>
         </div>
       </div>
     }>

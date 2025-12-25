@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiUrl } from "@/lib/apiClient";
+import { useLineAppI18n } from "../../i18n";
 
 export const dynamic = 'force-dynamic';
 
@@ -55,9 +56,7 @@ interface Review {
 }
 
 export default function LineShopDetailPage() {
-  // --- DEBUG overlay for identity headers ---
-  const [debugHeaders, setDebugHeaders] = useState<Record<string,string>>({});
-  const [debugError, setDebugError] = useState("");
+  const { t } = useLineAppI18n();
   const params = useParams();
   const router = useRouter();
   const shopId = params.id as string;
@@ -216,7 +215,7 @@ export default function LineShopDetailPage() {
 
   const toggleFavorite = async () => {
     if (!apiUrl) {
-      alert("API URL is not configured. Please try again later.");
+      alert(t("apiUrlNotConfigured"));
       return;
     }
 
@@ -233,13 +232,13 @@ export default function LineShopDetailPage() {
         idToken = await window.liff.getIDToken();
       } catch (err) {
         console.error("[LINE Favorites] Failed to get LINE identity:", err);
-        alert("Please open this page from the LINE app while logged in to save favorites.");
+        alert(t("lineAppNotAvailable"));
         return;
       }
     }
 
     if (!lineUserId) {
-      alert("Please open this page from the LINE app while logged in to save favorites.");
+      alert(t("lineAppNotAvailable"));
       return;
     }
 
@@ -287,7 +286,7 @@ export default function LineShopDetailPage() {
       // Backend REQUIRES x-user-id to check auth.users
       if (!finalCustomerId) {
         console.error("[LINE Favorites] ❌ No customer_id available after verification");
-        alert("Failed to verify your identity. Please try again.");
+        alert(t("failedToVerifyLineUser"));
         setFavoriteLoading(false);
         return;
       }
@@ -301,8 +300,6 @@ export default function LineShopDetailPage() {
       if (finalCustomerId) headers["x-customer-id"] = finalCustomerId;
       if (lineUserId) headers["x-line-user-id"] = lineUserId;
       // Future: if (guestId) headers["x-guest-id"] = guestId;
-      setDebugHeaders(headers);
-      setDebugError("");
 
       if (isFavorite) {
         // Remove favorite
@@ -316,7 +313,7 @@ export default function LineShopDetailPage() {
         } else {
           const errorData = await res.json().catch(() => ({}));
           console.error("[LINE Favorites] Failed to remove favorite:", errorData);
-          alert(errorData.error || "Failed to remove favorite");
+          alert(errorData.error || t("error"));
         }
       } else {
         // Add favorite
@@ -344,15 +341,13 @@ export default function LineShopDetailPage() {
           if (res.status === 409) {
             setIsFavorite(true);
           } else {
-            // Show in overlay
-            setDebugError(JSON.stringify(errorData?.error || errorData || "Unknown error", null, 2));
-            alert(errorData.error || "Failed to add favorite");
+            alert(errorData.error || t("error"));
           }
         }
       }
     } catch (err: any) {
       console.error("[LINE Favorites] Error toggling favorite:", err);
-      alert(err?.message || "Failed to update favorite");
+      alert(err?.message || t("error"));
     } finally {
       setFavoriteLoading(false);
     }
@@ -518,19 +513,19 @@ export default function LineShopDetailPage() {
     e.preventDefault();
     if (reviewRating === 0 || !reviewContent.trim()) {
       console.error('[Shop Reviews] Validation failed: rating or content missing');
-      alert('Please provide both a rating and review content.');
+      alert(t("pleaseProvideRatingAndReview"));
       return;
     }
 
     if (!shopId) {
       console.error('[Shop Reviews] ❌ CRITICAL: shop_id is missing');
-      alert('Shop information is missing. Cannot submit review.');
+      alert(t("shopInfoMissing"));
       return;
     }
 
     if (!lineUserId) {
       console.error('[Shop Reviews] ❌ CRITICAL: line_user_id is missing');
-      alert('User identification failed. Please try again.');
+      alert(t("userIdentificationFailed"));
       return;
     }
 
@@ -593,7 +588,7 @@ export default function LineShopDetailPage() {
       setReviewContent('');
       
       // Show success message
-      alert('Review submitted successfully! Thank you for your feedback.');
+      alert(t("reviewSubmittedSuccess"));
       
       // Reload reviews
       const reviewsRes = await fetch(`${apiUrl}/reviews?shop_id=${shopId}&limit=10`);
@@ -624,22 +619,16 @@ export default function LineShopDetailPage() {
   if (!shop) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-600">Shop not found</p>
+        <p className="text-gray-600">{t("shopNotFound")}</p>
       </div>
     );
   }
 
   return (
     <>
-      {(Object.keys(debugHeaders).length > 0 || debugError) && (
-        <div style={{ position: 'fixed', bottom: 16, left: 16, background: '#ffefe0', color: '#b00', padding: 12, borderRadius: 8, fontSize: 13, zIndex: 11000, width: 360, maxWidth: '90vw' }}>
-          <div>Headers sent:<pre style={{margin:0}}>{JSON.stringify(debugHeaders, null, 2)}</pre></div>
-          {debugError && <div style={{ marginTop: 10 }}>Backend error:<pre style={{margin:0}}>{debugError}</pre></div>}
-        </div>
-      )}
       <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-white border-b border-gray-200 sticky top-14 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -647,7 +636,7 @@ export default function LineShopDetailPage() {
               onClick={() => router.back()}
               className="text-gray-600 hover:text-gray-900"
             >
-              ← Back
+              ← {t("back")}
             </button>
             <h1 className="text-lg font-bold text-gray-900">{shop.name}</h1>
             </div>
@@ -662,7 +651,7 @@ export default function LineShopDetailPage() {
               }`}
             >
               <span>{isFavorite ? "♥" : "♡"}</span>
-              <span>{isFavorite ? "Saved" : "Save"}</span>
+              <span>{isFavorite ? t("saved") : t("save")}</span>
             </button>
           </div>
         </div>
@@ -686,21 +675,21 @@ export default function LineShopDetailPage() {
           
           {shop.address && (
             <div className="mb-3">
-              <p className="text-sm text-gray-600">📍 Address</p>
+              <p className="text-sm text-gray-600">📍 {t("addressLabel")}</p>
               <p className="text-gray-900">{shop.address}</p>
             </div>
           )}
 
           {shop.phone && (
             <div className="mb-3">
-              <p className="text-sm text-gray-600">📞 Phone</p>
+              <p className="text-sm text-gray-600">📞 {t("phoneLabel")}</p>
               <p className="text-gray-900">{shop.phone}</p>
             </div>
           )}
 
           {shop.description && (
             <div className="mb-3">
-              <p className="text-sm text-gray-600">Description</p>
+              <p className="text-sm text-gray-600">{t("descriptionLabel")}</p>
               <p className="text-gray-900">{shop.description}</p>
             </div>
           )}
@@ -708,11 +697,11 @@ export default function LineShopDetailPage() {
 
         {/* Booking Section - Full Booking Form */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-lg">
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">📅 Book an Appointment</h3>
+          <h3 className="text-2xl font-bold text-gray-900 mb-4">📅 {t("bookAppointment")}</h3>
           
           {bookingSuccess && (
             <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-green-800 font-medium">✅ Booking successful! Redirecting to your bookings...</p>
+              <p className="text-green-800 font-medium">{t("bookingSuccessRedirect")}</p>
             </div>
           )}
 
@@ -724,21 +713,21 @@ export default function LineShopDetailPage() {
 
           {!shop?.is_verified ? (
             <div className="text-center py-8">
-              <p className="text-gray-600 mb-4">This shop is not yet verified</p>
+              <p className="text-gray-600 mb-4">{t("shopNotVerified")}</p>
               <p className="text-sm text-gray-500">
-                Bookings will be available once this shop is claimed.
+                {t("bookingsAvailableOnceClaimed")}
               </p>
             </div>
           ) : services.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-600 mb-4">No services available</p>
+              <p className="text-gray-600 mb-4">{t("noServicesAvailable")}</p>
             </div>
           ) : (
             <form onSubmit={handleBookingSubmit} className="space-y-6">
               {/* Service Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Service *
+                  {t("selectService")} *
                 </label>
                 <select
                   value={selectedServiceId}
@@ -751,7 +740,7 @@ export default function LineShopDetailPage() {
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="">Choose a service</option>
+                  <option value="">{t("chooseService")}</option>
                   {services.map((service) => (
                     <option key={service.id} value={service.id}>
                       {service.name} {service.price ? `- ¥${service.price}` : ''} ({service.duration} min)
@@ -766,8 +755,8 @@ export default function LineShopDetailPage() {
                         <div>
                           <p className="text-sm font-medium text-gray-900">{service.name}</p>
                           <p className="text-xs text-gray-600">
-                            Duration: {service.duration} minutes
-                            {service.price && ` • Price: ¥${service.price}`}
+                            {t("durationLabel")}: {service.duration} {t("minutes")}
+                            {service.price && ` • ${t("priceLabel")}: ¥${service.price}`}
                           </p>
                           {service.description && (
                             <p className="text-xs text-gray-500 mt-1">{service.description}</p>
@@ -783,7 +772,7 @@ export default function LineShopDetailPage() {
               {selectedServiceId && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Date *
+                    {t("selectDate")} *
                   </label>
                   <select
                     value={selectedDate}
@@ -795,7 +784,7 @@ export default function LineShopDetailPage() {
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="">Choose a date</option>
+                    <option value="">{t("chooseDate")}</option>
                     {getAvailableDates().map((date) => (
                       <option key={date} value={date}>
                         {new Date(date).toLocaleDateString("en-US", {
@@ -814,17 +803,17 @@ export default function LineShopDetailPage() {
               {selectedDate && selectedServiceId && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Time *
+                    {t("selectTime")} *
                   </label>
                   {loadingTimeSlots ? (
                     <div className="text-center py-4">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                      <p className="text-gray-600 text-sm mt-2">Loading available times...</p>
+                      <p className="text-gray-600 text-sm mt-2">{t("loadingTimes")}</p>
                     </div>
                   ) : timeSlots.length === 0 ? (
                     <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <p className="text-yellow-800 text-sm">
-                        No available times for this date. Please try another date.
+                        {t("noAvailableTimes")}
                       </p>
                     </div>
                   ) : (
@@ -857,7 +846,7 @@ export default function LineShopDetailPage() {
                 disabled={!selectedServiceId || !selectedDate || !selectedTime || submitting}
                 className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-md"
               >
-                {submitting ? "Booking..." : "Confirm Booking"}
+                {submitting ? t("bookingSubmitting") : t("confirmBooking")}
               </button>
             </form>
           )}
@@ -865,13 +854,13 @@ export default function LineShopDetailPage() {
 
         {/* Reviews Section */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">⭐ Reviews</h3>
+          <h3 className="text-2xl font-bold text-gray-900 mb-4">⭐ {t("reviews")}</h3>
           
           {showReviewForm ? (
             <div className="mb-6">
               <form onSubmit={handleReviewSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Rating *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t("rating")} *</label>
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
@@ -886,14 +875,14 @@ export default function LineShopDetailPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Your review *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{t("yourReview")} *</label>
                   <textarea
                     value={reviewContent}
                     onChange={(e) => setReviewContent(e.target.value)}
                     rows={4}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    placeholder="Share your experience..."
+                    placeholder={t("yourReview")}
                   />
                 </div>
                 <div className="flex gap-2">
@@ -902,7 +891,7 @@ export default function LineShopDetailPage() {
                     disabled={submittingReview || reviewRating === 0 || !reviewContent.trim()}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50"
                   >
-                    {submittingReview ? 'Submitting...' : 'Submit Review'}
+                    {submittingReview ? t("submitting") : t("submit")}
                   </button>
                   <button
                     type="button"
@@ -913,7 +902,7 @@ export default function LineShopDetailPage() {
                     }}
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md"
                   >
-                    Cancel
+                    {t("cancel")}
                   </button>
                 </div>
               </form>
@@ -923,14 +912,14 @@ export default function LineShopDetailPage() {
               onClick={() => setShowReviewForm(true)}
               className="mb-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              Write Review
+              {t("writeReview")}
             </button>
           )}
           
           {loadingReviews ? (
-            <p className="text-gray-500 text-sm">Loading reviews...</p>
+            <p className="text-gray-500 text-sm">{t("loadingReviews")}</p>
           ) : reviews.length === 0 ? (
-            <p className="text-gray-500 text-sm">No reviews yet. Be the first to review!</p>
+            <p className="text-gray-500 text-sm">{t("noReviewsYet")}</p>
           ) : (
             <div className="space-y-4">
               {reviews.map((review) => (

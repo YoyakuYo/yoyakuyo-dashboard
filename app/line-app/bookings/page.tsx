@@ -4,9 +4,11 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
+import { useLineAppI18n } from "../i18n";
 
 // PART 5: Reviews section component for LINE dashboard
 function ReviewsSection({ shopId, lineUserId }: { shopId: string; lineUserId: string }) {
+  const { t } = useLineAppI18n();
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -37,19 +39,19 @@ function ReviewsSection({ shopId, lineUserId }: { shopId: string; lineUserId: st
     e.preventDefault();
     if (rating === 0 || !content.trim()) {
       console.error('[Reviews] Validation failed: rating or content missing');
-      alert('Please provide both a rating and review content.');
+      alert(t("pleaseProvideRatingAndReview"));
       return;
     }
 
     if (!shopId) {
       console.error('[Reviews] ❌ CRITICAL: shop_id is missing');
-      alert('Shop information is missing. Cannot submit review.');
+      alert(t("shopInfoMissing"));
       return;
     }
 
     if (!lineUserId) {
       console.error('[Reviews] ❌ CRITICAL: line_user_id is missing');
-      alert('User identification failed. Please try again.');
+      alert(t("userIdentificationFailed"));
       return;
     }
 
@@ -112,7 +114,7 @@ function ReviewsSection({ shopId, lineUserId }: { shopId: string; lineUserId: st
       setContent('');
       
       // Show success message
-      alert('Review submitted successfully! Thank you for your feedback.');
+      alert(t("reviewSubmittedSuccess"));
       
       // Reload reviews
       const reviewsRes = await fetch(`${apiUrl}/reviews?shop_id=${shopId}&limit=10`);
@@ -134,11 +136,11 @@ function ReviewsSection({ shopId, lineUserId }: { shopId: string; lineUserId: st
 
   return (
     <div>
-      <h4 className="font-semibold mb-3">Reviews</h4>
+      <h4 className="font-semibold mb-3">{t("reviews")}</h4>
       {showForm ? (
         <form onSubmit={handleSubmit} className="mb-4 space-y-3">
           <div>
-            <label className="block text-sm font-medium mb-1">Rating *</label>
+            <label className="block text-sm font-medium mb-1">{t("rating")} *</label>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -153,7 +155,7 @@ function ReviewsSection({ shopId, lineUserId }: { shopId: string; lineUserId: st
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Your review *</label>
+            <label className="block text-sm font-medium mb-1">{t("yourReview")} *</label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -168,14 +170,14 @@ function ReviewsSection({ shopId, lineUserId }: { shopId: string; lineUserId: st
               disabled={submitting || rating === 0 || !content.trim()}
               className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50"
             >
-              {submitting ? 'Submitting...' : 'Submit'}
+              {submitting ? t("submitting") : t("submit")}
             </button>
             <button
               type="button"
               onClick={() => setShowForm(false)}
               className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md"
             >
-              Cancel
+              {t("cancel")}
             </button>
           </div>
         </form>
@@ -184,13 +186,13 @@ function ReviewsSection({ shopId, lineUserId }: { shopId: string; lineUserId: st
           onClick={() => setShowForm(true)}
           className="mb-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
-          Write Review
+          {t("writeReview")}
         </button>
       )}
       {loading ? (
-        <p className="text-gray-500 text-sm">Loading reviews...</p>
+        <p className="text-gray-500 text-sm">{t("loadingReviews")}</p>
       ) : reviews.length === 0 ? (
-        <p className="text-gray-500 text-sm">No reviews yet.</p>
+        <p className="text-gray-500 text-sm">{t("noReviewsYet")}</p>
       ) : (
         <div className="space-y-3">
           {reviews.map((review) => (
@@ -245,6 +247,7 @@ interface Booking {
 
 function LineBookingsPageContent() {
   const router = useRouter();
+  const { t } = useLineAppI18n();
   const searchParams = useSearchParams();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -404,24 +407,24 @@ function LineBookingsPageContent() {
     
     // Show booking details in alert/modal (simple implementation)
     const details = `
-Booking Details:
-- Shop: ${shopData?.name || 'N/A'}
-- Service: ${serviceData?.name || 'N/A'}
-- Date: ${new Date(booking.start_time).toLocaleDateString('en-US', { 
+${t("bookingDetailsTitle")}:
+- ${t("bookingDetailsShop")}: ${shopData?.name || t("unknown")}
+- ${t("bookingDetailsService")}: ${serviceData?.name || t("unknown")}
+- ${t("dateLabel")}: ${new Date(booking.start_time).toLocaleDateString('en-US', { 
   weekday: 'long', 
   year: 'numeric', 
   month: 'long', 
   day: 'numeric' 
 })}
-- Time: ${new Date(booking.start_time).toLocaleTimeString('en-US', { 
+- ${t("timeLabel")}: ${new Date(booking.start_time).toLocaleTimeString('en-US', { 
   hour: '2-digit', 
   minute: '2-digit' 
 })} - ${new Date(booking.end_time).toLocaleTimeString('en-US', { 
   hour: '2-digit', 
   minute: '2-digit' 
 })}
-- Status: ${booking.status}
-- Booking ID: ${booking.id}
+- ${t("bookingDetailsStatus")}: ${booking.status}
+- ${t("bookingIdLabel")}: ${booking.id}
     `.trim();
     
     alert(details);
@@ -430,7 +433,7 @@ Booking Details:
 
   // TASK 3: Cancel booking handler
   const handleCancelBooking = async (bookingId: string) => {
-    if (!confirm('Are you sure you want to cancel this booking?')) {
+    if (!confirm(t("confirmCancelBooking"))) {
       return;
     }
 
@@ -495,7 +498,7 @@ Booking Details:
       // PROBLEM A FIX: Ensure absolute URL and proper error handling
       if (!apiUrl) {
         console.error("[LINE Bookings] ❌ CRITICAL: apiUrl is undefined!");
-        alert('API URL is not configured. Please check environment variables.');
+        alert(t("apiUrlNotConfigured"));
         setCancellingBookingId(null);
         return;
       }
@@ -512,11 +515,11 @@ Booking Details:
         console.log("[LINE Bookings] ✅ Booking cancelled successfully");
         // Refresh bookings list immediately
         await loadBookings();
-        alert('Booking cancelled successfully.');
+        alert(t("bookingCancelledSuccess"));
       } else {
         const errorData = await cancelRes.json().catch(() => ({ error: 'Failed to cancel booking' }));
         console.error("[LINE Bookings] ❌ Cancel failed:", errorData);
-        alert(`Failed to cancel booking: ${errorData.error || errorData.details || 'Unknown error'}`);
+        alert(`${t("failedToCancelBooking")}: ${errorData.error || errorData.details || t("unknown")}`);
       }
     } catch (error: any) {
       console.error("[LINE Bookings] ❌ Error cancelling booking:", error);
@@ -537,7 +540,7 @@ Booking Details:
     
     if (!shopId) {
       console.error("[LINE Bookings] ❌ No shop_id found for booking");
-      alert('Shop information not available.');
+      alert(t("shopInfoMissing"));
       return;
     }
 
@@ -550,14 +553,14 @@ Booking Details:
         console.log("[LINE Bookings] ✅ Got LINE user ID:", lineUserId);
       } catch (error) {
         console.error("[LINE Bookings] ❌ Failed to get LINE user ID:", error);
-        alert('Failed to identify user. Please try again.');
+        alert(t("userIdentificationFailed"));
         return;
       }
     }
 
     if (!lineUserId) {
       console.error("[LINE Bookings] ❌ LINE user ID is missing");
-      alert('LINE user identification failed. Please try again.');
+      alert(t("userIdentificationFailed"));
       return;
     }
 
@@ -586,15 +589,23 @@ Booking Details:
   }
 
   const success = searchParams.get("success") === "true";
+  const statusLabel = (status: string) => {
+    const key = `status_${status}` as any;
+    try {
+      return t(key);
+    } catch {
+      return status;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">My Bookings</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">{t("myBookings")}</h1>
 
         {success && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <p className="text-green-800">✅ Booking confirmed successfully!</p>
+            <p className="text-green-800">{t("bookingSuccess")}</p>
           </div>
         )}
 
@@ -605,12 +616,12 @@ Booking Details:
         )}
         {bookings.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-            <p className="text-gray-600 mb-4">You have no bookings yet.</p>
+            <p className="text-gray-600 mb-4">{t("noBookingsYet")}</p>
             <button
               onClick={() => router.push("/line-app")}
               className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
             >
-              Search Shops
+              {t("browseShops")}
             </button>
           </div>
         ) : (
@@ -638,16 +649,16 @@ Booking Details:
                         : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {booking.status}
+                    {statusLabel(booking.status)}
                   </span>
                 </div>
 
                 <div className="space-y-2 mb-4">
                   <p className="text-sm text-gray-600">
-                    <span className="font-medium">Service:</span> {Array.isArray(booking.services) ? booking.services[0]?.name : booking.services?.name || "N/A"}
+                    <span className="font-medium">{t("serviceLabel")}:</span> {Array.isArray(booking.services) ? booking.services[0]?.name : booking.services?.name || "N/A"}
                   </p>
                   <p className="text-sm text-gray-600">
-                    <span className="font-medium">Date:</span>{" "}
+                    <span className="font-medium">{t("dateLabel")}:</span>{" "}
                     {new Date(booking.start_time).toLocaleDateString("en-US", {
                       weekday: "long",
                       year: "numeric",
@@ -656,7 +667,7 @@ Booking Details:
                     })}
                   </p>
                   <p className="text-sm text-gray-600">
-                    <span className="font-medium">Time:</span>{" "}
+                    <span className="font-medium">{t("timeLabel")}:</span>{" "}
                     {new Date(booking.start_time).toLocaleTimeString("en-US", {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -671,7 +682,7 @@ Booking Details:
                       disabled={viewingBookingId === booking.id}
                       className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {viewingBookingId === booking.id ? 'Loading...' : 'View Details'}
+                      {viewingBookingId === booking.id ? t("loading") : t("viewDetails")}
                     </button>
                     {booking.status === "pending" && (
                       <button 
@@ -679,7 +690,7 @@ Booking Details:
                         disabled={cancellingBookingId === booking.id}
                         className="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {cancellingBookingId === booking.id ? 'Cancelling...' : 'Cancel'}
+                        {cancellingBookingId === booking.id ? t("cancelling") : t("cancelBooking")}
                       </button>
                     )}
                   </div>
@@ -689,7 +700,7 @@ Booking Details:
                     className="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
                   >
                     <span>💬</span>
-                    Message Shop
+                    {t("messageShop")}
                   </button>
                   {/* PART 5: Review button */}
                   <button
@@ -702,7 +713,7 @@ Booking Details:
                     className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
                   >
                     <span>⭐</span>
-                    {showReviews === (Array.isArray(booking.shops) ? booking.shops[0]?.id : booking.shops?.id || booking.shop_id) ? 'Hide Reviews' : 'Reviews'}
+                    {showReviews === (Array.isArray(booking.shops) ? booking.shops[0]?.id : booking.shops?.id || booking.shop_id) ? t("hideReviews") : t("reviews")}
                   </button>
                 </div>
                 {/* PART 5: Reviews section */}

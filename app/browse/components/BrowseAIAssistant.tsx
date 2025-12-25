@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
 import { useAIConversation, ConversationIdentity } from '@/lib/useAIConversation';
+import { useRouter } from 'next/navigation';
 
 interface Message {
   id: string;
@@ -34,6 +35,20 @@ interface BrowseAIAssistantProps {
   selectedCategoryId?: string | null;
   searchQuery?: string;
   locale?: string;
+  variant?: 'floating' | 'embedded';
+  /** When provided, transforms links like /shops/:id to `${shopLinkBasePath}/:id` */
+  shopLinkBasePath?: string;
+  /** Optional UI text overrides (used by LINE LIFF to fully localize UI without next-intl) */
+  uiText?: Partial<{
+    title: string;
+    openAriaLabel: string;
+    closeAriaLabel: string;
+    emptyTitle: string;
+    emptySubtitle: string;
+    tryAsking: string;
+    placeholder: string;
+    send: string;
+  }>;
 }
 
 export function BrowseAIAssistant({
@@ -43,13 +58,17 @@ export function BrowseAIAssistant({
   selectedCategoryId,
   searchQuery,
   locale = 'en',
+  variant = 'floating',
+  shopLinkBasePath,
+  uiText,
   lineUserId,
   lineCustomerProfileId,
 }: BrowseAIAssistantProps & { lineUserId?: string; lineCustomerProfileId?: string }) {
   const t = useTranslations();
+  const router = useRouter();
   const browseContext = useBrowseAIContext();
   const shopContext = browseContext?.shopContext;
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(variant === 'embedded');
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -298,14 +317,27 @@ export function BrowseAIAssistant({
     }
   };
 
+  const ui = {
+    title: uiText?.title ?? 'AI Assistant',
+    openAriaLabel: uiText?.openAriaLabel ?? 'Open AI Assistant',
+    closeAriaLabel: uiText?.closeAriaLabel ?? 'Close chat',
+    emptyTitle: uiText?.emptyTitle ?? "Hi! I'm your AI assistant.",
+    emptySubtitle: uiText?.emptySubtitle ?? 'I can help you find shops by category or preferences.',
+    tryAsking: uiText?.tryAsking ?? 'Try asking:',
+    placeholder: uiText?.placeholder ?? 'Ask me about shops...',
+    send: uiText?.send ?? 'Send',
+  };
+
+  const isEmbedded = variant === 'embedded';
+
   return (
     <>
       {/* Chat Bubble Button */}
-      {!isOpen && (
+      {!isEmbedded && !isOpen && (
         <button
           onClick={() => setIsOpen(true)}
           className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50 group"
-          aria-label="Open AI Assistant"
+          aria-label={ui.openAriaLabel}
         >
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -316,22 +348,31 @@ export function BrowseAIAssistant({
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col z-50">
+        <div
+          className={
+            isEmbedded
+              ? "w-full max-w-3xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col"
+              : "fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col z-50"
+          }
+          style={isEmbedded ? { height: "70vh" } : undefined}
+        >
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-3 rounded-t-xl flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-              <h3 className="font-bold">AI Assistant</h3>
+              <h3 className="font-bold">{ui.title}</h3>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:text-gray-200 transition-colors"
-              aria-label="Close chat"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            {!isEmbedded && (
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-white hover:text-gray-200 transition-colors"
+                aria-label={ui.closeAriaLabel}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
 
           {/* Messages */}
@@ -339,10 +380,10 @@ export function BrowseAIAssistant({
             {messages.length === 0 && (
               <div className="text-center text-gray-500 text-sm py-8">
                 <div className="text-4xl mb-4">🤖</div>
-                <p className="font-medium mb-2">Hi! I'm your AI assistant.</p>
-                <p className="text-xs mb-4">I can help you find shops by category or preferences.</p>
+                <p className="font-medium mb-2">{ui.emptyTitle}</p>
+                <p className="text-xs mb-4">{ui.emptySubtitle}</p>
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-700">Try asking:</p>
+                  <p className="text-xs font-semibold text-gray-700">{ui.tryAsking}</p>
                   {suggestedPrompts.slice(0, 3).map((prompt, idx) => (
                     <button
                       key={idx}
@@ -370,18 +411,19 @@ export function BrowseAIAssistant({
                   <div className="text-sm whitespace-pre-wrap">
                     {msg.content.split(/(\/shops\/[a-zA-Z0-9-]+)/g).map((part, idx) => {
                       if (part.startsWith('/shops/')) {
-                        const shopId = part.replace('/shops/', '');
+                        const sid = part.replace('/shops/', '');
+                        const targetHref = shopLinkBasePath ? `${shopLinkBasePath}/${sid}` : part;
                         return (
                           <a
                             key={idx}
-                            href={part}
+                            href={targetHref}
                             className="text-purple-600 hover:text-purple-800 underline font-semibold"
                             onClick={(e) => {
                               e.preventDefault();
-                              window.location.href = part;
+                              router.push(targetHref);
                             }}
                           >
-                            {part}
+                            {targetHref}
                           </a>
                         );
                       }
@@ -426,7 +468,7 @@ export function BrowseAIAssistant({
                     handleSend(e);
                   }
                 }}
-                placeholder="Ask me about shops..."
+                placeholder={ui.placeholder}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                 disabled={loading}
               />
@@ -435,7 +477,7 @@ export function BrowseAIAssistant({
                 disabled={loading || !input.trim()}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
               >
-                {loading ? '...' : 'Send'}
+                {loading ? '...' : ui.send}
               </button>
             </form>
           </div>

@@ -76,6 +76,12 @@ export default function DashboardLayout({
     return <>{children}</>;
   }
 
+  // LINE LIFF customer app routes must not use PublicLayoutWrapper (no public navbar/footer, no AI bubble)
+  const isLineAppRoute = pathname?.startsWith("/line-app");
+  if (isLineAppRoute) {
+    return <>{children}</>;
+  }
+
   // Check if this is the landing page (root route) - it has its own MinimalNavbar
   const isLandingPage = pathname === "/";
   
