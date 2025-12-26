@@ -9,7 +9,7 @@ import { apiUrl } from '@/lib/apiClient';
 import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
 import { useAIConversation, ConversationIdentity } from '@/lib/useAIConversation';
 import { useRouter } from 'next/navigation';
-import { getOrCreateGuestId } from '@/lib/guestId';
+import { getOrCreateGuestId, setGuestId as persistGuestId } from '@/lib/guestId';
 import { useAuth } from '@/lib/useAuth';
 
 interface Message {
@@ -81,7 +81,12 @@ export function BrowseAIAssistant({
   const [rememberedLocation, setRememberedLocation] = useState<string | null>(null);
 
   // Stable UUID guest id (shared with booking + guest inbox)
-  const [guestId] = React.useState<string | undefined>(() => getOrCreateGuestId() || undefined);
+  const [guestId, setGuestId] = React.useState<string | undefined>(() => getOrCreateGuestId() || undefined);
+  const [guestIdInput, setGuestIdInput] = useState<string>('');
+
+  function isUuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.trim());
+  }
 
   // Use customer mode for LINE users, web customer mode when logged in, guest otherwise
   // Memoize conversationIdentity to prevent unnecessary reloads
@@ -141,6 +146,13 @@ export function BrowseAIAssistant({
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
+
+  // Keep guest ID input in sync (guest only)
+  useEffect(() => {
+    if (conversationIdentity.userType === 'guest') {
+      setGuestIdInput(guestId || '');
+    }
+  }, [conversationIdentity.userType, guestId]);
 
   // Conversation history is loaded automatically by useAIConversation hook
   // No need for manual loading
@@ -382,6 +394,54 @@ export function BrowseAIAssistant({
               </button>
             )}
           </div>
+
+          {/* Guest ID panel (guest only) */}
+          {conversationIdentity.userType === 'guest' && (
+            <div className="px-4 py-3 border-b border-gray-200 bg-white">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-600 font-semibold">Guest ID</p>
+                  <p className="text-[11px] text-gray-700 font-mono break-all">{guestId || '—'}</p>
+                  <p className="mt-1 text-[11px] text-gray-500">
+                    Save this ID. You can paste it later to restore your name and history.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (guestId) navigator.clipboard.writeText(guestId);
+                  }}
+                  className="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-50"
+                >
+                  Copy
+                </button>
+              </div>
+
+              <div className="mt-2 flex gap-2">
+                <input
+                  value={guestIdInput}
+                  onChange={(e) => setGuestIdInput(e.target.value)}
+                  placeholder="Paste your Guest ID"
+                  className="flex-1 px-3 py-2 text-xs border border-gray-300 rounded-lg font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const v = guestIdInput.trim();
+                    if (!isUuid(v)) {
+                      alert('Please paste a valid Guest ID (UUID).');
+                      return;
+                    }
+                    persistGuestId(v);
+                    setGuestId(v);
+                  }}
+                  className="text-xs px-3 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+                >
+                  Use ID
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
