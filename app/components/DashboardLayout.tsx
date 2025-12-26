@@ -19,7 +19,15 @@ import { MessagesPanel } from "./owner/MessagesPanel";
 import VerificationBanner from "./VerificationBanner";
 
 // Routes that should NOT have dashboard layout (Header, Sidebar, AuthGuard)
-const authRoutes: string[] = [];
+const authRoutes: string[] = [
+  // Customer auth pages
+  "/customer-login",
+  "/customer-signup",
+  // Generic auth pages
+  "/login",
+  "/forgot-password",
+  "/reset-password",
+];
 
 export default function DashboardLayout({
   children,
