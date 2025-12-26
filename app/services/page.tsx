@@ -255,8 +255,8 @@ function ServicesPageContent() {
                 </h3>
                 <p className={`text-gray-700 mb-4 ${isJapanese ? 'font-japanese' : ''}`} style={isJapanese ? { lineHeight: '1.8' } : {}}>
                   {isJapanese 
-                    ? 'SSL暗号化、安全な決済、プライバシー保護。あなたの情報は安全です。'
-                    : 'SSL encryption, secure payments, privacy protection. Your data is safe.'}
+                    ? 'SSL暗号化とプライバシー保護で、あなたの情報を守ります。'
+                    : 'SSL encryption and privacy protection help keep your data safe.'}
                 </p>
                 <ul className="space-y-2 text-gray-600 text-sm">
                   <li className="flex items-start gap-2">
@@ -265,11 +265,11 @@ function ServicesPageContent() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>{isJapanese ? '安全な決済' : 'Secure payments'}</span>
+                    <span>{isJapanese ? 'プライバシー保護' : 'Privacy protection'}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 mt-1">✓</span>
-                    <span>{isJapanese ? 'プライバシー保護' : 'Privacy protection'}</span>
+                    <span>{isJapanese ? '安全なアカウント管理' : 'Secure account access'}</span>
                   </li>
                 </ul>
               </div>
@@ -282,8 +282,8 @@ function ServicesPageContent() {
               </h3>
               <p className={`text-xl mb-8 text-white/90 ${isJapanese ? 'font-japanese' : ''}`}>
                 {isJapanese 
-                  ? '無料でアカウントを作成して、日本中の素晴らしい店舗を発見しましょう。'
-                  : 'Create a free account and discover amazing shops across Japan.'}
+                  ? 'アカウントを作成して、日本中の素晴らしい店舗を発見しましょう。'
+                  : 'Create an account and discover amazing shops across Japan.'}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
@@ -292,7 +292,7 @@ function ServicesPageContent() {
                   }}
                   className="px-8 py-4 bg-white text-blue-600 font-semibold rounded-xl hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl text-lg"
                 >
-                  {isJapanese ? '無料で登録' : 'Sign Up Free'}
+                  {isJapanese ? '登録する' : 'Sign Up'}
                 </button>
                 <Link
                   href="/categories"
@@ -334,7 +334,7 @@ function ServicesPageContent() {
                 </div>
                 <div className="text-center">
                   <div className={`text-lg font-semibold mb-2 ${isJapanese ? 'font-japanese' : ''}`}>
-                    {isJapanese ? '高ボリューム予約に対応' : 'Built for high-volume bookings every month'}
+                    {isJapanese ? '忙しい予約管理に対応' : 'Built for busy schedules'}
                   </div>
                 </div>
                 <div className="text-center">
@@ -440,6 +440,37 @@ function ServicesPageContent() {
                 </ul>
               </div>
 
+              {/* Notifications (Owner) */}
+              <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-2xl p-8 border-2 border-pink-200 hover:shadow-xl transition-all hover:scale-105">
+                <div className="w-16 h-16 bg-pink-600 rounded-xl flex items-center justify-center mb-6">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                </div>
+                <h3 className={`text-2xl font-bold text-gray-900 mb-3 ${isJapanese ? 'font-japanese' : ''}`}>
+                  {isJapanese ? 'オーナー通知' : 'Owner Notifications'}
+                </h3>
+                <p className={`text-gray-700 mb-4 ${isJapanese ? 'font-japanese' : ''}`} style={isJapanese ? { lineHeight: '1.8' } : {}}>
+                  {isJapanese 
+                    ? '新着メッセージ、予約、変更などの重要な更新を受け取れます。'
+                    : 'Get alerts for important updates like new messages, bookings, and changes.'}
+                </p>
+                <ul className="space-y-2 text-gray-600 text-sm">
+                  <li className="flex items-start gap-2">
+                    <span className="text-pink-600 mt-1">✓</span>
+                    <span>{isJapanese ? '新着顧客メッセージ' : 'New customer messages'}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-pink-600 mt-1">✓</span>
+                    <span>{isJapanese ? '新規予約の通知' : 'New booking alerts'}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-pink-600 mt-1">✓</span>
+                    <span>{isJapanese ? '変更・キャンセルの更新' : 'Updates for changes & cancellations'}</span>
+                  </li>
+                </ul>
+              </div>
+
               {/* Analytics */}
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-8 border-2 border-orange-200 hover:shadow-xl transition-all hover:scale-105">
                 <div className="w-16 h-16 bg-orange-600 rounded-xl flex items-center justify-center mb-6">
@@ -448,12 +479,12 @@ function ServicesPageContent() {
                   </svg>
                 </div>
                 <h3 className={`text-2xl font-bold text-gray-900 mb-3 ${isJapanese ? 'font-japanese' : ''}`}>
-                  {isJapanese ? '分析とレポート' : 'Analytics & Reports'}
+                  {isJapanese ? 'インサイトとレポート' : 'Insights & Reports'}
                 </h3>
                 <p className={`text-gray-700 mb-4 ${isJapanese ? 'font-japanese' : ''}`} style={isJapanese ? { lineHeight: '1.8' } : {}}>
                   {isJapanese 
-                    ? '予約、収益、顧客データの詳細な分析でビジネスを最適化。'
-                    : 'Optimize your business with detailed analytics on bookings, revenue, and customers.'}
+                    ? '予約と顧客の傾向を分析して、運用を最適化。'
+                    : 'Optimize operations with analytics on bookings and customer trends.'}
                 </p>
                 <ul className="space-y-2 text-gray-600 text-sm">
                   <li className="flex items-start gap-2">
@@ -462,7 +493,7 @@ function ServicesPageContent() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-orange-600 mt-1">✓</span>
-                    <span>{isJapanese ? '収益レポート' : 'Revenue reports'}</span>
+                    <span>{isJapanese ? 'パフォーマンスレポート' : 'Performance reports'}</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-orange-600 mt-1">✓</span>
@@ -501,33 +532,6 @@ function ServicesPageContent() {
                   </li>
                 </ul>
               </div>
-
-              {/* Subscription Plans */}
-              <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl p-8 border-2 border-indigo-200 hover:shadow-xl transition-all hover:scale-105">
-                <div className="w-16 h-16 bg-indigo-600 rounded-xl flex items-center justify-center mb-6">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  </svg>
-                </div>
-                <h3 className={`text-2xl font-bold text-gray-900 mb-3 ${isJapanese ? 'font-japanese' : ''}`}>
-                  {isJapanese ? '柔軟な料金プラン' : 'Flexible Pricing'}
-                </h3>
-                <p className={`text-gray-700 mb-4 ${isJapanese ? 'font-japanese' : ''}`} style={isJapanese ? { lineHeight: '1.8' } : {}}>
-                  {isJapanese 
-                    ? 'ビジネス規模に合わせた3つのプラン。月額5,000円から始められます。'
-                    : 'Three plans to fit your business size. Start from ¥5,000/month.'}
-                </p>
-                <ul className="space-y-2 text-gray-600 text-sm">
-                  <li className="flex items-start gap-2">
-                    <span className="text-indigo-600 mt-1">✓</span>
-                    <span>{isJapanese ? 'ベーシック: ¥5,000/月' : 'Basic: ¥5,000/month'}</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-indigo-600 mt-1">✓</span>
-                    <span>{isJapanese ? 'プレミアム: ¥10,000/月' : 'Premium: ¥10,000/month'}</span>
-                  </li>
-                </ul>
-              </div>
             </div>
 
             {/* Claim Your Shop CTA */}
@@ -537,8 +541,8 @@ function ServicesPageContent() {
               </h3>
               <p className={`text-xl mb-8 text-white/90 ${isJapanese ? 'font-japanese' : ''}`}>
                 {isJapanese 
-                  ? '既存の店舗を登録するか、新しい店舗を作成して、すぐに予約を受け始めましょう。'
-                  : 'Claim your existing shop or create a new one and start accepting bookings immediately.'}
+                  ? '既存の店舗を登録するか、新しい店舗を作成して、予約管理を始めましょう。'
+                  : 'Claim your existing shop or create a new one and start managing bookings.'}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
@@ -550,10 +554,10 @@ function ServicesPageContent() {
                   {isJapanese ? 'オーナー登録' : 'Join as Owner'}
                 </button>
                 <Link
-                  href="/owner/subscription"
+                  href="/owner"
                   className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl border-2 border-white/30 hover:bg-white/20 transition-all text-lg"
                 >
-                  {isJapanese ? '料金プランを見る' : 'View Pricing Plans'}
+                  {isJapanese ? 'オーナーダッシュボードを見る' : 'View Owner Dashboard'}
                 </Link>
               </div>
             </div>
