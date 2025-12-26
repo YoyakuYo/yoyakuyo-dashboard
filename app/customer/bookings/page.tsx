@@ -273,7 +273,7 @@ function CustomerBookingsPageContent() {
                     </Link>
                   )}
                   <Link
-                    href={`/customer/shops/${booking.shops?.id}?bookingId=${booking.id}`}
+                    href={`/shops/${booking.shops?.id}?bookingId=${booking.id}`}
                     className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
                   >
                     {t('common.viewDetails') || 'View Details'}

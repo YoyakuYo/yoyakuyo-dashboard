@@ -409,7 +409,7 @@ export default function CustomerShopsPage() {
               <div className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <Link
-                    href={`/customer/shops/${shop.id}`}
+                    href={`/shops/${shop.id}`}
                     className="text-lg font-semibold text-gray-900 hover:text-blue-600"
                   >
                     {shop.name}
@@ -452,7 +452,7 @@ export default function CustomerShopsPage() {
                 )}
                 <div className="flex gap-2">
                   <Link
-                    href={`/customer/shops/${shop.id}`}
+                    href={`/shops/${shop.id}`}
                     className="flex-1 px-4 py-2 text-sm font-medium text-center text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
                   >
                     {t('shops.viewDetails')}
