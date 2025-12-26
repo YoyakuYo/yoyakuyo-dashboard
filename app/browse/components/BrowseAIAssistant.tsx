@@ -285,16 +285,30 @@ export function BrowseAIAssistant({
         })),
       };
 
-      // Add shop context if available
-      if (shopContext?.shopId) {
+      // Add shop context if available.
+      // Fallback: if this assistant is embedded for a single shop (e.g. booking page),
+      // use that shop as the active context so the AI can greet "Welcome to {shopName}".
+      const effectiveShopContext =
+        shopContext?.shopId
+          ? shopContext
+          : shops.length === 1
+          ? {
+              shopId: shops[0].id,
+              shopName: shops[0].name,
+              prefecture: shops[0].prefecture || null,
+              address: shops[0].address || null,
+            }
+          : null;
+
+      if (effectiveShopContext?.shopId) {
         requestBody.shopContext = {
-          shopId: shopContext.shopId,
-          shopName: shopContext.shopName,
-          category: shopContext.category,
-          prefecture: shopContext.prefecture,
-          address: shopContext.address,
-          ownerId: shopContext.ownerId,
-          services: shopContext.services,
+          shopId: effectiveShopContext.shopId,
+          shopName: effectiveShopContext.shopName,
+          category: (effectiveShopContext as any).category ?? null,
+          prefecture: (effectiveShopContext as any).prefecture ?? null,
+          address: (effectiveShopContext as any).address ?? null,
+          ownerId: (effectiveShopContext as any).ownerId ?? null,
+          services: (effectiveShopContext as any).services ?? null,
         };
       }
 
