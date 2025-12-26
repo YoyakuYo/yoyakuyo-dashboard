@@ -113,8 +113,16 @@ export default function SubscriptionPage() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create checkout session');
+        const text = await response.text();
+        let msg = 'Failed to create checkout session';
+        try {
+          const parsed = JSON.parse(text) as any;
+          msg = parsed?.error || parsed?.message || msg;
+        } catch {
+          // If backend returns HTML/other text, show the first part
+          msg = text?.slice(0, 200) || msg;
+        }
+        throw new Error(msg);
       }
 
       const data = await response.json();
@@ -149,8 +157,15 @@ export default function SubscriptionPage() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create portal session');
+        const text = await response.text();
+        let msg = 'Failed to create portal session';
+        try {
+          const parsed = JSON.parse(text) as any;
+          msg = parsed?.error || parsed?.message || msg;
+        } catch {
+          msg = text?.slice(0, 200) || msg;
+        }
+        throw new Error(msg);
       }
 
       const data = await response.json();
