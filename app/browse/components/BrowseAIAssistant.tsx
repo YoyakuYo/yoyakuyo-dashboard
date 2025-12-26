@@ -10,6 +10,7 @@ import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
 import { useAIConversation, ConversationIdentity } from '@/lib/useAIConversation';
 import { useRouter } from 'next/navigation';
 import { getOrCreateGuestId } from '@/lib/guestId';
+import { useAuth } from '@/lib/useAuth';
 
 interface Message {
   id: string;
@@ -67,6 +68,7 @@ export function BrowseAIAssistant({
 }: BrowseAIAssistantProps & { lineUserId?: string; lineCustomerProfileId?: string }) {
   const t = useTranslations();
   const router = useRouter();
+  const { user, session } = useAuth();
   const browseContext = useBrowseAIContext();
   const shopContext = browseContext?.shopContext;
   const [isOpen, setIsOpen] = useState(variant === 'embedded');
@@ -81,7 +83,7 @@ export function BrowseAIAssistant({
   // Stable UUID guest id (shared with booking + guest inbox)
   const [guestId] = React.useState<string | undefined>(() => getOrCreateGuestId() || undefined);
 
-  // Use customer mode for LINE users, guest mode for others
+  // Use customer mode for LINE users, web customer mode when logged in, guest otherwise
   // Memoize conversationIdentity to prevent unnecessary reloads
   const conversationIdentity: ConversationIdentity = React.useMemo(() => {
     // If LINE customer profile ID is provided, use customer mode with unique context
@@ -90,6 +92,17 @@ export function BrowseAIAssistant({
         userType: 'customer',
         userId: lineCustomerProfileId, // Use customer profile ID for LINE users
         contextKey: 'line_app', // Different context key for LINE app to isolate conversations
+        shopId: shopContext?.shopId || (shops.length > 0 ? shops[0]?.id : null),
+        guestId: undefined,
+      };
+    }
+
+    // If logged in on the web, treat as authenticated customer (NOT guest)
+    if (user?.id) {
+      return {
+        userType: 'customer',
+        userId: user.id,
+        contextKey: 'web_app',
         shopId: shopContext?.shopId || (shops.length > 0 ? shops[0]?.id : null),
         guestId: undefined,
       };
@@ -103,7 +116,7 @@ export function BrowseAIAssistant({
       shopId: shopContext?.shopId || (shops.length > 0 ? shops[0]?.id : null),
       guestId: guestId, // Use the state value which is guaranteed to be set
     };
-  }, [lineCustomerProfileId, shopContext?.shopId, shops.length > 0 ? shops[0]?.id : null, guestId]);
+  }, [lineCustomerProfileId, user?.id, shopContext?.shopId, shops.length > 0 ? shops[0]?.id : null, guestId]);
 
   const { messages: conversationMessages, addMessage, setMessages, saveConversation } = useAIConversation(conversationIdentity);
 
@@ -221,8 +234,8 @@ export function BrowseAIAssistant({
         searchQuery: searchQuery || null,
         // For LINE users, use customer profile ID. For guest users, DO NOT send userId/customerId
         // (sending customerId=guestId can cause the backend to mis-resolve as web_customer).
-        userId: lineCustomerProfileId || undefined,
-        customerId: lineCustomerProfileId || undefined,
+        userId: lineCustomerProfileId || user?.id || undefined,
+        customerId: lineCustomerProfileId || user?.id || undefined,
         // CRITICAL: Send guestId explicitly for guest conversations
         guestId: conversationIdentity.userType === 'guest' ? conversationIdentity.guestId : undefined,
         shops: shops.map(s => ({
@@ -254,6 +267,7 @@ export function BrowseAIAssistant({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify(requestBody),
       });
