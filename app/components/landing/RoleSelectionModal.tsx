@@ -9,7 +9,8 @@ const Modal = React.memo(({ isOpen, onClose, children }: { isOpen: boolean; onCl
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50" 
+      // Opaque overlay so the landing page is not visible behind the modal.
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white" 
       onClick={onClose}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) {
@@ -53,6 +54,19 @@ export default function RoleSelectionModal() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<'login' | 'join'>('login');
+
+  // Lock background scroll while modal is open
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (isOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+    return;
+  }, [isOpen]);
 
   useEffect(() => {
     const handleOpenLogin = () => {

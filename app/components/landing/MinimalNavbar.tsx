@@ -5,6 +5,12 @@ import { useTranslations } from 'next-intl';
 
 export default function MinimalNavbar() {
   const t = useTranslations('landing');
+  const handleLoginClick = () => {
+    if (typeof window !== 'undefined') {
+      // Open role selection modal for login (Customer vs Owner)
+      window.dispatchEvent(new CustomEvent('openLoginModal'));
+    }
+  };
 
   const handleJoinClick = () => {
     if (typeof window !== 'undefined') {
@@ -41,12 +47,12 @@ export default function MinimalNavbar() {
 
           {/* Right: Login + Join */}
           <div className="flex items-center gap-4">
-            <Link
-              href="/customer-login"
+            <button
+              onClick={handleLoginClick}
               className="px-4 py-2 text-sm font-medium text-gray-900 hover:text-japanese-red transition-colors"
             >
               {t('heroLogin') || 'Login'}
-            </Link>
+            </button>
             <button
               onClick={handleJoinClick}
               className="px-4 py-2 text-sm font-medium bg-japanese-red/90 hover:bg-japanese-red text-white rounded-md transition-all shadow-md hover:shadow-lg"
