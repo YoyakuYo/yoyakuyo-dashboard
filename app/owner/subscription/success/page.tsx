@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
 import Link from 'next/link';
+import { apiUrl } from '@/lib/apiClient';
 
 // Force dynamic rendering for this page (uses searchParams)
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,8 @@ function SubscriptionSuccessContent() {
   const searchParams = useSearchParams();
   const { user, loading } = useAuth();
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [status, setStatus] = useState<'checking' | 'active' | 'not_active' | 'error'>('checking');
+  const [statusMessage, setStatusMessage] = useState<string>('Checking subscription status...');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -25,6 +28,62 @@ function SubscriptionSuccessContent() {
       setSessionId(sessionIdParam);
     }
   }, [user, loading, router, searchParams]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 20; // ~60s at 3s interval
+
+    const check = async () => {
+      attempts += 1;
+      try {
+        const res = await fetch(`${apiUrl}/subscriptions/status/${user.id}`, {
+          headers: { 'x-user-id': user.id },
+          cache: 'no-store',
+        });
+
+        if (!res.ok) {
+          setStatus('error');
+          setStatusMessage(`Failed to check subscription status (${res.status})`);
+          return;
+        }
+
+        const data = (await res.json()) as any;
+        if (data?.isActive) {
+          setStatus('active');
+          setStatusMessage('Your subscription is active.');
+          return;
+        }
+
+        if (attempts >= maxAttempts) {
+          setStatus('not_active');
+          setStatusMessage('Your subscription is still processing. Please wait a moment and refresh.');
+          return;
+        }
+
+        setStatus('checking');
+        setStatusMessage('Activating your subscription… this can take up to a minute.');
+      } catch (e) {
+        setStatus('error');
+        setStatusMessage('Unexpected error while checking subscription status.');
+      }
+    };
+
+    const interval = setInterval(() => {
+      if (cancelled) return;
+      void check();
+    }, 3000);
+
+    // run immediately
+    void check();
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [user?.id]);
 
   if (loading) {
     return (
@@ -57,10 +116,10 @@ function SubscriptionSuccessContent() {
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Subscription Successful!
+            {status === 'active' ? 'Subscription Active!' : 'Subscription Processing'}
           </h1>
           <p className="text-gray-600">
-            Thank you for subscribing to Yoyaku Yo. Your subscription is now active.
+            {statusMessage}
           </p>
         </div>
 

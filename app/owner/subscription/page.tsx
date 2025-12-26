@@ -9,6 +9,7 @@ import { getSupabaseClient } from '@/lib/supabaseClient';
 
 interface SubscriptionStatus {
   hasSubscription: boolean;
+  isActive?: boolean;
   status: string;
   plan: string;
   shopId: string;
@@ -233,7 +234,7 @@ export default function SubscriptionPage() {
             value={selectedShopId}
             onChange={(e) => setSelectedShopId(e.target.value)}
             className="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            disabled={!!subscriptionStatus?.hasSubscription}
+            disabled={!!subscriptionStatus?.isActive}
           >
             {shops.map((shop) => (
               <option key={shop.id} value={shop.id}>
@@ -279,7 +280,7 @@ export default function SubscriptionPage() {
       )}
 
       {/* Subscription Plans */}
-      {!subscriptionStatus?.hasSubscription && (
+      {!subscriptionStatus?.isActive && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {plans.map((plan) => (
             <div
