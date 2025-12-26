@@ -8,6 +8,7 @@ import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
 import { useCustomAuth } from '@/lib/useCustomAuth';
 import { BrowseAIAssistant } from '@/app/browse/components/BrowseAIAssistant';
+import { getOrCreateGuestId, setGuestId } from '@/lib/guestId';
 
 interface Service {
   id: string;
@@ -51,6 +52,7 @@ export default function PublicBookingPage() {
   
   // Anonymous session ID for public visitors
   const [anonymousSessionId, setAnonymousSessionId] = useState<string | null>(null);
+  const [guestId, setGuestIdState] = useState<string | null>(null);
   
   // LINE QR code state
   const [lineQrUrl, setLineQrUrl] = useState<string | null>(null);
@@ -66,6 +68,10 @@ export default function PublicBookingPage() {
         localStorage.setItem('yoyaku_yo_anonymous_session', sessionId);
       }
       setAnonymousSessionId(sessionId);
+
+      // Guest UUID for persistence across bookings + messaging
+      const gid = getOrCreateGuestId();
+      setGuestIdState(gid);
     }
   }, []);
 
@@ -253,6 +259,7 @@ export default function PublicBookingPage() {
         headers: {
           'Content-Type': 'application/json',
           ...(user?.id && { 'x-user-id': user.id }), // Include user ID if logged in
+          ...(!user?.id && guestId ? { 'x-guest-id': guestId } : {}), // Guest identity for persistence
         },
         body: JSON.stringify({
           shop_id: shopId,
@@ -269,6 +276,11 @@ export default function PublicBookingPage() {
 
       if (res.ok) {
         const data = await res.json();
+        // If backend issued a new guest_id, persist it for future booking/messages.
+        if (!user?.id && data?.guest_id && typeof data.guest_id === 'string') {
+          setGuestId(data.guest_id);
+          setGuestIdState(data.guest_id);
+        }
         alert(t('booking.bookingSuccessful') || 'Booking successful!');
         // Reset form (but keep customer profile data if logged in)
         setSelectedService(null);
