@@ -285,7 +285,7 @@ router.post("/chat", async (req: Request, res: Response) => {
                     sender_type: "ai",
                     content: response,
                 }]);
-            }
+          }
             return res.json({ response, language_code: languageCode });
         }
 
@@ -541,7 +541,7 @@ router.post("/chat-thread", async (req: Request, res: Response) => {
                 content: response,
             }]);
             return res.json({ response, language_code: languageCode });
-        }
+          }
 
         const shopName = currentShop?.name || "Yoyakuyo verified shop";
         const strictKnowledgeBoundary = `\n\nSTRICT AI KNOWLEDGE BOUNDARY (MANDATORY):
@@ -1081,7 +1081,7 @@ STRICT RULES:
                 console.log('[AI] ✅ ai_actions_book function called by AI');
                 try {
                     const functionArgs = JSON.parse(aiMessage.function_call.arguments);
-
+                    
                     if (!functionArgs.customerConfirmed) {
                         aiResponse = await generateMultilingualResponse('please_confirm', languageCode);
                     } else {
@@ -1095,17 +1095,17 @@ STRICT RULES:
                             customer_email: functionArgs.customer_email || null,
                             customer_phone: functionArgs.customer_phone || null,
                             notes: `Created via AI chat-thread (${threadId})`,
-                        });
+                            });
 
                         if (actionResult.ok) {
-                            bookingCreated = true;
+                                bookingCreated = true;
                             createdBookingId = actionResult.booking.id;
 
-                            // Update thread with booking_id
-                            await dbClient
-                                .from("shop_threads")
-                                .update({ booking_id: createdBookingId })
-                                .eq("id", threadId);
+                                // Update thread with booking_id
+                                await dbClient
+                                    .from("shop_threads")
+                                    .update({ booking_id: createdBookingId })
+                                    .eq("id", threadId);
 
                             // Resolve service name from AI context for confirmation text (no DB lookups)
                             const bookedShop = aiContext.verifiedShops.find(s => s.shop_id === actionResult.booking.shop_id) || null;
@@ -1114,20 +1114,20 @@ STRICT RULES:
                             const startDate = new Date(actionResult.booking.start_time);
                             const endDate = new Date(actionResult.booking.end_time);
                             const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                            const timeStr = `${startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+                                const timeStr = `${startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
 
-                            aiResponse = await generateMultilingualResponse(
-                                'booking_created_details',
-                                languageCode,
-                                {
-                                    bookingId: createdBookingId || '',
+                                aiResponse = await generateMultilingualResponse(
+                                    'booking_created_details',
+                                    languageCode,
+                                    {
+                                        bookingId: createdBookingId || '',
                                     serviceName: bookedService?.name || 'Service',
-                                    dateTime: `${dateStr} ${timeStr}`,
+                                        dateTime: `${dateStr} ${timeStr}`,
                                     staffName: actionResult.booking.staff_id ? 'Assigned' : 'Not specified',
                                     customerName: functionArgs.customer_name
-                                }
-                            );
-                        } else {
+                                    }
+                                );
+                            } else {
                             if (actionResult.status === 409) {
                                 aiResponse = await generateMultilingualResponse('booking_creation_error', languageCode, { error: actionResult.error });
                             } else {

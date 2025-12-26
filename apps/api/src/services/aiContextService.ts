@@ -18,7 +18,8 @@ export type AIContext = {
   customer: {
     id: string | null;
     type: AIContextCustomerType;
-    name?: string | null;
+    name: string | null;
+    isAuthenticated: boolean;
   };
   verifiedShops: Array<{
     shop_id: string;
@@ -39,10 +40,29 @@ function coerceInt(value: unknown, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-async function resolveCustomerFromRequest(req: Request): Promise<AIContext["customer"]> {
+function formatCustomerName(row: any): string | null {
+  const name = (row?.name as string | undefined) || null;
+  if (name && name.trim()) return name.trim();
+
+  const first = (row?.first_name as string | undefined) || "";
+  const last = (row?.last_name as string | undefined) || "";
+  const full = `${first} ${last}`.trim();
+  return full ? full : null;
+}
+
+/**
+ * Resolve customer identity ONLY from headers (no Supabase Auth session).
+ * This MUST run before any AI message is sent.
+ */
+export async function resolveCustomerIdentity(req: Request): Promise<AIContext["customer"]> {
   const lineUserId = (req.headers["x-line-user-id"] as string | undefined) || null;
-  const webUserId = (req.headers["x-user-id"] as string | undefined) || null;
-  const anonymousSessionId =
+  const webUserId =
+    (req.headers["x-customer-id"] as string | undefined) ||
+    (req.headers["x-user-id"] as string | undefined) ||
+    null;
+  const guestId =
+    (req.headers["x-guest-id"] as string | undefined) ||
+    (req.headers["x-booking-token"] as string | undefined) ||
     (req.headers["x-anonymous-session-id"] as string | undefined) ||
     (req.query.anonymousSessionId as string | undefined) ||
     null;
@@ -50,19 +70,34 @@ async function resolveCustomerFromRequest(req: Request): Promise<AIContext["cust
   // LINE customer
   if (lineUserId) {
     try {
+      // Resolve canonical customer_id from LINE mapping
       const { data: mapping } = await dbClient
         .from("line_user_mappings")
-        .select("customer_id, line_display_name")
+        .select("customer_id")
         .eq("line_user_id", lineUserId)
         .maybeSingle();
 
+      const customerId = (mapping?.customer_id as string | undefined) || null;
+
+      // Fetch customer name from customers table (MANDATORY requirement)
+      let name: string | null = null;
+      if (customerId) {
+        const { data: customerRow } = await dbClient
+          .from("customers")
+          .select("id, name, first_name, last_name")
+          .eq("id", customerId)
+          .maybeSingle();
+        name = formatCustomerName(customerRow);
+      }
+
       return {
-        id: (mapping?.customer_id as string | undefined) || lineUserId,
+        id: customerId || lineUserId,
         type: "line",
-        name: (mapping?.line_display_name as string | undefined) || null,
+        name,
+        isAuthenticated: true,
       };
     } catch {
-      return { id: lineUserId, type: "line", name: null };
+      return { id: lineUserId, type: "line", name: null, isAuthenticated: true };
     }
   }
 
@@ -71,29 +106,30 @@ async function resolveCustomerFromRequest(req: Request): Promise<AIContext["cust
     try {
       const { data: customer } = await dbClient
         .from("customers")
-        .select("id, name")
+        .select("id, name, first_name, last_name")
         .eq("id", webUserId)
         .maybeSingle();
 
       return {
         id: (customer?.id as string | undefined) || webUserId,
         type: "web",
-        name: (customer as any)?.name ?? null,
+        name: formatCustomerName(customer),
+        isAuthenticated: true,
       };
     } catch {
-      return { id: webUserId, type: "web", name: null };
+      return { id: webUserId, type: "web", name: null, isAuthenticated: true };
     }
   }
 
   // Guest
-  return { id: anonymousSessionId, type: "guest", name: null };
+  return { id: guestId, type: "guest", name: null, isAuthenticated: false };
 }
 
 export async function buildAIContext(req: Request): Promise<AIContext> {
   const limit = Math.min(Math.max(coerceInt(req.query.limit, 200), 1), 1000);
   const offset = Math.max(coerceInt(req.query.offset, 0), 0);
 
-  const customer = await resolveCustomerFromRequest(req);
+  const customer = await resolveCustomerIdentity(req);
 
   // Fetch verified shops only (MANDATORY)
   const { data: shops, error: shopsError } = await dbClient
