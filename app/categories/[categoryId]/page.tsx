@@ -268,11 +268,6 @@ function CategoryPageContent() {
           onFilterChange={handleFilterChange}
         />
 
-        {/* DEBUG BOX: Show current filters, loading, shop count, and last API URL used (quick troubleshooting) */}
-        <div className="mb-6 mt-2 p-3 rounded bg-gray-800 text-white text-xs shadow-inner">
-          <b>DEBUG</b> | Filters: {JSON.stringify(filters)} | Loading: {loading ? 'true' : 'false'} | Shops: {shops.length} | Page: {currentPage}
-        </div>
-
         {/* Category Selling Section - Only show when NO filters are active */}
         {!hasActiveFilter && <CategorySellingSection categoryId={categoryId} />}
 
