@@ -2,13 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { apiUrl } from '@/lib/apiClient';
 
 export default function LineQRCodeSection() {
-  const t = useTranslations();
+  const tLanding = useTranslations('landing');
+  const tLine = useTranslations('line');
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [lineUrl, setLineUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const tl = (key: string, fallback: string) => (tLanding.has(key) ? tLanding(key) : fallback);
+  const tn = (key: string, fallback: string) => (tLine.has(key) ? tLine(key) : fallback);
 
   useEffect(() => {
     // STEP 2: QR CODE ROLE - Onboarding ONLY
@@ -53,7 +56,7 @@ export default function LineQRCodeSection() {
   const handleCopyLink = () => {
     if (lineUrl) {
       navigator.clipboard.writeText(lineUrl);
-      alert(t('line.lineLinkCopied') || 'LINE link copied to clipboard!');
+      alert(tn('lineLinkCopied', 'LINE link copied to clipboard!'));
     }
   };
 
@@ -70,34 +73,37 @@ export default function LineQRCodeSection() {
             <div className="flex-1 text-center md:text-left">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
                 <span>📱</span>
-                <span>{t('landing.lineBadge') || 'LINE Official Account'}</span>
+                <span>{tl('lineBadge', 'LINE Official Account')}</span>
               </div>
               
               <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
-                {t('landing.lineTitle') || 'Book via LINE'}
+                {tl('lineTitle', 'Book via LINE')}
               </h2>
               
               <p className="text-sm md:text-base text-gray-600 mb-3">
-                {t('landing.lineDescription') || 'Add our LINE bot and book appointments directly from LINE! Search shops, make bookings, and get instant confirmations.'}
+                {tl(
+                  'lineDescription',
+                  'Add our LINE bot and book appointments directly from LINE! Search shops, make bookings, and get instant confirmations.'
+                )}
               </p>
               
               {/* Compact feature list - 2 columns on larger screens */}
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-green-600 text-sm">✓</span>
-                  <span className="text-xs md:text-sm text-gray-700">{t('landing.lineFeature1') || 'Search shops by category and location'}</span>
+                  <span className="text-xs md:text-sm text-gray-700">{tl('lineFeature1', 'Search shops by category and location')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-green-600 text-sm">✓</span>
-                  <span className="text-xs md:text-sm text-gray-700">{t('landing.lineFeature2') || 'Book appointments with AI assistant'}</span>
+                  <span className="text-xs md:text-sm text-gray-700">{tl('lineFeature2', 'Book appointments with AI assistant')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-green-600 text-sm">✓</span>
-                  <span className="text-xs md:text-sm text-gray-700">{t('landing.lineFeature3') || 'Get booking confirmations instantly'}</span>
+                  <span className="text-xs md:text-sm text-gray-700">{tl('lineFeature3', 'Get booking confirmations instantly')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-green-600 text-sm">✓</span>
-                  <span className="text-xs md:text-sm text-gray-700">{t('landing.lineFeature4') || 'View and manage your bookings'}</span>
+                  <span className="text-xs md:text-sm text-gray-700">{tl('lineFeature4', 'View and manage your bookings')}</span>
                 </div>
               </div>
               
@@ -107,7 +113,7 @@ export default function LineQRCodeSection() {
                   className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-md hover:shadow-lg"
                 >
                   <span>🔗</span>
-                  <span>{t('landing.copyLineLink') || 'Copy LINE Link'}</span>
+                  <span>{tl('copyLineLink', 'Copy LINE Link')}</span>
                 </button>
               )}
             </div>
@@ -119,25 +125,25 @@ export default function LineQRCodeSection() {
                   <div className="bg-white p-3 rounded-lg shadow-md mb-2">
                     <img
                       src={qrCodeUrl}
-                      alt={t('landing.lineQRCode') || 'LINE QR Code'}
+                      alt={tl('lineQRCode', 'LINE QR Code')}
                       className="w-32 h-32 md:w-40 md:h-40"
                     />
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-semibold text-gray-800 mb-1">
-                      {t('landing.scanToAddLine') || 'LINE QR Code'}
+                      {tl('scanToAddLine', 'Scan to add LINE bot')}
                     </p>
                     <p className="text-xs text-gray-600">
-                      {t('landing.scanInstructions') || 'Scan to add LINE bot'}
+                      {tl('scanInstructions', 'Open LINE app and scan this QR code')}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {t('landing.scanSubtext') || 'Open LINE app and scan this QR code'}
+                      {tl('scanSubtext', 'If you are on desktop, open this page on your phone to scan.')}
                     </p>
                   </div>
                 </>
               ) : (
                 <div className="w-32 h-32 md:w-40 md:h-40 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <p className="text-gray-500 text-xs">{t('landing.loadingQR') || 'Loading...'}</p>
+                  <p className="text-gray-500 text-xs">{tl('loadingQR', 'Loading...')}</p>
                 </div>
               )}
             </div>

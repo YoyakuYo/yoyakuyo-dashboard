@@ -1535,9 +1535,11 @@
     "lineFeature3": "Get booking confirmations instantly",
     "lineFeature4": "View and manage your bookings",
     "copyLineLink": "Copy LINE Link",
+    "lineBadge": "LINE Official Account",
     "lineQRCode": "LINE QR Code",
     "scanToAddLine": "Scan to add LINE bot",
     "scanInstructions": "Open LINE app and scan this QR code",
+    "scanSubtext": "If you are on desktop, open this page on your phone to scan.",
     "loadingQR": "Loading QR code..."
   }
 }
