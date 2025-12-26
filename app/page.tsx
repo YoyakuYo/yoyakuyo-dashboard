@@ -7,6 +7,7 @@ import ReviewsSection from './components/landing/ReviewsSection';
 import RoleSelectionModal from './components/landing/RoleSelectionModal';
 import LineQRCodeSection from './components/landing/LineQRCodeSection';
 import OwnerModals from './components/OwnerModals';
+import CustomerModals from './components/CustomerModals';
 import { BrowseAIAssistant } from './browse/components/BrowseAIAssistant';
 import { BrowseAIProvider } from './components/BrowseAIContext';
 import { useLocale } from 'next-intl';
@@ -38,6 +39,9 @@ function LandingPageContent() {
 
         {/* Owner Modals for Login/Join */}
         <OwnerModals />
+
+        {/* Customer Modals for Login/Join */}
+        <CustomerModals />
       </div>
 
       {/* AI Assistant - Global floating chat bubble */}

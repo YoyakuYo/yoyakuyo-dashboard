@@ -94,11 +94,15 @@ export default function RoleSelectionModal() {
 
   const handleCustomerClick = () => {
     setIsOpen(false);
-    // Navigate to customer login/signup page
+    // Open customer modal (same behavior as owner: stay on landing and show modal)
     if (mode === 'login') {
-      router.push('/customer-login');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('openCustomerLoginModal'));
+      }, 100);
     } else {
-      router.push('/customer-signup');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('openCustomerSignupModal'));
+      }, 100);
     }
   };
 
