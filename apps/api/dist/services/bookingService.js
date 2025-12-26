@@ -68,6 +68,24 @@ function createBookingFromAi(input) {
                     error: 'shopId and customerName are required',
                 };
             }
+            // HARD SAFETY CHECK (MANDATORY):
+            // Reject AI-originated bookings for unverified shops, even if the AI tries.
+            if (input.source === 'ai') {
+                const { data: shop, error: shopError } = yield dbClient
+                    .from('shops')
+                    .select('id, is_verified')
+                    .eq('id', input.shopId)
+                    .maybeSingle();
+                if (shopError) {
+                    return { success: false, error: shopError.message };
+                }
+                if (!(shop === null || shop === void 0 ? void 0 : shop.id)) {
+                    return { success: false, error: 'Shop not found' };
+                }
+                if (!shop.is_verified) {
+                    return { success: false, error: 'Shop is not verified' };
+                }
+            }
             if (!input.startTime || !input.endTime) {
                 return {
                     success: false,
@@ -92,16 +110,11 @@ function createBookingFromAi(input) {
                 };
             }
             // Get customer_profile_id if provided (for logged-in customers)
-            let customerProfileId = input.customerProfileId || null;
-            // If customerProfileId is provided, use it directly
-            // Otherwise, create/find customer as before
-            let customerId = null;
-            if (customerProfileId) {
-                // For logged-in customers, we can use customer_profile_id directly
-                // customer_id can be null or we can try to get it from customer_profile
-                // For now, we'll leave customer_id as null when customerProfileId is provided
-            }
-            else {
+            const customerProfileId = input.customerProfileId || null;
+            // Prefer explicit canonical customerId if provided by caller.
+            // This avoids creating extra placeholder customer records.
+            let customerId = input.customerId || null;
+            if (!customerProfileId && !customerId) {
                 // Create or find customer record (NO email/phone - only name)
                 // Use a placeholder email for customer lookup (will be replaced by permanent ID system)
                 const placeholderEmail = `customer_${Date.now()}@yoyaku-yo.temp`;
@@ -132,7 +145,7 @@ function createBookingFromAi(input) {
                 customer_phone: input.customerPhone || null,
                 language_code: input.languageCode || null,
                 notes: input.notes || null,
-                customer_id: input.customerId || customerId || null, // Use created customer ID if available
+                customer_id: customerId || null, // Use explicit or created canonical customer ID if available
                 customer_profile_id: customerProfileId || null, // Add customer_profile_id for logged-in customers
                 status: 'pending', // Same default as manual booking flow
                 created_by_ai: true, // Mark as AI-created booking

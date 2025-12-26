@@ -81,6 +81,7 @@ function getEnglishTemplate(templateKey: string, variables?: Record<string, stri
     // Error messages
     'ai_unavailable': 'Sorry, the AI assistant is currently unavailable. For booking inquiries, please contact the shop directly.',
     'error_occurred': 'An error occurred while processing your request. Please try again.',
+    'no_information': `I don't have that information.`,
     
     // Booking creation
     'booking_confirm_question': 'Would you like me to confirm this booking?',

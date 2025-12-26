@@ -30,149 +30,133 @@ function verifyShopOwnership(userId, shopId) {
         return !error && data !== null;
     });
 }
-// GET /analytics/revenue - Get revenue analytics for owner's shop
+// GET /analytics/revenue - Get booked value analytics for owner's shop (services selected by customers)
 router.get("/revenue", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("[Analytics] GET /analytics/revenue called");
     try {
+        if (!supabase_1.supabaseAdmin) {
+            console.error("[Analytics] supabaseAdmin is null - SUPABASE_SERVICE_ROLE_KEY not configured");
+            return res.status(500).json({
+                error: "Database configuration error",
+                details: "SUPABASE_SERVICE_ROLE_KEY environment variable is missing"
+            });
+        }
         const userId = getUserId(req);
         if (!userId) {
             return res.status(401).json({ error: "Unauthorized" });
         }
         const { period = "30" } = req.query; // days
         const periodDays = parseInt(period, 10);
-        // Get owner's shop
-        const { data: shops, error: shopsError } = yield supabase_1.supabase
+        // Get owner's shop (force service role to bypass RLS)
+        console.log(`[Analytics] Looking for shop owned by user: ${userId}`);
+        const { data: shops, error: shopsError } = yield supabase_1.supabaseAdmin
             .from("shops")
-            .select("id")
+            .select("id, name")
             .eq("owner_user_id", userId)
             .limit(1);
-        if (shopsError || !shops || shops.length === 0) {
-            return res.status(404).json({ error: "Shop not found" });
+        console.log(`[Analytics] Shops query result:`, { shops, error: shopsError });
+        if (shopsError) {
+            console.error("[Analytics] Shops query error:", shopsError);
+            return res.status(500).json({
+                error: "Database query failed",
+                details: shopsError.message,
+                code: shopsError.code
+            });
+        }
+        if (!shops || shops.length === 0) {
+            console.log(`[Analytics] No shops found for user: ${userId}`);
+            return res.status(404).json({ error: "Shop not found - you may not own any shops" });
         }
         const shopId = shops[0].id;
-        // Get revenue analytics using optimized function or direct query
-        let revenueData = null;
-        const { data: revenueDataResult, error: revenueError } = yield supabase_1.supabase
-            .rpc("get_shop_revenue_analytics", { p_shop_id: shopId });
-        if (revenueError || !revenueDataResult || revenueDataResult.length === 0) {
-            console.error("Error fetching revenue analytics (trying fallback):", revenueError);
-            // Fallback to direct query if function doesn't exist
-            const { data: bookings, error: bookingsError } = yield supabase_1.supabase
-                .from("bookings")
-                .select(`
-          id,
-          status,
-          created_at,
-          customer_id,
-          payments(amount, status, created_at)
-        `)
-                .eq("shop_id", shopId);
-            if (bookingsError) {
-                console.error("Fallback query also failed:", bookingsError);
-                return res.status(500).json({ error: "Failed to fetch revenue analytics" });
-            }
-            // Calculate revenue from bookings
-            const allPayments = (bookings === null || bookings === void 0 ? void 0 : bookings.flatMap((b) => b.payments || [])) || [];
-            const completedPayments = allPayments.filter((p) => p.status === "completed");
-            const totalRevenue = completedPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-            const revenueLast30Days = completedPayments
-                .filter((p) => new Date(p.created_at) >= thirtyDaysAgo)
-                .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-            const revenueLast7Days = completedPayments
-                .filter((p) => new Date(p.created_at) >= sevenDaysAgo)
-                .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-            const uniqueCustomers = new Set((bookings === null || bookings === void 0 ? void 0 : bookings.map((b) => b.customer_id).filter(Boolean)) || []).size;
-            const newCustomers30Days = new Set((bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => new Date(b.created_at) >= thirtyDaysAgo).map((b) => b.customer_id).filter(Boolean)) || []).size;
-            revenueData = {
-                shop_id: shopId,
-                total_bookings: (bookings === null || bookings === void 0 ? void 0 : bookings.length) || 0,
-                completed_bookings: (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => b.status === "completed").length) || 0,
-                confirmed_bookings: (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => b.status === "confirmed").length) || 0,
-                pending_bookings: (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => b.status === "pending").length) || 0,
-                cancelled_bookings: (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => b.status === "cancelled").length) || 0,
-                total_revenue: totalRevenue,
-                revenue_last_30_days: revenueLast30Days,
-                revenue_last_7_days: revenueLast7Days,
-                average_booking_value: completedPayments.length > 0 ? totalRevenue / completedPayments.length : 0,
-                unique_customers: uniqueCustomers,
-                new_customers_30_days: newCustomers30Days,
-            };
-        }
-        else {
-            revenueData = revenueDataResult[0];
-        }
-        // Get daily revenue for the period using optimized function or direct query
+        // Calculate booked value from services selected in bookings (not payments since customers pay directly to shops)
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - periodDays);
-        const startDateStr = startDate.toISOString().split("T")[0];
-        let dailyRevenue = [];
-        const { data: dailyRevenueResult, error: dailyError } = yield supabase_1.supabase
-            .rpc("get_booking_analytics_by_date", {
-            p_shop_id: shopId,
-            p_start_date: startDateStr
-        });
-        if (dailyError || !dailyRevenueResult) {
-            console.error("Error fetching daily revenue (trying fallback):", dailyError);
-            // Fallback to direct query
-            const { data: bookings, error: bookingsError } = yield supabase_1.supabase
-                .from("bookings")
-                .select(`
-          id,
-          status,
-          created_at,
-          customer_id,
-          payments(amount, status)
-        `)
-                .eq("shop_id", shopId)
-                .gte("created_at", startDate.toISOString())
-                .order("created_at", { ascending: true });
-            if (!bookingsError && bookings) {
-                // Group by date
-                const dailyMap = new Map();
-                bookings.forEach((booking) => {
-                    var _a;
-                    const date = new Date(booking.created_at).toISOString().split("T")[0];
-                    if (!dailyMap.has(date)) {
-                        dailyMap.set(date, {
-                            booking_date: date,
-                            bookings_count: 0,
-                            completed_count: 0,
-                            confirmed_count: 0,
-                            pending_count: 0,
-                            cancelled_count: 0,
-                            revenue: 0,
-                            unique_customers: new Set(),
-                        });
-                    }
-                    const day = dailyMap.get(date);
-                    day.bookings_count++;
-                    if (booking.status === "completed")
-                        day.completed_count++;
-                    if (booking.status === "confirmed")
-                        day.confirmed_count++;
-                    if (booking.status === "pending")
-                        day.pending_count++;
-                    if (booking.status === "cancelled")
-                        day.cancelled_count++;
-                    const completedPayments = ((_a = booking.payments) === null || _a === void 0 ? void 0 : _a.filter((p) => p.status === "completed")) || [];
-                    day.revenue += completedPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-                    if (booking.customer_id)
-                        day.unique_customers.add(booking.customer_id);
-                });
-                dailyRevenue = Array.from(dailyMap.values()).map((day) => (Object.assign(Object.assign({}, day), { unique_customers: day.unique_customers.size })));
+        // Get bookings with service information
+        const { data: bookings, error: bookingsError } = yield supabase_1.supabaseAdmin
+            .from("bookings")
+            .select(`
+        id,
+        status,
+        created_at,
+        service_id,
+        services(price, name)
+      `)
+            .eq("shop_id", shopId)
+            .gte("created_at", startDate.toISOString())
+            .neq("status", "cancelled"); // Exclude cancelled bookings
+        if (bookingsError) {
+            console.error("Error fetching bookings for revenue:", bookingsError);
+            return res.status(500).json({ error: "Failed to fetch revenue analytics" });
+        }
+        // Calculate booked value from service prices
+        let totalBookedValue = 0;
+        let completedBookedValue = 0;
+        const bookingsByDate = {};
+        bookings === null || bookings === void 0 ? void 0 : bookings.forEach((booking) => {
+            var _a;
+            const servicePrice = ((_a = booking.services) === null || _a === void 0 ? void 0 : _a.price) || 0;
+            totalBookedValue += servicePrice;
+            if (booking.status === "completed") {
+                completedBookedValue += servicePrice;
             }
-        }
-        else {
-            dailyRevenue = dailyRevenueResult || [];
-        }
+            // Group by date for chart
+            const dateKey = new Date(booking.created_at).toISOString().split("T")[0];
+            bookingsByDate[dateKey] = (bookingsByDate[dateKey] || 0) + servicePrice;
+        });
+        // Calculate period metrics
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const bookedValueLast30Days = (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => new Date(b.created_at) >= thirtyDaysAgo).reduce((sum, b) => { var _a; return sum + (((_a = b.services) === null || _a === void 0 ? void 0 : _a.price) || 0); }, 0)) || 0;
+        const bookedValueLast7Days = (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => new Date(b.created_at) >= sevenDaysAgo).reduce((sum, b) => { var _a; return sum + (((_a = b.services) === null || _a === void 0 ? void 0 : _a.price) || 0); }, 0)) || 0;
+        const revenueData = [{
+                total_booked_value: totalBookedValue,
+                completed_booked_value: completedBookedValue,
+                booked_value_last_30_days: bookedValueLast30Days,
+                booked_value_last_7_days: bookedValueLast7Days,
+                total_bookings: (bookings === null || bookings === void 0 ? void 0 : bookings.length) || 0,
+                completed_bookings: (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => b.status === "completed").length) || 0
+            }];
+        // Get daily booking analytics (booked value over time)
+        let dailyRevenue = [];
+        const startDateStr = startDate.toISOString().split("T")[0];
+        // Group bookings by date for the chart
+        const dailyBookings = (bookings === null || bookings === void 0 ? void 0 : bookings.reduce((acc, booking) => {
+            var _a;
+            const date = new Date(booking.created_at).toISOString().split("T")[0];
+            if (!acc[date]) {
+                acc[date] = {
+                    booking_date: date,
+                    bookings_count: 0,
+                    completed_count: 0,
+                    confirmed_count: 0,
+                    pending_count: 0,
+                    cancelled_count: 0,
+                    booked_value: 0,
+                    unique_customers: new Set(),
+                };
+            }
+            acc[date].bookings_count++;
+            if (booking.status === "completed")
+                acc[date].completed_count++;
+            if (booking.status === "confirmed")
+                acc[date].confirmed_count++;
+            if (booking.status === "pending")
+                acc[date].pending_count++;
+            if (booking.status === "cancelled")
+                acc[date].cancelled_count++;
+            acc[date].booked_value += ((_a = booking.services) === null || _a === void 0 ? void 0 : _a.price) || 0;
+            if (booking.customer_id)
+                acc[date].unique_customers.add(booking.customer_id);
+            return acc;
+        }, {})) || {};
+        dailyRevenue = Object.values(dailyBookings).map((day) => (Object.assign(Object.assign({}, day), { unique_customers: day.unique_customers.size })));
         res.json({
             summary: revenueData,
             daily: dailyRevenue || [],
             period_days: periodDays,
+            note: "Revenue shows booked value from selected services (customers pay directly to shops)"
         });
     }
     catch (error) {
@@ -183,12 +167,15 @@ router.get("/revenue", (req, res) => __awaiter(void 0, void 0, void 0, function*
 // GET /analytics/customers - Get customer analytics
 router.get("/customers", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        if (!supabase_1.supabaseAdmin) {
+            return res.status(500).json({ error: "Database configuration error" });
+        }
         const userId = getUserId(req);
         if (!userId) {
             return res.status(401).json({ error: "Unauthorized" });
         }
         // Get owner's shop
-        const { data: shops, error: shopsError } = yield supabase_1.supabase
+        const { data: shops, error: shopsError } = yield supabase_1.supabaseAdmin
             .from("shops")
             .select("id")
             .eq("owner_user_id", userId)
@@ -197,20 +184,21 @@ router.get("/customers", (req, res) => __awaiter(void 0, void 0, void 0, functio
             return res.status(404).json({ error: "Shop not found" });
         }
         const shopId = shops[0].id;
-        // Get customer analytics for this shop (direct query - no joins to avoid timeouts)
-        const { data: bookings, error: bookingsError } = yield supabase_1.supabase
+        // Get customer analytics for this shop (separate queries to avoid relationship issues)
+        const { data: bookings, error: bookingsError } = yield supabase_1.supabaseAdmin
             .from("bookings")
             .select(`
         customer_id,
         status,
         created_at,
-        payments(amount, status)
+        id
       `)
             .eq("shop_id", shopId);
         if (bookingsError) {
             console.error("Error fetching customer analytics:", bookingsError);
             return res.status(500).json({ error: "Failed to fetch customer analytics" });
         }
+        // Note: Customers pay directly to shops, so we're calculating spent from service prices
         // Process customer data
         const customerMap = new Map();
         bookings === null || bookings === void 0 ? void 0 : bookings.forEach((booking) => {
@@ -238,8 +226,8 @@ router.get("/customers", (req, res) => __awaiter(void 0, void 0, void 0, functio
             if (booking.status === "cancelled") {
                 customer.cancelled_bookings++;
             }
-            const completedPayments = ((_a = booking.payments) === null || _a === void 0 ? void 0 : _a.filter((p) => p.status === "completed")) || [];
-            const totalSpent = completedPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+            // Calculate spent from service price (customers pay directly to shops)
+            const totalSpent = booking.status === "completed" ? (((_a = booking.services) === null || _a === void 0 ? void 0 : _a.price) || 0) : 0;
             customer.total_spent += totalSpent;
             if (new Date(booking.created_at) < new Date(customer.first_booking)) {
                 customer.first_booking = booking.created_at;
@@ -281,12 +269,15 @@ router.get("/customers", (req, res) => __awaiter(void 0, void 0, void 0, functio
 // GET /analytics/performance - Get performance metrics
 router.get("/performance", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        if (!supabase_1.supabaseAdmin) {
+            return res.status(500).json({ error: "Database configuration error" });
+        }
         const userId = getUserId(req);
         if (!userId) {
             return res.status(401).json({ error: "Unauthorized" });
         }
         // Get owner's shop
-        const { data: shops, error: shopsError } = yield supabase_1.supabase
+        const { data: shops, error: shopsError } = yield supabase_1.supabaseAdmin
             .from("shops")
             .select("id")
             .eq("owner_user_id", userId)
@@ -295,80 +286,76 @@ router.get("/performance", (req, res) => __awaiter(void 0, void 0, void 0, funct
             return res.status(404).json({ error: "Shop not found" });
         }
         const shopId = shops[0].id;
-        // Get performance metrics using optimized function or direct query
-        let performance = null;
-        const { data: performanceResult, error: performanceError } = yield supabase_1.supabase
-            .rpc("get_shop_performance_metrics", { p_shop_id: shopId });
-        if (performanceError || !performanceResult || performanceResult.length === 0) {
-            console.error("Error fetching performance metrics (trying fallback):", performanceError);
-            // Fallback to direct query
-            const { data: bookings, error: bookingsError } = yield supabase_1.supabase
-                .from("bookings")
-                .select(`
-          id,
-          status,
-          created_at,
-          customer_id,
-          payments(amount, status, created_at)
-        `)
-                .eq("shop_id", shopId);
-            const { data: reviews } = yield supabase_1.supabase
-                .from("reviews")
-                .select("id, rating")
-                .eq("shop_id", shopId)
-                .eq("status", "published");
-            if (bookingsError) {
-                console.error("Fallback query also failed:", bookingsError);
-                return res.status(500).json({ error: "Failed to fetch performance metrics" });
-            }
-            const totalBookings = (bookings === null || bookings === void 0 ? void 0 : bookings.length) || 0;
-            const completedBookings = (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => b.status === "completed").length) || 0;
-            const cancelledBookings = (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => b.status === "cancelled").length) || 0;
-            const completionRate = totalBookings > 0 ? (completedBookings / totalBookings) * 100 : 0;
-            const cancellationRate = totalBookings > 0 ? (cancelledBookings / totalBookings) * 100 : 0;
-            const allPayments = (bookings === null || bookings === void 0 ? void 0 : bookings.flatMap((b) => b.payments || [])) || [];
-            const completedPayments = allPayments.filter((p) => p.status === "completed");
-            const totalRevenue = completedPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-            const avgBookingValue = completedPayments.length > 0 ? totalRevenue / completedPayments.length : 0;
-            const uniqueCustomers = new Set((bookings === null || bookings === void 0 ? void 0 : bookings.map((b) => b.customer_id).filter(Boolean)) || []).size;
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            const newCustomers30Days = new Set((bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => new Date(b.created_at) >= thirtyDaysAgo).map((b) => b.customer_id).filter(Boolean)) || []).size;
-            const sevenDaysAgo = new Date();
-            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-            const bookingsLast7Days = (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => new Date(b.created_at) >= sevenDaysAgo).length) || 0;
-            const bookingsLast30Days = (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => new Date(b.created_at) >= thirtyDaysAgo).length) || 0;
-            const revenueLast7Days = completedPayments
-                .filter((p) => new Date(p.created_at) >= sevenDaysAgo)
-                .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-            const revenueLast30Days = completedPayments
-                .filter((p) => new Date(p.created_at) >= thirtyDaysAgo)
-                .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-            const avgRating = reviews && reviews.length > 0
-                ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
-                : 0;
-            performance = {
-                shop_id: shopId,
-                total_bookings: totalBookings,
-                completed_bookings: completedBookings,
-                cancelled_bookings: cancelledBookings,
-                completion_rate: Math.round(completionRate * 100) / 100,
-                cancellation_rate: Math.round(cancellationRate * 100) / 100,
-                total_revenue: totalRevenue,
-                average_booking_value: avgBookingValue,
-                unique_customers: uniqueCustomers,
-                new_customers_30_days: newCustomers30Days,
-                total_reviews: (reviews === null || reviews === void 0 ? void 0 : reviews.length) || 0,
-                average_rating: avgRating,
-                bookings_last_7_days: bookingsLast7Days,
-                bookings_last_30_days: bookingsLast30Days,
-                revenue_last_7_days: revenueLast7Days,
-                revenue_last_30_days: revenueLast30Days,
-            };
+        // Compute performance metrics directly from bookings + reviews
+        const { data: bookings, error: bookingsError } = yield supabase_1.supabaseAdmin
+            .from("bookings")
+            .select(`
+        id,
+        status,
+        created_at,
+        customer_id,
+        services(price)
+      `)
+            .eq("shop_id", shopId);
+        const { data: reviews } = yield supabase_1.supabaseAdmin
+            .from("reviews")
+            .select("id, rating")
+            .eq("shop_id", shopId)
+            .eq("status", "published");
+        if (bookingsError) {
+            console.error("Error fetching performance metrics:", bookingsError);
+            return res.status(500).json({ error: "Failed to fetch performance metrics" });
         }
-        else {
-            performance = performanceResult[0];
-        }
+        const totalBookings = (bookings === null || bookings === void 0 ? void 0 : bookings.length) || 0;
+        const completedBookingsCount = (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => b.status === "completed").length) || 0;
+        const cancelledBookings = (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => b.status === "cancelled").length) || 0;
+        const completionRate = totalBookings > 0 ? (completedBookingsCount / totalBookings) * 100 : 0;
+        const cancellationRate = totalBookings > 0 ? (cancelledBookings / totalBookings) * 100 : 0;
+        // Calculate booked value (revenue) from services (customers pay directly to shops)
+        const completedBookings = (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => b.status === "completed")) || [];
+        const totalBookedValue = completedBookings.reduce((sum, b) => { var _a; return sum + (((_a = b.services) === null || _a === void 0 ? void 0 : _a.price) || 0); }, 0);
+        const avgBookingValue = completedBookings.length > 0 ? totalBookedValue / completedBookings.length : 0;
+        const uniqueCustomers = new Set((bookings === null || bookings === void 0 ? void 0 : bookings.map((b) => b.customer_id).filter(Boolean)) || []).size;
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const newCustomers30Days = new Set((bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => new Date(b.created_at) >= thirtyDaysAgo).map((b) => b.customer_id).filter(Boolean)) || []).size;
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const bookingsLast7Days = (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => new Date(b.created_at) >= sevenDaysAgo).length) || 0;
+        const bookingsLast30Days = (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => new Date(b.created_at) >= thirtyDaysAgo).length) || 0;
+        const bookedValueLast7Days = completedBookings
+            .filter((b) => new Date(b.created_at) >= sevenDaysAgo)
+            .reduce((sum, b) => { var _a; return sum + (((_a = b.services) === null || _a === void 0 ? void 0 : _a.price) || 0); }, 0);
+        const bookedValueLast30Days = completedBookings
+            .filter((b) => new Date(b.created_at) >= thirtyDaysAgo)
+            .reduce((sum, b) => { var _a; return sum + (((_a = b.services) === null || _a === void 0 ? void 0 : _a.price) || 0); }, 0);
+        const avgRating = reviews && reviews.length > 0
+            ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
+            : 0;
+        const performance = {
+            shop_id: shopId,
+            total_bookings: totalBookings,
+            completed_bookings: completedBookingsCount,
+            cancelled_bookings: cancelledBookings,
+            completion_rate: Math.round(completionRate * 100) / 100,
+            cancellation_rate: Math.round(cancellationRate * 100) / 100,
+            // Revenue (booked value from services)
+            total_revenue: totalBookedValue,
+            total_booked_value: totalBookedValue,
+            average_booking_value: avgBookingValue,
+            revenue_last_7_days: bookedValueLast7Days,
+            revenue_last_30_days: bookedValueLast30Days,
+            booked_value_last_7_days: bookedValueLast7Days,
+            booked_value_last_30_days: bookedValueLast30Days,
+            // Customer / review stats
+            unique_customers: uniqueCustomers,
+            new_customers_30_days: newCustomers30Days,
+            total_reviews: (reviews === null || reviews === void 0 ? void 0 : reviews.length) || 0,
+            average_rating: avgRating,
+            bookings_last_7_days: bookingsLast7Days,
+            bookings_last_30_days: bookingsLast30Days,
+            note: "Revenue shows service prices selected by customers (customers pay directly to shops)",
+        };
         res.json(performance);
     }
     catch (error) {
@@ -379,6 +366,9 @@ router.get("/performance", (req, res) => __awaiter(void 0, void 0, void 0, funct
 // GET /analytics/bookings - Get detailed booking analytics
 router.get("/bookings", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        if (!supabase_1.supabaseAdmin) {
+            return res.status(500).json({ error: "Database configuration error" });
+        }
         const userId = getUserId(req);
         if (!userId) {
             return res.status(401).json({ error: "Unauthorized" });
@@ -387,7 +377,7 @@ router.get("/bookings", (req, res) => __awaiter(void 0, void 0, void 0, function
         const periodDays = parseInt(period, 10);
         const groupBy = group_by;
         // Get owner's shop
-        const { data: shops, error: shopsError } = yield supabase_1.supabase
+        const { data: shops, error: shopsError } = yield supabase_1.supabaseAdmin
             .from("shops")
             .select("id")
             .eq("owner_user_id", userId)
@@ -398,14 +388,13 @@ router.get("/bookings", (req, res) => __awaiter(void 0, void 0, void 0, function
         const shopId = shops[0].id;
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - periodDays);
-        let query = supabase_1.supabase
+        let query = supabase_1.supabaseAdmin
             .from("bookings")
             .select(`
         id,
         status,
         created_at,
-        customer_id,
-        payments(amount, status)
+        customer_id
       `)
             .eq("shop_id", shopId)
             .gte("created_at", startDate.toISOString())
@@ -448,8 +437,8 @@ router.get("/bookings", (req, res) => __awaiter(void 0, void 0, void 0, function
             }
             grouped[key].total++;
             grouped[key][booking.status] = (grouped[key][booking.status] || 0) + 1;
-            const completedPayments = ((_a = booking.payments) === null || _a === void 0 ? void 0 : _a.filter((p) => p.status === "completed")) || [];
-            const revenue = completedPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+            // Use service price for revenue (customers pay directly to shops)
+            const revenue = booking.status === "completed" ? (((_a = booking.services) === null || _a === void 0 ? void 0 : _a.price) || 0) : 0;
             grouped[key].revenue += revenue;
         });
         const groupedArray = Object.values(grouped).sort((a, b) => a.period.localeCompare(b.period));
@@ -462,8 +451,8 @@ router.get("/bookings", (req, res) => __awaiter(void 0, void 0, void 0, function
             cancelled: (bookings === null || bookings === void 0 ? void 0 : bookings.filter((b) => b.status === "cancelled").length) || 0,
             revenue: (bookings === null || bookings === void 0 ? void 0 : bookings.reduce((sum, b) => {
                 var _a;
-                const completedPayments = ((_a = b.payments) === null || _a === void 0 ? void 0 : _a.filter((p) => p.status === "completed")) || [];
-                return sum + completedPayments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+                // Use service price for revenue (customers pay directly to shops)
+                return sum + (b.status === "completed" ? (((_a = b.services) === null || _a === void 0 ? void 0 : _a.price) || 0) : 0);
             }, 0)) || 0,
         };
         res.json({
@@ -481,6 +470,9 @@ router.get("/bookings", (req, res) => __awaiter(void 0, void 0, void 0, function
 // GET /analytics/report - Generate comprehensive report
 router.get("/report", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        if (!supabase_1.supabaseAdmin) {
+            return res.status(500).json({ error: "Database configuration error" });
+        }
         const userId = getUserId(req);
         if (!userId) {
             return res.status(401).json({ error: "Unauthorized" });
@@ -489,7 +481,7 @@ router.get("/report", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         const periodDays = parseInt(period, 10);
         const groupBy = group_by;
         // Get owner's shop
-        const { data: shops, error: shopsError } = yield supabase_1.supabase
+        const { data: shops, error: shopsError } = yield supabase_1.supabaseAdmin
             .from("shops")
             .select("id, name")
             .eq("owner_user_id", userId)
@@ -502,19 +494,19 @@ router.get("/report", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         // Fetch all analytics data directly from database (no views to avoid timeouts)
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - periodDays);
-        // Get all bookings for this shop
-        const { data: allBookings, error: bookingsError } = yield supabase_1.supabase
+        // Get all bookings for this shop (with service prices instead of payments)
+        const { data: allBookings, error: bookingsError } = yield supabase_1.supabaseAdmin
             .from("bookings")
             .select(`
         id,
         status,
         created_at,
         customer_id,
-        payments(amount, status, created_at)
+        services(price)
       `)
             .eq("shop_id", shopId);
         // Get reviews
-        const { data: reviews } = yield supabase_1.supabase
+        const { data: reviews } = yield supabase_1.supabaseAdmin
             .from("reviews")
             .select("id, rating")
             .eq("shop_id", shopId)
@@ -523,20 +515,20 @@ router.get("/report", (req, res) => __awaiter(void 0, void 0, void 0, function* 
             console.error("Error fetching bookings for report:", bookingsError);
             return res.status(500).json({ error: "Failed to fetch analytics data" });
         }
-        // Calculate revenue data
-        const allPayments = (allBookings === null || allBookings === void 0 ? void 0 : allBookings.flatMap((b) => b.payments || [])) || [];
-        const completedPayments = allPayments.filter((p) => p.status === "completed");
-        const totalRevenue = completedPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+        // Calculate booked value data (customers pay directly to shops)
+        const completedBookings = (allBookings === null || allBookings === void 0 ? void 0 : allBookings.filter((b) => b.status === "completed")) || [];
+        const totalBookedValue = completedBookings.reduce((sum, b) => { var _a; return sum + (((_a = b.services) === null || _a === void 0 ? void 0 : _a.price) || 0); }, 0);
+        const avgBookingValue = completedBookings.length > 0 ? totalBookedValue / completedBookings.length : 0;
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const revenueLast30Days = completedPayments
-            .filter((p) => new Date(p.created_at) >= thirtyDaysAgo)
-            .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-        const revenueLast7Days = completedPayments
-            .filter((p) => new Date(p.created_at) >= sevenDaysAgo)
-            .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+        const bookedValueLast30Days = completedBookings
+            .filter((b) => new Date(b.created_at) >= thirtyDaysAgo)
+            .reduce((sum, b) => { var _a; return sum + (((_a = b.services) === null || _a === void 0 ? void 0 : _a.price) || 0); }, 0);
+        const bookedValueLast7Days = completedBookings
+            .filter((b) => new Date(b.created_at) >= sevenDaysAgo)
+            .reduce((sum, b) => { var _a; return sum + (((_a = b.services) === null || _a === void 0 ? void 0 : _a.price) || 0); }, 0);
         const uniqueCustomers = new Set((allBookings === null || allBookings === void 0 ? void 0 : allBookings.map((b) => b.customer_id).filter(Boolean)) || []).size;
         const newCustomers30Days = new Set((allBookings === null || allBookings === void 0 ? void 0 : allBookings.filter((b) => new Date(b.created_at) >= thirtyDaysAgo).map((b) => b.customer_id).filter(Boolean)) || []).size;
         const revenueData = {
@@ -546,10 +538,10 @@ router.get("/report", (req, res) => __awaiter(void 0, void 0, void 0, function* 
             confirmed_bookings: (allBookings === null || allBookings === void 0 ? void 0 : allBookings.filter((b) => b.status === "confirmed").length) || 0,
             pending_bookings: (allBookings === null || allBookings === void 0 ? void 0 : allBookings.filter((b) => b.status === "pending").length) || 0,
             cancelled_bookings: (allBookings === null || allBookings === void 0 ? void 0 : allBookings.filter((b) => b.status === "cancelled").length) || 0,
-            total_revenue: totalRevenue,
-            revenue_last_30_days: revenueLast30Days,
-            revenue_last_7_days: revenueLast7Days,
-            average_booking_value: completedPayments.length > 0 ? totalRevenue / completedPayments.length : 0,
+            total_booked_value: totalBookedValue,
+            booked_value_last_30_days: bookedValueLast30Days,
+            booked_value_last_7_days: bookedValueLast7Days,
+            average_booking_value: completedBookings.length > 0 ? totalBookedValue / completedBookings.length : 0,
             unique_customers: uniqueCustomers,
             new_customers_30_days: newCustomers30Days,
         };
@@ -566,7 +558,7 @@ router.get("/report", (req, res) => __awaiter(void 0, void 0, void 0, function* 
                     confirmed_count: 0,
                     pending_count: 0,
                     cancelled_count: 0,
-                    revenue: 0,
+                    booked_value: 0,
                     unique_customers: new Set(),
                 });
             }
@@ -580,17 +572,19 @@ router.get("/report", (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 day.pending_count++;
             if (booking.status === "cancelled")
                 day.cancelled_count++;
-            const dayPayments = ((_a = booking.payments) === null || _a === void 0 ? void 0 : _a.filter((p) => p.status === "completed")) || [];
-            day.revenue += dayPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+            // Add service price to daily booked value (only for completed bookings)
+            if (booking.status === "completed") {
+                day.booked_value += ((_a = booking.services) === null || _a === void 0 ? void 0 : _a.price) || 0;
+            }
             if (booking.customer_id)
                 day.unique_customers.add(booking.customer_id);
         });
         const dailyRevenue = Array.from(dailyMap.values()).map((day) => (Object.assign(Object.assign({}, day), { unique_customers: day.unique_customers.size }))).sort((a, b) => a.booking_date.localeCompare(b.booking_date));
         // Calculate performance metrics
         const totalBookings = (allBookings === null || allBookings === void 0 ? void 0 : allBookings.length) || 0;
-        const completedBookings = (allBookings === null || allBookings === void 0 ? void 0 : allBookings.filter((b) => b.status === "completed").length) || 0;
+        const completedBookingsCount = (allBookings === null || allBookings === void 0 ? void 0 : allBookings.filter((b) => b.status === "completed").length) || 0;
         const cancelledBookings = (allBookings === null || allBookings === void 0 ? void 0 : allBookings.filter((b) => b.status === "cancelled").length) || 0;
-        const completionRate = totalBookings > 0 ? (completedBookings / totalBookings) * 100 : 0;
+        const completionRate = totalBookings > 0 ? (completedBookingsCount / totalBookings) * 100 : 0;
         const cancellationRate = totalBookings > 0 ? (cancelledBookings / totalBookings) * 100 : 0;
         const bookingsLast7Days = (allBookings === null || allBookings === void 0 ? void 0 : allBookings.filter((b) => new Date(b.created_at) >= sevenDaysAgo).length) || 0;
         const bookingsLast30Days = (allBookings === null || allBookings === void 0 ? void 0 : allBookings.filter((b) => new Date(b.created_at) >= thirtyDaysAgo).length) || 0;
@@ -600,20 +594,21 @@ router.get("/report", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         const performance = {
             shop_id: shopId,
             total_bookings: totalBookings,
-            completed_bookings: completedBookings,
+            completed_bookings: completedBookingsCount,
             cancelled_bookings: cancelledBookings,
             completion_rate: Math.round(completionRate * 100) / 100,
             cancellation_rate: Math.round(cancellationRate * 100) / 100,
-            total_revenue: totalRevenue,
-            average_booking_value: completedPayments.length > 0 ? totalRevenue / completedPayments.length : 0,
+            total_booked_value: totalBookedValue,
+            average_booking_value: avgBookingValue,
             unique_customers: uniqueCustomers,
             new_customers_30_days: newCustomers30Days,
             total_reviews: (reviews === null || reviews === void 0 ? void 0 : reviews.length) || 0,
             average_rating: avgRating,
             bookings_last_7_days: bookingsLast7Days,
             bookings_last_30_days: bookingsLast30Days,
-            revenue_last_7_days: revenueLast7Days,
-            revenue_last_30_days: revenueLast30Days,
+            booked_value_last_7_days: bookedValueLast7Days,
+            booked_value_last_30_days: bookedValueLast30Days,
+            note: "Booked value shows service prices selected by customers (customers pay directly to shops)"
         };
         // Calculate customer analytics
         const reportCustomerMap = new Map();
@@ -639,8 +634,8 @@ router.get("/report", (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 customer.completed_bookings++;
             if (booking.status === "cancelled")
                 customer.cancelled_bookings++;
-            const customerPayments = ((_a = booking.payments) === null || _a === void 0 ? void 0 : _a.filter((p) => p.status === "completed")) || [];
-            customer.total_spent += customerPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+            // Calculate spent from service price (customers pay directly to shops)
+            customer.total_spent += booking.status === "completed" ? (((_a = booking.services) === null || _a === void 0 ? void 0 : _a.price) || 0) : 0;
             if (new Date(booking.created_at) < new Date(customer.first_booking)) {
                 customer.first_booking = booking.created_at;
             }
@@ -691,8 +686,8 @@ router.get("/report", (req, res) => __awaiter(void 0, void 0, void 0, function* 
             const group = groupedMap.get(key);
             group.total++;
             group[booking.status] = (group[booking.status] || 0) + 1;
-            const periodPayments = ((_a = booking.payments) === null || _a === void 0 ? void 0 : _a.filter((p) => p.status === "completed")) || [];
-            group.revenue += periodPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+            // Use service price for revenue (customers pay directly to shops)
+            group.revenue += booking.status === "completed" ? (((_a = booking.services) === null || _a === void 0 ? void 0 : _a.price) || 0) : 0;
         });
         const grouped = Array.from(groupedMap.values()).sort((a, b) => a.period.localeCompare(b.period));
         const totals = {
@@ -703,8 +698,8 @@ router.get("/report", (req, res) => __awaiter(void 0, void 0, void 0, function* 
             cancelled: bookingsInPeriod.filter((b) => b.status === "cancelled").length,
             revenue: bookingsInPeriod.reduce((sum, b) => {
                 var _a;
-                const periodPayments = ((_a = b.payments) === null || _a === void 0 ? void 0 : _a.filter((p) => p.status === "completed")) || [];
-                return sum + periodPayments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+                // Use service price for revenue (customers pay directly to shops)
+                return sum + (b.status === "completed" ? (((_a = b.services) === null || _a === void 0 ? void 0 : _a.price) || 0) : 0);
             }, 0),
         };
         // Customer data already calculated above using reportCustomerMap

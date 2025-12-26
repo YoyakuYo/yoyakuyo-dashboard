@@ -13,14 +13,43 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const supabase_1 = require("../lib/supabase");
-const bookingService_1 = require("../services/bookingService");
-const availabilityService_1 = require("../services/availabilityService");
 const customerService_1 = require("../services/customerService");
 const languageDetectionService_1 = require("../services/languageDetectionService");
 const multilingualService_1 = require("../services/multilingualService");
 const calendarService_1 = require("../services/calendarService");
+const aiContextService_1 = require("../services/aiContextService");
+const aiActionsService_1 = require("../services/aiActionsService");
 const router = (0, express_1.Router)();
 const dbClient = supabase_1.supabaseAdmin || supabase_1.supabase;
+// =====================================================
+// GET /ai/context - SINGLE AI SOURCE OF TRUTH (MANDATORY)
+// =====================================================
+router.get("/context", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const ctx = yield (0, aiContextService_1.buildAIContext)(req);
+        return res.json(ctx);
+    }
+    catch (e) {
+        console.error("[AI] Error building AI context:", e);
+        return res.status(500).json({ error: e.message || "Failed to build AI context" });
+    }
+}));
+// =====================================================
+// POST /ai/actions/book - AI booking action (MANDATORY)
+// =====================================================
+router.post("/actions/book", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const result = yield (0, aiActionsService_1.bookVerifiedShopAction)(req, req.body);
+        if (!result.ok) {
+            return res.status(result.status).json({ error: result.error, details: result.details });
+        }
+        return res.status(200).json(result);
+    }
+    catch (e) {
+        console.error("[AI] Error in /ai/actions/book:", e);
+        return res.status(500).json({ error: e.message || "Failed to create booking" });
+    }
+}));
 // POST /ai/chat - AI chat endpoint (legacy - uses shop_messages table)
 // Supports both legacy format (source, message, shopId) and unified format (role, messages)
 router.post("/chat", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -218,43 +247,36 @@ router.post("/chat", (req, res) => __awaiter(void 0, void 0, void 0, function* (
             'ar': 'Arabic', 'hi': 'Hindi',
         };
         const detectedLanguageName = languageNames[languageCode] || 'English';
-        // Fetch shop details for context (legacy /ai/chat route)
-        const shop = yield (0, bookingService_1.getShopDetails)(finalShopId);
-        const shopName = (shop === null || shop === void 0 ? void 0 : shop.name) || 'our shop';
-        const shopCategory = (shop === null || shop === void 0 ? void 0 : shop.category) || 'business';
-        const shopDescription = (shop === null || shop === void 0 ? void 0 : shop.description) || '';
-        const shopLocation = (shop === null || shop === void 0 ? void 0 : shop.address) || (shop === null || shop === void 0 ? void 0 : shop.city) || (shop === null || shop === void 0 ? void 0 : shop.prefecture) || '';
-        // Build shop context string
-        let shopContext = '';
-        if (shop) {
-            shopContext = `\n\nSHOP CONTEXT:
-- Shop Name: ${shopName}
-- Category: ${shopCategory}`;
-            if (shopDescription) {
-                shopContext += `\n- Description: ${shopDescription}`;
+        // STRICT AI CONTEXT BOUNDARY (legacy /ai/chat route)
+        const aiContext = yield (0, aiContextService_1.buildAIContext)(req);
+        const currentShop = aiContext.verifiedShops.find((s) => s.shop_id === finalShopId) || null;
+        if (isCustomer && !currentShop) {
+            const response = yield (0, multilingualService_1.generateMultilingualResponse)("no_information", languageCode);
+            if (threadId) {
+                yield dbClient.from("shop_messages").insert([{
+                        thread_id: threadId,
+                        sender_type: "ai",
+                        content: response,
+                    }]);
             }
-            if (shopLocation) {
-                shopContext += `\n- Location: ${shopLocation}`;
-            }
+            return res.json({ response, language_code: languageCode });
         }
-        // Build greeting with shop context
-        const shopGreeting = shop && shopName && shopCategory
-            ? `Hello 👋, welcome to ${shopName} — a ${shopCategory}! How can I help you today?`
-            : 'Hello 👋, how can I help you today?';
-        // System prompt - always in English with language instruction (no hard-coded Japanese)
-        const systemPrompt = isCustomer
-            ? `You are Yoyaku Yo AI Assistant for ${shopName}${shopCategory ? ` (a ${shopCategory})` : ''}. You provide customer-facing support for booking-related conversations: confirming appointments, suggesting available times, rescheduling, and accepting cancellations. Be friendly and helpful in your responses.${shopContext}
+        const shopName = (currentShop === null || currentShop === void 0 ? void 0 : currentShop.name) || 'Yoyaku Yo verified shop';
+        const shopContext = currentShop
+            ? `\n\nCURRENT SHOP (from AI context):\n- shop_id: ${currentShop.shop_id}\n- name: ${currentShop.name || ""}\n- location: ${currentShop.location || ""}\n- booking_enabled: ${currentShop.booking_enabled}\n- services: ${currentShop.services.map(s => `${s.name || s.id}`).join(", ")}`
+            : '';
+        const strictKnowledgeBoundary = `\n\nSTRICT AI KNOWLEDGE BOUNDARY (MANDATORY):
+You are only allowed to use information provided in the AI context.
+If something is not present in the context, you must say you do not know.
+You may ONLY suggest or book shops listed in verifiedShops.
+You may ONLY describe app features listed in app.
+You MUST NOT query Supabase or invent data.\n\nAI_CONTEXT_JSON:\n${JSON.stringify(aiContext)}`;
+        const systemPrompt = `You are Yoyaku Yo AI Assistant.
+${shopContext}${strictKnowledgeBoundary}
 
-IMPORTANT: When greeting a new customer, use this greeting: "${shopGreeting}"
+CRITICAL INSTRUCTION: The user's message was detected as ${detectedLanguageName}. You MUST respond ONLY in ${detectedLanguageName}.
 
-CRITICAL INSTRUCTION: The customer's message was detected as ${detectedLanguageName}. You MUST respond ONLY in ${detectedLanguageName}. Do NOT use Japanese unless the customer is speaking Japanese. Do NOT use any other language. Match the customer's language exactly: ${detectedLanguageName}.
-
-You MUST NOT suggest prices, change prices, or show revenue. You MUST NOT discuss shop revenue, performance, or analytics.`
-            : `You are Yoyaku Yo AI Assistant for ${shopName}${shopCategory ? ` (a ${shopCategory})` : ''}. You ONLY handle booking-related conversations: confirming appointments, suggesting available times, rescheduling, and accepting cancellations.${shopContext}
-
-CRITICAL INSTRUCTION: The user's message was detected as ${detectedLanguageName}. You MUST respond ONLY in ${detectedLanguageName}. Do NOT use Japanese unless the user is speaking Japanese. Do NOT use any other language. Match the user's language exactly: ${detectedLanguageName}.
-
-You MUST NOT suggest prices, change prices, or show revenue. You MUST NOT discuss shop revenue, performance, or analytics. If the user talks about something outside booking and scheduling, politely redirect them back to booking-related topics.`;
+If asked about anything not present in AI_CONTEXT_JSON, respond: "I don't have that information."`;
         try {
             // Call OpenAI API
             const openaiResponse = yield fetch('https://api.openai.com/v1/chat/completions', {
@@ -373,7 +395,7 @@ You MUST NOT suggest prices, change prices, or show revenue. You MUST NOT discus
 }));
 // POST /ai/chat-thread - AI chat endpoint for thread-based messages
 router.post("/chat-thread", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d;
     try {
         const { threadId, shopId, bookingId, message, source } = req.body;
         if (!threadId || !shopId || !message) {
@@ -443,79 +465,36 @@ router.post("/chat-thread", (req, res) => __awaiter(void 0, void 0, void 0, func
             languageCode = yield (0, languageDetectionService_1.detectLanguage)(message);
         }
         console.log(`[AI] Using language: ${languageCode} for ${isCustomer ? 'customer' : isOwner ? 'owner' : 'user'} message: "${message.substring(0, 50)}..."`);
-        // Fetch shop details for context (MUST use only Supabase data - no hallucinations)
-        const shop = yield (0, bookingService_1.getShopDetails)(shopId);
-        const shopName = (shop === null || shop === void 0 ? void 0 : shop.name) || 'our shop';
-        const shopCategory = (shop === null || shop === void 0 ? void 0 : shop.category) || 'business';
-        const shopDescription = (shop === null || shop === void 0 ? void 0 : shop.description) || '';
-        const shopAddress = (shop === null || shop === void 0 ? void 0 : shop.address) || '';
-        const shopPhone = (shop === null || shop === void 0 ? void 0 : shop.phone) || '';
-        const shopCity = (shop === null || shop === void 0 ? void 0 : shop.city) || '';
-        const shopPrefecture = (shop === null || shop === void 0 ? void 0 : shop.prefecture) || '';
-        const shopLocation = shopAddress || shopCity || shopPrefecture || '';
-        const openingHours = (shop === null || shop === void 0 ? void 0 : shop.opening_hours) || null;
-        // Get services and staff for this shop (ONLY from Supabase - no assumptions)
-        const shopServices = yield (0, bookingService_1.getShopServices)(shopId);
-        const shopStaff = yield (0, bookingService_1.getShopStaff)(shopId);
-        // Build comprehensive shop context string (MANDATORY for every message)
-        let shopContext = '';
-        if (shop) {
-            shopContext = `\n\nSHOP CONTEXT (MANDATORY - Include in every response):
-- Shop Name: ${shopName}
-- Category: ${shopCategory}`;
-            if (shopDescription) {
-                shopContext += `\n- Description: ${shopDescription}`;
-            }
-            if (shopAddress) {
-                shopContext += `\n- Address: ${shopAddress}`;
-            }
-            if (shopCity) {
-                shopContext += `\n- City: ${shopCity}`;
-            }
-            if (shopPrefecture) {
-                shopContext += `\n- Prefecture: ${shopPrefecture}`;
-            }
-            if (shopPhone) {
-                shopContext += `\n- Phone: ${shopPhone}`;
-            }
-            if (openingHours) {
-                shopContext += `\n- Working Hours: ${JSON.stringify(openingHours)}`;
-            }
-            if (shopServices.length > 0) {
-                shopContext += `\n- Services: ${shopServices.map(s => s.name).join(', ')}`;
-            }
-            if (shopStaff.length > 0) {
-                shopContext += `\n- Staff: ${shopStaff.map(s => `${s.first_name} ${s.last_name}`).join(', ')}`;
-            }
+        // =====================================================
+        // STRICT AI KNOWLEDGE BOUNDARY (MANDATORY)
+        // AI must ONLY use /ai/context data (single source of truth).
+        // =====================================================
+        const aiContext = yield (0, aiContextService_1.buildAIContext)(req);
+        const currentShop = aiContext.verifiedShops.find((s) => s.shop_id === shopId) || null;
+        // Customers are ONLY allowed to interact with verified shops.
+        if (isCustomer && !currentShop) {
+            const response = yield (0, multilingualService_1.generateMultilingualResponse)("no_information", languageCode);
+            yield dbClient.from("shop_messages").insert([{
+                    thread_id: threadId,
+                    sender_type: "ai",
+                    content: response,
+                }]);
+            return res.json({ response, language_code: languageCode });
         }
-        // CRITICAL: AI must ONLY use data from Supabase - no hallucinations
-        const noHallucinationRule = `\n\n⚠️ CRITICAL DATA RULES:
-- You MUST ONLY use shop data from Supabase database - NO assumptions, NO invented businesses
-- If customer asks about other shops (e.g., "find a barber", "recommend a hair salon"), you MUST use the find_shops function to query Supabase
-- If no shops found in Supabase → respond: "No available shops found in your area"
-- DO NOT invent shop names, addresses, or services
-- DO NOT suggest shops that don't exist in the database
-- ALWAYS verify shop data exists in Supabase before mentioning it
-- You are ONLY representing ${shopName} (shop ID: ${shopId}) - DO NOT leak information about other shops unless customer explicitly asks`;
-        // Define function to find shops from Supabase (for customer queries about other shops)
-        const findShopsFunction = {
-            name: "find_shops",
-            description: "Find shops from Supabase database by category or search term. Use this when customer asks for other shops (e.g., 'find a barber', 'recommend a hair salon'). Returns only shops that exist in the database.",
-            parameters: {
-                type: "object",
-                properties: {
-                    category: {
-                        type: "string",
-                        description: "Category to search for (e.g., 'barber', 'hair salon', 'nail salon')"
-                    },
-                    searchTerm: {
-                        type: "string",
-                        description: "Search term to find shops (e.g., 'barber', 'hair salon')"
-                    }
-                },
-                required: ["category"]
-            }
-        };
+        const shopName = (currentShop === null || currentShop === void 0 ? void 0 : currentShop.name) || "Yoyakuyo verified shop";
+        const strictKnowledgeBoundary = `\n\nSTRICT AI KNOWLEDGE BOUNDARY (MANDATORY):
+You are only allowed to use information provided in the AI context.
+If something is not present in the context, you must say you do not know.
+You may ONLY suggest or book shops listed in verifiedShops.
+You may ONLY describe app features listed in app.
+You MUST NOT query Supabase or invent data.\n\nAI_CONTEXT_JSON:\n${JSON.stringify(aiContext)}`;
+        // Minimal shop context derived ONLY from AI context (no DB lookups here)
+        const shopContext = currentShop ? `\n\nCURRENT SHOP (from AI context):
+- shop_id: ${currentShop.shop_id}
+- name: ${currentShop.name || ""}
+- location: ${currentShop.location || ""}
+- booking_enabled: ${currentShop.booking_enabled}
+- services: ${currentShop.services.map(s => `${s.name || s.id}`).join(", ")}` : "";
         // Handle calendar commands for owners (before OpenAI call)
         if (isOwner) {
             const calendarCommand = yield (0, calendarService_1.parseCalendarCommand)(message, shopId, ownerLanguage);
@@ -584,65 +563,11 @@ router.post("/chat-thread", (req, res) => __awaiter(void 0, void 0, void 0, func
             .eq("id", threadId)
             .single();
         const existingBookingId = (threadData === null || threadData === void 0 ? void 0 : threadData.booking_id) || bookingId;
-        const customerEmail = threadData === null || threadData === void 0 ? void 0 : threadData.customer_email;
-        // Get customer history for personalization (if customer)
-        let customerHistory = null;
-        let personalizedGreeting = '';
-        if (isCustomer && customerEmail) {
-            customerHistory = yield (0, customerService_1.getCustomerHistory)(shopId, customerEmail);
-            if (customerHistory.isReturning) {
-                personalizedGreeting = yield (0, customerService_1.generatePersonalizedGreeting)(customerHistory, languageCode);
-            }
-        }
-        // Fetch available services and staff for this shop (to help AI match names to IDs)
-        const availableServices = isCustomer ? yield (0, bookingService_1.getShopServices)(shopId) : [];
-        const availableStaff = isCustomer ? yield (0, bookingService_1.getShopStaff)(shopId) : [];
-        // Get available time slots for today and next few days (for AI to suggest)
-        let availabilityContext = '';
-        if (isCustomer && availableServices.length > 0) {
-            try {
-                const today = new Date();
-                const tomorrow = new Date(today);
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                const dayAfter = new Date(today);
-                dayAfter.setDate(dayAfter.getDate() + 2);
-                const defaultDuration = ((_a = availableServices[0]) === null || _a === void 0 ? void 0 : _a.duration_minutes) || ((_b = availableServices[0]) === null || _b === void 0 ? void 0 : _b.duration) || 60;
-                const [todaySlots, tomorrowSlots, dayAfterSlots] = yield Promise.all([
-                    (0, availabilityService_1.findAvailableSlots)(shopId, today.toISOString().split('T')[0], defaultDuration),
-                    (0, availabilityService_1.findAvailableSlots)(shopId, tomorrow.toISOString().split('T')[0], defaultDuration),
-                    (0, availabilityService_1.findAvailableSlots)(shopId, dayAfter.toISOString().split('T')[0], defaultDuration),
-                ]);
-                if (todaySlots.length > 0 || tomorrowSlots.length > 0 || dayAfterSlots.length > 0) {
-                    const formatSlots = (slots, dateLabelKey) => __awaiter(void 0, void 0, void 0, function* () {
-                        if (slots.length === 0)
-                            return '';
-                        const times = slots.slice(0, 5).map(s => {
-                            const t = new Date(s.startTime);
-                            return t.toLocaleTimeString('en-US', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: false
-                            });
-                        }).join(', ');
-                        const dateLabel = yield (0, multilingualService_1.generateMultilingualResponse)(dateLabelKey, languageCode);
-                        return `${dateLabel}: ${times}`;
-                    });
-                    const todayLabel = yield (0, multilingualService_1.generateMultilingualResponse)('available_times_today', languageCode);
-                    const tomorrowLabel = yield (0, multilingualService_1.generateMultilingualResponse)('available_times_tomorrow', languageCode);
-                    const dayAfterLabel = yield (0, multilingualService_1.generateMultilingualResponse)('available_times_day_after', languageCode);
-                    const todaySlotsText = yield formatSlots(todaySlots, 'available_times_today');
-                    const tomorrowSlotsText = yield formatSlots(tomorrowSlots, 'available_times_tomorrow');
-                    const dayAfterSlotsText = yield formatSlots(dayAfterSlots, 'available_times_day_after');
-                    const suggestionText = yield (0, multilingualService_1.generateMultilingualResponse)('what_can_i_help', languageCode);
-                    availabilityContext = `\n\n${todaySlotsText}\n${tomorrowSlotsText}\n${dayAfterSlotsText}\n\n${suggestionText}`;
-                    // AUTO-FOLLOWUP: After checking availability, AI should automatically suggest times
-                    availabilityContext += `\n\nAUTO-FOLLOWUP RULE: After checking availability, you MUST automatically respond with available times without waiting for the customer to ask again. For example: "I found available times for you: tomorrow at 3pm, or the day after at 10am. Which would you prefer?"`;
-                }
-            }
-            catch (availError) {
-                console.error('Error fetching availability for AI context:', availError);
-            }
-        }
+        // Services MUST come only from AI context (single source of truth).
+        const availableServices = isCustomer ? ((currentShop === null || currentShop === void 0 ? void 0 : currentShop.services) || []) : [];
+        const availableStaff = []; // Staff is intentionally not exposed in AI context
+        // Availability is validated only via backend actions (no precomputed slot suggestions).
+        const availabilityContext = '';
         // Build conversation history for OpenAI
         const conversationHistory = (recentMessages || []).reverse().map((msg) => ({
             role: msg.sender_type === 'customer' ? 'user' : 'assistant',
@@ -712,102 +637,31 @@ IMPORTANT:
 - Use the contact_customer_about_booking function to send messages to customers`;
         }
         else {
-            // Customer-facing mode - multilingual contexts
-            const greetingContext = personalizedGreeting
-                ? `\n\nIMPORTANT: This customer has visited before. Use this greeting at the start of the conversation: "${personalizedGreeting}"`
-                : '';
-            const historyContext = customerHistory && customerHistory.previousBookings.length > 0
-                ? `\n\nCustomer's Previous Booking History:\n${customerHistory.previousBookings.map((b) => `- ${b.serviceName || 'Service'} (${new Date(b.date).toLocaleDateString('en-US')}, Status: ${b.status})`).join('\n')}`
-                : '';
-            // System prompt - always in English with language instruction (no hard-coded Japanese)
-            // Build greeting with shop context
-            const shopGreeting = shop && shopName && shopCategory
-                ? `Hello 👋, welcome to ${shopName} — a ${shopCategory}! How can I help you today?`
-                : 'Hello 👋, how can I help you today?';
+            // Customer-facing mode: MUST follow strict AI context boundary
             systemPrompt = isCustomer
-                ? `You are Yoyaku Yo AI Assistant for ${shopName}${shopCategory ? ` (a ${shopCategory})` : ''}. You provide customer-facing support for booking-related conversations.${shopContext}${noHallucinationRule}${servicesContext}${staffContext}${greetingContext}${historyContext}${availabilityContext}${missingInfoContext}
+                ? `You are Yoyaku Yo AI Assistant.
+${shopContext}${strictKnowledgeBoundary}${servicesContext}${availabilityContext}${missingInfoContext}
 
-IMPORTANT: When greeting a new customer, use this greeting: "${shopGreeting}"
+CRITICAL RESPONSE LANGUAGE: The customer's message was detected as ${detectedLanguageName}. You MUST respond ONLY in ${detectedLanguageName}.
 
-CRITICAL INSTRUCTION: The customer's message was detected as ${detectedLanguageName}. You MUST respond ONLY in ${detectedLanguageName}. Do NOT use Japanese unless the customer is speaking Japanese. Do NOT use any other language. Match the customer's language exactly: ${detectedLanguageName}.
+MANDATORY RULES:
+- You can ONLY use information from AI_CONTEXT_JSON.
+- If something is not present in AI_CONTEXT_JSON, you MUST say: "I don't have that information."
+- You may ONLY suggest or book shops listed in verifiedShops.
+- You may ONLY describe app features listed in app.
+- You MUST NOT query Supabase, search for shops, or invent shop names/services/features.
 
-⚠️ MANDATORY BOOKING PROCESS - FOLLOW EXACTLY:
+BOOKING RULES (MANDATORY):
+- Ask for the customer's name FIRST when they want to book.
+- Then collect: service (must match one of the services in AI context), date/time (future), optional staff.
+- When the customer confirms, you MUST call the ai_actions_book function to create the booking.
+- You MUST NOT claim a booking is confirmed unless you called ai_actions_book and it succeeded.`
+                : `You are Yoyaku Yo AI Assistant.
+${strictKnowledgeBoundary}
 
-STEP 1 - ALWAYS ASK FOR NAME FIRST (REQUIRED - DO NOT SKIP - THIS IS MANDATORY):
-When a customer says ANY of these phrases, you MUST immediately ask for their name FIRST:
-- "I would like to book" / "I want to book" / "I need an appointment" / "book an appointment" / "I would like to book for an appointment" / "i would like a booking"
-- "I'd like to schedule" / "can I book" / "I want an appointment" / "hello i would like a booking"
-- ANY mention of booking, appointment, or scheduling
+CRITICAL RESPONSE LANGUAGE: The user's message was detected as ${detectedLanguageName}. You MUST respond ONLY in ${detectedLanguageName}.
 
-🚨 CRITICAL RULE: If the customer says "hello i would like a booking" or "i would like a booking" or similar, your FIRST and ONLY response must be: "What is your name?" in ${detectedLanguageName}. 
-
-DO NOT:
-- Say "Hello! I can help you with that" - that's WRONG, ask for name first
-- Ask "When would you like to schedule?" - that's WRONG, ask for name first
-- Ask about service or time before asking for name - that's WRONG
-- Skip this step for any reason - it's MANDATORY
-
-EXAMPLE CORRECT FLOW:
-Customer: "hello i would like a booking"
-AI: "What is your name?" ← CORRECT - This is the ONLY correct response
-
-Customer: "I would like to book an appointment"
-AI: "What is your name?" ← CORRECT - Must be first question
-
-EXAMPLE WRONG FLOW (DO NOT DO THIS):
-Customer: "hello i would like a booking"
-AI: "Hello! I can help you with that. When would you like to schedule?" ← WRONG! Should ask for name first
-
-Customer: "I would like to book an appointment"  
-AI: "Of course! When would you like to schedule?" ← WRONG! Should ask for name first
-
-STEP 2 - After getting name, collect:
-- Service (required) - Show available services from the list
-- Date and time (required, must be in the future) - Suggest available time slots
-- Staff (optional, if shop requires it)
-
-DO NOT ask for phone number or email address - these are NOT required and should NEVER be requested.
-
-STEP 3 - Present summary:
-- Service name
-- Date and time
-- Staff (if applicable)
-- Shop name
-- Customer name
-
-STEP 4 - Ask for confirmation in ${detectedLanguageName}:
-"Would you like me to confirm this booking?" or "Should I proceed with this booking?" or "Do you want me to book this appointment?"
-
-STEP 5 - CREATE BOOKING IMMEDIATELY (MANDATORY):
-When customer says YES/OK/CONFIRM/AGREE/PLEASE/SURE/GO AHEAD/DO IT/BOOK IT/PROCEED (in any language or form), you MUST:
-1. Call the create_booking function IMMEDIATELY - do not hesitate
-2. Set customerConfirmed: true
-3. Include ALL required fields: serviceId, serviceName, startTime, endTime, customerName
-4. DO NOT ask again - if they confirmed, create the booking right away
-5. DO NOT just say "I'll book it" or "I have successfully booked" - you MUST actually call the function
-6. DO NOT claim the booking is done unless you actually called create_booking function
-
-IMPORTANT: If you say "I have successfully booked" but didn't call the function, that's WRONG. You must call the function first, then confirm.
-
-CONFIRMATION DETECTION:
-- "yes", "ok", "confirm", "proceed", "go ahead", "sure", "please", "do it", "book it", "make the appointment", "that's fine", "sounds good" = customerConfirmed: true
-- If customer confirms in ANY way, call create_booking function immediately
-
-IMPORTANT RULES:
-- ALWAYS ask for name FIRST before anything else when booking starts - this is MANDATORY
-- DO NOT ask for email address - NEVER ask for email
-- DO NOT ask for phone number - NEVER ask for phone
-- ONLY collect: name, service, date/time, and optional staff
-- When customer confirms, call create_booking function immediately - do not hesitate or ask again
-- If you have name, service, date/time, and customer said yes/ok/confirm - CALL THE FUNCTION NOW
-- After booking is confirmed, tell customer: "Thank you, {name}! Your appointment is confirmed for {date} at {time}. Your personal ID with us is {customerId}. You can change or cancel anytime right here in this chat — just say hello again! ✨"
-
-You MUST NOT suggest prices, change prices, or show revenue. You MUST NOT discuss shop revenue, performance, or analytics. REMEMBER: Respond ONLY in ${detectedLanguageName}, not Japanese (unless customer is speaking Japanese), not any other language.`
-                : `You are Yoyaku Yo AI Assistant for a beauty/shop booking platform. You ONLY handle booking-related conversations: confirming appointments, suggesting available times, rescheduling, and accepting cancellations.
-
-CRITICAL INSTRUCTION: The user's message was detected as ${detectedLanguageName}. You MUST respond ONLY in ${detectedLanguageName}. Do NOT use Japanese unless the user is speaking Japanese. Do NOT use any other language. Match the user's language exactly: ${detectedLanguageName}.
-
-You MUST NOT suggest prices, change prices, or show revenue. You MUST NOT discuss shop revenue, performance, or analytics. If the user talks about something outside booking and scheduling, politely redirect them back to booking-related topics.`;
+If asked about anything not present in AI_CONTEXT_JSON, respond: "I don't have that information."`;
         }
         // Define OpenAI functions for owner commands (cancel/reschedule) - multilingual descriptions
         const cancelBookingFunction = {
@@ -885,65 +739,57 @@ You MUST NOT suggest prices, change prices, or show revenue. You MUST NOT discus
                 required: ["action", "reason", "message"]
             }
         };
-        // Define OpenAI function for booking creation
+        // Define OpenAI function for booking action (MANDATORY)
+        // AI MUST book only by calling this backend action (no direct DB booking).
         const bookingFunction = {
-            name: "create_booking",
-            description: `MANDATORY: Call this function IMMEDIATELY when the customer confirms they want to book. 
+            name: "ai_actions_book",
+            description: `MANDATORY: Call this function when (and only when) the customer confirms they want to book.
 
-You MUST call this function when ALL of these are true:
-1. Customer has provided their name (you asked and they answered)
-2. Customer has selected a service (from available services list)
-3. Customer has chosen a date and time (must be in the future)
-4. Customer has confirmed with words like: yes, ok, confirm, agree, proceed, go ahead, sure, please, do it, book it, make the appointment, that's fine, sounds good
-
-Set customerConfirmed: true when customer says yes/ok/confirm/agree/proceed/go ahead/sure/please/do it/book it.
-
-DO NOT wait for additional confirmation - if customer says yes or agrees in ANY way, call this function immediately. DO NOT just say "I'll book it" - you MUST actually call this function.`,
+STRICT RULES:
+- You may ONLY use shop_id values that exist in AI_CONTEXT_JSON.verifiedShops.
+- You may ONLY use service_id values that exist under that shop in AI_CONTEXT_JSON.verifiedShops[].services.
+- If you don't have the required IDs in AI_CONTEXT_JSON, you MUST say: "I don't have that information."`,
             parameters: {
                 type: "object",
                 properties: {
-                    serviceId: {
+                    shop_id: {
                         type: "string",
-                        description: "Service ID from available services list (required - must match one of the services provided)"
+                        description: "Shop ID from AI_CONTEXT_JSON.verifiedShops (required)"
                     },
-                    serviceName: {
+                    service_id: {
                         type: "string",
-                        description: "Service name for confirmation message (required - must match the service the customer selected)"
+                        description: "Service ID from AI_CONTEXT_JSON for that shop (required)"
                     },
-                    staffId: {
+                    staff_id: {
                         type: "string",
-                        description: "Staff ID (optional - only if customer selected a specific staff member from the list)"
+                        description: "Staff ID (optional; if not provided, any available staff may be used)"
                     },
-                    staffName: {
+                    start_time: {
                         type: "string",
-                        description: "Staff name for confirmation message (optional)"
+                        description: "Start time in ISO 8601 format (required; must be in the future)"
                     },
-                    startTime: {
+                    end_time: {
                         type: "string",
-                        description: "Start time in ISO 8601 format (required, must be in the future, e.g., '2024-12-25T14:00:00Z')"
+                        description: "End time in ISO 8601 format (optional; if omitted, backend derives from service duration)"
                     },
-                    endTime: {
+                    customer_name: {
                         type: "string",
-                        description: "End time in ISO 8601 format (required, e.g., '2024-12-25T15:00:00Z')"
+                        description: "Customer name explicitly provided by the customer (required)"
                     },
-                    customerName: {
+                    customer_email: {
                         type: "string",
-                        description: "Customer full name that you collected in STEP 1 (required - MUST be provided, you must have asked for it). DO NOT call this function if you don't have the customer's name - ask for it first! The name must be explicitly provided by the customer, not assumed or guessed."
+                        description: "Customer email (optional; do NOT ask for it)"
                     },
-                    customerEmail: {
+                    customer_phone: {
                         type: "string",
-                        description: "Customer email address (optional - will use from thread if not provided)"
-                    },
-                    customerPhone: {
-                        type: "string",
-                        description: "Customer phone number (optional)"
+                        description: "Customer phone (optional; do NOT ask for it)"
                     },
                     customerConfirmed: {
                         type: "boolean",
-                        description: "MUST be true when customer says yes/ok/confirm/agree/proceed/go ahead/sure/please/do it/book it. Set to true when customer confirms they want to proceed with the booking."
+                        description: "MUST be true when customer confirms (yes/ok/confirm/etc). Only call when true."
                     }
                 },
-                required: ["serviceId", "serviceName", "startTime", "endTime", "customerName", "customerConfirmed"]
+                required: ["shop_id", "service_id", "start_time", "customer_name", "customerConfirmed"]
             }
         };
         try {
@@ -964,8 +810,8 @@ DO NOT wait for additional confirmation - if customer says yes or agrees in ANY 
                 requestBody.function_call = "auto";
             }
             else if (isCustomer) {
-                // Customer conversations: add booking creation and shop search functions
-                requestBody.functions = [bookingFunction, findShopsFunction];
+                // Customer conversations: booking must go through backend action only
+                requestBody.functions = [bookingFunction];
                 requestBody.function_call = "auto";
             }
             const openaiResponse = yield fetch('https://api.openai.com/v1/chat/completions', {
@@ -981,9 +827,9 @@ DO NOT wait for additional confirmation - if customer says yes or agrees in ANY 
                 let errorMessage = `OpenAI API error: ${openaiResponse.status}`;
                 try {
                     const errorJson = JSON.parse(errorText);
-                    errorMessage = `OpenAI API error: ${openaiResponse.status} - ${((_c = errorJson.error) === null || _c === void 0 ? void 0 : _c.message) || errorText}`;
+                    errorMessage = `OpenAI API error: ${openaiResponse.status} - ${((_a = errorJson.error) === null || _a === void 0 ? void 0 : _a.message) || errorText}`;
                 }
-                catch (_j) {
+                catch (_e) {
                     errorMessage = `OpenAI API error: ${openaiResponse.status} - ${errorText}`;
                 }
                 console.error("OpenAI API Error Details (/ai/chat-thread):", {
@@ -996,7 +842,7 @@ DO NOT wait for additional confirmation - if customer says yes or agrees in ANY 
                 throw new Error(errorMessage);
             }
             const openaiData = yield openaiResponse.json();
-            const choice = (_d = openaiData.choices) === null || _d === void 0 ? void 0 : _d[0];
+            const choice = (_b = openaiData.choices) === null || _b === void 0 ? void 0 : _b[0];
             const aiMessage = choice === null || choice === void 0 ? void 0 : choice.message;
             let aiResponse = (aiMessage === null || aiMessage === void 0 ? void 0 : aiMessage.content) || '';
             let bookingCreated = false;
@@ -1008,7 +854,7 @@ DO NOT wait for additional confirmation - if customer says yes or agrees in ANY 
                 hasArgs: !!aiMessage.function_call.arguments
             } : 'None');
             console.log('[AI] Is customer:', isCustomer);
-            console.log('[AI] Functions available:', isCustomer ? 'create_booking' : 'none');
+            console.log('[AI] Functions available:', isCustomer ? 'ai_actions_book' : 'none');
             // VALIDATION: Check if AI is trying to book without asking for name first
             if (isCustomer) {
                 const conversationText = conversationHistory.map(m => m.content).join(' ');
@@ -1022,7 +868,7 @@ DO NOT wait for additional confirmation - if customer says yes or agrees in ANY 
                     console.log('[AI] ⚠️ FORCED: AI tried to proceed without asking for name. Overriding response to ask for name.');
                 }
                 // If AI claimed it booked but didn't call the function, prevent false claims
-                if (aiClaimedBooking && ((_e = aiMessage === null || aiMessage === void 0 ? void 0 : aiMessage.function_call) === null || _e === void 0 ? void 0 : _e.name) !== 'create_booking') {
+                if (aiClaimedBooking && ((_c = aiMessage === null || aiMessage === void 0 ? void 0 : aiMessage.function_call) === null || _c === void 0 ? void 0 : _c.name) !== 'ai_actions_book') {
                     // Check if we actually have all required info
                     if (!hasCustomerName) {
                         aiResponse = `What is your name?`;
@@ -1097,178 +943,66 @@ DO NOT wait for additional confirmation - if customer says yes or agrees in ANY 
                     aiResponse = `${ownerRescheduleMsg} - Booking ${bookingId} has been rescheduled to ${functionArgs.newStartTime}. Customer has been notified.`;
                 }
             }
-            // Check if OpenAI wants to call the create_booking function
-            if (((_f = aiMessage === null || aiMessage === void 0 ? void 0 : aiMessage.function_call) === null || _f === void 0 ? void 0 : _f.name) === 'create_booking' && aiMessage.function_call.arguments) {
-                console.log('[AI] ✅ create_booking function called by AI');
-                console.log('[AI] Function arguments:', aiMessage.function_call.arguments);
+            // Check if OpenAI wants to call the ai_actions_book function (MANDATORY booking path)
+            if (((_d = aiMessage === null || aiMessage === void 0 ? void 0 : aiMessage.function_call) === null || _d === void 0 ? void 0 : _d.name) === 'ai_actions_book' && aiMessage.function_call.arguments) {
+                console.log('[AI] ✅ ai_actions_book function called by AI');
                 try {
                     const functionArgs = JSON.parse(aiMessage.function_call.arguments);
-                    console.log('[AI] Parsed function args:', JSON.stringify(functionArgs, null, 2));
-                    // Use email from thread if available, otherwise generate a placeholder
-                    const finalCustomerEmail = customerEmail || functionArgs.customerEmail || `${(_g = functionArgs.customerName) === null || _g === void 0 ? void 0 : _g.toLowerCase().replace(/\s+/g, '.')}@bookyo.guest` || 'guest@bookyo.guest';
-                    // Validate that customer confirmed
                     if (!functionArgs.customerConfirmed) {
                         aiResponse = yield (0, multilingualService_1.generateMultilingualResponse)('please_confirm', languageCode);
                     }
                     else {
-                        // Match service name to ID if needed
-                        let finalServiceId = functionArgs.serviceId;
-                        if (!finalServiceId && functionArgs.serviceName && availableServices.length > 0) {
-                            const matchedService = availableServices.find(s => s.name.toLowerCase().includes(functionArgs.serviceName.toLowerCase()) ||
-                                functionArgs.serviceName.toLowerCase().includes(s.name.toLowerCase()));
-                            if (matchedService) {
-                                finalServiceId = matchedService.id;
-                            }
-                        }
-                        // Match staff name to ID if needed
-                        let finalStaffId = functionArgs.staffId;
-                        if (!finalStaffId && functionArgs.staffName && availableStaff.length > 0) {
-                            const matchedStaff = availableStaff.find(s => {
-                                const fullName = `${s.first_name} ${s.last_name}`.toLowerCase();
-                                const staffNameLower = functionArgs.staffName.toLowerCase();
-                                return fullName.includes(staffNameLower) || staffNameLower.includes(fullName) ||
-                                    s.first_name.toLowerCase().includes(staffNameLower) ||
-                                    s.last_name.toLowerCase().includes(staffNameLower);
+                        const actionResult = yield (0, aiActionsService_1.bookVerifiedShopAction)(req, {
+                            shop_id: functionArgs.shop_id || shopId,
+                            service_id: functionArgs.service_id,
+                            staff_id: functionArgs.staff_id || null,
+                            start_time: functionArgs.start_time,
+                            end_time: functionArgs.end_time || null,
+                            customer_name: functionArgs.customer_name,
+                            customer_email: functionArgs.customer_email || null,
+                            customer_phone: functionArgs.customer_phone || null,
+                            notes: `Created via AI chat-thread (${threadId})`,
+                        });
+                        if (actionResult.ok) {
+                            bookingCreated = true;
+                            createdBookingId = actionResult.booking.id;
+                            // Update thread with booking_id
+                            yield dbClient
+                                .from("shop_threads")
+                                .update({ booking_id: createdBookingId })
+                                .eq("id", threadId);
+                            // Resolve service name from AI context for confirmation text (no DB lookups)
+                            const bookedShop = aiContext.verifiedShops.find(s => s.shop_id === actionResult.booking.shop_id) || null;
+                            const bookedService = (bookedShop === null || bookedShop === void 0 ? void 0 : bookedShop.services.find(s => s.id === actionResult.booking.service_id)) || null;
+                            const startDate = new Date(actionResult.booking.start_time);
+                            const endDate = new Date(actionResult.booking.end_time);
+                            const dateStr = startDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                            const timeStr = `${startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+                            aiResponse = yield (0, multilingualService_1.generateMultilingualResponse)('booking_created_details', languageCode, {
+                                bookingId: createdBookingId || '',
+                                serviceName: (bookedService === null || bookedService === void 0 ? void 0 : bookedService.name) || 'Service',
+                                dateTime: `${dateStr} ${timeStr}`,
+                                staffName: actionResult.booking.staff_id ? 'Assigned' : 'Not specified',
+                                customerName: functionArgs.customer_name
                             });
-                            if (matchedStaff) {
-                                finalStaffId = matchedStaff.id;
-                            }
-                        }
-                        // Validate required fields (email now comes from thread or placeholder)
-                        if (!finalServiceId || !functionArgs.startTime || !functionArgs.endTime || !functionArgs.customerName) {
-                            aiResponse = yield (0, multilingualService_1.generateMultilingualResponse)('booking_needs_info', languageCode);
                         }
                         else {
-                            // Check availability before creating booking
-                            const availabilityCheck = yield (0, availabilityService_1.checkTimeSlotAvailability)(shopId, functionArgs.startTime, functionArgs.endTime, finalStaffId || null);
-                            if (!availabilityCheck.isAvailable) {
-                                // Time slot not available - suggest alternatives
-                                const date = new Date(functionArgs.startTime);
-                                const dateStr = date.toISOString().split('T')[0];
-                                const service = availableServices.find(s => s.id === finalServiceId);
-                                const durationMinutes = (service === null || service === void 0 ? void 0 : service.duration_minutes) || (service === null || service === void 0 ? void 0 : service.duration) || 60;
-                                const availableSlots = yield (0, availabilityService_1.findAvailableSlots)(shopId, dateStr, durationMinutes, finalStaffId || null);
-                                if (availableSlots.length > 0) {
-                                    const slotsText = availableSlots.slice(0, 5).map(slot => {
-                                        const slotTime = new Date(slot.startTime);
-                                        return slotTime.toLocaleTimeString('en-US', {
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                            hour12: false
-                                        });
-                                    }).join(', ');
-                                    aiResponse = yield (0, multilingualService_1.generateMultilingualResponse)('booking_time_unavailable', languageCode, { availableSlots: slotsText });
-                                }
-                                else {
-                                    aiResponse = yield (0, multilingualService_1.generateMultilingualResponse)('booking_time_unavailable', languageCode, { availableSlots: `No slots available on ${dateStr}` });
-                                }
+                            if (actionResult.status === 409) {
+                                aiResponse = yield (0, multilingualService_1.generateMultilingualResponse)('booking_creation_error', languageCode, { error: actionResult.error });
                             }
                             else {
-                                // Get customer_profile_id if user is authenticated (logged-in customer)
-                                let customerProfileId = null;
-                                try {
-                                    const userId = req.body.userId || req.body.user_id || req.headers['x-user-id'] || null;
-                                    if (userId && isCustomer) {
-                                        // Get customer_profile_id from customer_auth_id
-                                        const { data: customerProfile, error: profileError } = yield dbClient
-                                            .from("customer_profiles")
-                                            .select("id")
-                                            .eq("customer_auth_id", userId)
-                                            .maybeSingle();
-                                        if (profileError) {
-                                            console.error("Error fetching customer profile:", profileError);
-                                        }
-                                        else if (customerProfile) {
-                                            customerProfileId = customerProfile.id;
-                                        }
-                                    }
-                                }
-                                catch (profileErr) {
-                                    console.error("Error getting customer_profile_id (non-blocking):", profileErr);
-                                    // Continue without customer_profile_id if lookup fails
-                                }
-                                // All required fields present, availability confirmed, and customer confirmed - create booking
-                                const bookingResult = yield (0, bookingService_1.createBookingFromAi)({
-                                    shopId: shopId,
-                                    serviceId: finalServiceId,
-                                    staffId: finalStaffId || null,
-                                    timeslotId: null, // Not available from chat
-                                    startTime: functionArgs.startTime,
-                                    endTime: functionArgs.endTime,
-                                    customerName: functionArgs.customerName,
-                                    customerEmail: finalCustomerEmail, // Use from thread or placeholder
-                                    customerPhone: functionArgs.customerPhone || null,
-                                    languageCode: languageCode,
-                                    notes: `Created via AI chat. Service: ${functionArgs.serviceName || 'Unknown'}${functionArgs.staffName ? `, Staff: ${functionArgs.staffName}` : ''}`,
-                                    source: 'ai',
-                                    customerProfileId: customerProfileId, // Pass customer_profile_id for logged-in customers
-                                });
-                                if (bookingResult.success && bookingResult.booking) {
-                                    bookingCreated = true;
-                                    createdBookingId = bookingResult.booking.id;
-                                    // Update thread with booking_id
-                                    yield dbClient
-                                        .from("shop_threads")
-                                        .update({ booking_id: createdBookingId })
-                                        .eq("id", threadId);
-                                    // Get shop and service details for confirmation message
-                                    const shop = yield (0, bookingService_1.getShopDetails)(shopId);
-                                    const service = yield (0, bookingService_1.getServiceDetails)(finalServiceId);
-                                    const staff = finalStaffId ? yield (0, bookingService_1.getStaffDetails)(finalStaffId) : null;
-                                    const startDate = new Date(functionArgs.startTime);
-                                    const endDate = new Date(functionArgs.endTime);
-                                    const dateStr = startDate.toLocaleDateString('en-US', {
-                                        weekday: 'long',
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric'
-                                    });
-                                    const timeStr = `${startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
-                                    aiResponse = yield (0, multilingualService_1.generateMultilingualResponse)('booking_created_details', languageCode, {
-                                        bookingId: createdBookingId || '',
-                                        serviceName: (service === null || service === void 0 ? void 0 : service.name) || functionArgs.serviceName || 'Service',
-                                        dateTime: `${dateStr} ${timeStr}`,
-                                        staffName: staff ? `${staff.first_name} ${staff.last_name}` : 'Not specified',
-                                        customerName: functionArgs.customerName
-                                    });
-                                }
-                                else {
-                                    aiResponse = yield (0, multilingualService_1.generateMultilingualResponse)('booking_creation_error', languageCode, { error: bookingResult.error || 'Unknown error' });
-                                }
+                                aiResponse = yield (0, multilingualService_1.generateMultilingualResponse)('booking_creation_error', languageCode, { error: actionResult.error });
                             }
-                        } // End of else from line 930 (customerConfirmed)
-                    } // End of try block
+                        }
+                    }
                 }
                 catch (parseError) {
-                    console.error("Error parsing function call arguments:", parseError);
-                    aiResponse = yield (0, multilingualService_1.generateMultilingualResponse)('error_occurred', languageCode);
-                }
-            } // End of if (aiMessage?.function_call?.name === 'create_booking')
-            // Handle find_shops function call (for customer queries about other shops)
-            if (((_h = aiMessage === null || aiMessage === void 0 ? void 0 : aiMessage.function_call) === null || _h === void 0 ? void 0 : _h.name) === 'find_shops' && aiMessage.function_call.arguments) {
-                try {
-                    const functionArgs = JSON.parse(aiMessage.function_call.arguments);
-                    const category = functionArgs.category || functionArgs.searchTerm || '';
-                    // Query Supabase for shops matching the category
-                    const { data: foundShops, error: shopsError } = yield dbClient
-                        .from('shops')
-                        .select('id, name, category, address, city, prefecture, phone')
-                        .or(`category.ilike.%${category}%,name.ilike.%${category}%`)
-                        .limit(10);
-                    if (shopsError || !foundShops || foundShops.length === 0) {
-                        aiResponse = yield (0, multilingualService_1.generateMultilingualResponse)('no_shops_found', languageCode);
-                    }
-                    else {
-                        // Format shop list for AI response
-                        const shopsList = foundShops.map((s) => `${s.name} (${s.category || 'Shop'}) - ${s.address || s.city || s.prefecture || 'Location not specified'}`).join('\n');
-                        aiResponse = `I found ${foundShops.length} shop(s) in our database:\n\n${shopsList}\n\nWould you like to book with one of these?`;
-                    }
-                }
-                catch (findError) {
-                    console.error('Error in find_shops function:', findError);
+                    console.error("Error handling ai_actions_book:", parseError);
                     aiResponse = yield (0, multilingualService_1.generateMultilingualResponse)('error_occurred', languageCode);
                 }
             }
+            // NOTE: DB shop search is intentionally disabled.
+            // The AI may only suggest shops from AI_CONTEXT_JSON.verifiedShops.
             // Final validation: If AI response claims booking was successful but function wasn't called, override it
             if (isCustomer && !bookingCreated) {
                 const claimedBooking = /(?:successfully booked|booked you|booked in|appointment is booked|booking confirmed|I have successfully|Great! I have successfully)/i.test(aiResponse);

@@ -49,20 +49,8 @@ router.get('/bookings', (req, res) => __awaiter(void 0, void 0, void 0, function
             console.log(`[${requestId}] ❌ No userId provided`);
             return res.status(401).json({ error: 'Authentication required. Only customers with accounts can view bookings.' });
         }
-        // Verify user exists in auth.users
-        console.log(`[${requestId}] Verifying user in auth.users...`);
-        const { data: authUser, error: authError } = yield dbClient.auth.admin.getUserById(userId);
-        if (authError || !(authUser === null || authUser === void 0 ? void 0 : authUser.user)) {
-            console.error(`[${requestId}] ❌ Auth user verification failed:`, authError === null || authError === void 0 ? void 0 : authError.message);
-            return res.status(401).json({ error: 'Invalid user. Authentication required.' });
-        }
-        console.log(`[${requestId}] ✅ User verified in auth.users:`, {
-            id: authUser.user.id,
-            email: authUser.user.email,
-            metadata: authUser.user.user_metadata,
-        });
         // STEP 1: Find customer.id from customers table (canonical system)
-        // For WEB customers: customers.id = auth.users.id
+        // For WEB customers: customers.id = auth.users.id (but we no longer require auth.users)
         console.log(`[${requestId}] Looking up customer in customers table where id = ${userId}...`);
         let { data: customer, error: customerError } = yield dbClient
             .from('customers')
