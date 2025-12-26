@@ -103,6 +103,8 @@ function getEnglishTemplate(templateKey, variables) {
         // General
         'please_confirm': 'Please confirm by saying "yes" or "confirm".',
         'what_can_i_help': 'Hello! How can I help you today?',
+        // Greeting flow (must be ONLY the open question; greeting prefix is handled elsewhere)
+        'how_can_i_help': 'How can I help you today?',
         'welcome_back': 'Welcome back {name}!',
     };
     let template = templates[templateKey] || templateKey;

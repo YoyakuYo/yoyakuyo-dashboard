@@ -12,6 +12,220 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+function escapeRegExp(input) {
+    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+/**
+ * Keyword match helper:
+ * - For ASCII/Latin keywords, match whole-word / whole-phrase boundaries to avoid false positives (e.g. "this" should NOT match "hi")
+ * - For non-ASCII keywords (CJK etc.), use substring match
+ */
+function containsKeyword(textLower, keywordLower) {
+    if (!keywordLower)
+        return false;
+    // If keyword has any non-ASCII character, use simple includes
+    if (/[^\x00-\x7F]/.test(keywordLower)) {
+        return textLower.includes(keywordLower);
+    }
+    const escaped = escapeRegExp(keywordLower);
+    // Use \W boundaries to avoid matching inside other words (e.g. hi != tHI s)
+    const re = new RegExp(`(^|\\W)${escaped}(\\W|$)`, 'i');
+    return re.test(textLower);
+}
+/**
+ * Classify user intent to determine conversation flow
+ * @param message - The user's message to classify
+ * @returns IntentClassification object
+ */
+function classifyIntent(message) {
+    const lowerMessage = message.toLowerCase().trim();
+    // Greeting keywords - these trigger polite assistant behavior ONLY
+    const greetingKeywords = [
+        'hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening',
+        'how are you', 'how do you do', 'nice to meet you', 'greetings',
+        'こんにちは', 'こんばんは', 'おはよう', 'やあ', 'こんにちはございます',
+        '你好', '早上好', '下午好', '晚上好', '嗨',
+        'xin chào', 'chào', 'chào buổi sáng', 'chào buổi chiều', 'chào buổi tối',
+        'hola', 'buenos días', 'buenas tardes', 'buenas noches',
+        'bonjour', 'salut', 'guten tag', 'hallo', 'guten morgen',
+        'ciao', 'buongiorno', 'buonasera'
+    ];
+    // Booking/search keywords - these trigger shop search and booking logic
+    const bookingSearchKeywords = [
+        'find', 'search', 'book', 'reserve', 'appointment', 'schedule',
+        'haircut', 'salon', 'shop', 'near me', 'nearby', 'close by',
+        'available', 'open', 'when', 'what time', 'price', 'cost', 'how much',
+        'service', 'services', 'stylist', 'staff', 'barber',
+        'booking', 'make appointment', 'set up appointment',
+        '探す', '検索', '予約', 'アポイントメント', 'スケジュール',
+        '美容院', '理髪店', 'サロン', '近く', '営業時間', '料金', 'サービス',
+        '予約する', 'アポを取る', '空いている', '利用可能',
+        '找', '搜索', '预订', '预约', '美发店', '沙龙', '附近', '价格', '服务',
+        'tìm', 'tìm kiếm', 'đặt', 'đặt lịch', 'tóc', 'salon', 'gần đây', 'giá', 'dịch vụ',
+        'buscar', 'reservar', 'cita', 'peluquería', 'salón', 'cerca', 'precio', 'servicio',
+        'trouver', 'chercher', 'réserver', 'rendez-vous', 'coiffeur', 'salon', 'près', 'prix', 'service',
+        'finden', 'suchen', 'buchen', 'termin', 'friseur', 'salon', 'nah', 'preis', 'dienstleistung',
+        'trovare', 'cercare', 'prenotare', 'appuntamento', 'parrucchiere', 'salone', 'vicino', 'prezzo', 'servizio'
+    ];
+    // Check for greeting intent
+    const greetingMatches = greetingKeywords.filter(keyword => containsKeyword(lowerMessage, keyword.toLowerCase()));
+    // Check for booking/search intent
+    const bookingMatches = bookingSearchKeywords.filter(keyword => containsKeyword(lowerMessage, keyword.toLowerCase()));
+    // Determine intent based on matches
+    if (greetingMatches.length > 0 && bookingMatches.length === 0) {
+        return {
+            intent: 'greeting',
+            confidence: Math.min(1.0, greetingMatches.length * 0.3),
+            keywords: greetingMatches
+        };
+    }
+    else if (bookingMatches.length > 0) {
+        return {
+            intent: 'booking_search',
+            confidence: Math.min(1.0, bookingMatches.length * 0.2),
+            keywords: bookingMatches
+        };
+    }
+    else {
+        return {
+            intent: 'other',
+            confidence: 0.5,
+            keywords: []
+        };
+    }
+}
+/**
+ * Generate personalized greeting response based on customer context
+ * @param context - Customer context information
+ * @param languageCode - Detected language code
+ * @returns Personalized greeting message
+ */
+function generateGreetingResponse(context, languageCode) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const { name, type } = context;
+        // Default greeting template
+        let greeting = "Hello! Welcome to YoyakuYo.";
+        // Add name if available
+        if (name) {
+            greeting = `Hello ${name}! Welcome to YoyakuYo.`;
+        }
+        // Multilingual greeting variations
+        const greetings = {
+            'ja': {
+                withName: `こんにちは、${name}さん！ようこそYoyakuYoへ。`,
+                withoutName: 'こんにちは！ようこそYoyakuYoへ。'
+            },
+            'zh': {
+                withName: `你好，${name}！欢迎来到YoyakuYo。`,
+                withoutName: '你好！欢迎来到YoyakuYo。'
+            },
+            'vi': {
+                withName: `Xin chào ${name}! Chào mừng đến với YoyakuYo.`,
+                withoutName: 'Xin chào! Chào mừng đến với YoyakuYo.'
+            },
+            'es': {
+                withName: `¡Hola ${name}! Bienvenido a YoyakuYo.`,
+                withoutName: '¡Hola! Bienvenido a YoyakuYo.'
+            },
+            'fr': {
+                withName: `Bonjour ${name} ! Bienvenue sur YoyakuYo.`,
+                withoutName: 'Bonjour ! Bienvenue sur YoyakuYo.'
+            },
+            'de': {
+                withName: `Hallo ${name}! Willkommen bei YoyakuYo.`,
+                withoutName: 'Hallo! Willkommen bei YoyakuYo.'
+            },
+            'it': {
+                withName: `Ciao ${name}! Benvenuto su YoyakuYo.`,
+                withoutName: 'Ciao! Benvenuto su YoyakuYo.'
+            },
+            'pt': {
+                withName: `Olá ${name}! Bem-vindo ao YoyakuYo.`,
+                withoutName: 'Olá! Bem-vindo ao YoyakuYo.'
+            },
+            'ko': {
+                withName: `안녕하세요, ${name}님! YoyakuYo에 오신 것을 환영합니다.`,
+                withoutName: '안녕하세요! YoyakuYo에 오신 것을 환영합니다.'
+            },
+            'th': {
+                withName: `สวัสดี ${name}! ยินดีต้อนรับสู่ YoyakuYo.`,
+                withoutName: 'สวัสดี! ยินดีต้อนรับสู่ YoyakuYo.'
+            },
+            'ru': {
+                withName: `Привет ${name}! Добро пожаловать в YoyakuYo.`,
+                withoutName: 'Привет! Добро пожаловать в YoyakuYo.'
+            },
+            'ar': {
+                withName: `مرحباً ${name}! مرحباً بك في يويakuYo.`,
+                withoutName: 'مرحباً! مرحباً بك في يويakuYo.'
+            },
+            'hi': {
+                withName: `नमस्ते ${name}! YoyakuYo में आपका स्वागत है।`,
+                withoutName: 'नमस्ते! YoyakuYo में आपका स्वागत है।'
+            }
+        };
+        const langGreetings = greetings[languageCode];
+        if (langGreetings) {
+            greeting = name ? langGreetings.withName : langGreetings.withoutName;
+        }
+        // Add the mandatory question: "How can I help you today?"
+        const helpQuestion = yield (0, multilingualService_1.generateMultilingualResponse)('how_can_i_help', languageCode);
+        return `${greeting} ${helpQuestion}`;
+    });
+}
+/**
+ * Extract customer context from request and thread data
+ * @param req - Express request object
+ * @param threadId - Thread ID if available
+ * @param languageCode - Detected language code
+ * @returns CustomerContext object
+ */
+function getCustomerContext(req, threadId, languageCode) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        const customerId = req.body.customerId || req.body.customer_id;
+        const source = req.body.source;
+        // Default context
+        let context = {
+            type: 'guest',
+            language: languageCode
+        };
+        // Try to get customer name from thread data
+        if (threadId) {
+            try {
+                const { data: threadData } = yield dbClient
+                    .from("shop_threads")
+                    .select("customer_email")
+                    .eq("id", threadId)
+                    .single();
+                if (threadData === null || threadData === void 0 ? void 0 : threadData.customer_email) {
+                    // Try to find customer name from bookings or user data
+                    const { data: customerData } = yield dbClient
+                        .from("bookings")
+                        .select("customer_name")
+                        .eq("customer_email", threadData.customer_email)
+                        .order("created_at", { ascending: false })
+                        .limit(1)
+                        .single();
+                    if (customerData === null || customerData === void 0 ? void 0 : customerData.customer_name) {
+                        context.name = customerData.customer_name;
+                    }
+                    // Determine customer type
+                    if (source === 'customer') {
+                        context.type = 'web_customer';
+                    }
+                    else if (((_a = req.headers['user-agent']) === null || _a === void 0 ? void 0 : _a.includes('LINE')) || req.body.lineUserId) {
+                        context.type = 'line_customer';
+                    }
+                }
+            }
+            catch (error) {
+                console.log('[AI] Could not retrieve customer context:', error);
+            }
+        }
+        return context;
+    });
+}
 const supabase_1 = require("../lib/supabase");
 const customerService_1 = require("../services/customerService");
 const languageDetectionService_1 = require("../services/languageDetectionService");
@@ -89,6 +303,53 @@ router.post("/chat", (req, res) => __awaiter(void 0, void 0, void 0, function* (
             return res.status(400).json({ error: "shopId and message are required" });
         }
         const isCustomer = finalSource === 'customer';
+        // =====================================================
+        // INTENT CLASSIFICATION - BEFORE ANY BUSINESS LOGIC
+        // =====================================================
+        const userIntent = classifyIntent(finalMessage);
+        console.log(`[AI] Classified intent: ${userIntent.intent} (confidence: ${userIntent.confidence}) keywords: [${userIntent.keywords.join(', ')}] for message: "${finalMessage.substring(0, 50)}..."`);
+        // =====================================================
+        // GREETING INTENT HANDLING - HARD STOP FOR GREETINGS
+        // =====================================================
+        if (userIntent.intent === 'greeting') {
+            console.log('[AI] Greeting detected - returning greeting response only');
+            // Detect language for greeting
+            const greetingLanguageCode = yield (0, languageDetectionService_1.detectLanguage)(finalMessage);
+            // Get customer context for personalized greeting (no thread needed for greetings)
+            const customerContext = yield getCustomerContext(req, undefined, greetingLanguageCode);
+            // Generate greeting response
+            const greetingResponse = yield generateGreetingResponse(customerContext, greetingLanguageCode);
+            // Try to save messages if we can create a thread, but don't fail if we can't
+            try {
+                // Also save to customer_ai_messages (this should work even without thread)
+                const customerId = req.body.customerId || req.body.customer_id || null;
+                yield dbClient
+                    .from("customer_ai_messages")
+                    .insert([
+                    {
+                        customer_id: customerId,
+                        shop_id: finalShopId,
+                        role: 'user',
+                        message: finalMessage,
+                    },
+                    {
+                        customer_id: customerId,
+                        shop_id: finalShopId,
+                        role: 'assistant',
+                        message: greetingResponse,
+                    }
+                ]);
+            }
+            catch (dbError) {
+                console.log('[AI] Database save failed for greeting, but continuing:', (dbError === null || dbError === void 0 ? void 0 : dbError.message) || dbError);
+            }
+            return res.json({
+                response: greetingResponse,
+                language_code: greetingLanguageCode,
+                intent: userIntent.intent,
+                is_greeting: true
+            });
+        }
         // Find or create a thread for this shop/booking
         let threadId = null;
         if (req.body.bookingId) {
@@ -276,6 +537,14 @@ ${shopContext}${strictKnowledgeBoundary}
 
 CRITICAL INSTRUCTION: The user's message was detected as ${detectedLanguageName}. You MUST respond ONLY in ${detectedLanguageName}.
 
+CONVERSATION FLOW RULES (MANDATORY):
+- This message has been classified as intent: "${userIntent.intent}"
+- If intent is "greeting": ONLY respond with welcome + "How can I help you today?" (already handled)
+- If intent is "booking_search": You may search shops and suggest bookings
+- If intent is "other": Clarify what the user wants before taking action
+- NEVER automatically search for shops or suggest bookings unless explicitly requested
+- NEVER provide shop listings, availability, or booking options unless user asks with keywords like: find, search, book, reserve, haircut, salon, shop, near me, etc.
+
 If asked about anything not present in AI_CONTEXT_JSON, respond: "I don't have that information."`;
         try {
             // Call OpenAI API
@@ -412,6 +681,45 @@ router.post("/chat-thread", (req, res) => __awaiter(void 0, void 0, void 0, func
             .limit(20); // Increased to get more context for booking extraction
         if (messagesError) {
             console.error("Error fetching recent messages:", messagesError);
+        }
+        // =====================================================
+        // INTENT CLASSIFICATION - BEFORE ANY BUSINESS LOGIC
+        // =====================================================
+        const userIntent = classifyIntent(message);
+        console.log(`[AI] Classified intent: ${userIntent.intent} (confidence: ${userIntent.confidence}) for message: "${message.substring(0, 50)}..."`);
+        // =====================================================
+        // GREETING INTENT HANDLING - HARD STOP FOR GREETINGS
+        // =====================================================
+        if (userIntent.intent === 'greeting') {
+            console.log('[AI] Greeting detected in thread - returning greeting response only');
+            // Get customer context for personalized greeting
+            const customerContext = yield getCustomerContext(req, threadId, undefined); // languageCode not yet available
+            // Detect language for greeting
+            const greetingLanguageCode = yield (0, languageDetectionService_1.detectLanguage)(message);
+            // Generate greeting response
+            const greetingResponse = yield generateGreetingResponse(customerContext, greetingLanguageCode);
+            // Save customer message
+            yield dbClient
+                .from("shop_messages")
+                .insert([{
+                    thread_id: threadId,
+                    sender_type: 'customer',
+                    content: message,
+                }]);
+            // Save greeting response
+            yield dbClient
+                .from("shop_messages")
+                .insert([{
+                    thread_id: threadId,
+                    sender_type: 'ai',
+                    content: greetingResponse,
+                }]);
+            return res.json({
+                response: greetingResponse,
+                language_code: greetingLanguageCode,
+                intent: userIntent.intent,
+                is_greeting: true
+            });
         }
         // Get shop owner info for owner language detection
         let ownerLanguage = 'en'; // Default
@@ -606,6 +914,14 @@ You MUST NOT query Supabase or invent data.\n\nAI_CONTEXT_JSON:\n${JSON.stringif
         const detectedLanguageName = languageNames[languageCode] || 'English';
         // Enhanced system prompt - different for owner commands vs customer
         let systemPrompt = '';
+        // Add intent context to all prompts
+        const intentContext = `\n\nCONVERSATION FLOW RULES (MANDATORY):
+- This message has been classified as intent: "${userIntent.intent}"
+- If intent is "greeting": ONLY respond with welcome + "How can I help you today?" (already handled)
+- If intent is "booking_search": You may search shops and suggest bookings
+- If intent is "other": Clarify what the user wants before taking action
+- NEVER automatically search for shops or suggest bookings unless explicitly requested
+- NEVER provide shop listings, availability, or booking options unless user asks with keywords like: find, search, book, reserve, haircut, salon, shop, near me, etc.`;
         if (isOwner) {
             // Owner command mode - handle cancellation/reschedule (multilingual)
             // Get customer language for owner commands
@@ -640,7 +956,7 @@ IMPORTANT:
             // Customer-facing mode: MUST follow strict AI context boundary
             systemPrompt = isCustomer
                 ? `You are Yoyaku Yo AI Assistant.
-${shopContext}${strictKnowledgeBoundary}${servicesContext}${availabilityContext}${missingInfoContext}
+${shopContext}${strictKnowledgeBoundary}${servicesContext}${availabilityContext}${missingInfoContext}${intentContext}
 
 CRITICAL RESPONSE LANGUAGE: The customer's message was detected as ${detectedLanguageName}. You MUST respond ONLY in ${detectedLanguageName}.
 
@@ -657,7 +973,7 @@ BOOKING RULES (MANDATORY):
 - When the customer confirms, you MUST call the ai_actions_book function to create the booking.
 - You MUST NOT claim a booking is confirmed unless you called ai_actions_book and it succeeded.`
                 : `You are Yoyaku Yo AI Assistant.
-${strictKnowledgeBoundary}
+${strictKnowledgeBoundary}${intentContext}
 
 CRITICAL RESPONSE LANGUAGE: The user's message was detected as ${detectedLanguageName}. You MUST respond ONLY in ${detectedLanguageName}.
 
