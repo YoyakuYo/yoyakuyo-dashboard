@@ -863,7 +863,7 @@
   },
   "subscription": {
     "title": "サブスクリプションプラン",
-    "subtitle": "ビジネスニーズに合うプランを選択",
+    "subtitle": "店舗オーナー向けのシンプルな月額料金。いつでも解約可能。",
     "selectShop": "店舗を選択",
     "currentSubscription": "現在のサブスクリプション",
     "status": "ステータス",
@@ -874,25 +874,29 @@
     "mostPopular": "最も人気",
     "subscribe": "購読",
     "processing": "処理中...",
+    "billedMonthlyCancelAnytime": "月額課金。いつでも解約可能。",
     "pleaseSelectShop": "まず店舗を選択してください",
     "needShop": "購読する前に、まず店舗を作成する必要があります。",
     "goToMyShop": "マイショップへ",
     "basicPlan": "ベーシックプラン",
-    "basicPlanPrice": "$9.99/月",
+    "basicTagline": "個人オーナー向け（まずは1店舗から）",
+    "basicShopLimit": "1店舗まで",
+    "basicPlanPrice": "¥5,000/月",
     "basicPlanFeatures": [
-      "最大1店舗",
-      "基本的な予約管理",
-      "メールサポート",
-      "基本的な分析"
+      "予約管理ダッシュボード",
+      "顧客メッセージ（受信箱）",
+      "基本分析（予約・メッセージ）",
+      "メールサポート"
     ],
     "premiumPlan": "プレミアムプラン",
-    "premiumPlanPrice": "$29.99/月",
+    "premiumTagline": "複数店舗を運営する方向け",
+    "premiumShopLimit": "最大3店舗",
+    "premiumPlanPrice": "¥10,000/月",
     "premiumPlanFeatures": [
-      "最大3店舗",
-      "高度な予約管理",
-      "優先顧客サポート",
-      "分析ダッシュボード",
-      "AIアシスタントサポート"
+      "ベーシックの全機能",
+      "高度な分析ダッシュボード",
+      "オーナーAI（顧客メッセージ支援）",
+      "優先サポート"
     ]
   },
   "payment": {

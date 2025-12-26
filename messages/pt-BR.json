@@ -674,7 +674,7 @@
   },
   "subscription": {
     "title": "Planos de Assinatura",
-    "subtitle": "Escolha um plano que se adapte às necessidades do seu negócio",
+    "subtitle": "Preço mensal simples para donos de lojas. Cancele quando quiser.",
     "selectShop": "Selecionar Loja",
     "currentSubscription": "Assinatura Atual",
     "status": "Status",
@@ -685,25 +685,29 @@
     "mostPopular": "Mais Popular",
     "subscribe": "Assinar",
     "processing": "Processando...",
+    "billedMonthlyCancelAnytime": "Cobrança mensal. Cancele quando quiser.",
     "pleaseSelectShop": "Por favor, selecione uma loja primeiro",
     "needShop": "Você precisa criar uma loja primeiro antes de assinar.",
     "goToMyShop": "Ir para Minha Loja",
     "basicPlan": "Plano Básico",
-    "basicPlanPrice": "$9.99/mês",
+    "basicTagline": "Para quem está começando com 1 loja",
+    "basicShopLimit": "1 loja incluída",
+    "basicPlanPrice": "¥5.000/mês",
     "basicPlanFeatures": [
-      "Até 1 loja",
-      "Gerenciamento básico de reservas",
-      "Suporte por e-mail",
-      "Análise básica"
+      "Painel de gestão de reservas",
+      "Caixa de entrada de mensagens dos clientes",
+      "Análises básicas (reservas e mensagens)",
+      "Suporte por e-mail"
     ],
     "premiumPlan": "Plano Premium",
-    "premiumPlanPrice": "$29.99/mês",
+    "premiumTagline": "Para crescer com múltiplas lojas",
+    "premiumShopLimit": "Até 3 lojas",
+    "premiumPlanPrice": "¥10.000/mês",
     "premiumPlanFeatures": [
-      "Até 3 lojas",
-      "Gerenciamento avançado de reservas",
-      "Suporte prioritário ao cliente",
-      "Painel de análise",
-      "Suporte de assistente IA"
+      "Tudo do plano Básico",
+      "Painel de análises avançadas",
+      "IA do dono (ajuda nas mensagens)",
+      "Suporte prioritário"
     ]
   },
   "payment": {

@@ -866,7 +866,7 @@
   },
   "subscription": {
     "title": "Subscription Plans",
-    "subtitle": "Choose a plan that fits your business needs",
+    "subtitle": "Simple monthly pricing for shop owners. Cancel anytime.",
     "selectShop": "Select Shop",
     "currentSubscription": "Current Subscription",
     "status": "Status",
@@ -877,25 +877,29 @@
     "mostPopular": "Most Popular",
     "subscribe": "Subscribe",
     "processing": "Processing...",
+    "billedMonthlyCancelAnytime": "Billed monthly. Cancel anytime.",
     "pleaseSelectShop": "Please select a shop first",
     "needShop": "You need to create a shop first before subscribing.",
     "goToMyShop": "Go to My Shop",
     "basicPlan": "Basic Plan",
-    "basicPlanPrice": "$9.99/month",
+    "basicTagline": "For solo owners getting started",
+    "basicShopLimit": "1 shop included",
+    "basicPlanPrice": "¥5,000/month",
     "basicPlanFeatures": [
-      "Up to 1 shop",
-      "Basic booking management",
-      "Email support",
-      "Basic analytics"
+      "Booking management dashboard",
+      "Customer messaging inbox",
+      "Basic analytics (bookings & messages)",
+      "Email support"
     ],
     "premiumPlan": "Premium Plan",
-    "premiumPlanPrice": "$29.99/month",
+    "premiumTagline": "For growing teams managing multiple shops",
+    "premiumShopLimit": "Up to 3 shops",
+    "premiumPlanPrice": "¥10,000/month",
     "premiumPlanFeatures": [
-      "Up to 3 shops",
-      "Advanced booking management",
-      "Priority customer support",
-      "Analytics dashboard",
-      "AI assistant support"
+      "Everything in Basic",
+      "Advanced analytics dashboard",
+      "Owner AI assistant for customer messages",
+      "Priority support"
     ]
   },
   "payment": {
@@ -933,7 +937,7 @@
   },
   "subscription": {
     "title": "Subscription Plans",
-    "subtitle": "Choose a plan that fits your business needs",
+    "subtitle": "Simple monthly pricing for shop owners. Cancel anytime.",
     "selectShop": "Select Shop",
     "currentSubscription": "Current Subscription",
     "status": "Status",
@@ -944,25 +948,29 @@
     "mostPopular": "Most Popular",
     "subscribe": "Subscribe",
     "processing": "Processing...",
+    "billedMonthlyCancelAnytime": "Billed monthly. Cancel anytime.",
     "pleaseSelectShop": "Please select a shop first",
     "needShop": "You need to create a shop first before subscribing.",
     "goToMyShop": "Go to My Shop",
     "basicPlan": "Basic Plan",
-    "basicPlanPrice": "$9.99/month",
+    "basicTagline": "For solo owners getting started",
+    "basicShopLimit": "1 shop included",
+    "basicPlanPrice": "¥5,000/month",
     "basicPlanFeatures": [
-      "Up to 1 shop",
-      "Basic booking management",
-      "Email support",
-      "Basic analytics"
+      "Booking management dashboard",
+      "Customer messaging inbox",
+      "Basic analytics (bookings & messages)",
+      "Email support"
     ],
     "premiumPlan": "Premium Plan",
-    "premiumPlanPrice": "$29.99/month",
+    "premiumTagline": "For growing teams managing multiple shops",
+    "premiumShopLimit": "Up to 3 shops",
+    "premiumPlanPrice": "¥10,000/month",
     "premiumPlanFeatures": [
-      "Up to 3 shops",
-      "Advanced booking management",
-      "Priority customer support",
-      "Analytics dashboard",
-      "AI assistant support"
+      "Everything in Basic",
+      "Advanced analytics dashboard",
+      "Owner AI assistant for customer messages",
+      "Priority support"
     ]
   },
   "dashboard": {

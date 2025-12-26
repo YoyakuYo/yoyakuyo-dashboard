@@ -198,6 +198,8 @@ export default function SubscriptionPage() {
     {
       id: 'basic' as const,
       name: t('subscription.basicPlan'),
+      tagline: t('subscription.basicTagline'),
+      shopLimit: t('subscription.basicShopLimit'),
       price: '¥5,000',
       period: '/month',
       features: t.raw('subscription.basicPlanFeatures') as string[],
@@ -205,6 +207,8 @@ export default function SubscriptionPage() {
     {
       id: 'premium' as const,
       name: t('subscription.premiumPlan'),
+      tagline: t('subscription.premiumTagline'),
+      shopLimit: t('subscription.premiumShopLimit'),
       price: '¥10,000',
       period: '/month',
       features: t.raw('subscription.premiumPlanFeatures') as string[],
@@ -295,10 +299,20 @@ export default function SubscriptionPage() {
               )}
               <div className="text-center mb-6">
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+                {plan.tagline && (
+                  <p className="text-sm text-gray-600 mb-3">{plan.tagline}</p>
+                )}
                 <div className="flex items-baseline justify-center">
                   <span className="text-3xl font-bold text-gray-900">{plan.price}</span>
                   <span className="text-gray-600 ml-1">{plan.period}</span>
                 </div>
+                {plan.shopLimit && (
+                  <div className="mt-3 flex justify-center">
+                    <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                      {plan.shopLimit}
+                    </span>
+                  </div>
+                )}
               </div>
               <ul className="space-y-3 mb-6">
                 {plan.features.map((feature, index) => (
@@ -320,6 +334,9 @@ export default function SubscriptionPage() {
                   </li>
                 ))}
               </ul>
+              <p className="text-xs text-gray-500 text-center mb-4">
+                {t('subscription.billedMonthlyCancelAnytime')}
+              </p>
               <button
                 onClick={() => handleSubscribe(plan.id)}
                 disabled={subscribing || !selectedShopId}

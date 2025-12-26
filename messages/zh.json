@@ -674,7 +674,7 @@
   },
   "subscription": {
     "title": "订阅计划",
-    "subtitle": "选择适合您业务需求的计划",
+    "subtitle": "面向店铺老板的简单月订阅。随时可取消。",
     "selectShop": "选择店铺",
     "currentSubscription": "当前订阅",
     "status": "状态",
@@ -685,25 +685,29 @@
     "mostPopular": "最受欢迎",
     "subscribe": "订阅",
     "processing": "处理中...",
+    "billedMonthlyCancelAnytime": "按月计费。随时可取消。",
     "pleaseSelectShop": "请先选择店铺",
     "needShop": "在订阅之前，您需要先创建一个店铺。",
     "goToMyShop": "前往我的店铺",
     "basicPlan": "基础计划",
-    "basicPlanPrice": "$9.99/月",
+    "basicTagline": "适合从 1 家店开始的老板",
+    "basicShopLimit": "包含 1 家店",
+    "basicPlanPrice": "¥5,000/月",
     "basicPlanFeatures": [
-      "最多1个店铺",
-      "基本预约管理",
-      "电子邮件支持",
-      "基本分析"
+      "预约管理面板",
+      "客户消息收件箱",
+      "基础数据分析（预约/消息）",
+      "邮件支持"
     ],
     "premiumPlan": "高级计划",
-    "premiumPlanPrice": "$29.99/月",
+    "premiumTagline": "适合多店铺经营与增长",
+    "premiumShopLimit": "最多 3 家店",
+    "premiumPlanPrice": "¥10,000/月",
     "premiumPlanFeatures": [
-      "最多3个店铺",
-      "高级预约管理",
-      "优先客户支持",
-      "分析仪表板",
-      "AI助手支持"
+      "包含基础版全部功能",
+      "高级数据分析面板",
+      "店主 AI（客户消息辅助）",
+      "优先支持"
     ]
   },
   "payment": {
