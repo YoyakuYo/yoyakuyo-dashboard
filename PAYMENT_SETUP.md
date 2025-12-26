@@ -1,16 +1,14 @@
 # Payment Integration Setup Guide
 
-This document explains how to configure payment methods (Stripe, LINE Pay, PayPay) for the YoyakuYo booking platform.
+This document explains how to configure payments (Stripe) for the YoyakuYo booking platform.
 
 ## 🎯 Overview
 
 The payment system is **fully implemented** but requires API keys to be configured. All payment methods are ready to use once credentials are added.
 
-## ✅ Implemented Payment Methods
+## ✅ Implemented Payment Method
 
 1. **Stripe** - Credit card payments (Visa, Mastercard, Amex)
-2. **LINE Pay** - Popular payment method in Japan
-3. **PayPay** - QR code payment system (very popular in Japan)
 
 ## 📋 Backend Configuration
 
@@ -22,21 +20,6 @@ Add these to your backend `.env` file (or Render.com environment variables):
 ```env
 STRIPE_SECRET_KEY=sk_test_... # Your Stripe secret key
 STRIPE_WEBHOOK_SECRET=whsec_... # Stripe webhook secret (for production)
-```
-
-#### LINE Pay
-```env
-LINE_PAY_CHANNEL_ID=your_channel_id
-LINE_PAY_CHANNEL_SECRET=your_channel_secret
-LINE_PAY_SANDBOX=true # Set to false for production
-```
-
-#### PayPay
-```env
-PAYPAY_MERCHANT_ID=your_merchant_id
-PAYPAY_API_KEY=your_api_key
-PAYPAY_API_SECRET=your_api_secret
-PAYPAY_SANDBOX=true # Set to false for production
 ```
 
 #### General
@@ -51,8 +34,6 @@ Add these to your frontend `.env.local` file (or Vercel environment variables):
 
 ```env
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_... # Your Stripe publishable key
-NEXT_PUBLIC_LINE_PAY_CHANNEL_ID=your_channel_id # Optional, for UI display
-NEXT_PUBLIC_PAYPAY_MERCHANT_ID=your_merchant_id # Optional, for UI display
 ```
 
 ## 🔑 How to Get API Keys
@@ -64,18 +45,6 @@ NEXT_PUBLIC_PAYPAY_MERCHANT_ID=your_merchant_id # Optional, for UI display
 4. Copy your **Publishable Key** (starts with `pk_`)
 5. For production webhooks, go to Developers → Webhooks and create endpoint
 
-### LINE Pay
-1. Sign up at https://pay.line.me
-2. Apply for merchant account
-3. Get Channel ID and Channel Secret from LINE Pay console
-4. Use sandbox mode for testing
-
-### PayPay
-1. Sign up at https://paypay.ne.jp
-2. Apply for merchant account
-3. Get Merchant ID, API Key, and API Secret from PayPay console
-4. Use sandbox mode for testing
-
 ## 📁 Files Created
 
 ### Backend (`yoyakuyo-api/`)
@@ -83,10 +52,7 @@ NEXT_PUBLIC_PAYPAY_MERCHANT_ID=your_merchant_id # Optional, for UI display
 - Database migration: `supabase/migrations/20250130_create_payments_table.sql`
 
 ### Frontend (`app/`)
-- `components/payments/PaymentMethodSelector.tsx` - Payment method selection UI
 - `components/payments/StripePaymentForm.tsx` - Stripe payment form
-- `components/payments/LinePayButton.tsx` - LINE Pay button
-- `components/payments/PayPayQRCode.tsx` - PayPay QR code display
 - `book/[shopId]/payment/page.tsx` - Payment page
 
 ## 🔄 Payment Flow
@@ -104,7 +70,7 @@ NEXT_PUBLIC_PAYPAY_MERCHANT_ID=your_merchant_id # Optional, for UI display
 ### `payments` table
 - `id` - UUID primary key
 - `booking_id` - Foreign key to bookings
-- `payment_method` - 'stripe', 'linepay', or 'paypay'
+- `payment_method` - 'stripe'
 - `amount` - Payment amount
 - `currency` - Currency code (default: JPY)
 - `status` - 'pending', 'completed', 'failed', 'refunded', 'cancelled'
@@ -121,14 +87,6 @@ NEXT_PUBLIC_PAYPAY_MERCHANT_ID=your_merchant_id # Optional, for UI display
 - Use test API keys (start with `sk_test_` and `pk_test_`)
 - Use test card: `4242 4242 4242 4242`
 - Any future expiry date, any CVC
-
-### LINE Pay Sandbox
-- Set `LINE_PAY_SANDBOX=true`
-- Use sandbox credentials from LINE Pay console
-
-### PayPay Sandbox
-- Set `PAYPAY_SANDBOX=true`
-- Use sandbox credentials from PayPay console
 
 ## ⚠️ Important Notes
 
@@ -153,24 +111,15 @@ NEXT_PUBLIC_PAYPAY_MERCHANT_ID=your_merchant_id # Optional, for UI display
 - `POST /payments/stripe/confirm` - Confirm payment
 - `POST /payments/stripe/webhook` - Webhook handler
 
-### LINE Pay
-- `POST /payments/linepay/request` - Request payment
-- `POST /payments/linepay/confirm` - Confirm payment
-
-### PayPay
-- `POST /payments/paypay/create` - Create payment
-- `GET /payments/paypay/status/:payment_id` - Check payment status
-
 ### General
 - `GET /payments/booking/:booking_id` - Get payments for a booking
 
 ## 💡 Value Added
 
-This implementation adds **¥2,000,000-¥3,000,000** to the project value:
+This implementation adds meaningful value to the project:
 - ✅ Complete payment infrastructure
-- ✅ Three major payment methods
 - ✅ Ready for production (just add API keys)
-- ✅ Professional payment UI
+- ✅ Professional payment UI (Stripe)
 - ✅ Secure payment processing
 - ✅ Payment tracking and history
 

@@ -2,53 +2,17 @@
 
 ## Summary
 Your codebase has **partial LINE integration** focused on:
-1. **LINE Pay** - Payment processing (fully implemented)
-2. **LINE Login/Share** - Frontend components (UI only, no backend routes)
-3. **Database Schema** - LINE-related tables and columns (migrations exist)
-4. **LINE Bot SDK** - Package installed but not used
+1. **LINE Login/Share** - Frontend components (UI only, no backend routes)
+2. **Database Schema** - LINE-related tables and columns (migrations exist)
+3. **LINE Bot / LIFF** - Implemented in `yoyakuyo-api` (webhook + LIFF booking/chat flows)
 
-**Missing:** LINE Messaging API (bot), LINE webhook handler, LINE Mini App (LIFF)
+**Missing (in this doc’s original scope):** varies by deployment, but generally OAuth/share helpers if you want the “UI only” components to work end-to-end.
 
 ---
 
 ## ✅ What EXISTS
 
-### 1. LINE Pay Integration (Complete)
-
-#### Backend API Routes
-**File:** `yoyakuyo-api/src/routes/payments.ts`
-
-**Endpoints:**
-- `POST /payments/linepay/request` - Create LINE Pay payment request
-- `POST /payments/linepay/confirm` - Confirm LINE Pay payment
-
-**Features:**
-- ✅ Sandbox/production mode support
-- ✅ Payment request creation
-- ✅ Payment confirmation
-- ✅ Booking payment status updates
-- ✅ Transaction ID tracking
-
-**Environment Variables Required:**
-```env
-LINE_PAY_CHANNEL_ID=your_channel_id
-LINE_PAY_CHANNEL_SECRET=your_channel_secret
-LINE_PAY_SANDBOX=true  # or false for production
-```
-
-#### Frontend Component
-**File:** `app/components/payments/LinePayButton.tsx`
-
-**Features:**
-- ✅ LINE Pay button UI
-- ✅ Payment request handling
-- ✅ Loading states
-- ✅ Error handling
-- ✅ Redirects to LINE Pay payment page
-
----
-
-### 2. LINE Login/Share Components (UI Only)
+### 1. LINE Login/Share Components (UI Only)
 
 #### LineLoginButton Component
 **File:** `app/components/LineLoginButton.tsx`
@@ -78,7 +42,7 @@ GET /line/share-url?shop_id=xxx&shop_name=xxx
 
 ---
 
-### 3. Database Schema (Migrations)
+### 2. Database Schema (Migrations)
 
 #### Migration 1: Basic LINE Integration
 **File:** `supabase/migrations/20250121000002_add_line_integration.sql`
@@ -222,7 +186,6 @@ LINE_REDIRECT_URI=https://your-api.com/line/callback
 
 | Feature | Status | Files | Notes |
 |---------|--------|-------|-------|
-| LINE Pay | ✅ Complete | `payments.ts`, `LinePayButton.tsx` | Fully functional |
 | LINE Login UI | ⚠️ Partial | `LineLoginButton.tsx` | UI only, no backend |
 | LINE Share UI | ⚠️ Partial | `LineShareButton.tsx` | UI only, no backend |
 | Database Schema | ✅ Complete | 4 migrations | All tables/columns exist |

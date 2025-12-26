@@ -501,7 +501,7 @@ Add persistent menu at bottom of LINE chat:
 2. Should users be able to manage bookings through the bot?
 3. Do you want to support multiple languages in the bot?
 4. Should the bot remember user preferences?
-5. Do you want to add payment integration via LINE Pay?
+5. Do you want to add payment integration?
 
 ---
 

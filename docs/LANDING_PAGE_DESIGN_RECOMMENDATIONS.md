@@ -344,7 +344,7 @@ Desc     Desc     Desc
 - **Proper Japanese typography** (no font fallbacks)
 
 **4. Payment & Booking:**
-- **Multiple payment methods** (credit card, convenience store, LINE Pay, PayPay)
+- **Multiple payment methods** (credit card, convenience store)
 - **Clear pricing** (no hidden fees)
 - **Cancellation policy** (prominent)
 - **Booking confirmation** (detailed, reassuring)

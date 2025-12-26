@@ -67,7 +67,7 @@ const formatTime = (timeSlot: string | null | undefined, startTime: string | nul
 
 interface Payment {
   id: string;
-  payment_method: 'stripe' | 'linepay' | 'paypay';
+  payment_method: 'stripe';
   amount: number;
   currency: string;
   status: 'pending' | 'completed' | 'failed' | 'refunded' | 'cancelled';
@@ -314,7 +314,7 @@ export default function BookingsPage() {
                             </div>
                             {paymentMethod && (
                               <div className="text-xs text-gray-500 capitalize">
-                                {paymentMethod === 'linepay' ? 'LINE Pay' : paymentMethod === 'paypay' ? 'PayPay' : 'Card'}
+                                {paymentMethod === 'stripe' ? 'Card' : paymentMethod}
                               </div>
                             )}
                           </div>

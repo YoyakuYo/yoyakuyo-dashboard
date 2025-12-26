@@ -5,7 +5,7 @@ import { apiUrl } from "@/lib/apiClient";
 
 interface Payment {
   id: string;
-  payment_method: 'stripe' | 'linepay' | 'paypay';
+  payment_method: 'stripe';
   amount: number;
   currency: string;
   status: 'pending' | 'completed' | 'failed' | 'refunded' | 'cancelled';
@@ -59,10 +59,6 @@ export default function PaymentDetailsModal({
     switch (method) {
       case 'stripe':
         return '💳 Credit Card (Stripe)';
-      case 'linepay':
-        return '💚 LINE Pay';
-      case 'paypay':
-        return '📱 PayPay';
       default:
         return method;
     }

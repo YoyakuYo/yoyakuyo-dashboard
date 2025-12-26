@@ -4,10 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useCustomAuth } from "@/lib/useCustomAuth";
 import { apiUrl } from "@/lib/apiClient";
-import PaymentMethodSelector from "@/app/components/payments/PaymentMethodSelector";
 import StripePaymentForm from "@/app/components/payments/StripePaymentForm";
-import LinePayButton from "@/app/components/payments/LinePayButton";
-import PayPayQRCode from "@/app/components/payments/PayPayQRCode";
 import { useTranslations } from "next-intl";
 
 export default function PaymentPage() {
@@ -19,7 +16,6 @@ export default function PaymentPage() {
 
   const [booking, setBooking] = useState<any>(null);
   const [service, setService] = useState<any>(null);
-  const [selectedMethod, setSelectedMethod] = useState<"stripe" | "linepay" | "paypay" | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -148,55 +144,15 @@ export default function PaymentPage() {
         )}
 
         {/* Payment Method Selection */}
-        {!selectedMethod ? (
-          <PaymentMethodSelector
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <StripePaymentForm
             bookingId={booking?.id || ""}
             amount={amount}
             currency="JPY"
-            onPaymentMethodSelected={setSelectedMethod}
+            onSuccess={handlePaymentSuccess}
+            onError={handlePaymentError}
           />
-        ) : (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <button
-              onClick={() => setSelectedMethod(null)}
-              className="mb-4 text-blue-600 hover:text-blue-700 text-sm underline"
-            >
-              ← {t('payment.changePaymentMethod')}
-            </button>
-
-            {selectedMethod === "stripe" && (
-              <StripePaymentForm
-                bookingId={booking?.id || ""}
-                amount={amount}
-                currency="JPY"
-                onSuccess={handlePaymentSuccess}
-                onError={handlePaymentError}
-              />
-            )}
-
-            {selectedMethod === "linepay" && (
-              <LinePayButton
-                bookingId={booking?.id || ""}
-                amount={amount}
-                productName={productName}
-                currency="JPY"
-                onSuccess={handlePaymentSuccess}
-                onError={handlePaymentError}
-              />
-            )}
-
-            {selectedMethod === "paypay" && (
-              <PayPayQRCode
-                bookingId={booking?.id || ""}
-                amount={amount}
-                productName={productName}
-                currency="JPY"
-                onSuccess={handlePaymentSuccess}
-                onError={handlePaymentError}
-              />
-            )}
-          </div>
-        )}
+        </div>
 
         {/* Configuration Notice */}
         <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -204,10 +160,6 @@ export default function PaymentPage() {
             <strong>{t('payment.configRequired')}:</strong> {t('payment.configRequiredDesc')}
             <br />
             <strong>Stripe:</strong> STRIPE_SECRET_KEY, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-            <br />
-            <strong>LINE Pay:</strong> LINE_PAY_CHANNEL_ID, LINE_PAY_CHANNEL_SECRET
-            <br />
-            <strong>PayPay:</strong> PAYPAY_MERCHANT_ID, PAYPAY_API_KEY, PAYPAY_API_SECRET
           </p>
         </div>
       </div>
