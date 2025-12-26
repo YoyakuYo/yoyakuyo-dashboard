@@ -9,8 +9,9 @@ const Modal = React.memo(({ isOpen, onClose, children }: { isOpen: boolean; onCl
 
   return (
     <div 
-      // Opaque overlay so the landing page is not visible behind the modal.
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white" 
+      // Dim + blur overlay so it feels like a modal (not a navigation to a blank page),
+      // while still preventing interaction with the landing page behind it.
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" 
       onClick={onClose}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) {
