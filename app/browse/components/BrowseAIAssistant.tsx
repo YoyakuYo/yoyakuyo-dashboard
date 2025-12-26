@@ -11,6 +11,7 @@ import { useAIConversation, ConversationIdentity } from '@/lib/useAIConversation
 import { useRouter } from 'next/navigation';
 import { getOrCreateGuestId, setGuestId as persistGuestId } from '@/lib/guestId';
 import { useAuth } from '@/lib/useAuth';
+import { useCustomAuth } from '@/lib/useCustomAuth';
 
 interface Message {
   id: string;
@@ -69,6 +70,7 @@ export function BrowseAIAssistant({
   const t = useTranslations();
   const router = useRouter();
   const { user, session } = useAuth();
+  const { user: customUser, session: customSession } = useCustomAuth();
   const browseContext = useBrowseAIContext();
   const shopContext = browseContext?.shopContext;
   const [isOpen, setIsOpen] = useState(variant === 'embedded');
@@ -91,37 +93,44 @@ export function BrowseAIAssistant({
   // Use customer mode for LINE users, web customer mode when logged in, guest otherwise
   // Memoize conversationIdentity to prevent unnecessary reloads
   const conversationIdentity: ConversationIdentity = React.useMemo(() => {
+    // NOTE: Customer/owner login in this app is primarily via CustomAuthProvider (yoyaku_session).
+    // Supabase AuthProvider may be empty even when the user is logged in.
+
     // If LINE customer profile ID is provided, use customer mode with unique context
     if (lineCustomerProfileId) {
       return {
         userType: 'customer',
-        userId: lineCustomerProfileId, // Use customer profile ID for LINE users
-        contextKey: 'line_app', // Different context key for LINE app to isolate conversations
+        userId: lineCustomerProfileId,
+        contextKey: 'line_app',
         shopId: shopContext?.shopId || (shops.length > 0 ? shops[0]?.id : null),
         guestId: undefined,
       };
     }
 
-    // If logged in on the web, treat as authenticated customer (NOT guest)
-    if (user?.id) {
+    // If logged in as a web customer via CustomAuthProvider OR Supabase AuthProvider, treat as customer
+    const effectiveCustomerId =
+      (customUser?.role === 'customer' ? customUser.id : null) ||
+      (user?.id || null);
+
+    if (effectiveCustomerId) {
       return {
         userType: 'customer',
-        userId: user.id,
+        userId: effectiveCustomerId,
         contextKey: 'web_app',
         shopId: shopContext?.shopId || (shops.length > 0 ? shops[0]?.id : null),
         guestId: undefined,
       };
     }
-    
-    // Otherwise, use guest mode for regular web users
+
+    // Otherwise, guest mode
     return {
       userType: 'guest',
       userId: null,
       contextKey: 'public_landing',
       shopId: shopContext?.shopId || (shops.length > 0 ? shops[0]?.id : null),
-      guestId: guestId, // Use the state value which is guaranteed to be set
+      guestId: guestId,
     };
-  }, [lineCustomerProfileId, user?.id, shopContext?.shopId, shops.length > 0 ? shops[0]?.id : null, guestId]);
+  }, [lineCustomerProfileId, customUser?.id, customUser?.role, user?.id, shopContext?.shopId, shops.length > 0 ? shops[0]?.id : null, guestId]);
 
   const { messages: conversationMessages, addMessage, setMessages, saveConversation } = useAIConversation(conversationIdentity);
 
@@ -244,12 +253,26 @@ export function BrowseAIAssistant({
         prefecture: selectedPrefecture || null,
         category: selectedCategoryId || null,
         searchQuery: searchQuery || null,
-        // For LINE users, use customer profile ID. For guest users, DO NOT send userId/customerId
-        // (sending customerId=guestId can cause the backend to mis-resolve as web_customer).
-        userId: lineCustomerProfileId || user?.id || undefined,
-        customerId: lineCustomerProfileId || user?.id || undefined,
-        // CRITICAL: Send guestId explicitly for guest conversations
-        guestId: conversationIdentity.userType === 'guest' ? conversationIdentity.guestId : undefined,
+        // Identity:
+        // - LINE: lineCustomerProfileId
+        // - WEB (custom auth): customUser.id
+        // - WEB (supabase auth): user.id (fallback)
+        // - GUEST: guestId only
+        userId:
+          lineCustomerProfileId ||
+          (customUser?.role === 'customer' ? customUser.id : undefined) ||
+          user?.id ||
+          undefined,
+        customerId:
+          lineCustomerProfileId ||
+          (customUser?.role === 'customer' ? customUser.id : undefined) ||
+          user?.id ||
+          undefined,
+        // Send guestId ONLY when not logged in (prevents guest mis-classification)
+        guestId:
+          !lineCustomerProfileId && !(customUser?.role === 'customer' && customUser?.id) && !user?.id
+            ? guestId
+            : undefined,
         shops: shops.map(s => ({
           id: s.id,
           name: s.name,
@@ -279,7 +302,12 @@ export function BrowseAIAssistant({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          // Prefer Supabase access token if present, else fall back to custom session token
+          ...(session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : customSession?.token
+            ? { Authorization: `Bearer ${customSession.token}` }
+            : {}),
         },
         body: JSON.stringify(requestBody),
       });
@@ -396,7 +424,7 @@ export function BrowseAIAssistant({
           </div>
 
           {/* Guest ID panel (guest only) */}
-          {conversationIdentity.userType === 'guest' && (
+          {!lineCustomerProfileId && !(customUser?.role === 'customer' && customUser?.id) && !user?.id && (
             <div className="px-4 py-3 border-b border-gray-200 bg-white">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
