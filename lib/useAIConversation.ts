@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getSupabaseClient } from '@/lib/supabaseClient';
+import { getOrCreateGuestId, setGuestId as persistGuestId } from '@/lib/guestId';
 
 export interface ConversationMessage {
   role: 'user' | 'assistant' | 'system';
@@ -29,23 +30,14 @@ export function useAIConversation(identity: ConversationIdentity) {
   const getGuestId = useCallback((): string => {
     if (identity.userType !== 'guest') return '';
     
-    // If guestId is provided in identity, use it (and ensure it's in localStorage)
+    // If guestId is provided in identity, persist it (UUID only) and use it.
     if (identity.guestId) {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('yoyakuyo_guest_id', identity.guestId);
-      }
+      persistGuestId(identity.guestId);
       return identity.guestId;
     }
-    
-    // Otherwise, get or create from localStorage
-    if (typeof window === 'undefined') return '';
-    
-    const stored = localStorage.getItem('yoyakuyo_guest_id');
-    if (stored) return stored;
-    
-    const newGuestId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem('yoyakuyo_guest_id', newGuestId);
-    return newGuestId;
+
+    // Otherwise, use the canonical UUID guest id from lib/guestId
+    return getOrCreateGuestId() || '';
   }, [identity.userType, identity.guestId]);
 
   // Load conversation from database
