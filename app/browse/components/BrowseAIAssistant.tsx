@@ -73,6 +73,7 @@ export function BrowseAIAssistant({
   const { user: customUser, session: customSession } = useCustomAuth();
   const browseContext = useBrowseAIContext();
   const shopContext = browseContext?.shopContext;
+  const isLineContext = !!lineUserId; // LINE LIFF must always be identified by lineUserId
   const [isOpen, setIsOpen] = useState(variant === 'embedded');
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -93,6 +94,20 @@ export function BrowseAIAssistant({
   // Use customer mode for LINE users, web customer mode when logged in, guest otherwise
   // Memoize conversationIdentity to prevent unnecessary reloads
   const conversationIdentity: ConversationIdentity = React.useMemo(() => {
+    // LINE context: do NOT treat as web customer even if the webview has a leftover web session.
+    // Also do NOT use customer_profiles.id as userId (that is NOT the canonical customers.id).
+    // We store LIFF "AI tab" conversations as guest-conversations (per-device) while the backend
+    // resolves identity correctly via lineUserId.
+    if (lineUserId) {
+      return {
+        userType: 'guest',
+        userId: null,
+        contextKey: 'line_app',
+        shopId: shopContext?.shopId || (shops.length > 0 ? shops[0]?.id : null),
+        guestId: guestId,
+      };
+    }
+
     // NOTE: Customer/owner login in this app is primarily via CustomAuthProvider (yoyaku_session).
     // Supabase AuthProvider may be empty even when the user is logged in.
 
@@ -130,7 +145,7 @@ export function BrowseAIAssistant({
       shopId: shopContext?.shopId || (shops.length > 0 ? shops[0]?.id : null),
       guestId: guestId,
     };
-  }, [lineCustomerProfileId, customUser?.id, customUser?.role, user?.id, shopContext?.shopId, shops.length > 0 ? shops[0]?.id : null, guestId]);
+  }, [lineUserId, lineCustomerProfileId, customUser?.id, customUser?.role, user?.id, shopContext?.shopId, shops.length > 0 ? shops[0]?.id : null, guestId]);
 
   const { messages: conversationMessages, addMessage, setMessages, saveConversation } = useAIConversation(conversationIdentity);
 
@@ -254,23 +269,26 @@ export function BrowseAIAssistant({
         category: selectedCategoryId || null,
         searchQuery: searchQuery || null,
         // Identity:
-        // - LINE: lineCustomerProfileId
+        // - LINE (LIFF): lineUserId (canonical for line -> customers.id mapping)
+        // - LINE (legacy): lineCustomerProfileId (customer_profiles.id) - do NOT use for canonical identity
         // - WEB (custom auth): customUser.id
         // - WEB (supabase auth): user.id (fallback)
         // - GUEST: guestId only
         userId:
-          lineCustomerProfileId ||
+          (isLineContext ? undefined : lineCustomerProfileId) ||
           (customUser?.role === 'customer' ? customUser.id : undefined) ||
           user?.id ||
           undefined,
         customerId:
-          lineCustomerProfileId ||
+          (isLineContext ? undefined : lineCustomerProfileId) ||
           (customUser?.role === 'customer' ? customUser.id : undefined) ||
           user?.id ||
           undefined,
+        // LINE LIFF canonical identity (required to avoid misclassification as web_customer)
+        lineUserId: isLineContext ? lineUserId : undefined,
         // Send guestId ONLY when not logged in (prevents guest mis-classification)
         guestId:
-          !lineCustomerProfileId && !(customUser?.role === 'customer' && customUser?.id) && !user?.id
+          !isLineContext && !lineCustomerProfileId && !(customUser?.role === 'customer' && customUser?.id) && !user?.id
             ? guestId
             : undefined,
         shops: shops.map(s => ({
@@ -316,11 +334,15 @@ export function BrowseAIAssistant({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Prefer Supabase access token if present, else fall back to custom session token
-          ...(session?.access_token
-            ? { Authorization: `Bearer ${session.access_token}` }
-            : customSession?.token
-            ? { Authorization: `Bearer ${customSession.token}` }
+          // IMPORTANT:
+          // - In LINE LIFF, do NOT forward any web auth tokens (a webview can have leftover cookies),
+          //   because LINE identity must be resolved via lineUserId.
+          ...(!isLineContext
+            ? session?.access_token
+              ? { Authorization: `Bearer ${session.access_token}` }
+              : customSession?.token
+              ? { Authorization: `Bearer ${customSession.token}` }
+              : {}
             : {}),
         },
         body: JSON.stringify(requestBody),
@@ -438,7 +460,7 @@ export function BrowseAIAssistant({
           </div>
 
           {/* Guest ID panel (guest only) */}
-          {!lineCustomerProfileId && !(customUser?.role === 'customer' && customUser?.id) && !user?.id && (
+          {!isLineContext && !lineCustomerProfileId && !(customUser?.role === 'customer' && customUser?.id) && !user?.id && (
             <div className="px-4 py-3 border-b border-gray-200 bg-white">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
