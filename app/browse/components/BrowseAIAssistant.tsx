@@ -9,6 +9,7 @@ import { apiUrl } from '@/lib/apiClient';
 import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
 import { useAIConversation, ConversationIdentity } from '@/lib/useAIConversation';
 import { useRouter } from 'next/navigation';
+import { getOrCreateGuestId } from '@/lib/guestId';
 
 interface Message {
   id: string;
@@ -77,16 +78,8 @@ export function BrowseAIAssistant({
   // Track conversation history for context
   const [rememberedLocation, setRememberedLocation] = useState<string | null>(null);
 
-  // Get or create guest ID from localStorage (ensure it's consistent across renders)
-  const [guestId, setGuestId] = React.useState<string | undefined>(() => {
-    if (typeof window === 'undefined') return undefined;
-    const stored = localStorage.getItem('yoyakuyo_guest_id');
-    if (stored) return stored;
-    // Create new guest ID if it doesn't exist
-    const newGuestId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem('yoyakuyo_guest_id', newGuestId);
-    return newGuestId;
-  });
+  // Stable UUID guest id (shared with booking + guest inbox)
+  const [guestId] = React.useState<string | undefined>(() => getOrCreateGuestId() || undefined);
 
   // Use customer mode for LINE users, guest mode for others
   // Memoize conversationIdentity to prevent unnecessary reloads

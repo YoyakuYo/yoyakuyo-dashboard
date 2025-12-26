@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiUrl } from "@/lib/apiClient";
 import { messagingFetch } from "@/app/lib/messagingApiClient";
+import { GUEST_ID_STORAGE_KEY, setGuestId as persistGuestId } from "@/lib/guestId";
 
 type Conversation = {
   id: string;
@@ -23,8 +24,6 @@ type Message = {
   sender_role?: string;
 };
 
-const STORAGE_KEY = "guest_id";
-
 export default function GuestInboxPage() {
   const [guestIdInput, setGuestIdInput] = useState("");
   const [guestId, setGuestId] = useState<string | null>(null);
@@ -37,7 +36,7 @@ export default function GuestInboxPage() {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(GUEST_ID_STORAGE_KEY) || localStorage.getItem("guest_id");
     if (saved && saved.trim()) {
       setGuestId(saved.trim());
       setGuestIdInput(saved.trim());
@@ -103,7 +102,8 @@ export default function GuestInboxPage() {
   const onUseGuestId = async () => {
     const id = guestIdInput.trim();
     if (!id) return;
-    localStorage.setItem(STORAGE_KEY, id);
+    // Only persist if it looks like a UUID; otherwise keep it in state only.
+    persistGuestId(id);
     setGuestId(id);
     await loadConversations(id);
   };

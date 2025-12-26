@@ -281,7 +281,15 @@ export default function PublicBookingPage() {
           setGuestId(data.guest_id);
           setGuestIdState(data.guest_id);
         }
-        alert(t('booking.bookingSuccessful') || 'Booking successful!');
+        if (!user?.id && data?.guest_id) {
+          alert(
+            `${t('booking.bookingSuccessful') || 'Booking successful!'}\n\n` +
+              `Guest ID: ${data.guest_id}\n` +
+              `Save this Guest ID. You can use it to come back and continue messages later.`
+          );
+        } else {
+          alert(t('booking.bookingSuccessful') || 'Booking successful!');
+        }
         // Reset form (but keep customer profile data if logged in)
         setSelectedService(null);
         setSelectedDate(null);
