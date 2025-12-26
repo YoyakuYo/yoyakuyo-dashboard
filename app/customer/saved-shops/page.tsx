@@ -5,9 +5,12 @@ import { useCustomAuth } from "@/lib/useCustomAuth";
 import { apiUrl } from "@/lib/apiClient";
 import Link from "next/link";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
+import { getCategoryLabel } from "@/lib/categoryI18n";
 
 export default function CustomerSavedShopsPage() {
   const { user } = useCustomAuth();
+  const t = useTranslations();
   const [savedShops, setSavedShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -145,7 +148,9 @@ export default function CustomerSavedShopsPage() {
                     </button>
                   </div>
                   {shop.category && (
-                    <p className="text-sm text-gray-600 mb-2">{shop.category}</p>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {getCategoryLabel(t, shop.category) || shop.category}
+                    </p>
                   )}
                   {shop.address && (
                     <p className="text-sm text-gray-500 mb-2">{shop.address}</p>

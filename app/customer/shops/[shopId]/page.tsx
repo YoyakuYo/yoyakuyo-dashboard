@@ -7,11 +7,14 @@ import { apiUrl } from "@/lib/apiClient";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
+import { getCategoryLabel } from "@/lib/categoryI18n";
 
 export default function CustomerShopDetailPage() {
   const params = useParams();
   const shopId = params.shopId as string;
   const { user } = useCustomAuth();
+  const t = useTranslations();
   const [shop, setShop] = useState<any>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -166,7 +169,9 @@ export default function CustomerShopDetailPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{shop.name}</h1>
               {shop.category && (
-                <p className="text-lg text-gray-600 mb-2">{shop.category}</p>
+                <p className="text-lg text-gray-600 mb-2">
+                  {getCategoryLabel(t, shop.category) || shop.category}
+                </p>
               )}
               {shop.address && (
                 <p className="text-gray-500 mb-2">{shop.address}</p>

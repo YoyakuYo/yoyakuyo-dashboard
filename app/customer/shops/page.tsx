@@ -8,6 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
+import { getCategoryLabel } from "@/lib/categoryI18n";
 
 export default function CustomerShopsPage() {
   const { user } = useCustomAuth();
@@ -320,20 +321,7 @@ export default function CustomerShopsPage() {
               {t('categories.all')}
             </button>
             {categories.map((category) => {
-              // Create translation key from category name
-              const translationKey = `categories.${category.name.toLowerCase().replace(/\s+/g, '_').replace(/[&,]/g, '').replace(/\//g, '_')}`;
-              // Try to get translation, but check if it actually exists
-              let categoryDisplayName = category.name;
-              try {
-                const translated = t(translationKey);
-                // If translation returns the key itself, it means the translation doesn't exist
-                if (translated && translated !== translationKey) {
-                  categoryDisplayName = translated;
-                }
-              } catch (e) {
-                // Translation key doesn't exist, use category name
-                categoryDisplayName = category.name;
-              }
+              const categoryDisplayName = getCategoryLabel(t, category.name) || category.name;
               
               return (
                 <button
@@ -436,7 +424,9 @@ export default function CustomerShopsPage() {
                   </button>
                 </div>
                 {shop.category && (
-                  <p className="text-sm text-gray-600 mb-2">{shop.category}</p>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {getCategoryLabel(t, shop.category) || shop.category}
+                  </p>
                 )}
                 {shop.address && (
                   <p className="text-sm text-gray-500 mb-2">{shop.address}</p>
