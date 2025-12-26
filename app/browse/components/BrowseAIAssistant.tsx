@@ -219,9 +219,10 @@ export function BrowseAIAssistant({
         prefecture: selectedPrefecture || null,
         category: selectedCategoryId || null,
         searchQuery: searchQuery || null,
-        // For LINE users, use customer profile ID; otherwise use guest ID
+        // For LINE users, use customer profile ID. For guest users, DO NOT send userId/customerId
+        // (sending customerId=guestId can cause the backend to mis-resolve as web_customer).
         userId: lineCustomerProfileId || undefined,
-        customerId: lineCustomerProfileId || conversationIdentity.guestId || undefined,
+        customerId: lineCustomerProfileId || undefined,
         // CRITICAL: Send guestId explicitly for guest conversations
         guestId: conversationIdentity.userType === 'guest' ? conversationIdentity.guestId : undefined,
         shops: shops.map(s => ({
