@@ -351,6 +351,17 @@ router.post("/chat", async (req: Request, res: Response) => {
         // - Never suggest shops until BOTH service + location are known.
         // =====================================================
         if (isCustomer) {
+            const greetingOnly =
+                /^(hi|hello|helo|helloo+|helllo+|hey|yo|hiya|how are you|how're you|good (morning|afternoon|evening)|what's up|sup)[!！。.\s]*$/i;
+            const greetingIntl =
+                /^(こんにちは|やあ|もしもし|おはよう|こんばんは|元気|調子どう)[!！。.\s]*$|^(안녕|안녕하세요|잘 지내|어떻게 지내)[!！。.\s]*$|^(你好|您好|嗨|早上好|晚上好)[!！。.\s]*$|^(hola|buenos dias|buenas tardes|buenas noches)[!！。.\s]*$|^(ol[aá]|bom dia|boa tarde|boa noite)[!！。.\s]*$/i;
+
+            // HARD STOP: greetings must never trigger service/location prompts
+            if (greetingOnly.test(String(finalMessage).trim()) || greetingIntl.test(String(finalMessage).trim())) {
+                const greeting = "Hello! Welcome to YoyakuYo. How can I help you today?";
+                return res.json({ response: greeting, language_code: 'en', intent: 'greeting', is_greeting: true });
+            }
+
             const isUnified = !!(role && messagesArray && Array.isArray(messagesArray));
             const isFirstTurn = isUnified ? (messagesArray.filter((m: any) => m.role === 'user').length === 1 && messagesArray.filter((m: any) => m.role === 'assistant').length === 0) : false;
 
