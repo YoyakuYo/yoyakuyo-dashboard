@@ -265,7 +265,7 @@ import { generateMultilingualResponse } from "../services/multilingualService";
 import { parseCalendarCommand, addShopHolidays, removeShopHolidays, getShopHolidays, isShopHoliday } from "../services/calendarService";
 import { buildAIContext } from "../services/aiContextService";
 import { bookVerifiedShopAction } from "../services/aiActionsService";
-import { detectService, detectJapanLocation, formatShopLinks } from "../utils/multilingualShopFilter";
+import { runRootAiStateMachine } from "../ai/ai";
 
 const router = Router();
 const dbClient = supabaseAdmin || supabase;
@@ -346,91 +346,22 @@ router.post("/chat", async (req: Request, res: Response) => {
         const isCustomer = finalSource === 'customer';
 
         // =====================================================
-        // FILTER MODE (MANDATORY): Multilingual service + Japan location -> VERIFIED shop links only.
-        // - No booking, no date/time questions, no LLM guessing.
-        // - Never suggest shops until BOTH service + location are known.
+        // ROOT STATE MACHINE (MANDATORY)
+        // 1) ROLE RESOLUTION  2) GREETING STATE  3) INTENT STATE  4) ACTION STATE
         // =====================================================
         if (isCustomer) {
-            const greetingOnly =
-                /^(hi|hello|helo|helloo+|helllo+|hey|yo|hiya|how are you|how're you|good (morning|afternoon|evening)|what's up|sup)[!！。.\s]*$/i;
-            const greetingIntl =
-                /^(こんにちは|やあ|もしもし|おはよう|こんばんは|元気|調子どう)[!！。.\s]*$|^(안녕|안녕하세요|잘 지내|어떻게 지내)[!！。.\s]*$|^(你好|您好|嗨|早上好|晚上好)[!！。.\s]*$|^(hola|buenos dias|buenas tardes|buenas noches)[!！。.\s]*$|^(ol[aá]|bom dia|boa tarde|boa noite)[!！。.\s]*$/i;
-
-            // HARD STOP: greetings must never trigger service/location prompts
-            if (greetingOnly.test(String(finalMessage).trim()) || greetingIntl.test(String(finalMessage).trim())) {
-                const greeting = "Hello! Welcome to YoyakuYo. How can I help you today?";
-                return res.json({ response: greeting, language_code: 'en', intent: 'greeting', is_greeting: true });
+            const root = await runRootAiStateMachine({
+                message: String(finalMessage || ""),
+                messagesArray: Array.isArray(messagesArray) ? messagesArray : null,
+                roleHint: role ? String(role) : (finalSource ? String(finalSource) : null),
+                lineUserId: (req.headers["x-line-user-id"] as string | undefined) || (req.body?.lineUserId as string | undefined) || null,
+                webUserId: (req.headers["x-user-id"] as string | undefined) || null,
+                customerName: null,
+                db: dbClient as any,
+            });
+            if (root.handled) {
+                return res.json({ response: root.response, language_code: 'en', intent: root.intent });
             }
-
-            const isUnified = !!(role && messagesArray && Array.isArray(messagesArray));
-            const isFirstTurn = isUnified ? (messagesArray.filter((m: any) => m.role === 'user').length === 1 && messagesArray.filter((m: any) => m.role === 'assistant').length === 0) : false;
-
-            // Rule: first message = polite welcome only
-            if (isFirstTurn) {
-                const greeting = "Hello! Welcome to YoyakuYo. How can I help you today?";
-                return res.json({ response: greeting, language_code: 'en', intent: 'greeting', is_greeting: true });
-            }
-
-            const svc = detectService(finalMessage);
-            const loc = detectJapanLocation(finalMessage);
-
-            if (!svc) {
-                return res.json({ response: "What service are you looking for? (e.g., hair, nails, restaurant)", language_code: 'en' });
-            }
-            if (!loc) {
-                return res.json({ response: "Which city/prefecture in Japan? (e.g., Shibuya, Tokyo, Osaka, Sapporo)", language_code: 'en' });
-            }
-
-            const serviceToCategoryNames: Record<string, string[]> = {
-                nails: ["Nail Salon"],
-                hair: ["Hair Salon", "Barbershop", "Barber Shop"],
-                restaurant: ["Restaurant", "Izakaya"],
-                spa: ["Spa", "Massages", "Onsen", "Ryokan Onsen"],
-                clinic: ["Dental Clinic", "Medical Clinic", "Aesthetic Clinic", "Women's Clinic"],
-                hotel: ["Hotel", "Ryokan"],
-                golf: ["Golf Courses & Practice Ranges"],
-                karaoke: ["Private Karaoke Rooms"],
-            };
-
-            const categoryNames = serviceToCategoryNames[svc.service] || [];
-            let categoryIds: string[] = [];
-            if (categoryNames.length > 0) {
-                const { data: cats } = await dbClient.from("categories").select("id").in("name", categoryNames);
-                categoryIds = (cats || []).map((c: any) => String(c.id));
-            }
-
-            const locVariants = Array.from(new Set((loc.variants || []).map((v) => String(v).trim()).filter(Boolean)));
-            const orParts: string[] = [];
-            for (const v of locVariants) {
-                const safe = v.replace(/,/g, " ");
-                orParts.push(`prefecture.ilike.%${safe}%`);
-                orParts.push(`city.ilike.%${safe}%`);
-                orParts.push(`address.ilike.%${safe}%`);
-            }
-
-            let shopQuery: any = dbClient
-                .from("shops")
-                .select("id,name,address,is_verified")
-                .eq("is_verified", true)
-                .order("name", { ascending: true })
-                .limit(12);
-
-            if (categoryIds.length > 0) shopQuery = shopQuery.in("category_id", categoryIds);
-            if (orParts.length > 0) shopQuery = shopQuery.or(orParts.join(","));
-
-            const { data: shops, error: shopErr } = await shopQuery;
-            if (shopErr) {
-                console.error("[FILTER_MODE] shop query error:", shopErr);
-                return res.json({ response: "Sorry — I couldn’t search verified shops right now. Please try again.", language_code: 'en' });
-            }
-
-            const list = formatShopLinks((shops || []).map((s: any) => ({ id: s.id, name: s.name, address: s.address })));
-            const responseText =
-                (shops || []).length > 0
-                    ? `Here are verified shops I found:\n\n${list}`
-                    : `No verified shops found for that service in that location. Try a different city/prefecture in Japan.`;
-
-            return res.json({ response: responseText, language_code: 'en', intent: 'shop_search' });
         }
 
         // =====================================================
