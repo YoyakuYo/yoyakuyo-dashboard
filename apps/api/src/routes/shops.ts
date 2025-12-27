@@ -105,11 +105,21 @@ async function fetchAllShops(
 router.get("/", async (req: Request, res: Response) => {
     try {
         const search = req.query.search as string | undefined;
-        const category_id = req.query.category_id as string | undefined;
-        const category = req.query.category as string | undefined;  // New: filter by shops.category field
+        let category_id = req.query.category_id as string | undefined;
+        let category = req.query.category as string | undefined;  // Filter by shops.category field OR (legacy) UUID passed from frontend
         const owner_user_id = req.query.owner_user_id as string | undefined;  // Filter by owner
         const unclaimedParam = req.query.unclaimed as string | undefined;
         const unclaimed = unclaimedParam === 'true';  // Filter unclaimed shops
+
+        // Backward/forward compatibility:
+        // Some frontend paths pass the *category UUID* via `category` (not `category_id`).
+        // If `category` looks like a UUID, treat it as `category_id` to avoid returning 0 shops.
+        const isUuid = (value?: string) =>
+            !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.trim());
+        if (!category_id && isUuid(category)) {
+            category_id = category!.trim();
+            category = undefined;
+        }
         
         // Pagination params
         const limitParam = req.query.limit as string | undefined;

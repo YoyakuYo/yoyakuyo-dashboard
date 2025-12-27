@@ -95,11 +95,19 @@ owner_user_id // Filter by owner_user_id
 router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const search = req.query.search;
-        const category_id = req.query.category_id;
-        const category = req.query.category; // New: filter by shops.category field
+        let category_id = req.query.category_id;
+        let category = req.query.category; // Filter by shops.category field OR (legacy) UUID passed from frontend
         const owner_user_id = req.query.owner_user_id; // Filter by owner
         const unclaimedParam = req.query.unclaimed;
         const unclaimed = unclaimedParam === 'true'; // Filter unclaimed shops
+        // Backward/forward compatibility:
+        // Some frontend paths pass the *category UUID* via `category` (not `category_id`).
+        // If `category` looks like a UUID, treat it as `category_id` to avoid returning 0 shops.
+        const isUuid = (value) => !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.trim());
+        if (!category_id && isUuid(category)) {
+            category_id = category.trim();
+            category = undefined;
+        }
         // Pagination params
         const limitParam = req.query.limit;
         const offsetParam = req.query.offset;
