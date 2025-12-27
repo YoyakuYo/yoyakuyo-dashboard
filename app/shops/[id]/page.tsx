@@ -300,6 +300,27 @@ export default function PublicShopDetailPage() {
     fetchReviews();
   }, [shopId, apiUrl]);
 
+  const reloadReviews = async () => {
+    if (!shopId) return;
+    try {
+      setLoadingReviews(true);
+      const reviewsRes = await fetch(`${apiUrl}/reviews?shop_id=${shopId}&limit=10`);
+      if (reviewsRes.ok) {
+        const reviewsData = await reviewsRes.json();
+        setReviews(Array.isArray(reviewsData) ? reviewsData : []);
+      }
+      const statsRes = await fetch(`${apiUrl}/reviews/shop/${shopId}/stats`);
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setReviewStats(statsData);
+      }
+    } catch (e) {
+      console.error('Error reloading reviews:', e);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
   const handleReviewSubmit = async (reviewData: any) => {
     try {
       const headers: HeadersInit = {
@@ -621,7 +642,12 @@ export default function PublicShopDetailPage() {
                 ) : (
                   <div className="space-y-4">
                     {reviews.map((review) => (
-                      <ReviewCard key={review.id} review={review} />
+                      <ReviewCard
+                        key={review.id}
+                        review={review}
+                        currentUserId={user?.id || null}
+                        onChanged={reloadReviews}
+                      />
                     ))}
                   </div>
                 )}

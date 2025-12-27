@@ -52,6 +52,7 @@ interface Review {
   customer_name?: string;
   guest_name?: string;
   author_type?: 'guest' | 'user' | 'line';
+  line_user_id?: string | null;
   created_at: string;
 }
 
@@ -82,6 +83,7 @@ export default function LineShopDetailPage() {
   const [reviewContent, setReviewContent] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
   const [lineUserId, setLineUserId] = useState<string>("");
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
 
   // Favorites state for LINE customers (parity with web customers)
   const [customerId, setCustomerId] = useState<string | null>(null);
@@ -556,18 +558,19 @@ export default function LineShopDetailPage() {
         has_id_token: !!idToken,
       });
 
-      const res = await fetch(`${apiUrl}/reviews`, {
-        method: 'POST',
+      const isEdit = !!editingReviewId;
+      const res = await fetch(`${apiUrl}/reviews${isEdit ? `/${editingReviewId}` : ''}`, {
+        method: isEdit ? 'PATCH' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-id-token': idToken,
           'x-line-user-id': lineUserId,
         },
-        body: JSON.stringify({
-          shop_id: shopId,
-          rating: reviewRating,
-          content: reviewContent.trim(),
-        }),
+        body: JSON.stringify(
+          isEdit
+            ? { rating: reviewRating, content: reviewContent.trim() }
+            : { shop_id: shopId, rating: reviewRating, content: reviewContent.trim() }
+        ),
       });
 
       if (!res.ok) {
@@ -586,6 +589,7 @@ export default function LineShopDetailPage() {
       setShowReviewForm(false);
       setReviewRating(0);
       setReviewContent('');
+      setEditingReviewId(null);
       
       // Show success message
       alert(t("reviewSubmittedSuccess"));
@@ -899,6 +903,7 @@ export default function LineShopDetailPage() {
                       setShowReviewForm(false);
                       setReviewRating(0);
                       setReviewContent('');
+                      setEditingReviewId(null);
                     }}
                     className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md"
                   >
@@ -932,9 +937,63 @@ export default function LineShopDetailPage() {
                         </span>
                       ))}
                     </div>
-                    <span className="text-xs text-gray-500">
-                      {review.guest_name || review.customer_name || 'Customer'} • {new Date(review.created_at).toLocaleDateString()}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-gray-500">
+                        {review.guest_name || review.customer_name || 'Customer'} • {new Date(review.created_at).toLocaleDateString()}
+                      </span>
+                      {/* Edit/Delete for the LINE author */}
+                      {lineUserId && review.line_user_id && review.line_user_id === lineUserId && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            className="text-xs text-blue-600"
+                            onClick={() => {
+                              setShowReviewForm(true);
+                              setReviewRating(review.rating || 0);
+                              setReviewContent(String(review.content || review.comment || ""));
+                              setEditingReviewId(review.id);
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="text-xs text-red-600"
+                            onClick={async () => {
+                              if (!confirm('Delete this review?')) return;
+                              try {
+                                let idToken: string | null = null;
+                                if (typeof window !== "undefined" && window.liff) {
+                                  idToken = await window.liff.getIDToken();
+                                }
+                                if (!idToken) throw new Error('Authentication failed. Please try again.');
+
+                                const delRes = await fetch(`${apiUrl}/reviews/${review.id}`, {
+                                  method: 'DELETE',
+                                  headers: {
+                                    'x-id-token': idToken,
+                                    'x-line-user-id': lineUserId,
+                                  },
+                                });
+                                if (!delRes.ok) {
+                                  const err = await delRes.json().catch(() => ({ error: 'Failed to delete review' }));
+                                  throw new Error(err.error || err.details || 'Failed to delete review');
+                                }
+                                const reviewsRes = await fetch(`${apiUrl}/reviews?shop_id=${shopId}&limit=10`);
+                                if (reviewsRes.ok) {
+                                  const data = await reviewsRes.json();
+                                  setReviews(Array.isArray(data) ? data : []);
+                                }
+                              } catch (e: any) {
+                                alert(`Error: ${e?.message || 'Failed to delete review'}`);
+                              }
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <p className="text-sm text-gray-700">{review.content || review.comment}</p>
                 </div>
