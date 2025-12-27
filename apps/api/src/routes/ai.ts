@@ -265,7 +265,7 @@ import { generateMultilingualResponse } from "../services/multilingualService";
 import { parseCalendarCommand, addShopHolidays, removeShopHolidays, getShopHolidays, isShopHoliday } from "../services/calendarService";
 import { buildAIContext } from "../services/aiContextService";
 import { bookVerifiedShopAction } from "../services/aiActionsService";
-import { runRootAiStateMachine } from "../ai/ai";
+import { runButtonLedFlow, type Channel as ButtonChannel } from "../ai/ai";
 
 const router = Router();
 const dbClient = supabaseAdmin || supabase;
@@ -346,22 +346,37 @@ router.post("/chat", async (req: Request, res: Response) => {
         const isCustomer = finalSource === 'customer';
 
         // =====================================================
-        // ROOT STATE MACHINE (MANDATORY)
-        // 1) ROLE RESOLUTION  2) GREETING STATE  3) INTENT STATE  4) ACTION STATE
+        // STRICT BUTTON-LED FLOW (MANDATORY)
+        // conversation_state.step is the ONLY source of truth.
         // =====================================================
         if (isCustomer) {
-            const root = await runRootAiStateMachine({
+            const lineUserId = (req.headers["x-line-user-id"] as string | undefined) || (req.body?.lineUserId as string | undefined) || null;
+            const webUserId = (req.headers["x-user-id"] as string | undefined) || (req.body?.userId as string | undefined) || null;
+            const guestId = (req.headers["x-guest-id"] as string | undefined) || (req.body?.guestId as string | undefined) || null;
+
+            const channel: ButtonChannel = lineUserId ? "line" : webUserId ? "web" : "guest";
+            const customerId = lineUserId || webUserId || guestId || null;
+            const conversationStateId =
+                (req.body?.conversation_state_id as string | undefined) ||
+                (req.body?.conversationStateId as string | undefined) ||
+                null;
+
+            const result = await runButtonLedFlow({
+                supabase: dbClient as any,
+                channel,
+                customerId,
+                conversationStateId,
                 message: String(finalMessage || ""),
-                messagesArray: Array.isArray(messagesArray) ? messagesArray : null,
-                roleHint: role ? String(role) : (finalSource ? String(finalSource) : null),
-                lineUserId: (req.headers["x-line-user-id"] as string | undefined) || (req.body?.lineUserId as string | undefined) || null,
-                webUserId: (req.headers["x-user-id"] as string | undefined) || null,
-                customerName: null,
-                db: dbClient as any,
             });
-            if (root.handled) {
-                return res.json({ response: root.response, language_code: 'en', intent: root.intent });
-            }
+
+            return res.json({
+                response: result.response,
+                quick_replies: result.quick_replies,
+                shop_cards: result.shop_cards,
+                step: result.step,
+                conversation_state_id: result.conversation_state_id,
+                language_code: 'en',
+            });
         }
 
         // =====================================================
