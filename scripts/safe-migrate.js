@@ -5,7 +5,8 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const MIGRATIONS_DIR = path.join(__dirname, '../../supabase/migrations');
+// scripts/ lives at repoRoot/scripts, migrations live at repoRoot/supabase/migrations
+const MIGRATIONS_DIR = path.join(__dirname, '..', 'supabase', 'migrations');
 
 console.log('🛡️  Safe Migration Process\n');
 
@@ -14,7 +15,7 @@ console.log('📥 Step 1: Pulling current Supabase schema...');
 try {
   execSync('npx supabase db pull', { 
     stdio: 'inherit', 
-    cwd: path.join(__dirname, '../..') 
+    cwd: path.join(__dirname, '..') 
   });
   console.log('✅ Schema pulled successfully\n');
 } catch (error) {
@@ -33,7 +34,7 @@ const migrationName = `auto_migration_${timestamp}`;
 try {
   execSync(`npx supabase db diff -f "${migrationName}" --local`, {
     stdio: 'inherit',
-    cwd: path.join(__dirname, '../..')
+    cwd: path.join(__dirname, '..')
   });
   console.log('✅ Diff generated\n');
 } catch (error) {
@@ -72,7 +73,7 @@ console.log('🚀 Step 3: Pushing migration to Supabase...');
 try {
   execSync('npx supabase db push', {
     stdio: 'inherit',
-    cwd: path.join(__dirname, '../..')
+    cwd: path.join(__dirname, '..')
   });
   console.log('\n✅ Migration successfully applied!');
   console.log(`📝 Migration file: ${migrationFiles[0]}`);
