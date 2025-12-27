@@ -114,7 +114,20 @@ export async function runRootAiStateMachine(params: {
     return { handled: true, response: greetingForRole(role, params.customerName), intent: "greeting_only" };
   }
 
-  const intent = detectIntent(params.message);
+  let intent = detectIntent(params.message);
+
+  // Continuation rule (ROOT FIX): if the last assistant asked for service/location, do not reset on "service-only" replies.
+  const lastAssistant = params.messagesArray ? [...params.messagesArray].reverse().find((m) => m.role === "assistant")?.content || "" : "";
+  const askedService = /what kind of service are you looking for\??/i.test(lastAssistant);
+  const askedLocation = /which area in japan are you looking in\??/i.test(lastAssistant);
+  const midFlow = askedService || askedLocation;
+  if (intent === "unknown" && midFlow) {
+    // If the earlier user text contains "book" treat as booking, else browsing.
+    const allUserText = params.messagesArray
+      ? params.messagesArray.filter((m) => m.role === "user").map((m) => String(m.content || "")).join("\n")
+      : "";
+    intent = /\b(book|booking|reserve|reservation)\b/i.test(allUserText) ? "booking" : "browse_shops";
+  }
   if (intent === "greeting_only") {
     return { handled: true, response: greetingForRole(role, params.customerName), intent };
   }
