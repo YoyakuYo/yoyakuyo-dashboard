@@ -12,12 +12,7 @@ export default function CustomerChatPage() {
   const shopContext = browseContext?.shopContext;
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [conversationStateId, setConversationStateId] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('yoyakuyo_conversation_state_id');
-  });
-  const [quickReplies, setQuickReplies] = useState<Array<{ label: string; payload: string }> | null>(null);
-  const [shopCards, setShopCards] = useState<Array<{ shop_name: string; address: string | null; href: string; cta: string }> | null>(null);
+  const [shopCards, setShopCards] = useState<Array<{ shop_id: string; shop_name: string; area: string; cta: string }> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Use ai_conversations with user_type='customer'
@@ -41,7 +36,6 @@ export default function CustomerChatPage() {
   const doSend = async (userMessage: string) => {
     if (!userMessage.trim() || !user || loading) return;
     setLoading(true);
-    setQuickReplies(null);
     setShopCards(null);
 
     // Add user message to conversation (will be saved to ai_conversations)
@@ -92,7 +86,6 @@ export default function CustomerChatPage() {
           messages: apiMessages,
           userId: user.id,
           customerId: customerProfile?.id || user.id,
-          conversation_state_id: conversationStateId || undefined,
           customerProfile: customerProfile ? {
             customerId: customerProfile.id,
             customerName: customerProfile.name || null,
@@ -117,13 +110,6 @@ export default function CustomerChatPage() {
       const data = await response.json();
       const aiMessage = data.response || data.message || "I'm sorry, I couldn't process that request.";
 
-      if (data.conversation_state_id && typeof data.conversation_state_id === 'string') {
-        setConversationStateId(data.conversation_state_id);
-        try {
-          localStorage.setItem('yoyakuyo_conversation_state_id', data.conversation_state_id);
-        } catch {}
-      }
-      setQuickReplies(Array.isArray(data.quick_replies) ? data.quick_replies : null);
       setShopCards(Array.isArray(data.shop_cards) ? data.shop_cards : null);
 
       // Add AI response to conversation (will be saved to ai_conversations)
@@ -224,28 +210,17 @@ export default function CustomerChatPage() {
           <div className="border-t border-gray-200 p-4 bg-white">
             <div className="space-y-2">
               {shopCards.map((c, idx) => (
-                <a key={`${c.href}-${idx}`} href={c.href} className="block border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
-                  <div className="text-sm font-semibold text-gray-900">{c.shop_name}</div>
-                  {c.address && <div className="text-xs text-gray-600 mt-1">{c.address}</div>}
-                  <div className="text-xs text-blue-700 font-semibold mt-2">{c.cta || 'View Shop'}</div>
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {quickReplies && quickReplies.length > 0 && (
-          <div className="border-t border-gray-200 p-4 bg-white">
-            <div className="flex flex-wrap gap-2">
-              {quickReplies.map((qr, idx) => (
                 <button
-                  key={`${qr.payload}-${idx}`}
+                  key={`${c.shop_id}-${idx}`}
                   type="button"
-                  onClick={() => handleQuickReply(qr.payload)}
-                  disabled={loading}
-                  className="px-3 py-2 text-xs font-semibold rounded-full border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                  onClick={() => {
+                    window.location.href = `/shops/${c.shop_id}`;
+                  }}
+                  className="block w-full text-left border border-gray-200 rounded-lg p-3 hover:bg-gray-50"
                 >
-                  {qr.label}
+                  <div className="text-sm font-semibold text-gray-900">{c.shop_name}</div>
+                  <div className="text-xs text-gray-600 mt-1">{c.area}</div>
+                  <div className="text-xs text-blue-700 font-semibold mt-2">{c.cta || 'View shop'}</div>
                 </button>
               ))}
             </div>

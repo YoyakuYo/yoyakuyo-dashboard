@@ -15,6 +15,60 @@ const router = (0, express_1.Router)();
 // Use service role client if available (bypasses RLS), otherwise use anon client
 // Service role key bypasses RLS policies, which is needed for API operations
 const dbClient = supabase_1.supabaseAdmin || supabase_1.supabase;
+function isUuid(value) {
+    return !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.trim());
+}
+// Main category expansion:
+// The browse UI often passes a MAIN category UUID (e.g. "Beauty Services").
+// Most shops are tagged with SUBCATEGORY category_id UUIDs (e.g. "Hair Salon", "Barbershop").
+// Without expanding, selecting a main category returns 0 shops.
+function expandMainCategoryUuidToCategoryIds(client, categoryId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const { data: catRow, error: catErr } = yield client
+                .from("categories")
+                .select("id,name")
+                .eq("id", categoryId)
+                .maybeSingle();
+            if (catErr || !(catRow === null || catRow === void 0 ? void 0 : catRow.name))
+                return [categoryId];
+            const mainToSub = {
+                "Beauty Services": [
+                    "Hair Salon",
+                    "Nail Salon",
+                    "Barbershop",
+                    "Barber Shop",
+                    "Eyelash / Eyebrow",
+                    "Eyelash & Eyebrow",
+                    "Beauty Salon",
+                    "General Salon",
+                    "Waxing",
+                    "Waxing Shop",
+                ],
+                "Spa, Onsen & Relaxation": ["Spa", "Massages", "Onsen", "Ryokan Onsen", "Ryokan"],
+                "Hotels & Stays": ["Hotel", "Ryokan", "Ryokan Stay", "Guesthouse", "Boutique Hotel"],
+                "Dining & Izakaya": ["Restaurant", "Izakaya", "Cafe", "Bar"],
+                "Clinics & Medical Care": ["Dental Clinic", "Medical Clinic", "Aesthetic Clinic", "Women's Clinic", "Wellness Clinic", "Eye Clinic"],
+                "Activities & Sports": ["Golf Courses & Practice Ranges", "Golf", "Karaoke", "Private Karaoke Rooms", "Pilates", "Yoga"],
+            };
+            const subs = mainToSub[catRow.name] || [];
+            if (subs.length === 0)
+                return [categoryId];
+            const namesToResolve = [catRow.name, ...subs];
+            const { data: ids, error: idsErr } = yield client
+                .from("categories")
+                .select("id")
+                .in("name", namesToResolve);
+            if (idsErr || !ids || ids.length === 0)
+                return [categoryId];
+            const expanded = ids.map((r) => r.id).filter((id) => isUuid(String(id)));
+            return expanded.length > 0 ? expanded : [categoryId];
+        }
+        catch (_a) {
+            return [categoryId];
+        }
+    });
+}
 /**
  * Helper function to fetch all shops in batches (to overcome Supabase's 1000 row limit)
  * Fetches shops in batches of 1000 and combines them into a single array
@@ -46,7 +100,8 @@ owner_user_id // Filter by owner_user_id
             // Apply category filter if provided and not empty
             // Support both category_id (foreign key) and category (direct field)
             if (category_id && category_id.trim() && category_id !== 'all' && category_id !== 'null') {
-                query = query.eq("category_id", category_id);
+                const expandedIds = isUuid(category_id) ? yield expandMainCategoryUuidToCategoryIds(client, category_id.trim()) : [category_id.trim()];
+                query = query.in("category_id", expandedIds);
             }
             if (category && category.trim() && category !== 'all') {
                 query = query.eq("category", category);
@@ -103,11 +158,12 @@ router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         // Backward/forward compatibility:
         // Some frontend paths pass the *category UUID* via `category` (not `category_id`).
         // If `category` looks like a UUID, treat it as `category_id` to avoid returning 0 shops.
-        const isUuid = (value) => !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.trim());
         if (!category_id && isUuid(category)) {
             category_id = category.trim();
             category = undefined;
         }
+        // Expand MAIN category UUIDs to include subcategory UUIDs (prevents "0 shops" when selecting main categories)
+        const expandedCategoryIds = category_id && isUuid(category_id) ? yield expandMainCategoryUuidToCategoryIds(dbClient, category_id.trim()) : null;
         // Pagination params
         const limitParam = req.query.limit;
         const offsetParam = req.query.offset;
@@ -130,7 +186,10 @@ router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             if (search && search.trim()) {
                 query = query.ilike("name", `%${search.trim()}%`);
             }
-            if (category_id && category_id.trim() && category_id !== 'all' && category_id !== 'null') {
+            if (expandedCategoryIds && expandedCategoryIds.length > 0) {
+                query = query.in("category_id", expandedCategoryIds);
+            }
+            else if (category_id && category_id.trim() && category_id !== 'all' && category_id !== 'null') {
                 query = query.eq("category_id", category_id);
             }
             // Apply pagination if enabled
@@ -185,7 +244,10 @@ router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             if (search && search.trim()) {
                 query = query.ilike("name", `%${search.trim()}%`);
             }
-            if (category_id && category_id.trim() && category_id !== 'all' && category_id !== 'null') {
+            if (expandedCategoryIds && expandedCategoryIds.length > 0) {
+                query = query.in("category_id", expandedCategoryIds);
+            }
+            else if (category_id && category_id.trim() && category_id !== 'all' && category_id !== 'null') {
                 query = query.eq("category_id", category_id);
             }
             if (category && category.trim() && category !== 'all') {

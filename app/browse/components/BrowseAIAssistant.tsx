@@ -78,12 +78,7 @@ export function BrowseAIAssistant({
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [conversationStateId, setConversationStateId] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('yoyakuyo_conversation_state_id');
-  });
-  const [quickReplies, setQuickReplies] = useState<Array<{ label: string; payload: string }> | null>(null);
-  const [shopCards, setShopCards] = useState<Array<{ shop_name: string; address: string | null; href: string; cta: string }> | null>(null);
+  const [shopCards, setShopCards] = useState<Array<{ shop_id: string; shop_name: string; area: string; cta: string }> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   // Track conversation history for context
@@ -246,7 +241,6 @@ export function BrowseAIAssistant({
     setInput('');
     setLoading(true);
     setError(null);
-    setQuickReplies(null);
     setShopCards(null);
 
     // CRITICAL: Save user message IMMEDIATELY before calling API
@@ -299,7 +293,6 @@ export function BrowseAIAssistant({
           !isLineContext && !lineCustomerProfileId && !(customUser?.role === 'customer' && customUser?.id) && !user?.id
             ? guestId
             : undefined,
-        conversation_state_id: conversationStateId || undefined,
         shops: shops.map(s => ({
           id: s.id,
           name: s.name,
@@ -374,15 +367,6 @@ export function BrowseAIAssistant({
         // Booking failed - AI should have explained, but add context if missing
         messageContent = `⚠️ ${messageContent}`;
       }
-
-      if (data.conversation_state_id && typeof data.conversation_state_id === 'string') {
-        setConversationStateId(data.conversation_state_id);
-        try {
-          localStorage.setItem('yoyakuyo_conversation_state_id', data.conversation_state_id);
-        } catch {}
-      }
-
-      setQuickReplies(Array.isArray(data.quick_replies) ? data.quick_replies : null);
       setShopCards(Array.isArray(data.shop_cards) ? data.shop_cards : null);
       
       // Add AI message to conversation (optimistic update)
@@ -401,93 +385,6 @@ export function BrowseAIAssistant({
         : 'Sorry, I encountered an error. Please try again.';
       
       addMessage('assistant', errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuickReply = async (payload: string) => {
-    if (!payload.trim() || loading) return;
-
-    const userMessageContent = payload.trim();
-    setLoading(true);
-    setError(null);
-    setQuickReplies(null);
-    setShopCards(null);
-
-    await addMessage('user', userMessageContent);
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    try {
-      const conversationHistory = messages.slice(-10).map(msg => ({
-        role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
-        content: msg.content,
-      }));
-
-      const messagesForAPI = [
-        ...conversationHistory,
-        { role: 'user' as const, content: userMessageContent },
-      ];
-
-      const requestBody: any = {
-        role: 'customer',
-        messages: messagesForAPI,
-        locale: locale,
-        userId:
-          (isLineContext ? undefined : lineCustomerProfileId) ||
-          (customUser?.role === 'customer' ? customUser.id : undefined) ||
-          user?.id ||
-          undefined,
-        customerId:
-          (isLineContext ? undefined : lineCustomerProfileId) ||
-          (customUser?.role === 'customer' ? customUser.id : undefined) ||
-          user?.id ||
-          undefined,
-        lineUserId: isLineContext ? lineUserId : undefined,
-        guestId:
-          !isLineContext && !lineCustomerProfileId && !(customUser?.role === 'customer' && customUser?.id) && !user?.id
-            ? guestId
-            : undefined,
-        conversation_state_id: conversationStateId || undefined,
-      };
-
-      const response = await fetch(`${apiUrl}/ai/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(!isLineContext
-            ? session?.access_token
-              ? { Authorization: `Bearer ${session.access_token}` }
-              : customSession?.token
-              ? { Authorization: `Bearer ${customSession.token}` }
-              : {}
-            : {}),
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to get AI response');
-      }
-
-      const data = await response.json();
-      let messageContent = data.response || 'Sorry, I could not generate a response.';
-
-      if (data.conversation_state_id && typeof data.conversation_state_id === 'string') {
-        setConversationStateId(data.conversation_state_id);
-        try {
-          localStorage.setItem('yoyakuyo_conversation_state_id', data.conversation_state_id);
-        } catch {}
-      }
-
-      setQuickReplies(Array.isArray(data.quick_replies) ? data.quick_replies : null);
-      setShopCards(Array.isArray(data.shop_cards) ? data.shop_cards : null);
-
-      await addMessage('assistant', messageContent);
-    } catch (err: any) {
-      setError(err.message || 'Failed to send message. Please try again.');
-      await addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -683,33 +580,18 @@ export function BrowseAIAssistant({
             <div className="px-4 py-3 bg-white border-t border-gray-200">
               <div className="space-y-2">
                 {shopCards.map((c, idx) => (
-                  <a
-                    key={`${c.href}-${idx}`}
-                    href={shopLinkBasePath ? `${shopLinkBasePath}${c.href.replace('/shops', '')}` : c.href}
-                    className="block border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                  <button
+                    key={`${c.shop_id}-${idx}`}
+                    type="button"
+                    onClick={() => {
+                      const targetHref = shopLinkBasePath ? `${shopLinkBasePath}/${c.shop_id}` : `/shops/${c.shop_id}`;
+                      router.push(targetHref);
+                    }}
+                    className="block w-full text-left border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors"
                   >
                     <div className="text-sm font-semibold text-gray-900">{c.shop_name}</div>
-                    {c.address && <div className="text-xs text-gray-600 mt-1">{c.address}</div>}
-                    <div className="text-xs text-purple-700 font-semibold mt-2">{c.cta || 'View Shop'}</div>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Button-led flow: quick replies */}
-          {quickReplies && quickReplies.length > 0 && (
-            <div className="px-4 py-3 bg-white border-t border-gray-200">
-              <div className="flex flex-wrap gap-2">
-                {quickReplies.map((qr, idx) => (
-                  <button
-                    key={`${qr.payload}-${idx}`}
-                    type="button"
-                    onClick={() => handleQuickReply(qr.payload)}
-                    disabled={loading}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-full border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 disabled:opacity-50"
-                  >
-                    {qr.label}
+                    <div className="text-xs text-gray-600 mt-1">{c.area}</div>
+                    <div className="text-xs text-purple-700 font-semibold mt-2">{c.cta || 'View shop'}</div>
                   </button>
                 ))}
               </div>

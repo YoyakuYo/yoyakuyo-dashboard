@@ -1,237 +1,174 @@
 // apps/api/src/ai/ai.ts
-// STRICT, STATE-DRIVEN, BUTTON-LED FLOW (NO FREE-TEXT INTENT GUESSING).
-//
-// conversation_state.step is the ONLY source of truth.
-// Steps:
-// - GREETING -> SERVICE_SELECT -> LOCATION_SELECT -> SHOP_LIST
+// SINGLE AI MODE: SHOP_DISCOVERY_ONLY
+// - Stateless: each message processed independently (NO memory, NO DB writes)
+// - Intents: GREETING | SERVICE DETECTION | LOCATION DETECTION -> SHOP SUGGESTION
+// - Read-only: shops + services/categories (NO booking, NO identity, NO conversation state)
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type Channel = "guest" | "web" | "line";
-export type Step = "GREETING" | "SERVICE_SELECT" | "LOCATION_SELECT" | "SHOP_LIST" | "END";
-export type SelectedService = "Hair" | "Nail" | "Restaurant" | "Massage";
-export type SelectedLocation = "Tokyo" | "Shibuya" | "Shinjuku" | "Osaka";
+export type ShopDiscoveryIntent = "GREETING" | "SERVICE" | "LOCATION" | "UNKNOWN";
 
-export type QuickReply = { label: string; payload: string };
-export type ShopCard = { shop_name: string; address: string | null; href: string; cta: "View Shop" };
-
-export type ButtonFlowResult = {
-  response: string;
-  quick_replies: QuickReply[] | null;
-  shop_cards: ShopCard[] | null;
-  step: Step;
-  conversation_state_id: string;
+export type ShopCard = {
+  shop_id: string;
+  shop_name: string;
+  area: string;
+  cta: "View shop";
 };
 
-const SERVICE_REPLIES: QuickReply[] = [
-  { label: "Hair", payload: "Hair" },
-  { label: "Nail", payload: "Nail" },
-  { label: "Restaurant", payload: "Restaurant" },
-  { label: "Massage", payload: "Massage" },
-];
-
-const LOCATION_REPLIES: QuickReply[] = [
-  { label: "Tokyo", payload: "Tokyo" },
-  { label: "Shibuya", payload: "Shibuya" },
-  { label: "Shinjuku", payload: "Shinjuku" },
-  { label: "Osaka", payload: "Osaka" },
-];
+export type ShopDiscoveryResult = {
+  mode: "SHOP_DISCOVERY_ONLY";
+  intent: ShopDiscoveryIntent;
+  response: string;
+  shop_cards: ShopCard[] | null;
+};
 
 function norm(s: string): string {
   return String(s || "").trim().toLowerCase();
 }
 
-function matchService(message: string): SelectedService | null {
+function isGreeting(message: string): boolean {
+  const t = String(message || "").trim();
+  return /^(hi|hello|hey|good morning|good afternoon|good evening|こんにちは|こんばんは|おはよう|やあ)[!！。.\s]*$/i.test(t);
+}
+
+const SERVICE_KEYWORDS: Array<{ key: string; keywords: string[]; categoryNames: string[] }> = [
+  {
+    key: "HAIR_CUT",
+    keywords: ["haircut", "hair cut", "hair", "barber", "サロン", "美容室", "理容", "床屋", "カット", "corte", "corte de cabelo", "pelo", "cabello", "cabelo", "剪发", "理发", "헤어", "헤어컷"],
+    categoryNames: ["Hair Salon", "Barber Shop", "Barbershop"],
+  },
+  {
+    key: "NAIL",
+    keywords: ["nail", "nails", "uña", "uñas", "unha", "unhas", "ネイル", "美甲", "네일"],
+    categoryNames: ["Nail Salon"],
+  },
+  {
+    key: "RESTAURANT",
+    keywords: ["restaurant", "food", "restaurante", "レストラン", "餐厅", "식당", "izakaya", "居酒屋"],
+    categoryNames: ["Restaurant", "Izakaya", "Izakaya & Bar", "Cafe", "Bar"],
+  },
+  {
+    key: "MASSAGE",
+    keywords: ["massage", "massages", "masaje", "massagem", "マッサージ", "スパ", "按摩", "마사지"],
+    categoryNames: ["Spa, Onsen & Relaxation", "Spa & Massage", "Relaxation", "Onsen", "Ryokan", "Onsen & Ryokan"],
+  },
+];
+
+function detectService(message: string): { key: string; categoryNames: string[] } | null {
   const t = norm(message);
-  if (t === "hair" || t === "haircut" || t === "hair cut") return "Hair";
-  if (t === "nail" || t === "nails") return "Nail";
-  if (t === "restaurant" || t === "food") return "Restaurant";
-  if (t === "massage" || t === "massages") return "Massage";
+  for (const s of SERVICE_KEYWORDS) {
+    if (s.keywords.some((k) => t.includes(norm(k)))) return { key: s.key, categoryNames: s.categoryNames };
+  }
   return null;
 }
 
-function matchLocation(message: string): SelectedLocation | null {
-  const t = norm(message);
-  if (t === "tokyo") return "Tokyo";
-  if (t === "shibuya") return "Shibuya";
-  if (t === "shinjuku") return "Shinjuku";
-  if (t === "osaka") return "Osaka";
+const LOCATION_KEYWORDS: string[] = [
+  "chofu",
+  "調布",
+  "shibuya",
+  "渋谷",
+  "渋谷区",
+  "shibuya-ku",
+  "shinjuku",
+  "新宿",
+  "新宿区",
+  "shinjuku-ku",
+  "tokyo",
+  "東京",
+  "東京都",
+  "東京to",
+  "osaka",
+  "大阪",
+  "大阪府",
+];
+
+function detectLocation(message: string): string | null {
+  const raw = String(message || "").trim();
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  for (const k of LOCATION_KEYWORDS) {
+    if (lower.includes(k.toLowerCase()) || raw.includes(k)) return k;
+  }
   return null;
 }
 
-async function upsertConversationState(
-  supabase: SupabaseClient,
-  row: any
-): Promise<{ id: string; channel: Channel; step: Step; selected_service: string | null; selected_location: string | null; customer_id: string | null }> {
-  const { data, error } = await supabase
-    .from("conversation_state")
-    .upsert(row, { onConflict: "id" })
-    .select("id, channel, step, selected_service, selected_location, customer_id")
-    .single();
+async function categoryIdsForService(supabase: SupabaseClient, categoryNames: string[]): Promise<string[]> {
+  if (!categoryNames.length) return [];
+  const { data, error } = await supabase.from("categories").select("id,name").in("name", categoryNames);
   if (error) throw error;
-  return data as any;
+  return (data || []).map((c: any) => String(c.id));
 }
 
-async function loadConversationState(params: {
-  supabase: SupabaseClient;
-  conversationStateId: string | null;
-  customerId: string | null;
-  channel: Channel;
-}): Promise<any | null> {
-  if (params.conversationStateId) {
-    const { data } = await params.supabase.from("conversation_state").select("*").eq("id", params.conversationStateId).maybeSingle();
-    return data || null;
-  }
-  if (params.customerId) {
-    const { data } = await params.supabase
-      .from("conversation_state")
-      .select("*")
-      .eq("customer_id", params.customerId)
-      .eq("channel", params.channel)
-      .order("last_message_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return data || null;
-  }
-  return null;
+function areaFromShopRow(shop: any): string {
+  const p = (shop?.prefecture as string | undefined) || "";
+  const c = (shop?.city as string | undefined) || (shop?.normalized_city as string | undefined) || "";
+  const area = `${p} ${c}`.trim();
+  if (area) return area;
+  const addr = (shop?.address as string | undefined) || "";
+  return addr ? addr.slice(0, 24) : "Japan";
 }
 
-async function listVerifiedShops(params: { supabase: SupabaseClient; service: SelectedService; location: SelectedLocation }): Promise<ShopCard[]> {
-  const serviceToCategoryNames: Record<SelectedService, string[]> = {
-    Hair: ["Hair Salon", "Barbershop", "Barber Shop"],
-    Nail: ["Nail Salon"],
-    Restaurant: ["Restaurant", "Izakaya"],
-    Massage: ["Massages", "Spa", "Onsen"],
-  };
-
-  const { data: cats } = await params.supabase.from("categories").select("id,name").in("name", serviceToCategoryNames[params.service]);
-  const categoryIds = (cats || []).map((c: any) => String(c.id));
-
+async function searchVerifiedShops(params: { supabase: SupabaseClient; categoryIds: string[]; location: string }): Promise<ShopCard[]> {
   let q: any = params.supabase
     .from("shops")
-    .select("id,name,address,is_verified,category_id")
+    .select("id,name,address,prefecture,city,normalized_city,is_verified,category_id")
     .eq("is_verified", true)
     .ilike("address", `%${params.location}%`)
     .order("name", { ascending: true })
-    .limit(20);
+    .limit(30);
 
-  if (categoryIds.length > 0) q = q.in("category_id", categoryIds);
+  if (params.categoryIds.length > 0) q = q.in("category_id", params.categoryIds);
 
   const { data, error } = await q;
   if (error) throw error;
 
   return (data || []).map((s: any) => ({
+    shop_id: String(s.id),
     shop_name: String(s.name),
-    address: s.address ? String(s.address) : null,
-    href: `/shops/${String(s.id)}`,
-    cta: "View Shop",
+    area: areaFromShopRow(s),
+    cta: "View shop",
   }));
 }
 
-export async function runButtonLedFlow(params: {
-  supabase: SupabaseClient;
-  channel: Channel;
-  customerId: string | null;
-  conversationStateId: string | null;
-  message: string;
-}): Promise<ButtonFlowResult> {
-  let state = await loadConversationState({
-    supabase: params.supabase,
-    conversationStateId: params.conversationStateId,
-    customerId: params.customerId,
-    channel: params.channel,
-  });
-
-  if (!state) {
-    const created = await upsertConversationState(params.supabase, {
-      id: params.conversationStateId || undefined,
-      customer_id: params.customerId,
-      channel: params.channel,
-      step: "GREETING",
-    });
-    state = { ...created, selected_service: null, selected_location: null };
+export async function handleShopDiscoveryOnly(message: string, supabase: SupabaseClient): Promise<ShopDiscoveryResult> {
+  if (isGreeting(message)) {
+    return {
+      mode: "SHOP_DISCOVERY_ONLY",
+      intent: "GREETING",
+      response: "Welcome to YoYakuYo 👋 What are you looking to book today?",
+      shop_cards: null,
+    };
   }
 
-  const step: Step = (state.step as Step) || "GREETING";
+  const service = detectService(message);
+  const location = detectLocation(message);
 
-  if (step === "GREETING") {
-    const response = "Hello, welcome to YoYakuYo 👋  \n\nWhat would you like to do today?";
-    const next = await upsertConversationState(params.supabase, {
-      id: state.id,
-      customer_id: state.customer_id ?? params.customerId,
-      channel: state.channel ?? params.channel,
-      step: "SERVICE_SELECT",
-      last_message_at: new Date().toISOString(),
-    });
-    return { response, quick_replies: SERVICE_REPLIES, shop_cards: null, step: next.step, conversation_state_id: String(next.id) };
+  if (service && !location) {
+    return {
+      mode: "SHOP_DISCOVERY_ONLY",
+      intent: "SERVICE",
+      response: "Got it. Which area or prefecture are you looking in?",
+      shop_cards: null,
+    };
   }
 
-  if (step === "SERVICE_SELECT") {
-    const svc = matchService(params.message);
-    if (!svc) {
-      const next = await upsertConversationState(params.supabase, {
-        id: state.id,
-        customer_id: state.customer_id ?? params.customerId,
-        channel: state.channel ?? params.channel,
-        step: "SERVICE_SELECT",
-        last_message_at: new Date().toISOString(),
-      });
-      return { response: "", quick_replies: SERVICE_REPLIES, shop_cards: null, step: next.step, conversation_state_id: String(next.id) };
-    }
-    const response = "Great 👍  \n\nWhich area are you looking in?";
-    const next = await upsertConversationState(params.supabase, {
-      id: state.id,
-      customer_id: state.customer_id ?? params.customerId,
-      channel: state.channel ?? params.channel,
-      selected_service: svc,
-      step: "LOCATION_SELECT",
-      last_message_at: new Date().toISOString(),
-    });
-    return { response, quick_replies: LOCATION_REPLIES, shop_cards: null, step: next.step, conversation_state_id: String(next.id) };
+  if (service && location) {
+    const categoryIds = await categoryIdsForService(supabase, service.categoryNames);
+    const shops = await searchVerifiedShops({ supabase, categoryIds, location });
+    return {
+      mode: "SHOP_DISCOVERY_ONLY",
+      intent: "LOCATION",
+      response: "Available verified shops",
+      shop_cards: shops,
+    };
   }
 
-  if (step === "LOCATION_SELECT") {
-    const loc = matchLocation(params.message);
-    if (!loc) {
-      const next = await upsertConversationState(params.supabase, {
-        id: state.id,
-        customer_id: state.customer_id ?? params.customerId,
-        channel: state.channel ?? params.channel,
-        step: "LOCATION_SELECT",
-        last_message_at: new Date().toISOString(),
-      });
-      return { response: "", quick_replies: LOCATION_REPLIES, shop_cards: null, step: next.step, conversation_state_id: String(next.id) };
-    }
-
-    const selectedService = (state.selected_service as SelectedService | null) || null;
-    const service = selectedService || "Hair";
-    const shop_cards = await listVerifiedShops({ supabase: params.supabase, service, location: loc });
-    const response = `Here are the verified ${service} shops in ${loc}:`;
-
-    const next = await upsertConversationState(params.supabase, {
-      id: state.id,
-      customer_id: state.customer_id ?? params.customerId,
-      channel: state.channel ?? params.channel,
-      selected_location: loc,
-      step: "SHOP_LIST",
-      last_message_at: new Date().toISOString(),
-    });
-
-    if ((next.channel as Channel) === "guest" && next.customer_id) {
-      await params.supabase.from("guest_identity").upsert({ id: next.customer_id }, { onConflict: "id" });
-    }
-
-    return { response, quick_replies: null, shop_cards, step: next.step, conversation_state_id: String(next.id) };
-  }
-
-  const next = await upsertConversationState(params.supabase, {
-    id: state.id,
-    customer_id: state.customer_id ?? params.customerId,
-    channel: state.channel ?? params.channel,
-    step: "SHOP_LIST",
-    last_message_at: new Date().toISOString(),
-  });
-  return { response: "", quick_replies: null, shop_cards: null, step: next.step, conversation_state_id: String(next.id) };
+  return {
+    mode: "SHOP_DISCOVERY_ONLY",
+    intent: location ? "LOCATION" : "UNKNOWN",
+    response: "Can you tell me what service you’re looking for and the area?",
+    shop_cards: null,
+  };
 }
 
 
