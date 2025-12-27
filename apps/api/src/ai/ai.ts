@@ -169,7 +169,13 @@ export async function runButtonLedFlow(params: {
   if (step === "SERVICE_SELECT") {
     const svc = matchService(params.message);
     if (!svc) {
-      const next = await upsertConversationState(params.supabase, { id: state.id, last_message_at: new Date().toISOString() });
+      const next = await upsertConversationState(params.supabase, {
+        id: state.id,
+        customer_id: state.customer_id ?? params.customerId,
+        channel: state.channel ?? params.channel,
+        step: "SERVICE_SELECT",
+        last_message_at: new Date().toISOString(),
+      });
       return { response: "", quick_replies: SERVICE_REPLIES, shop_cards: null, step: next.step, conversation_state_id: String(next.id) };
     }
     const response = "Great 👍  \n\nWhich area are you looking in?";
@@ -187,7 +193,13 @@ export async function runButtonLedFlow(params: {
   if (step === "LOCATION_SELECT") {
     const loc = matchLocation(params.message);
     if (!loc) {
-      const next = await upsertConversationState(params.supabase, { id: state.id, last_message_at: new Date().toISOString() });
+      const next = await upsertConversationState(params.supabase, {
+        id: state.id,
+        customer_id: state.customer_id ?? params.customerId,
+        channel: state.channel ?? params.channel,
+        step: "LOCATION_SELECT",
+        last_message_at: new Date().toISOString(),
+      });
       return { response: "", quick_replies: LOCATION_REPLIES, shop_cards: null, step: next.step, conversation_state_id: String(next.id) };
     }
 
@@ -212,7 +224,13 @@ export async function runButtonLedFlow(params: {
     return { response, quick_replies: null, shop_cards, step: next.step, conversation_state_id: String(next.id) };
   }
 
-  const next = await upsertConversationState(params.supabase, { id: state.id, last_message_at: new Date().toISOString() });
+  const next = await upsertConversationState(params.supabase, {
+    id: state.id,
+    customer_id: state.customer_id ?? params.customerId,
+    channel: state.channel ?? params.channel,
+    step: "SHOP_LIST",
+    last_message_at: new Date().toISOString(),
+  });
   return { response: "", quick_replies: null, shop_cards: null, step: next.step, conversation_state_id: String(next.id) };
 }
 
