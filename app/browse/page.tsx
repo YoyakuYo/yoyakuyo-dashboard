@@ -9,6 +9,8 @@ import { apiUrl } from '@/lib/apiClient';
 import {
   buildCategoryTree,
   filterShopsBySearch,
+  extractPrefecture, // Import extractPrefecture
+  extractCity, // Import extractCity
   type Shop,
   type CategoryTree,
 } from '@/lib/browse/shopBrowseData';
@@ -94,6 +96,40 @@ function BrowsePageContent() {
     console.log('🔧 API URL configured:', apiUrl || '❌ NOT SET - Check NEXT_PUBLIC_API_URL env var');
   }, []);
 
+  // Debug: Log shops with unknown prefecture/city after parsing
+  useEffect(() => {
+    if (shops.length > 0) {
+      let unknownPrefectureCount = 0;
+      let unknownCityCount = 0;
+      // Count shops where EITHER prefecture OR city is unknown
+      let shopsWithInvalidLocation = 0;
+
+      shops.forEach(shop => {
+        const prefecture = extractPrefecture(shop);
+        const city = extractCity(shop);
+
+        let isInvalid = false;
+        if (prefecture === 'unknown') {
+          unknownPrefectureCount++;
+          isInvalid = true;
+        }
+        if (city === 'unknown') {
+          unknownCityCount++;
+          isInvalid = true;
+        }
+
+        if (isInvalid) {
+          shopsWithInvalidLocation++;
+        }
+      });
+
+      console.log(`📊 Shops with unknown prefecture: ${unknownPrefectureCount}`);
+      console.log(`📊 Shops with unknown city: ${unknownCityCount}`);
+      console.log(`📊 Total shops with invalid location data: ${shopsWithInvalidLocation}`);
+      console.log(`📊 Total shops fetched by frontend: ${shops.length}`);
+    }
+  }, [shops]);
+
   // Fetch categories from API to get database UUIDs (needed for stats matching)
   useEffect(() => {
     const fetchCategories = async () => {
@@ -164,7 +200,7 @@ function BrowsePageContent() {
     } catch (error) {
       console.error('Error fetching category stats:', error);
     }
-  }, [apiUrl]);
+  }, [apiUrl, categories.length]);
 
   // Fetch shops with pagination
   const fetchShops = useCallback(async (page: number = 1, append: boolean = false) => {
