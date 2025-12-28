@@ -32,6 +32,7 @@ interface City {
 }
 
 function CategoryPageContent() {
+  console.log('CategoryPageContent: apiUrl is', apiUrl); // DIAGNOSTIC LOG
   const params = useParams();
   const searchParams = useSearchParams();
   const locale = useLocale();

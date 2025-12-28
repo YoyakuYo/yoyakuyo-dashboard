@@ -174,6 +174,8 @@ router.get("/cities", async (req: Request, res: Response) => {
         const prefectureName = req.query.prefecture_name as string | undefined;
         const search = req.query.search as string | undefined;
 
+        console.log('GET /cities: Received prefecture_name:', prefectureName); // DIAGNOSTIC LOG
+
         let query = dbClient
             .from("cities")
             .select("id, name, slug, prefecture_name")
@@ -193,7 +195,7 @@ router.get("/cities", async (req: Request, res: Response) => {
             console.error('Error fetching cities:', error);
             return res.status(500).json({ error: error.message });
         }
-
+        console.log('GET /cities: Returning cities count:', cities ? cities.length : 0); // DIAGNOSTIC LOG
         return res.json(Array.isArray(cities) ? cities : []);
     } catch (e: any) {
         console.error('Exception in GET /cities:', e);
@@ -210,6 +212,8 @@ router.get("/", async (req: Request, res: Response) => {
         const city_id = req.query.city_id as string | undefined; // New: filter by city_id
         const unclaimedParam = req.query.unclaimed as string | undefined;
         const unclaimed = unclaimedParam === 'true';  // Filter unclaimed shops
+        const isVerifiedParam = req.query.is_verified as string | undefined; // New: filter by is_verified
+        const is_verified = isVerifiedParam === 'true';
 
         // Backward/forward compatibility:
         // Some frontend paths pass the *category UUID* via `category` (not `category_id`).
@@ -235,7 +239,7 @@ router.get("/", async (req: Request, res: Response) => {
         const offset = offsetParam ? parseInt(offsetParam) : (page ? (page - 1) * (limit || 50) : undefined);
         
         console.log('=== GET /shops START ===');
-        console.log('Query params:', { search, category_id, category, owner_user_id, city_id, unclaimed, limit, offset, page, usePagination });
+        console.log('Query params:', { search, category_id, category, owner_user_id, city_id, unclaimed, is_verified, limit, offset, page, usePagination });
         console.log('Using client:', supabaseAdmin ? 'service role (bypasses RLS)' : 'anon (subject to RLS)');
         
         // If unclaimed filter is set, fetch shops with owner_user_id IS NULL
@@ -258,6 +262,10 @@ router.get("/", async (req: Request, res: Response) => {
             
             if (city_id && city_id.trim() && city_id !== 'all' && isUuid(city_id)) {
                 query = query.eq("city_id", city_id);
+            }
+
+            if (is_verified) {
+                query = query.eq("is_verified", true);
             }
             
             // Apply pagination if enabled
@@ -337,6 +345,9 @@ router.get("/", async (req: Request, res: Response) => {
             }
             if (city_id && city_id.trim() && city_id !== 'all' && isUuid(city_id)) {
                 query = query.eq("city_id", city_id);
+            }
+            if (is_verified) {
+                query = query.eq("is_verified", true);
             }
             console.log('PAGINATED SHOPS QUERY:', query.toString()); // DIAGNOSTIC LOG
             const { data, error, count } = await query;
@@ -724,20 +735,20 @@ router.post("/:id/photos", async (req: Request, res: Response) => {
 });
 
 // POST /shops/:id/photo/logo - Upload logo (convenience route, redirects to /photos/upload)
+// This route is kept for backward compatibility
+// It should redirect to the new /photos/upload endpoint
+// For now, we'll return a helpful error message
 router.post("/:id/photo/logo", async (req: Request, res: Response) => {
-    // This route is kept for backward compatibility
-    // It should redirect to the new /photos/upload endpoint
-    // For now, we'll return a helpful error message
     return res.status(410).json({ 
         error: 'This endpoint is deprecated. Please use POST /photos/upload with type=logo in the form data.' 
     });
 });
 
 // POST /shops/:id/photo/cover - Upload cover (convenience route, redirects to /photos/upload)
+// This route is kept for backward compatibility
+// It should redirect to the new /photos/upload endpoint
+// For now, we'll return a helpful error message
 router.post("/:id/photo/cover", async (req: Request, res: Response) => {
-    // This route is kept for backward compatibility
-    // It should redirect to the new /photos/upload endpoint
-    // For now, we'll return a helpful error message
     return res.status(410).json({ 
         error: 'This endpoint is deprecated. Please use POST /photos/upload with type=cover in the form data.' 
     });
