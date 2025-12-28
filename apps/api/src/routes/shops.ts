@@ -75,7 +75,8 @@ async function fetchAllShops(
     search?: string,
     category_id?: string,
     category?: string,  // New: filter by shops.category field
-    owner_user_id?: string  // Filter by owner_user_id
+    owner_user_id?: string,  // Filter by owner_user_id
+    city_id?: string  // New: filter by shops.city_id field
 ): Promise<any[]> {
     const allShops: any[] = [];
     const batchSize = 1000;
@@ -86,6 +87,7 @@ async function fetchAllShops(
     console.log('  - Search filter:', search || 'none');
     console.log('  - Category filter:', category_id || 'none');
     console.log('  - Owner filter:', owner_user_id || 'none');
+    console.log('  - City filter:', city_id || 'none');
 
     while (hasMore) {
         // Build query for this batch - NO JOIN to avoid ambiguous relationship error
@@ -114,6 +116,11 @@ async function fetchAllShops(
         // Apply owner filter if provided
         if (owner_user_id && owner_user_id.trim()) {
             query = query.eq("owner_user_id", owner_user_id);
+        }
+
+        // Apply city filter if provided
+        if (city_id && city_id.trim() && city_id !== 'all' && isUuid(city_id)) {
+            query = query.eq("city_id", city_id);
         }
 
         const { data, error } = await query;
@@ -162,12 +169,45 @@ async function fetchAllShops(
     console.log(`✅ fetchAllShops: Completed. Total shops fetched: ${shopsWithCategories.length}`);
     return shopsWithCategories;
 }
+router.get("/cities", async (req: Request, res: Response) => {
+    try {
+        const prefectureName = req.query.prefecture_name as string | undefined;
+        const search = req.query.search as string | undefined;
+
+        let query = dbClient
+            .from("cities")
+            .select("id, name, slug, prefecture_name")
+            .order("name", { ascending: true });
+
+        if (prefectureName && prefectureName !== 'all') {
+            query = query.eq("prefecture_name", prefectureName);
+        }
+
+        if (search && search.trim()) {
+            query = query.ilike("name", `%${search.trim()}%`);
+        }
+
+        const { data: cities, error } = await query;
+
+        if (error) {
+            console.error('Error fetching cities:', error);
+            return res.status(500).json({ error: error.message });
+        }
+
+        return res.json(Array.isArray(cities) ? cities : []);
+    } catch (e: any) {
+        console.error('Exception in GET /cities:', e);
+        return res.status(500).json({ error: e.message });
+    }
+});
+
 router.get("/", async (req: Request, res: Response) => {
     try {
         const search = req.query.search as string | undefined;
         let category_id = req.query.category_id as string | undefined;
         let category = req.query.category as string | undefined;  // Filter by shops.category field OR (legacy) UUID passed from frontend
         const owner_user_id = req.query.owner_user_id as string | undefined;  // Filter by owner
+        const city_id = req.query.city_id as string | undefined; // New: filter by city_id
         const unclaimedParam = req.query.unclaimed as string | undefined;
         const unclaimed = unclaimedParam === 'true';  // Filter unclaimed shops
 
@@ -195,7 +235,7 @@ router.get("/", async (req: Request, res: Response) => {
         const offset = offsetParam ? parseInt(offsetParam) : (page ? (page - 1) * (limit || 50) : undefined);
         
         console.log('=== GET /shops START ===');
-        console.log('Query params:', { search, category_id, category, owner_user_id, unclaimed, limit, offset, page, usePagination });
+        console.log('Query params:', { search, category_id, category, owner_user_id, city_id, unclaimed, limit, offset, page, usePagination });
         console.log('Using client:', supabaseAdmin ? 'service role (bypasses RLS)' : 'anon (subject to RLS)');
         
         // If unclaimed filter is set, fetch shops with owner_user_id IS NULL
@@ -214,6 +254,10 @@ router.get("/", async (req: Request, res: Response) => {
                 query = query.in("category_id", expandedCategoryIds);
             } else if (category_id && category_id.trim() && category_id !== 'all' && category_id !== 'null') {
                 query = query.eq("category_id", category_id);
+            }
+            
+            if (city_id && city_id.trim() && city_id !== 'all' && isUuid(city_id)) {
+                query = query.eq("city_id", city_id);
             }
             
             // Apply pagination if enabled
@@ -291,6 +335,9 @@ router.get("/", async (req: Request, res: Response) => {
             if (owner_user_id && owner_user_id.trim()) {
                 query = query.eq("owner_user_id", owner_user_id);
             }
+            if (city_id && city_id.trim() && city_id !== 'all' && isUuid(city_id)) {
+                query = query.eq("city_id", city_id);
+            }
             
             const { data, error, count } = await query;
             
@@ -338,7 +385,7 @@ router.get("/", async (req: Request, res: Response) => {
         }
         
         // Use batch fetching helper to get all shops (overcomes 1000 row limit) - for backward compatibility
-        const data = await fetchAllShops(dbClient, search, category_id, category, owner_user_id);
+        const data = await fetchAllShops(dbClient, search, category_id, category, owner_user_id, city_id);
         
         console.log(`=== GET /shops END === Total shops: ${data.length}`);
         
