@@ -361,7 +361,7 @@ export default function PublicShopDetailPage() {
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!shopId || !bookingServiceId) {
       setBookingError(t('booking.fillRequiredFields') || 'Please fill in all required fields');
       return;

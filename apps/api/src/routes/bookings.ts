@@ -176,8 +176,8 @@ router.post('/', async (req: Request, res: Response) => {
 
         // Validate required fields for public bookings
         if (!customer_id && !finalCustomerName) {
-            return res.status(400).json({
-                error: 'customer_name is required (or customer_id for owner bookings)'
+            return res.status(400).json({ 
+                error: 'customer_name is required (or customer_id for owner bookings)' 
             });
         }
 
