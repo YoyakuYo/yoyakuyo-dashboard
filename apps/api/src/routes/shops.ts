@@ -264,7 +264,7 @@ router.get("/", async (req: Request, res: Response) => {
             if (usePagination && limit !== undefined && offset !== undefined) {
                 query = query.range(offset, offset + limit - 1);
             }
-            
+            console.log('UNCLAIMED SHOPS QUERY:', query.toString()); // DIAGNOSTIC LOG
             const { data, error, count } = await query;
             if (error) {
                 console.error('Error fetching unclaimed shops:', error);
@@ -338,7 +338,7 @@ router.get("/", async (req: Request, res: Response) => {
             if (city_id && city_id.trim() && city_id !== 'all' && isUuid(city_id)) {
                 query = query.eq("city_id", city_id);
             }
-            
+            console.log('PAGINATED SHOPS QUERY:', query.toString()); // DIAGNOSTIC LOG
             const { data, error, count } = await query;
             
             if (error) {
