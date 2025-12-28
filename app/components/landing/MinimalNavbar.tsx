@@ -34,7 +34,7 @@ export default function MinimalNavbar() {
               href="/browse" 
               className="text-sm font-medium text-gray-900 hover:text-japanese-red transition-colors uppercase"
             >
-              {t('navCategories') || 'CATEGORIES'}
+              {t('navCategories') || 'Categories'}
             </Link>
             <span className="text-gray-400">|</span>
             <Link 
