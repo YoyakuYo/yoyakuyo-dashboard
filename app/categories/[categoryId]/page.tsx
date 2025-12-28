@@ -38,16 +38,30 @@ function CategoryPageContent() {
     region: 'all',
     prefecture: 'all',
   });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // 500ms debounce
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery]);
 
   // Get category
   const category = MAIN_CATEGORIES.find(c => c.id === categoryId);
 
-  // Check if any filter is selected (STRICT RULE)
+  // Check if any filter or search query is active
   const hasActiveFilter = useMemo(() => {
     return filters.subcategory !== 'all' || 
            filters.region !== 'all' || 
-           filters.prefecture !== 'all';
-  }, [filters]);
+           filters.prefecture !== 'all' ||
+           debouncedSearchQuery.trim() !== '';
+  }, [filters, debouncedSearchQuery]);
 
   // Handle filter changes
   const handleFilterChange = useCallback((newFilters: typeof filters) => {
@@ -56,14 +70,10 @@ function CategoryPageContent() {
     setShops([]);
   }, []);
 
-  // Fetch shops ONLY if filters are active
+  // Fetch shops ONLY if filters or search query are active
   const fetchShops = useCallback(async (page: number = 1, append: boolean = false) => {
-    // STRICT RULE: Do not fetch if no filters are selected
-    const currentHasActiveFilter = filters.subcategory !== 'all' || 
-                                   filters.region !== 'all' || 
-                                   filters.prefecture !== 'all';
-    
-    if (!currentHasActiveFilter) {
+    // Do not fetch if no filters are selected and no search query is active
+    if (!hasActiveFilter) {
       setShops([]);
       setLoading(false);
       return;
@@ -79,6 +89,10 @@ function CategoryPageContent() {
       const params = new URLSearchParams();
       params.set('page', page.toString());
       params.set('limit', '30');
+      
+      if (debouncedSearchQuery.trim()) {
+        params.set('search', debouncedSearchQuery.trim());
+      }
       
       // Get category UUID from database
       const categoryRes = await fetch(`${apiUrl}/categories`);
@@ -268,7 +282,20 @@ function CategoryPageContent() {
           onFilterChange={handleFilterChange}
         />
 
-        {/* Category Selling Section - Only show when NO filters are active */}
+        {/* Search Bar */}
+        <div className="mt-8 mb-6">
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-4">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={locale === 'ja' ? 'ショップ名または地域で検索' : 'Search by shop name or location...'}
+              className="w-full px-4 py-3 bg-gray-900 text-white border border-gray-700 rounded-lg focus:ring-2 focus:ring-japanese-red focus:border-transparent outline-none text-lg"
+            />
+          </div>
+        </div>
+
+        {/* Category Selling Section - Only show when NO filters are active AND no search query is active */}
         {!hasActiveFilter && <CategorySellingSection categoryId={categoryId} />}
 
         {/* Shop Results - Show immediately when filters are active */}
