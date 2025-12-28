@@ -167,6 +167,19 @@ router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 error: 'customer_name is required (or customer_id for owner bookings)'
             });
         }
+        // Verify shop is verified (required for all bookings)
+        const { data: shop, error: shopError } = yield supabase_1.supabase
+            .from('shops')
+            .select('id, is_verified')
+            .eq('id', shop_id)
+            .maybeSingle();
+        if (shopError) {
+            console.error('Error checking shop verification:', shopError);
+            return res.status(500).json({ error: 'Failed to verify shop' });
+        }
+        if (!(shop === null || shop === void 0 ? void 0 : shop.is_verified)) {
+            return res.status(403).json({ error: 'This shop is not verified for bookings' });
+        }
         // Create the booking - use customer_name directly
         // customer_id is optional (can be null for public/guest bookings)
         // customer_email and customer_phone are required for guest bookings
@@ -193,6 +206,18 @@ router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         if (error) {
             console.error('Error creating booking:', error);
             return res.status(500).json({ error: error.message });
+        }
+        // Log guest booking information for debugging
+        if (!userId) {
+            console.log('[GUEST BOOKING] ✅ Created guest booking:', {
+                booking_id: newBooking.id,
+                booking_source: 'guest',
+                user_id: null,
+                guest_email: newBooking.customer_email,
+                guest_name: newBooking.customer_name,
+                shop_id: newBooking.shop_id,
+                service_id: newBooking.service_id,
+            });
         }
         // Create notification for owner when customer creates booking
         if (newBooking === null || newBooking === void 0 ? void 0 : newBooking.shop_id) {

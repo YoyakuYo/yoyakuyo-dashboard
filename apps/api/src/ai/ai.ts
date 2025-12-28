@@ -31,33 +31,33 @@ function isGreeting(message: string): boolean {
   return /^(hi|hello|hey|good morning|good afternoon|good evening|こんにちは|こんばんは|おはよう|やあ)[!！。.\s]*$/i.test(t);
 }
 
-const SERVICE_KEYWORDS: Array<{ key: string; keywords: string[]; categoryNames: string[] }> = [
+const SERVICE_KEYWORDS: Array<{ key: string; keywords: string[]; categorySlugs: string[] }> = [
   {
     key: "HAIR_CUT",
     keywords: ["haircut", "hair cut", "hair", "barber", "サロン", "美容室", "理容", "床屋", "カット", "corte", "corte de cabelo", "pelo", "cabello", "cabelo", "剪发", "理发", "헤어", "헤어컷"],
-    categoryNames: ["Hair Salon", "Barber Shop", "Barbershop"],
+    categorySlugs: ["hair_salon", "barber_shop", "barbershop"],
   },
   {
     key: "NAIL",
     keywords: ["nail", "nails", "uña", "uñas", "unha", "unhas", "ネイル", "美甲", "네일"],
-    categoryNames: ["Nail Salon"],
+    categorySlugs: ["nail_salon"],
   },
   {
     key: "RESTAURANT",
     keywords: ["restaurant", "food", "restaurante", "レストラン", "餐厅", "식당", "izakaya", "居酒屋"],
-    categoryNames: ["Restaurant", "Izakaya", "Izakaya & Bar", "Cafe", "Bar"],
+    categorySlugs: ["restaurant", "izakaya", "cafe", "bar"],
   },
   {
     key: "MASSAGE",
     keywords: ["massage", "massages", "masaje", "massagem", "マッサージ", "スパ", "按摩", "마사지"],
-    categoryNames: ["Spa, Onsen & Relaxation", "Spa & Massage", "Relaxation", "Onsen", "Ryokan", "Onsen & Ryokan"],
+    categorySlugs: ["spa_onsen_relaxation", "spa", "massages", "onsen", "ryokan"],
   },
 ];
 
-function detectService(message: string): { key: string; categoryNames: string[] } | null {
+function detectService(message: string): { key: string; categorySlugs: string[] } | null {
   const t = norm(message);
   for (const s of SERVICE_KEYWORDS) {
-    if (s.keywords.some((k) => t.includes(norm(k)))) return { key: s.key, categoryNames: s.categoryNames };
+    if (s.keywords.some((k) => t.includes(norm(k)))) return { key: s.key, categorySlugs: s.categorySlugs };
   }
   return null;
 }
@@ -92,9 +92,9 @@ function detectLocation(message: string): string | null {
   return null;
 }
 
-async function categoryIdsForService(supabase: SupabaseClient, categoryNames: string[]): Promise<string[]> {
-  if (!categoryNames.length) return [];
-  const { data, error } = await supabase.from("categories").select("id,name").in("name", categoryNames);
+async function categoryIdsForService(supabase: SupabaseClient, categorySlugs: string[]): Promise<string[]> {
+  if (!categorySlugs.length) return [];
+  const { data, error } = await supabase.from("categories").select("id,slug").in("slug", categorySlugs);
   if (error) throw error;
   return (data || []).map((c: any) => String(c.id));
 }
@@ -153,7 +153,7 @@ export async function handleShopDiscoveryOnly(message: string, supabase: Supabas
   }
 
   if (service && location) {
-    const categoryIds = await categoryIdsForService(supabase, service.categoryNames);
+    const categoryIds = await categoryIdsForService(supabase, service.categorySlugs);
     const shops = await searchVerifiedShops({ supabase, categoryIds, location });
     return {
       mode: "SHOP_DISCOVERY_ONLY",

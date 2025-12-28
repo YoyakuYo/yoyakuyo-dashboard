@@ -22,40 +22,40 @@ async function expandMainCategoryUuidToCategoryIds(
     try {
         const { data: catRow, error: catErr } = await client
             .from("categories")
-            .select("id,name")
+            .select("id,slug")
             .eq("id", categoryId)
             .maybeSingle();
 
-        if (catErr || !catRow?.name) return [categoryId];
+        if (catErr || !catRow?.slug) return [categoryId];
 
-        const mainToSub: Record<string, string[]> = {
-            "Beauty Services": [
-                "Hair Salon",
-                "Nail Salon",
-                "Barbershop",
-                "Barber Shop",
-                "Eyelash / Eyebrow",
-                "Eyelash & Eyebrow",
-                "Beauty Salon",
-                "General Salon",
-                "Waxing",
-                "Waxing Shop",
+        const mainToSubSlugs: Record<string, string[]> = {
+            "beauty_services": [
+                "hair_salon",
+                "nail_salon",
+                "barbershop",
+                "barber_shop",
+                "eyelash_eyebrow",
+                "eyelash_and_eyebrow",
+                "beauty_salon",
+                "general_salon",
+                "waxing",
+                "waxing_shop",
             ],
-            "Spa, Onsen & Relaxation": ["Spa", "Massages", "Onsen", "Ryokan Onsen", "Ryokan"],
-            "Hotels & Stays": ["Hotel", "Ryokan", "Ryokan Stay", "Guesthouse", "Boutique Hotel"],
-            "Dining & Izakaya": ["Restaurant", "Izakaya", "Cafe", "Bar"],
-            "Clinics & Medical Care": ["Dental Clinic", "Medical Clinic", "Aesthetic Clinic", "Women's Clinic", "Wellness Clinic", "Eye Clinic"],
-            "Activities & Sports": ["Golf Courses & Practice Ranges", "Golf", "Karaoke", "Private Karaoke Rooms", "Pilates", "Yoga"],
+            "spa_onsen_relaxation": ["spa", "massages", "onsen", "ryokan_onsen", "ryokan"],
+            "hotels_stays": ["hotel", "ryokan", "ryokan_stay", "guesthouse", "boutique_hotel"],
+            "dining_izakaya": ["restaurant", "izakaya", "cafe", "bar"],
+            "clinics_medical_care": ["dental_clinic", "medical_clinic", "aesthetic_clinic", "womens_clinic", "wellness_clinic", "eye_clinic"],
+            "activities_sports": ["golf_courses_ranges", "golf", "karaoke", "private_karaoke_rooms", "pilates", "yoga"],
         };
 
-        const subs = mainToSub[catRow.name] || [];
+        const subs = mainToSubSlugs[catRow.slug] || [];
         if (subs.length === 0) return [categoryId];
 
-        const namesToResolve = [catRow.name, ...subs];
+        const slugsToResolve = [catRow.slug, ...subs];
         const { data: ids, error: idsErr } = await client
             .from("categories")
             .select("id")
-            .in("name", namesToResolve);
+            .in("slug", slugsToResolve);
 
         if (idsErr || !ids || ids.length === 0) return [categoryId];
 

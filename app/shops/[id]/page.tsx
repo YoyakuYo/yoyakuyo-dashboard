@@ -123,7 +123,6 @@ export default function PublicShopDetailPage() {
   const shopId = params?.id as string;
   const { user } = useAuth();
   const browseContext = useBrowseAIContext();
-  const [showLoginModal, setShowLoginModal] = useState(false);
   
   // Safe translation function with fallback
   let t: ReturnType<typeof useTranslations>;
@@ -362,13 +361,7 @@ export default function PublicShopDetailPage() {
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Check if user is logged in
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    
+
     if (!shopId || !bookingServiceId) {
       setBookingError(t('booking.fillRequiredFields') || 'Please fill in all required fields');
       return;
@@ -803,42 +796,6 @@ export default function PublicShopDetailPage() {
       </div>
     </div>
 
-    {/* Login Modal */}
-    {showLoginModal && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50" onClick={() => setShowLoginModal(false)}>
-        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8 relative" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => setShowLoginModal(false)}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl leading-none"
-          >
-            ×
-          </button>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            {t('auth.loginRequired') || 'Login Required'}
-          </h2>
-          <p className="text-gray-600 mb-6">
-            {t('auth.loginToBook') || 'Please log in or sign up to make a booking.'}
-          </p>
-          <div className="space-y-3">
-            <Link
-              href="/customer-login"
-              className="block w-full bg-pink-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-pink-700 transition-colors text-center"
-              onClick={() => setShowLoginModal(false)}
-            >
-              {t('auth.customerLogin') || 'Customer Login'}
-            </Link>
-            <Link
-              href="/customer-signup"
-              className="block w-full bg-pink-100 text-pink-700 py-3 px-6 rounded-lg font-semibold hover:bg-pink-200 transition-colors text-center border-2 border-pink-300"
-              onClick={() => setShowLoginModal(false)}
-            >
-              {t('auth.signUpAsCustomer') || 'Sign Up as Customer'}
-            </Link>
-          </div>
-        </div>
-      </div>
-    )}
     </div>
   );
 }
