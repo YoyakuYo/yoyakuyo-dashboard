@@ -20,7 +20,15 @@ interface Shop {
   category_id?: string;
   subcategory?: string;
   claim_status?: string;
+  is_verified?: boolean; // Added is_verified to Shop interface
   [key: string]: any;
+}
+
+interface City {
+  id: string;
+  name: string;
+  slug: string;
+  prefecture_name: string;
 }
 
 function CategoryPageContent() {
@@ -33,10 +41,14 @@ function CategoryPageContent() {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [cities, setCities] = useState<City[]>([]); // New state for cities
+  const [verifiedStatus, setVerifiedStatus] = useState<'all' | 'verified'>('all'); // New state for verified status
+
   const [filters, setFilters] = useState({
     subcategory: 'all',
     region: 'all',
     prefecture: 'all',
+    city: 'all', // New filter for city
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -52,6 +64,40 @@ function CategoryPageContent() {
     };
   }, [searchQuery]);
 
+  // Fetch cities when prefecture changes
+  useEffect(() => {
+    const fetchCities = async () => {
+      if (!apiUrl || filters.prefecture === 'all') {
+        setCities([]);
+        setFilters(prev => ({ ...prev, city: 'all' })); // Reset city filter if prefecture is 'all'
+        return;
+      }
+
+      try {
+        const url = `${apiUrl}/cities?prefecture_name=${filters.prefecture}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setCities(data);
+          // If the previously selected city is not in the new list, reset it
+          if (!data.some((city: City) => city.id === filters.city)) {
+            setFilters(prev => ({ ...prev, city: 'all' }));
+          }
+        } else {
+          console.error('❌ Failed to fetch cities:', res.status, res.statusText);
+          setCities([]);
+          setFilters(prev => ({ ...prev, city: 'all' }));
+        }
+      } catch (error) {
+        console.error('Error fetching cities:', error);
+        setCities([]);
+        setFilters(prev => ({ ...prev, city: 'all' }));
+      }
+    };
+    fetchCities();
+  }, [filters.prefecture, apiUrl]);
+
+
   // Get category
   const category = MAIN_CATEGORIES.find(c => c.id === categoryId);
 
@@ -60,12 +106,20 @@ function CategoryPageContent() {
     return filters.subcategory !== 'all' || 
            filters.region !== 'all' || 
            filters.prefecture !== 'all' ||
+           filters.city !== 'all' || // New: Check for city filter
+           verifiedStatus !== 'all' || // New: Check for verified status
            debouncedSearchQuery.trim() !== '';
-  }, [filters, debouncedSearchQuery]);
+  }, [filters, verifiedStatus, debouncedSearchQuery]);
 
   // Handle filter changes
-  const handleFilterChange = useCallback((newFilters: typeof filters) => {
-    setFilters(newFilters);
+  const handleFilterChange = useCallback((newFilters: { subcategory?: string; region?: string; prefecture?: string; city?: string; is_verified?: 'all' | 'verified' }) => {
+    setFilters(prev => ({ 
+      ...prev,
+      ...newFilters,
+    }));
+    if (newFilters.is_verified !== undefined) {
+      setVerifiedStatus(newFilters.is_verified);
+    }
     setCurrentPage(1);
     setShops([]);
   }, []);
@@ -146,6 +200,16 @@ function CategoryPageContent() {
         params.set('prefecture', filters.prefecture);
       }
 
+      // Add city filter if selected
+      if (filters.city !== 'all') {
+        params.set('city_id', filters.city); // Send city_id to backend
+      }
+
+      // Add verified status filter
+      if (verifiedStatus === 'verified') {
+        params.set('is_verified', 'true');
+      }
+      
       const url = `${apiUrl}/shops?${params.toString()}`;
       console.log(`🔍 Fetching shops from: ${url}`);
       const res = await fetch(url);
@@ -240,7 +304,7 @@ function CategoryPageContent() {
     } finally {
       setLoading(false);
     }
-  }, [filters, category, apiUrl]); // Remove hasActiveFilter from deps, compute it inside
+  }, [filters, category, apiUrl, debouncedSearchQuery, verifiedStatus]); // Added city and verifiedStatus to deps
 
   // Fetch shops immediately when filters change - CRITICAL: No delay, no placeholder blocking
   useEffect(() => {
@@ -256,7 +320,7 @@ function CategoryPageContent() {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.subcategory, filters.region, filters.prefecture, hasActiveFilter]); // Watch filter changes and hasActiveFilter
+  }, [filters.subcategory, filters.region, filters.prefecture, filters.city, verifiedStatus, hasActiveFilter, debouncedSearchQuery]); // Watch filter changes, city, verifiedStatus and hasActiveFilter
 
   // Load more shops
   const loadMoreShops = useCallback(() => {
@@ -281,6 +345,50 @@ function CategoryPageContent() {
           categoryId={categoryId}
           onFilterChange={handleFilterChange}
         />
+
+        {/* City Filter */}
+        {filters.prefecture !== 'all' && (
+          <div className="mt-4">
+            <label htmlFor="city-filter" className="block text-sm font-medium text-gray-300 mb-2">
+              {locale === 'ja' ? '都市を選択' : 'Select City'}
+            </label>
+            <div className="relative">
+              <select
+                id="city-filter"
+                name="city-filter"
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-japanese-red focus:border-japanese-red sm:text-sm rounded-md bg-gray-700 text-white border-gray-600"
+                value={filters.city}
+                onChange={(e) => handleFilterChange({ city: e.target.value })}
+              >
+                <option value="all">{locale === 'ja' ? 'すべての都市' : 'All Cities'}</option>
+                {cities.map((city) => (
+                  <option key={city.id} value={city.id}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
+        {/* Verified Shops Filter */}
+        <div className="mt-4">
+          <label htmlFor="verified-filter" className="block text-sm font-medium text-gray-300 mb-2">
+            {locale === 'ja' ? 'ショップステータス' : 'Shop Status'}
+          </label>
+          <div className="relative">
+            <select
+              id="verified-filter"
+              name="verified-filter"
+              className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-japanese-red focus:border-japanese-red sm:text-sm rounded-md bg-gray-700 text-white border-gray-600"
+              value={verifiedStatus}
+              onChange={(e) => handleFilterChange({ is_verified: e.target.value as 'all' | 'verified' })}
+            >
+              <option value="all">{locale === 'ja' ? 'すべてのショップ' : 'All Shops'}</option>
+              <option value="verified">{locale === 'ja' ? '認証済みショップのみ' : 'Verified Shops Only'}</option>
+            </select>
+          </div>
+        </div>
 
         {/* Search Bar */}
         <div className="mt-8 mb-6">
@@ -334,7 +442,14 @@ function CategoryPageContent() {
                             {shop.description.length > 100 ? shop.description.substring(0, 100) + '...' : shop.description}
                           </p>
                         )}
-                        <p className="text-gray-500 text-sm">{shop.address}</p>
+                        <p className="text-gray-500 text-sm">
+                          {shop.prefecture && shop.city ? `${shop.prefecture}, ${shop.city}` : shop.address}
+                        </p>
+                        {shop.is_verified && (
+                            <span className="inline-flex items-center mt-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                {locale === 'ja' ? '認証済み' : 'Verified'}
+                            </span>
+                        )}
                       </div>
                     </Link>
                   ))}
@@ -399,4 +514,3 @@ export default function CategoryPage() {
     </Suspense>
   );
 }
-
