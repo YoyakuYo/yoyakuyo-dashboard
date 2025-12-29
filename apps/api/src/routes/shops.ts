@@ -735,9 +735,9 @@ router.post("/:id/photos", async (req: Request, res: Response) => {
 });
 
 // POST /shops/:id/photo/logo - Upload logo (convenience route, redirects to /photos/upload)
-// This route is kept for backward compatibility
-// It should redirect to the new /photos/upload endpoint
-// For now, we'll return a helpful error message
+    // This route is kept for backward compatibility
+    // It should redirect to the new /photos/upload endpoint
+    // For now, we'll return a helpful error message
 router.post("/:id/photo/logo", async (req: Request, res: Response) => {
     return res.status(410).json({ 
         error: 'This endpoint is deprecated. Please use POST /photos/upload with type=logo in the form data.' 
@@ -745,9 +745,9 @@ router.post("/:id/photo/logo", async (req: Request, res: Response) => {
 });
 
 // POST /shops/:id/photo/cover - Upload cover (convenience route, redirects to /photos/upload)
-// This route is kept for backward compatibility
-// It should redirect to the new /photos/upload endpoint
-// For now, we'll return a helpful error message
+    // This route is kept for backward compatibility
+    // It should redirect to the new /photos/upload endpoint
+    // For now, we'll return a helpful error message
 router.post("/:id/photo/cover", async (req: Request, res: Response) => {
     return res.status(410).json({ 
         error: 'This endpoint is deprecated. Please use POST /photos/upload with type=cover in the form data.' 
