@@ -97,18 +97,11 @@ router.post('/', async (req: Request, res: Response) => {
             end_time, 
             notes, 
             shop_id, 
-            customer_id,  // Optional: for owner-created bookings
-            customer_name,  // Required for public bookings
-            customer_email,  // Required for public bookings
-            customer_phone,  // Optional
-            first_name,  // Legacy support
-            last_name,  // Legacy support
-            phone,  // Legacy support
-            email,  // Legacy support
-            channel, // New: distinguish 'guest', 'line', 'web'
-            guest_name,
-            guest_email,
-            line_user_id // New: support for line
+            channel, // Explicit context: 'guest', 'line', 'web'
+            guest_name, // Guest
+            guest_email, // Guest
+            line_user_id, // LINE
+            auth_user_id // Web
         } = req.body;
 
         // Get user_id from header (for logged-in customers)
@@ -215,48 +208,34 @@ router.post('/', async (req: Request, res: Response) => {
             status: 'pending',
         };
 
-        // Defensive: PERMANENT ensure 'channel' is never null for DB insert
-        let resolvedChannel = channel;
-        // Try to infer channel if undefined
-        if (!resolvedChannel) {
-            if (line_user_id) {
-                resolvedChannel = 'line';
-            } else if (userId) {
-                resolvedChannel = 'web';
-            } else {
-                resolvedChannel = 'guest';
+        // Normalize context for booking insert
+        if (!channel) {
+            return res.status(400).json({ error: 'Missing booking context (channel).' });
+        }
+        bookingData.channel = channel;
+        if (channel === 'guest') {
+            bookingData.guest_name = guest_name;
+            bookingData.guest_email = guest_email;
+            bookingData.auth_user_id = null;
+            bookingData.line_user_id = null;
+        } else if (channel === 'line') {
+            if (!line_user_id) {
+                return res.status(400).json({ error: 'LINE booking requires line_user_id.' });
             }
-        }
-        // Abort/throw if for any reason it's still missing
-        if (!resolvedChannel) {
-            console.error('[BOOKING:CRITICAL] Channel is null/undefined for new booking. FATAL—Refuse to insert.');
-            return res.status(500).json({ error: 'Failed to determine booking channel—critical schema error. Please contact support.' });
-        }
-        bookingData.channel = resolvedChannel;
-
-        if (resolvedChannel === 'line') {
-            bookingData.line_user_id = line_user_id || null;
-            bookingData.customer_name = customer_name || null;
-            bookingData.customer_email = customer_email || null;
-            bookingData.user_id = null;
+            bookingData.line_user_id = line_user_id;
+            bookingData.auth_user_id = null;
             bookingData.guest_name = null;
             bookingData.guest_email = null;
-        } else if (resolvedChannel === 'web') {
-            bookingData.user_id = userId;
-            bookingData.customer_profile_id = customerProfileId || null;
-            bookingData.customer_name = customer_name || null;
-            bookingData.customer_email = customer_email || null;
+        } else if (channel === 'web') {
+            if (!auth_user_id) {
+                return res.status(401).json({ error: 'Web booking requires authentication.' });
+            }
+            bookingData.auth_user_id = auth_user_id;
             bookingData.line_user_id = null;
             bookingData.guest_name = null;
             bookingData.guest_email = null;
         } else {
-            bookingData.guest_name = guest_name || customer_name || null;
-            bookingData.guest_email = guest_email || customer_email || null;
-            bookingData.customer_name = null;
-            bookingData.customer_email = null;
-            bookingData.line_user_id = null;
-            bookingData.user_id = null;
-            bookingData.customer_profile_id = null;
+            return res.status(400).json({ error: 'Invalid booking channel.' });
         }
         // Optionally add customer_id if known for owner-created
         if (customer_id) bookingData.customer_id = customer_id;
