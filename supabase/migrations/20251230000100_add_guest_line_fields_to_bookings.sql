@@ -2,9 +2,7 @@
 -- Adds/updates columns to match critical guest/line booking requirements
 
 ALTER TABLE IF EXISTS bookings
-ADD COLUMN IF NOT EXISTS channel TEXT NOT NULL DEFAULT 'web';
-ALTER TABLE IF EXISTS bookings
-ALTER COLUMN channel DROP DEFAULT;
+ADD COLUMN IF NOT EXISTS channel TEXT NOT NULL DEFAULT 'guest';
 
 ALTER TABLE IF EXISTS bookings
 ADD COLUMN IF NOT EXISTS line_user_id UUID NULL;
