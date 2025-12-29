@@ -458,9 +458,40 @@ export default function LineShopDetailPage() {
       const startDateTime = new Date(`${selectedDate}T${selectedSlot.start_time}`);
       const endDateTime = new Date(`${selectedDate}T${selectedSlot.end_time}`);
 
+      // Obtain Supabase JWT (required for RLS-protected booking insert) by verifying LIFF ID token.
+      let supabaseJwt: string | null = null;
+      try {
+        if (typeof window !== "undefined" && window.liff) {
+          const idToken = await window.liff.getIDToken();
+          if (idToken) {
+            const verifyResponse = await fetch(`${apiUrl}/api/line/liff/verify`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id_token: idToken }),
+            });
+            if (verifyResponse.ok) {
+              const userData = await verifyResponse.json();
+              supabaseJwt = userData.supabase_jwt || null;
+              if (supabaseJwt) {
+                try {
+                  sessionStorage.setItem("supabase_jwt", supabaseJwt);
+                } catch {
+                  // ignore storage failures
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Non-fatal: backend will return 401 if JWT is required
+      }
+
       const res = await fetch(`${apiUrl}/api/line/bookings`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(supabaseJwt ? { Authorization: `Bearer ${supabaseJwt}` } : {}),
+        },
         body: JSON.stringify({
           line_user_id: lineUserId,
           line_display_name: lineDisplayName, // Send display name from LIFF

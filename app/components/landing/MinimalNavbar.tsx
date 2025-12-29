@@ -28,20 +28,20 @@ export default function MinimalNavbar() {
             Yoyaku Yo
           </Link>
 
-          {/* Center: CATEGORIES | SERVICES */}
+          {/* Center: Categories | Services */}
           <div className="flex items-center gap-2">
             <Link 
               href="/browse" 
-              className="text-sm font-medium text-gray-900 hover:text-japanese-red transition-colors uppercase"
+              className="text-sm font-medium text-gray-900 hover:text-japanese-red transition-colors"
             >
               {t('navCategories') || 'Categories'}
             </Link>
             <span className="text-gray-400">|</span>
             <Link 
               href="/services" 
-              className="text-sm font-medium text-gray-900 hover:text-japanese-red transition-colors uppercase"
+              className="text-sm font-medium text-gray-900 hover:text-japanese-red transition-colors"
             >
-              {t('navServices') || 'SERVICES'}
+              {t('navServices') || 'Services'}
             </Link>
           </div>
 

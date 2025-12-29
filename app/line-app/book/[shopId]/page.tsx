@@ -231,6 +231,14 @@ function LineBookingPageContent() {
                 const userData = await verifyResponse.json();
                 canonicalUserId = userData.user_id;
                 console.log("[LINE Booking] ✅ Canonical user_id:", canonicalUserId);
+                // Persist JWT for authenticated LINE calls (bookings/messages/etc.)
+                if (userData.supabase_jwt) {
+                  try {
+                    sessionStorage.setItem('supabase_jwt', userData.supabase_jwt);
+                  } catch {
+                    // ignore storage failures
+                  }
+                }
               }
             }
           } catch (tokenError) {
@@ -269,12 +277,15 @@ function LineBookingPageContent() {
       const endDateTime = new Date(`${selectedDate}T${selectedSlot.end_time}`);
 
       // Use the same booking endpoint format as the main app
+      const supabaseJwt =
+        (typeof window !== "undefined" ? sessionStorage.getItem("supabase_jwt") : null) || null;
       const res = await fetch(`${apiUrl}/api/line/bookings`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "x-line-user-id": lineUserId,
           "x-canonical-user-id": canonicalUserId || "", // CRITICAL: Pass canonical user_id
+          ...(supabaseJwt ? { Authorization: `Bearer ${supabaseJwt}` } : {}),
         },
         body: JSON.stringify({
           line_user_id: lineUserId,
