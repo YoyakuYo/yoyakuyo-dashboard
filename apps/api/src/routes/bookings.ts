@@ -215,7 +215,7 @@ router.post('/', async (req: Request, res: Response) => {
             status: 'pending',
         };
 
-        // Defensive: Always set 'channel'
+        // Defensive: PERMANENT ensure 'channel' is never null for DB insert
         let resolvedChannel = channel;
         // Try to infer channel if undefined
         if (!resolvedChannel) {
@@ -227,7 +227,13 @@ router.post('/', async (req: Request, res: Response) => {
                 resolvedChannel = 'guest';
             }
         }
+        // Abort/throw if for any reason it's still missing
+        if (!resolvedChannel) {
+            console.error('[BOOKING:CRITICAL] Channel is null/undefined for new booking. FATAL—Refuse to insert.');
+            return res.status(500).json({ error: 'Failed to determine booking channel—critical schema error. Please contact support.' });
+        }
         bookingData.channel = resolvedChannel;
+
         if (resolvedChannel === 'line') {
             bookingData.line_user_id = line_user_id || null;
             bookingData.customer_name = customer_name || null;
