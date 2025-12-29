@@ -104,7 +104,11 @@ router.post('/', async (req: Request, res: Response) => {
             first_name,  // Legacy support
             last_name,  // Legacy support
             phone,  // Legacy support
-            email  // Legacy support
+            email,  // Legacy support
+            channel, // New: distinguish 'guest', 'line', 'web'
+            guest_name,
+            guest_email,
+            line_user_id // New: support for line
         } = req.body;
 
         // Get user_id from header (for logged-in customers)
@@ -200,6 +204,7 @@ router.post('/', async (req: Request, res: Response) => {
         // Create the booking - use customer_name directly
         // customer_id is optional (can be null for public/guest bookings)
         // customer_email and customer_phone are required for guest bookings
+        // --- Data Model Logic Strict Enforcement ---
         const bookingData: any = {
             service_id,
             staff_id: staff_id || null,
@@ -207,14 +212,40 @@ router.post('/', async (req: Request, res: Response) => {
             end_time,
             notes: notes || null,
             shop_id,
-            customer_id: customer_id || null,  // Optional - null for guest bookings
-            customer_name: finalCustomerName,
-            customer_email: customer_email || email || null,  // Required for guest bookings
-            customer_phone: customer_phone || phone || null,  // Optional but recommended for guest bookings
             status: 'pending',
-            user_id: userId || null,  // Set user_id for logged-in customers
-            customer_profile_id: customerProfileId || null,  // Set customer_profile_id for logged-in customers
         };
+
+        if (channel === 'line') {
+            bookingData.channel = 'line';
+            bookingData.line_user_id = line_user_id || null; // Only set if line
+            bookingData.customer_name = customer_name || null;
+            bookingData.customer_email = customer_email || null;
+            bookingData.user_id = null;
+            bookingData.guest_name = null;
+            bookingData.guest_email = null;
+        } else if (userId && channel === 'web') {
+            bookingData.channel = 'web';
+            bookingData.user_id = userId;
+            bookingData.customer_profile_id = customerProfileId || null;
+            bookingData.customer_name = customer_name || null;
+            bookingData.customer_email = customer_email || null;
+            bookingData.line_user_id = null;
+            bookingData.guest_name = null;
+            bookingData.guest_email = null;
+        } else if (channel === 'guest') {
+            bookingData.channel = 'guest';
+            bookingData.guest_name = guest_name || customer_name || null;
+            bookingData.guest_email = guest_email || customer_email || null;
+            bookingData.customer_name = null;
+            bookingData.customer_email = null;
+            bookingData.line_user_id = null;
+            bookingData.user_id = null;
+            bookingData.customer_profile_id = null;
+        }
+        // Optionally add customer_id if known for owner-created
+        if (customer_id) bookingData.customer_id = customer_id;
+        if (customer_phone || phone) bookingData.customer_phone = customer_phone || phone;
+
 
         const { data: newBooking, error } = await supabase
             .from('bookings')

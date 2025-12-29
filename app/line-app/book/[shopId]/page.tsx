@@ -288,7 +288,7 @@ function LineBookingPageContent() {
           ...(supabaseJwt ? { Authorization: `Bearer ${supabaseJwt}` } : {}),
         },
         body: JSON.stringify({
-          line_user_id: lineUserId,
+          ...(lineUserId ? { line_user_id: lineUserId, channel: 'line' } : { channel: 'guest' }),
           line_display_name: lineDisplayName, // Send display name from LIFF
           shop_id: shopId,
           service_id: serviceId, // REQUIRED - service selection enforced
