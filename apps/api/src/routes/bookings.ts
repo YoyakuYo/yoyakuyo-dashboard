@@ -215,16 +215,27 @@ router.post('/', async (req: Request, res: Response) => {
             status: 'pending',
         };
 
-        if (channel === 'line') {
-            bookingData.channel = 'line';
-            bookingData.line_user_id = line_user_id || null; // Only set if line
+        // Defensive: Always set 'channel'
+        let resolvedChannel = channel;
+        // Try to infer channel if undefined
+        if (!resolvedChannel) {
+            if (line_user_id) {
+                resolvedChannel = 'line';
+            } else if (userId) {
+                resolvedChannel = 'web';
+            } else {
+                resolvedChannel = 'guest';
+            }
+        }
+        bookingData.channel = resolvedChannel;
+        if (resolvedChannel === 'line') {
+            bookingData.line_user_id = line_user_id || null;
             bookingData.customer_name = customer_name || null;
             bookingData.customer_email = customer_email || null;
             bookingData.user_id = null;
             bookingData.guest_name = null;
             bookingData.guest_email = null;
-        } else if (userId && channel === 'web') {
-            bookingData.channel = 'web';
+        } else if (resolvedChannel === 'web') {
             bookingData.user_id = userId;
             bookingData.customer_profile_id = customerProfileId || null;
             bookingData.customer_name = customer_name || null;
@@ -232,8 +243,7 @@ router.post('/', async (req: Request, res: Response) => {
             bookingData.line_user_id = null;
             bookingData.guest_name = null;
             bookingData.guest_email = null;
-        } else if (channel === 'guest') {
-            bookingData.channel = 'guest';
+        } else {
             bookingData.guest_name = guest_name || customer_name || null;
             bookingData.guest_email = guest_email || customer_email || null;
             bookingData.customer_name = null;
