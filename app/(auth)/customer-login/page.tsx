@@ -15,12 +15,18 @@ export default function CustomerLoginPage() {
   const [message, setMessage] = useState("");
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
 
-    const result = await signIn(email, password, 'customer');
+    // IMPORTANT: Use FormData so browser autofill works even with controlled inputs.
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const emailFromForm = String(fd.get("email") || email || "");
+    const passwordFromForm = String(fd.get("password") || password || "");
+
+    const result = await signIn(emailFromForm, passwordFromForm, 'customer');
 
     if (!result.success) {
       setMessage(`Error: ${result.error || 'Login failed'}`);
@@ -49,7 +55,10 @@ export default function CustomerLoginPage() {
             </label>
             <input
               id="email"
+              name="email"
               type="email"
+              autoComplete="email"
+              inputMode="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -64,7 +73,9 @@ export default function CustomerLoginPage() {
             </label>
             <input
               id="password"
+              name="password"
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required

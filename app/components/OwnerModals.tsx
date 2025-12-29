@@ -80,7 +80,20 @@ export default function OwnerModals() {
     // Only listen for owner-specific events (from role selection modal)
     // DO NOT listen to openLoginModal/openSignupModal - those go to RoleSelectionModal first
     const handleOpenOwnerLoginModal = () => {
-      setShowLoginModal(true);
+      // If Supabase session exists, restore and redirect (no re-entry).
+      try {
+        const supabase = getSupabaseClient();
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            router.push('/shops');
+            router.refresh();
+          } else {
+            setShowLoginModal(true);
+          }
+        }).catch(() => setShowLoginModal(true));
+      } catch {
+        setShowLoginModal(true);
+      }
     };
     const handleOpenOwnerSignupModal = () => {
       setShowSignupModal(true);
@@ -98,20 +111,29 @@ export default function OwnerModals() {
     };
   }, []);
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoginError(null);
     setLoginLoading(true);
 
     try {
       const supabase = getSupabaseClient();
+
+      // IMPORTANT: Use FormData so browser autofill works even with controlled inputs.
+      const fd = new FormData(e.currentTarget);
+      const email = String(fd.get("email") || loginEmail || "");
+      const password = String(fd.get("password") || loginPassword || "");
+      // Keep state in sync (nice-to-have, but also helps error re-render).
+      if (email && email !== loginEmail) setLoginEmail(email);
+      if (password && password !== loginPassword) setLoginPassword(password);
+
       let authData: any = null;
       let signInError: any = null;
 
       try {
         const result = await supabase.auth.signInWithPassword({
-          email: loginEmail,
-          password: loginPassword,
+          email,
+          password,
         });
         authData = result.data;
         signInError = result.error;
@@ -122,7 +144,7 @@ export default function OwnerModals() {
         
         if (isCorsError) {
           try {
-            const backendResponse = await authApi.login(loginEmail, loginPassword);
+            const backendResponse = await authApi.login(email, password);
             
             if (backendResponse.success && backendResponse.session) {
               const { error: setSessionError } = await supabase.auth.setSession({
@@ -163,9 +185,9 @@ export default function OwnerModals() {
       }
 
       try {
-        await authApi.syncUser(
+      await authApi.syncUser(
           authData.user.id,
-          authData.user.email || loginEmail,
+          authData.user.email || email,
           authData.user.user_metadata?.name
         );
       } catch (syncError) {
@@ -317,7 +339,10 @@ export default function OwnerModals() {
             </label>
             <input
               id="login-email"
+              name="email"
               type="email"
+              autoComplete="email"
+              inputMode="email"
               value={loginEmail}
               onChange={(e) => setLoginEmail(e.target.value)}
               required
@@ -332,7 +357,9 @@ export default function OwnerModals() {
             </label>
             <input
               id="login-password"
+              name="password"
               type="password"
+              autoComplete="current-password"
               value={loginPassword}
               onChange={(e) => setLoginPassword(e.target.value)}
               required

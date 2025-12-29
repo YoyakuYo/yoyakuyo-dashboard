@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 
 const Modal = React.memo(({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) => {
   if (!isOpen) return null;
@@ -94,7 +95,27 @@ export default function RoleSelectionModal() {
 
   const handleCustomerClick = () => {
     setIsOpen(false);
-    // Open customer modal (same behavior as owner: stay on landing and show modal)
+    // If a valid customer custom-auth session exists, restore and redirect immediately.
+    try {
+      const storedSession = localStorage.getItem("yoyaku_session");
+      const storedUser = localStorage.getItem("yoyaku_user");
+      if (storedSession && storedUser) {
+        const sessionData = JSON.parse(storedSession) as { expires_at?: string; role?: string };
+        const userData = JSON.parse(storedUser) as { role?: string };
+        const expiresAt = sessionData?.expires_at ? new Date(sessionData.expires_at) : null;
+        const notExpired = !!expiresAt && expiresAt > new Date();
+        const role = sessionData?.role || userData?.role;
+        if (notExpired && role === "customer") {
+          router.push("/customer/home");
+          router.refresh();
+          return;
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
+
+    // Otherwise open customer modal (stay on landing and show modal)
     if (mode === 'login') {
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('openCustomerLoginModal'));
@@ -108,6 +129,38 @@ export default function RoleSelectionModal() {
 
   const handleOwnerClick = () => {
     setIsOpen(false);
+    // If a Supabase session exists, restore and redirect immediately.
+    try {
+      const supabase = getSupabaseClient();
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          router.push("/shops");
+          router.refresh();
+          return;
+        }
+
+        // No session: open owner modal
+        setTimeout(() => {
+          if (mode === 'login') {
+            window.dispatchEvent(new CustomEvent('openOwnerLoginModal'));
+          } else {
+            window.dispatchEvent(new CustomEvent('openOwnerSignupModal'));
+          }
+        }, 100);
+      }).catch(() => {
+        setTimeout(() => {
+          if (mode === 'login') {
+            window.dispatchEvent(new CustomEvent('openOwnerLoginModal'));
+          } else {
+            window.dispatchEvent(new CustomEvent('openOwnerSignupModal'));
+          }
+        }, 100);
+      });
+      return;
+    } catch {
+      // fallthrough: open modal
+    }
+
     // Dispatch event to open owner modal
     setTimeout(() => {
       if (mode === 'login') {

@@ -64,7 +64,29 @@ export default function CustomerModals() {
   const [signupMessage, setSignupMessage] = useState<string>("");
 
   useEffect(() => {
-    const openLogin = () => setShowLoginModal(true);
+    const openLogin = () => {
+      // If a valid customer session already exists, restore it and redirect (no re-entry).
+      try {
+        const storedSession = localStorage.getItem("yoyaku_session");
+        const storedUser = localStorage.getItem("yoyaku_user");
+        if (storedSession && storedUser) {
+          const sessionData = JSON.parse(storedSession) as { expires_at?: string; role?: string };
+          const userData = JSON.parse(storedUser) as { role?: string };
+          const expiresAt = sessionData?.expires_at ? new Date(sessionData.expires_at) : null;
+          const notExpired = !!expiresAt && expiresAt > new Date();
+          const role = sessionData?.role || userData?.role;
+          if (notExpired && role === "customer") {
+            router.push("/customer/home");
+            router.refresh();
+            return;
+          }
+        }
+      } catch {
+        // Ignore parse errors; fall back to showing modal.
+      }
+      setShowLoginModal(true);
+    };
+
     const openSignup = () => setShowSignupModal(true);
     if (typeof window !== "undefined") {
       window.addEventListener("openCustomerLoginModal", openLogin);
@@ -90,12 +112,18 @@ export default function CustomerModals() {
     };
   }, [showLoginModal, showSignupModal]);
 
-  const handleCustomerLogin = async (e: React.FormEvent) => {
+  const handleCustomerLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoginLoading(true);
     setLoginMessage("");
 
-    const result = await signIn(loginEmail, loginPassword, "customer");
+    // IMPORTANT: Use FormData so browser autofill works even with controlled inputs.
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const email = String(fd.get("email") || loginEmail || "");
+    const password = String(fd.get("password") || loginPassword || "");
+
+    const result = await signIn(email, password, "customer");
     if (!result.success) {
       setLoginMessage(`Error: ${result.error || "Login failed"}`);
       setLoginLoading(false);
@@ -152,7 +180,11 @@ export default function CustomerModals() {
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700">Email</label>
             <input
+              id="customer-login-email"
+              name="email"
               type="email"
+              autoComplete="email"
+              inputMode="email"
               value={loginEmail}
               onChange={(e) => setLoginEmail(e.target.value)}
               required
@@ -163,7 +195,10 @@ export default function CustomerModals() {
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700">Password</label>
             <input
+              id="customer-login-password"
+              name="password"
               type="password"
+              autoComplete="current-password"
               value={loginPassword}
               onChange={(e) => setLoginPassword(e.target.value)}
               required
@@ -224,7 +259,10 @@ export default function CustomerModals() {
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700">Name</label>
             <input
+              id="customer-signup-name"
+              name="name"
               type="text"
+              autoComplete="name"
               value={signupName}
               onChange={(e) => setSignupName(e.target.value)}
               required
@@ -235,7 +273,11 @@ export default function CustomerModals() {
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700">Email</label>
             <input
+              id="customer-signup-email"
+              name="email"
               type="email"
+              autoComplete="email"
+              inputMode="email"
               value={signupEmail}
               onChange={(e) => setSignupEmail(e.target.value)}
               required
@@ -246,7 +288,10 @@ export default function CustomerModals() {
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700">Password</label>
             <input
+              id="customer-signup-password"
+              name="new-password"
               type="password"
+              autoComplete="new-password"
               value={signupPassword}
               onChange={(e) => setSignupPassword(e.target.value)}
               required
@@ -259,7 +304,10 @@ export default function CustomerModals() {
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700">Confirm Password</label>
             <input
+              id="customer-signup-confirm-password"
+              name="confirm-password"
               type="password"
+              autoComplete="new-password"
               value={signupConfirm}
               onChange={(e) => setSignupConfirm(e.target.value)}
               required
@@ -271,7 +319,11 @@ export default function CustomerModals() {
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700">Phone (Optional)</label>
             <input
+              id="customer-signup-phone"
+              name="tel"
               type="tel"
+              autoComplete="tel"
+              inputMode="tel"
               value={signupPhone}
               onChange={(e) => setSignupPhone(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
