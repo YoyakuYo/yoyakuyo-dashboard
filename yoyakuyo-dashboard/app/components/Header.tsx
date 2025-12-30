@@ -1,23 +1,29 @@
-// apps/dashboard/app/components/Header.tsx
+// app/components/Header.tsx
+// Header - BLANK/EMPTY
 
 "use client";
-import React from 'react';
-import { useTranslations } from 'next-intl';
-import LanguageToggle from './LanguageToggle';
 
-const Header = React.memo(() => {
-  const t = useTranslations();
+import React, { useEffect } from 'react';
+
+export default function Header() {
+  // Add mobile hamburger for opening sidebar
+  const handleOpenSidebar = () => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('openSidebarDrawer'));
+    }
+  };
+
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg z-50">
-      <div className="h-full flex items-center justify-between px-6">
-        <h1 className="text-2xl font-bold">{t('nav.dashboard')}</h1>
-        <LanguageToggle />
-      </div>
+    <header className="lg:hidden flex items-center px-4 h-14 bg-white/95 border-b border-gray-200 shadow-sm sticky top-0 z-[201]">
+      <button
+        className="text-2xl text-gray-800 focus:outline-none p-2 mr-2 lg:hidden"
+        aria-label="Open menu"
+        onClick={handleOpenSidebar}
+      >
+        {/* Hamburger icon */}
+        <span aria-hidden="true">☰</span>
+      </button>
+      <span className="text-lg font-bold text-japanese-charcoal">Yoyaku Yo</span>
     </header>
   );
-});
-
-Header.displayName = 'Header';
-
-export default Header;
-
+}
