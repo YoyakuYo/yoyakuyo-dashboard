@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
+import { useAuth } from '@/lib/useAuth';
 
 interface Service {
   id: string;
@@ -37,6 +38,7 @@ export default function PublicBookingPage() {
   const params = useParams();
   const shopId = params?.shopId as string;
   const t = useTranslations();
+  const { user, loading: authLoading } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
   const [timeslots, setTimeslots] = useState<Timeslot[]>([]);
@@ -338,10 +340,28 @@ export default function PublicBookingPage() {
   };
 
   const bookAppointment = async () => {
-    if (selectedService && selectedStaff && selectedDate && name) {
-      const nameParts = name.trim().split(/\s+/);
-      const first_name = nameParts[0] || name;
-      const last_name = nameParts.slice(1).join(' ') || null;
+    // For authenticated users, name/email are not required (come from account)
+    // For guests, name is required
+    const isAuthenticated = user && !authLoading;
+    const requiresName = !isAuthenticated;
+
+    if (selectedService && selectedStaff && selectedDate && (!requiresName || name)) {
+      const bookingData: any = {
+        shop_id: shopId,
+        service_id: selectedService,
+        staff_id: selectedStaff,
+        start_time: selectedDate,
+        end_time: selectedDate,
+      };
+
+      // Only include name/email for guest users
+      if (!isAuthenticated) {
+        const nameParts = name.trim().split(/\s+/);
+        bookingData.first_name = nameParts[0] || name;
+        bookingData.last_name = nameParts.slice(1).join(' ') || null;
+        bookingData.email = email;
+        bookingData.notes = `Booking for ${name}`;
+      }
 
       try {
         const res = await fetch(`${apiUrl}/bookings`, {
@@ -349,16 +369,7 @@ export default function PublicBookingPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            shop_id: shopId,
-            service_id: selectedService,
-            staff_id: selectedStaff,
-            start_time: selectedDate,
-            end_time: selectedDate,
-            first_name: first_name,
-            last_name: last_name,
-            notes: `Booking for ${name}`,
-          }),
+          body: JSON.stringify(bookingData),
         });
 
         if (res.ok) {
@@ -459,29 +470,47 @@ export default function PublicBookingPage() {
             </div>
           </div>
 
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
-            <input
-              type="text"
-              placeholder={t('booking.yourName')}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2"
-            />
-            <input
-              type="email"
-              placeholder={t('booking.yourEmail')}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            />
-          </div>
+          {/* Only show name/email fields for guest users */}
+          {(!user || authLoading) && (
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
+              <input
+                type="text"
+                placeholder={t('booking.yourName')}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required={!user}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2"
+              />
+              <input
+                type="email"
+                placeholder={t('booking.yourEmail')}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required={!user}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+          )}
+
+          {/* Show authenticated user info */}
+          {user && !authLoading && (
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-2">{t('booking.bookingAs')}</h2>
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-green-800">
+                  ✅ {t('booking.loggedInAs')} {user.email}
+                </p>
+              </div>
+            </div>
+          )}
 
           <button
             onClick={bookAppointment}
-            className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700"
+            disabled={authLoading}
+            className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {t('booking.submit')}
+            {authLoading ? t('common.loading') : t('booking.bookNow')}
           </button>
         </div>
 
