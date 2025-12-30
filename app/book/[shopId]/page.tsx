@@ -13,6 +13,11 @@ interface Service {
   name: string;
 }
 
+interface Staff {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
 
 interface Timeslot {
   id: string;
@@ -35,8 +40,10 @@ export default function PublicBookingPage() {
   const t = useTranslations();
   const { user, loading: authLoading } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
+  const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
   const [timeslots, setTimeslots] = useState<Timeslot[]>([]);
   const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTimeslot, setSelectedTimeslot] = useState<Timeslot | null>(null);
   const [name, setName] = useState('');
@@ -51,6 +58,24 @@ export default function PublicBookingPage() {
   // Anonymous session ID for public visitors
   const [anonymousSessionId, setAnonymousSessionId] = useState<string | null>(null);
   const [guestId, setGuestIdState] = useState<string | null>(null);
+
+  // Helper functions for guest ID management
+  const getOrCreateGuestId = (): string => {
+    if (typeof window === 'undefined') return '';
+    let gid = localStorage.getItem('yoyaku_yo_guest_id');
+    if (!gid) {
+      gid = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('yoyaku_yo_guest_id', gid);
+    }
+    return gid;
+  };
+
+  const setGuestId = (id: string): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('yoyaku_yo_guest_id', id);
+    }
+    setGuestIdState(id);
+  };
   
   // LINE QR code state
   const [lineQrUrl, setLineQrUrl] = useState<string | null>(null);
@@ -234,19 +259,6 @@ export default function PublicBookingPage() {
           alert(t('booking.bookingFailed'));
         }
   };
-        alert(t('booking.enterName') || 'Please enter your name');
-        return;
-      }
-      if (!email.trim()) {
-        alert(t('booking.enterEmail') || 'Please enter your email');
-        return;
-      }
-      // Basic email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        alert(t('booking.invalidEmail') || 'Please enter a valid email address');
-        return;
-      }
     } else {
       // For logged-in users, use customer profile data
       const finalName = customerProfile?.name || name || user.name || user.email?.split('@')[0] || 'Customer';
@@ -455,12 +467,6 @@ export default function PublicBookingPage() {
             </div>
           )}
 
-          <button
-            onClick={bookAppointment}
-            disabled={authLoading}
-            className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {authLoading ? t('common.loading') : t('booking.bookNow')}
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
             {user && customerProfile ? (
@@ -518,22 +524,22 @@ export default function PublicBookingPage() {
 
           <button
             onClick={bookAppointment}
-            disabled={bookingLoading}
+            disabled={authLoading}
             className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {bookingLoading ? (t('booking.booking') || 'Booking...') : (t('booking.submit') || 'Book Now')}
+            {authLoading ? t('common.loading') : t('booking.bookNow')}
           </button>
         </div>
 
         {/* Right Column: AI Assistant */}
         <div className="space-y-6">
-          {/* AI Assistant */}
+          {/* AI Assistant Placeholder */}
           {shopId && (
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-              <BrowseAIAssistant
-                shops={shopName ? [{ id: shopId, name: shopName }] : []}
-                locale={t('common.locale') || 'en'}
-              />
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">AI Assistant</h3>
+              <p className="text-gray-600">
+                Chat with our AI assistant for help with booking and shop information.
+              </p>
             </div>
           )}
         </div>
