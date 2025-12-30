@@ -12,7 +12,7 @@ Removed the problematic `.not()` filter and implemented a safer approach:
 
 ## Changes Made
 
-### `yoyakuyo-api/src/routes/shops.ts`
+### `/src/routes/shops.ts`
 - **Removed:** `.not("address", "is", null)` from all queries
 - **Kept:** `.neq("address", "")` to filter empty strings
 - **Added:** Client-side filtering to remove NULL addresses from response

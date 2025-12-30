@@ -72,7 +72,11 @@ router.get('/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 // POST /reviews - Create review
 router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { shop_id, booking_id, customer_id, rating, comment, photos } = req.body;
+        const { shop_id, booking_id, customer_id, rating, comment, content, // Support both comment and content
+        photos, guest_name, // For guest reviews
+         } = req.body;
+        // Support both comment and content fields
+        const reviewContent = content || comment;
         // Validate required fields
         if (!shop_id || !rating) {
             return res
@@ -85,17 +89,71 @@ router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 .status(400)
                 .json({ error: 'Rating must be between 1 and 5' });
         }
-        // Validate comment length
-        if (comment && comment.length > 2000) {
+        // Validate content length
+        if (reviewContent && reviewContent.length > 2000) {
             return res
                 .status(400)
-                .json({ error: 'Comment must be 2000 characters or less' });
+                .json({ error: 'Review content must be 2000 characters or less' });
         }
         // Validate photos
         if (photos && (!Array.isArray(photos) || photos.length > 5)) {
             return res
                 .status(400)
                 .json({ error: 'Maximum 5 photos allowed per review' });
+        }
+        // PART: Resolve author identity - LINE -> USER -> GUEST
+        let authorType = 'guest';
+        let userId = null;
+        let lineUserId = null;
+        let finalGuestName = null;
+        let finalCustomerId = customer_id || null;
+        // STEP 1: Check for LINE user FIRST
+        const lineUserIdFromHeader = req.headers['x-line-user-id'];
+        const idToken = req.headers['x-id-token'];
+        if (lineUserIdFromHeader && idToken) {
+            console.log('[Reviews] Detected LINE user:', lineUserIdFromHeader);
+            authorType = 'line';
+            lineUserId = lineUserIdFromHeader;
+        }
+        // STEP 2: Check for web user (x-user-id header)
+        else if (req.headers['x-user-id']) {
+            const webUserId = req.headers['x-user-id'];
+            console.log('[Reviews] Detected web user:', webUserId);
+            // Get customer profile to get customer_id
+            const { data: customerProfile } = yield dbClient
+                .from("customer_profiles")
+                .select("id")
+                .eq("customer_auth_id", webUserId)
+                .maybeSingle();
+            if (customerProfile === null || customerProfile === void 0 ? void 0 : customerProfile.id) {
+                authorType = 'user';
+                userId = webUserId;
+                // Use customer_profile.id as customer_id
+                finalCustomerId = customerProfile.id;
+            }
+            else {
+                // Fallback: check if customer_profiles.id = user.id (old structure)
+                const { data: profileFallback } = yield dbClient
+                    .from("customer_profiles")
+                    .select("id")
+                    .eq("id", webUserId)
+                    .maybeSingle();
+                if (profileFallback === null || profileFallback === void 0 ? void 0 : profileFallback.id) {
+                    authorType = 'user';
+                    userId = webUserId;
+                    finalCustomerId = profileFallback.id;
+                }
+                else {
+                    // No profile found, treat as guest
+                    authorType = 'guest';
+                    finalGuestName = guest_name || 'Guest';
+                }
+            }
+        }
+        // STEP 3: Guest user (no authentication)
+        else {
+            authorType = 'guest';
+            finalGuestName = guest_name || 'Guest';
         }
         // Verify booking eligibility if booking_id provided
         if (booking_id && customer_id) {
@@ -106,18 +164,64 @@ router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 });
             }
         }
-        const result = yield (0, reviewService_1.createReview)({
-            shopId: shop_id,
-            bookingId: booking_id || null,
-            customerId: customer_id || null,
-            rating,
-            comment: comment || null,
-            photos: photos || null,
-        });
-        if (!result.success) {
-            return res.status(400).json({ error: result.error });
+        // Verify shop exists
+        const { data: shop, error: shopError } = yield dbClient
+            .from("shops")
+            .select("id")
+            .eq("id", shop_id)
+            .single();
+        if (shopError || !shop) {
+            return res.status(404).json({ error: "Shop not found" });
         }
-        return res.status(201).json(result.review);
+        // Create review data based on author type
+        const reviewData = {
+            shop_id,
+            booking_id: booking_id || null,
+            rating,
+            comment: reviewContent || null,
+            content: reviewContent || null, // Support both fields
+            photos: photos || null,
+            status: "published",
+            author_type: authorType,
+        };
+        // Set fields based on author_type to match constraint
+        if (authorType === 'line') {
+            reviewData.line_user_id = lineUserId;
+            reviewData.customer_id = null;
+            reviewData.user_id = null;
+            reviewData.guest_name = null;
+        }
+        else if (authorType === 'user') {
+            reviewData.customer_id = finalCustomerId || null;
+            reviewData.user_id = userId || null;
+            reviewData.line_user_id = null;
+            reviewData.guest_name = null;
+        }
+        else if (authorType === 'guest') {
+            reviewData.guest_name = finalGuestName;
+            reviewData.customer_id = null;
+            reviewData.user_id = null;
+            reviewData.line_user_id = null;
+        }
+        console.log('[Reviews] Creating review:', {
+            shop_id,
+            author_type: authorType,
+            user_id: userId,
+            line_user_id: lineUserId,
+            guest_name: finalGuestName,
+        });
+        const { data: newReview, error: insertError } = yield dbClient
+            .from("reviews")
+            .insert([reviewData])
+            .select()
+            .single();
+        if (insertError) {
+            console.error("[Reviews] Error creating review:", insertError);
+            return res.status(500).json({ error: "Failed to create review", details: insertError.message });
+        }
+        // Update shop rating stats
+        yield (0, reviewService_1.updateShopRatingStats)(shop_id);
+        return res.status(201).json(newReview);
     }
     catch (error) {
         console.error('Error in POST /reviews:', error);
@@ -232,6 +336,45 @@ router.get('/shop/:shopId/stats', (req, res) => __awaiter(void 0, void 0, void 0
     }
     catch (error) {
         console.error('Error in GET /reviews/shop/:shopId/stats:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+}));
+// GET /reviews/featured - Get featured/recent reviews across all shops (for landing page)
+router.get('/featured', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const limit = parseInt(req.query.limit) || 6;
+        const offset = parseInt(req.query.offset) || 0;
+        // Get recent published reviews with shop and customer info
+        const { data: reviews, error } = yield supabase_1.supabase
+            .from('reviews')
+            .select('id, shop_id, rating, comment, photos, is_verified, created_at, shops(id, name, category), customers(id)')
+            .eq('status', 'published')
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limit - 1);
+        if (error) {
+            console.error('Error fetching featured reviews:', error);
+            return res.status(500).json({ error: 'Failed to fetch reviews' });
+        }
+        // Sanitize customer info (only show if verified)
+        const sanitizedReviews = (reviews || []).map((review) => {
+            var _a, _b;
+            return ({
+                id: review.id,
+                shop_id: review.shop_id,
+                shop_name: ((_a = review.shops) === null || _a === void 0 ? void 0 : _a.name) || 'Unknown Shop',
+                shop_category: ((_b = review.shops) === null || _b === void 0 ? void 0 : _b.category) || null,
+                rating: review.rating,
+                comment: review.comment,
+                photos: review.photos,
+                is_verified: review.is_verified,
+                created_at: review.created_at,
+                customer_id: review.is_verified ? review.customer_id : null,
+            });
+        });
+        return res.status(200).json(sanitizedReviews);
+    }
+    catch (error) {
+        console.error('Error in GET /reviews/featured:', error);
         return res.status(500).json({ error: 'Internal server error' });
     }
 }));

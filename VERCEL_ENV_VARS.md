@@ -43,12 +43,22 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_REDIRECT_URI=https://yoyakuyo.vercel.app/api/calendar/callback
 ```
 
-#### Web Push (Optional - for push notifications)
+#### Web Push (Required for push notifications)
 ```
 VAPID_PUBLIC_KEY=your-vapid-public-key
 VAPID_PRIVATE_KEY=your-vapid-private-key
-VAPID_SUBJECT=mailto:your-email@example.com
+VAPID_SUBJECT=mailto:admin@yoyaku-yo.com
 ```
+
+**How to Generate VAPID Keys:**
+```bash
+npm install -g web-push
+web-push generate-vapid-keys
+```
+
+**Where to Add:**
+- **Render.com (API)**: Environment tab → Add variables → Redeploy
+- **Local Development**: Create `yoyakuyo-api/.env` file
 
 #### Other
 ```

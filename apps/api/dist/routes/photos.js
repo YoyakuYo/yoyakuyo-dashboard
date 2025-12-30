@@ -79,9 +79,6 @@ router.post('/upload', (req, res, next) => {
         if (shop.owner_user_id !== userId) {
             return res.status(403).json({ error: 'You do not own this shop' });
         }
-        if (!supabase_1.supabaseAdmin) {
-            return res.status(500).json({ error: 'Supabase admin client not configured. SUPABASE_SERVICE_ROLE_KEY is required.' });
-        }
         // Generate file path based on type
         const sanitizedFileName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
         let filePath;
@@ -93,7 +90,10 @@ router.post('/upload', (req, res, next) => {
             // Logo and cover: shop_${shopId}/${filename}
             filePath = `shop_${shopId}/${sanitizedFileName}`;
         }
-        // Upload file to Supabase Storage
+        // Upload file to Supabase Storage (prefer admin client to bypass RLS)
+        if (!supabase_1.supabaseAdmin) {
+            return res.status(500).json({ error: 'Supabase admin client not configured. SUPABASE_SERVICE_ROLE_KEY is required.' });
+        }
         const { data: uploadData, error: uploadError } = yield supabase_1.supabaseAdmin.storage
             .from('shop_photos')
             .upload(filePath, file.buffer, {
@@ -110,7 +110,9 @@ router.post('/upload', (req, res, next) => {
             .getPublicUrl(filePath);
         const publicUrl = (publicUrlData === null || publicUrlData === void 0 ? void 0 : publicUrlData.publicUrl) || '';
         // Insert photo record into shop_photos table
-        const { data: photoRecord, error: photoError } = yield supabase_1.supabase
+        // Use admin client to bypass RLS safely (we already verified ownership above)
+        const tableClient = supabase_1.supabaseAdmin || supabase_1.supabase;
+        const { data: photoRecord, error: photoError } = yield tableClient
             .from('shop_photos')
             .insert({
             shop_id: shopId,
@@ -126,7 +128,7 @@ router.post('/upload', (req, res, next) => {
         // For logo and cover, also update the shop record (backward compatibility)
         if (type === 'logo' || type === 'cover') {
             const updateField = type === 'logo' ? 'logo_url' : 'cover_photo_url';
-            yield supabase_1.supabase
+            yield tableClient
                 .from('shops')
                 .update({ [updateField]: publicUrl })
                 .eq('id', shopId);

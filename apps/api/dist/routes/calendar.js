@@ -41,7 +41,7 @@ router.get('/callback', (req, res) => __awaiter(void 0, void 0, void 0, function
         const result = yield (0, googleCalendarService_1.handleOAuthCallback)(code, userId);
         if (result.success) {
             // Redirect to success page
-            const frontendUrl = process.env.FRONTEND_URL || ((_a = process.env.NEXT_PUBLIC_API_URL) === null || _a === void 0 ? void 0 : _a.replace(':3000', ':3001')) || 'http://localhost:3001';
+            const frontendUrl = process.env.FRONTEND_URL || ((_a = process.env.API_URL) === null || _a === void 0 ? void 0 : _a.replace(':3000', ':3001')) || 'http://localhost:3001';
             return res.redirect(`${frontendUrl}/my-shop?calendar=connected`);
         }
         else {

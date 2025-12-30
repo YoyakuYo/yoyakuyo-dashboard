@@ -15,6 +15,60 @@ const router = (0, express_1.Router)();
 // Use service role client if available (bypasses RLS), otherwise use anon client
 // Service role key bypasses RLS policies, which is needed for API operations
 const dbClient = supabase_1.supabaseAdmin || supabase_1.supabase;
+function isUuid(value) {
+    return !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.trim());
+}
+// Main category expansion:
+// The browse UI often passes a MAIN category UUID (e.g. "Beauty Services").
+// Most shops are tagged with SUBCATEGORY category_id UUIDs (e.g. "Hair Salon", "Barbershop").
+// Without expanding, selecting a main category returns 0 shops.
+function expandMainCategoryUuidToCategoryIds(client, categoryId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const { data: catRow, error: catErr } = yield client
+                .from("categories")
+                .select("id,slug")
+                .eq("id", categoryId)
+                .maybeSingle();
+            if (catErr || !(catRow === null || catRow === void 0 ? void 0 : catRow.slug))
+                return [categoryId];
+            const mainToSubSlugs = {
+                "beauty_services": [
+                    "hair_salon",
+                    "nail_salon",
+                    "barbershop",
+                    "barber_shop",
+                    "eyelash_eyebrow",
+                    "eyelash_and_eyebrow",
+                    "beauty_salon",
+                    "general_salon",
+                    "waxing",
+                    "waxing_shop",
+                ],
+                "spa_onsen_relaxation": ["spa", "massages", "onsen", "ryokan_onsen", "ryokan"],
+                "hotels_stays": ["hotel", "ryokan", "ryokan_stay", "guesthouse", "boutique_hotel"],
+                "dining_izakaya": ["restaurant", "izakaya", "cafe", "bar"],
+                "clinics_medical_care": ["dental_clinic", "medical_clinic", "aesthetic_clinic", "womens_clinic", "wellness_clinic", "eye_clinic"],
+                "activities_sports": ["golf_courses_ranges", "golf", "karaoke", "private_karaoke_rooms", "pilates", "yoga"],
+            };
+            const subs = mainToSubSlugs[catRow.slug] || [];
+            if (subs.length === 0)
+                return [categoryId];
+            const slugsToResolve = [catRow.slug, ...subs];
+            const { data: ids, error: idsErr } = yield client
+                .from("categories")
+                .select("id")
+                .in("slug", slugsToResolve);
+            if (idsErr || !ids || ids.length === 0)
+                return [categoryId];
+            const expanded = ids.map((r) => r.id).filter((id) => isUuid(String(id)));
+            return expanded.length > 0 ? expanded : [categoryId];
+        }
+        catch (_a) {
+            return [categoryId];
+        }
+    });
+}
 /**
  * Helper function to fetch all shops in batches (to overcome Supabase's 1000 row limit)
  * Fetches shops in batches of 1000 and combines them into a single array
@@ -46,7 +100,8 @@ owner_user_id // Filter by owner_user_id
             // Apply category filter if provided and not empty
             // Support both category_id (foreign key) and category (direct field)
             if (category_id && category_id.trim() && category_id !== 'all' && category_id !== 'null') {
-                query = query.eq("category_id", category_id);
+                const expandedIds = isUuid(category_id) ? yield expandMainCategoryUuidToCategoryIds(client, category_id.trim()) : [category_id.trim()];
+                query = query.in("category_id", expandedIds);
             }
             if (category && category.trim() && category !== 'all') {
                 query = query.eq("category", category);
@@ -95,28 +150,53 @@ owner_user_id // Filter by owner_user_id
 router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const search = req.query.search;
-        const category_id = req.query.category_id;
-        const category = req.query.category; // New: filter by shops.category field
+        let category_id = req.query.category_id;
+        let category = req.query.category; // Filter by shops.category field OR (legacy) UUID passed from frontend
         const owner_user_id = req.query.owner_user_id; // Filter by owner
         const unclaimedParam = req.query.unclaimed;
         const unclaimed = unclaimedParam === 'true'; // Filter unclaimed shops
+        // Backward/forward compatibility:
+        // Some frontend paths pass the *category UUID* via `category` (not `category_id`).
+        // If `category` looks like a UUID, treat it as `category_id` to avoid returning 0 shops.
+        if (!category_id && isUuid(category)) {
+            category_id = category.trim();
+            category = undefined;
+        }
+        // Expand MAIN category UUIDs to include subcategory UUIDs (prevents "0 shops" when selecting main categories)
+        const expandedCategoryIds = category_id && isUuid(category_id) ? yield expandMainCategoryUuidToCategoryIds(dbClient, category_id.trim()) : null;
+        // Pagination params
+        const limitParam = req.query.limit;
+        const offsetParam = req.query.offset;
+        const pageParam = req.query.page;
+        const usePagination = limitParam || pageParam; // Enable pagination if limit or page is provided
+        // Calculate pagination
+        const limit = usePagination ? Math.min(parseInt(limitParam || '50'), 1000) : undefined;
+        const page = pageParam ? parseInt(pageParam) : undefined;
+        const offset = offsetParam ? parseInt(offsetParam) : (page ? (page - 1) * (limit || 50) : undefined);
         console.log('=== GET /shops START ===');
-        console.log('Query params:', { search, category_id, category, owner_user_id, unclaimed });
+        console.log('Query params:', { search, category_id, category, owner_user_id, unclaimed, limit, offset, page, usePagination });
         console.log('Using client:', supabase_1.supabaseAdmin ? 'service role (bypasses RLS)' : 'anon (subject to RLS)');
         // If unclaimed filter is set, fetch shops with owner_user_id IS NULL
         if (unclaimed) {
             let query = dbClient
                 .from("shops")
-                .select("*")
+                .select("*", { count: usePagination ? 'exact' : undefined })
                 .is("owner_user_id", null)
                 .order("name", { ascending: true });
             if (search && search.trim()) {
                 query = query.ilike("name", `%${search.trim()}%`);
             }
-            if (category_id && category_id.trim() && category_id !== 'all' && category_id !== 'null') {
+            if (expandedCategoryIds && expandedCategoryIds.length > 0) {
+                query = query.in("category_id", expandedCategoryIds);
+            }
+            else if (category_id && category_id.trim() && category_id !== 'all' && category_id !== 'null') {
                 query = query.eq("category_id", category_id);
             }
-            const { data, error } = yield query;
+            // Apply pagination if enabled
+            if (usePagination && limit !== undefined && offset !== undefined) {
+                query = query.range(offset, offset + limit - 1);
+            }
+            const { data, error, count } = yield query;
             if (error) {
                 console.error('Error fetching unclaimed shops:', error);
                 return res.status(500).json({ error: error.message });
@@ -138,9 +218,78 @@ router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             }
             // Attach category data to shops
             const shopsWithCategories = shops.map((shop) => (Object.assign(Object.assign({}, shop), { categories: shop.category_id ? categoryMap.get(shop.category_id) || null : null })));
+            // Return paginated response if pagination is enabled
+            if (usePagination) {
+                return res.json({
+                    shops: shopsWithCategories,
+                    pagination: {
+                        limit: limit || 50,
+                        offset: offset || 0,
+                        page: page || Math.floor((offset || 0) / (limit || 50)) + 1,
+                        total: count || shopsWithCategories.length,
+                        hasMore: limit !== undefined && shopsWithCategories.length === limit
+                    }
+                });
+            }
             return res.json(shopsWithCategories);
         }
-        // Use batch fetching helper to get all shops (overcomes 1000 row limit)
+        // If pagination is enabled, use direct query instead of fetchAllShops
+        if (usePagination && limit !== undefined && offset !== undefined) {
+            let query = dbClient
+                .from("shops")
+                .select("*", { count: 'exact' })
+                .order("name", { ascending: true })
+                .range(offset, offset + limit - 1);
+            // Apply filters
+            if (search && search.trim()) {
+                query = query.ilike("name", `%${search.trim()}%`);
+            }
+            if (expandedCategoryIds && expandedCategoryIds.length > 0) {
+                query = query.in("category_id", expandedCategoryIds);
+            }
+            else if (category_id && category_id.trim() && category_id !== 'all' && category_id !== 'null') {
+                query = query.eq("category_id", category_id);
+            }
+            if (category && category.trim() && category !== 'all') {
+                query = query.eq("category", category);
+            }
+            if (owner_user_id && owner_user_id.trim()) {
+                query = query.eq("owner_user_id", owner_user_id);
+            }
+            const { data, error, count } = yield query;
+            if (error) {
+                console.error('Error fetching shops:', error);
+                return res.status(500).json({ error: error.message });
+            }
+            const shops = Array.isArray(data) ? data : [];
+            // Fetch categories separately
+            const categoryIds = [...new Set(shops.map((shop) => shop.category_id).filter(Boolean))];
+            const categoryMap = new Map();
+            if (categoryIds.length > 0) {
+                const { data: categories, error: catError } = yield dbClient
+                    .from("categories")
+                    .select("id, name, description")
+                    .in("id", categoryIds);
+                if (!catError && categories) {
+                    categories.forEach((cat) => {
+                        categoryMap.set(cat.id, cat);
+                    });
+                }
+            }
+            const shopsWithCategories = shops.map((shop) => (Object.assign(Object.assign({}, shop), { categories: shop.category_id ? categoryMap.get(shop.category_id) || null : null })));
+            console.log(`=== GET /shops END (paginated) === Shops: ${shopsWithCategories.length}, Total: ${count}`);
+            return res.json({
+                shops: shopsWithCategories,
+                pagination: {
+                    limit,
+                    offset,
+                    page: page || Math.floor(offset / limit) + 1,
+                    total: count || shopsWithCategories.length,
+                    hasMore: shopsWithCategories.length === limit
+                }
+            });
+        }
+        // Use batch fetching helper to get all shops (overcomes 1000 row limit) - for backward compatibility
         const data = yield fetchAllShops(dbClient, search, category_id, category, owner_user_id);
         console.log(`=== GET /shops END === Total shops: ${data.length}`);
         // If filtering by owner_user_id and no shops found, return 404
@@ -1037,6 +1186,42 @@ router.patch("/:id", (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
     catch (e) {
         console.error('Error updating shop:', e);
+        return res.status(500).json({ error: e.message });
+    }
+}));
+// GET /shops/prefecture-counts - Get shop counts per prefecture for a category
+router.get("/prefecture-counts", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const categoryId = req.query.category;
+        if (!categoryId) {
+            return res.status(400).json({ error: "Category parameter is required" });
+        }
+        // Validate UUID format
+        if (!isValidUUID(categoryId)) {
+            return res.status(400).json({ error: "Invalid category ID format" });
+        }
+        // Get all shops for this category
+        const { data: shops, error } = yield dbClient
+            .from("shops")
+            .select("prefecture")
+            .eq("category_id", categoryId)
+            .or("claim_status.is.null,claim_status.neq.hidden");
+        if (error) {
+            console.error("Error fetching shops for prefecture counts:", error);
+            return res.status(500).json({ error: "Failed to fetch shops" });
+        }
+        // Count shops per prefecture
+        const prefectureCounts = {};
+        if (shops) {
+            for (const shop of shops) {
+                const prefecture = shop.prefecture || "Unknown";
+                prefectureCounts[prefecture] = (prefectureCounts[prefecture] || 0) + 1;
+            }
+        }
+        return res.json(prefectureCounts);
+    }
+    catch (e) {
+        console.error("Error in prefecture-counts endpoint:", e);
         return res.status(500).json({ error: e.message });
     }
 }));

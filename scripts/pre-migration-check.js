@@ -6,7 +6,8 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const MIGRATIONS_DIR = path.join(__dirname, '../../supabase/migrations');
+// scripts/ lives at repoRoot/scripts, migrations live at repoRoot/supabase/migrations
+const MIGRATIONS_DIR = path.join(__dirname, '..', 'supabase', 'migrations');
 
 console.log('🛡️  Pre-Migration Schema Check\n');
 console.log('This script checks existing schema to prevent duplicate migrations.\n');
@@ -15,7 +16,7 @@ console.log('This script checks existing schema to prevent duplicate migrations.
 try {
   execSync('npx supabase status', { 
     stdio: 'pipe',
-    cwd: path.join(__dirname, '../..')
+    cwd: path.join(__dirname, '..')
   });
 } catch (error) {
   console.log('⚠️  Supabase project not linked or not logged in.\n');
@@ -30,7 +31,7 @@ console.log('📥 Pulling current schema from Supabase...');
 try {
   execSync('npx supabase db pull', { 
     stdio: 'inherit',
-    cwd: path.join(__dirname, '../..')
+    cwd: path.join(__dirname, '..')
   });
   console.log('\n✅ Schema pulled successfully!\n');
 } catch (error) {

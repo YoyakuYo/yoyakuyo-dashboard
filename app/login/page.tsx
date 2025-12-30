@@ -98,12 +98,30 @@ export default function LoginPage() {
         console.warn('Failed to sync user to users (non-blocking):', syncError);
       }
 
+      // Ensure session is properly set and auth state is updated
+      // Wait a moment for onAuthStateChange to fire and update the AuthProvider
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Verify session is set
+      const { data: { session: verifySession } } = await supabase.auth.getSession();
+      if (!verifySession && authData.session) {
+        console.warn('Session not found after login, but we have authData.session');
+        // Session should be set by Supabase automatically, but if not, try to set it
+        await supabase.auth.setSession({
+          access_token: authData.session.access_token,
+          refresh_token: authData.session.refresh_token,
+        });
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
       // Redirect to dashboard
       setMessage("Login successful! Redirecting...");
+      // Small delay to ensure auth state propagates, then redirect
       setTimeout(() => {
         router.push("/dashboard");
+        // Force a refresh of server components to pick up new auth state
         router.refresh();
-      }, 500);
+      }, 300);
     } catch (error: any) {
       setMessage(`Unexpected error: ${error.message}`);
       setLoading(false);

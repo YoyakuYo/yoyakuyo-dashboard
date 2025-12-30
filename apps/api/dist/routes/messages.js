@@ -555,6 +555,155 @@ router.post("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         return res.status(500).json({ error: e.message });
     }
 }));
+// POST /messages/customer/start-thread - Start or find thread for customer
+router.post("/customer/start-thread", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const userId = req.headers['x-user-id'];
+        const { shopId, bookingId } = req.body;
+        if (!userId) {
+            return res.status(401).json({ error: "Authentication required" });
+        }
+        if (!shopId) {
+            return res.status(400).json({ error: "shopId is required" });
+        }
+        // Get customer profile
+        const { data: customerProfile } = yield dbClient
+            .from("customer_profiles")
+            .select("id")
+            .eq("customer_auth_id", userId)
+            .single();
+        if (!customerProfile) {
+            return res.status(404).json({ error: "Customer profile not found" });
+        }
+        // Try to find existing thread
+        let query = dbClient
+            .from("shop_threads")
+            .select("*")
+            .eq("shop_id", shopId)
+            .eq("customer_id", customerProfile.id);
+        if (bookingId) {
+            query = query.eq("booking_id", bookingId);
+        }
+        const { data: existingThreads, error: findError } = yield query;
+        if (findError) {
+            console.error("Error finding thread:", findError);
+            return res.status(500).json({ error: findError.message });
+        }
+        // If thread exists, return it
+        if (existingThreads && existingThreads.length > 0) {
+            const thread = existingThreads[0];
+            return res.json({
+                id: thread.id,
+                threadId: thread.id,
+                shopId: thread.shop_id,
+                bookingId: thread.booking_id,
+            });
+        }
+        // Create new thread
+        const { data: newThread, error: insertError } = yield dbClient
+            .from("shop_threads")
+            .insert([{
+                shop_id: shopId,
+                booking_id: bookingId || null,
+                customer_id: customerProfile.id,
+            }])
+            .select()
+            .single();
+        if (insertError) {
+            console.error("Error creating thread:", insertError);
+            return res.status(500).json({ error: insertError.message });
+        }
+        return res.json({
+            id: newThread.id,
+            threadId: newThread.id,
+            shopId: newThread.shop_id,
+            bookingId: newThread.booking_id,
+        });
+    }
+    catch (e) {
+        console.error("Error during customer start-thread:", e);
+        return res.status(500).json({ error: e.message });
+    }
+}));
+// GET /messages/booking/:bookingId/thread - Get or create thread for a booking
+router.get("/booking/:bookingId/thread", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const userId = req.headers['x-user-id'];
+        const { bookingId } = req.params;
+        if (!userId) {
+            return res.status(401).json({ error: "Authentication required" });
+        }
+        // Get booking details
+        const { data: booking, error: bookingError } = yield dbClient
+            .from("bookings")
+            .select(`
+                id,
+                shop_id,
+                customer_profile_id,
+                customer_id,
+                shops:shop_id (id, name, owner_user_id)
+            `)
+            .eq("id", bookingId)
+            .single();
+        if (bookingError || !booking) {
+            return res.status(404).json({ error: "Booking not found" });
+        }
+        // Get customer profile
+        const { data: customerProfile } = yield dbClient
+            .from("customer_profiles")
+            .select("id, customer_auth_id")
+            .eq("customer_auth_id", userId)
+            .maybeSingle();
+        // Verify access
+        const shop = booking.shops;
+        const isOwner = (shop === null || shop === void 0 ? void 0 : shop.owner_user_id) === userId;
+        const isCustomer = customerProfile && (booking.customer_profile_id === customerProfile.id ||
+            booking.customer_id === customerProfile.id);
+        if (!isOwner && !isCustomer) {
+            return res.status(403).json({ error: "Access denied" });
+        }
+        // Try to find existing thread
+        const { data: existingThread } = yield dbClient
+            .from("shop_threads")
+            .select("*")
+            .eq("shop_id", booking.shop_id)
+            .eq("booking_id", bookingId)
+            .maybeSingle();
+        if (existingThread) {
+            return res.json({
+                id: existingThread.id,
+                threadId: existingThread.id,
+                shopId: existingThread.shop_id,
+                bookingId: existingThread.booking_id,
+            });
+        }
+        // Create new thread
+        const customerId = (customerProfile === null || customerProfile === void 0 ? void 0 : customerProfile.id) || booking.customer_profile_id || booking.customer_id;
+        const { data: newThread, error: insertError } = yield dbClient
+            .from("shop_threads")
+            .insert([{
+                shop_id: booking.shop_id,
+                booking_id: bookingId,
+                customer_id: customerId || null,
+            }])
+            .select()
+            .single();
+        if (insertError) {
+            console.error("Error creating thread:", insertError);
+            return res.status(500).json({ error: insertError.message });
+        }
+        return res.json({
+            id: newThread.id,
+            threadId: newThread.id,
+            shopId: newThread.shop_id,
+            bookingId: newThread.booking_id,
+        });
+    }
+    catch (e) {
+        console.error("Error during booking thread creation:", e);
+        return res.status(500).json({ error: e.message });
+    }
+}));
 // PATCH /messages/thread/:threadId/takeover - Toggle owner takeover
 router.patch("/thread/:threadId/takeover", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
