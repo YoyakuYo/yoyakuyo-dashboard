@@ -110,14 +110,14 @@ export default function PublicBookingPage() {
           .maybeSingle();
 
         if (profile) {
-          const profileName = profile.full_name || profile.name || user.name || user.email?.split('@')[0] || '';
+          const profileName = profile.full_name || profile.name || user.user_metadata?.name || user.email?.split('@')[0] || '';
           const profileEmail = profile.email || user.email || '';
           setCustomerProfile({ name: profileName, email: profileEmail });
           setName(profileName);
           setEmail(profileEmail);
         } else {
           // Fallback to user data if profile not found
-          const userName = user.name || user.email?.split('@')[0] || '';
+          const userName = user.user_metadata?.name || user.email?.split('@')[0] || '';
           const userEmail = user.email || '';
           setCustomerProfile({ name: userName, email: userEmail });
           setName(userName);
@@ -133,14 +133,14 @@ export default function PublicBookingPage() {
 
   useEffect(() => {
     const fetchShopInfo = async () => {
-      try {
+        try {
         const res = await fetch(`${apiUrl}/shops/${shopId}`);
-        if (res.ok) {
-          const data = await res.json();
+          if (res.ok) {
+            const data = await res.json();
           setShopName(data.name || '');
-        }
-      } catch (error) {
-        // Silently handle errors
+          }
+        } catch (error) {
+          // Silently handle errors
       }
     };
 
@@ -186,26 +186,26 @@ export default function PublicBookingPage() {
       const url = `${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`;
 
       const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
+        if (res.ok) {
+          const data = await res.json();
         const availableSlots = Array.isArray(data) ? data : [];
         setTimeslots(availableSlots);
         setAvailabilityChecked(true);
         if (availableSlots.length === 0) {
           alert(t('booking.noAvailability') || 'No available timeslots for this date');
         }
-      } else {
+        } else {
         const errorData = await res.json().catch(() => ({ error: 'Failed to fetch availability' }));
         alert(errorData.error || t('booking.availabilityError') || 'Failed to check availability');
-        setTimeslots([]);
+          setTimeslots([]);
         setAvailabilityChecked(true);
-      }
-    } catch (error: any) {
-      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-        console.error("Error fetching availability:", error);
+        }
+      } catch (error: any) {
+        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
+          console.error("Error fetching availability:", error);
         alert(t('booking.availabilityError') || 'Failed to check availability');
-      }
-      setTimeslots([]);
+        }
+        setTimeslots([]);
       setAvailabilityChecked(true);
     } finally {
       setLoadingAvailability(false);
@@ -229,7 +229,7 @@ export default function PublicBookingPage() {
 
       // Only include name/email for guest users
       if (!isAuthenticated) {
-        const nameParts = name.trim().split(/\s+/);
+      const nameParts = name.trim().split(/\s+/);
         bookingData.first_name = nameParts[0] || name;
         bookingData.last_name = nameParts.slice(1).join(' ') || null;
         bookingData.email = email;
@@ -261,7 +261,7 @@ export default function PublicBookingPage() {
   };
     } else {
       // For logged-in users, use customer profile data
-      const finalName = customerProfile?.name || name || user.name || user.email?.split('@')[0] || 'Customer';
+      const finalName = customerProfile?.name || name || user.user_metadata?.name || user.email?.split('@')[0] || 'Customer';
       const finalEmail = customerProfile?.email || email || user.email || '';
       setName(finalName);
       setEmail(finalEmail);
@@ -415,44 +415,44 @@ export default function PublicBookingPage() {
               <p className="text-gray-500 text-sm">{t('booking.clickCheckAvailability') || 'Click "Check Availability" to see available timeslots'}</p>
             ) : (
               <div className="space-y-2">
-                {timeslots.map((timeslot) => (
-                  <button
-                    key={timeslot.id}
+              {timeslots.map((timeslot) => (
+                <button
+                  key={timeslot.id}
                     onClick={() => setSelectedTimeslot(timeslot)}
                     className={`w-full px-4 py-3 border rounded-lg hover:bg-gray-50 transition-colors text-left ${
                       selectedTimeslot?.id === timeslot.id
                         ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
                         : 'border-gray-300'
                     }`}
-                  >
-                    {timeslot.start_time} - {timeslot.end_time}
-                  </button>
-                ))}
-              </div>
+                >
+                  {timeslot.start_time} - {timeslot.end_time}
+                </button>
+              ))}
+            </div>
             )}
           </div>
 
           {/* Only show name/email fields for guest users */}
           {(!user || authLoading) && (
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
-              <input
-                type="text"
-                placeholder={t('booking.yourName')}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
+            <input
+              type="text"
+              placeholder={t('booking.yourName')}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
                 required={!user}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2"
-              />
-              <input
-                type="email"
-                placeholder={t('booking.yourEmail')}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2"
+            />
+            <input
+              type="email"
+              placeholder={t('booking.yourEmail')}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
                 required={!user}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-              />
-            </div>
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+            />
+          </div>
           )}
 
           {/* Show authenticated user info */}
@@ -463,9 +463,9 @@ export default function PublicBookingPage() {
                 <p className="text-green-800">
                   ✅ {t('booking.loggedInAs')} {user.email}
                 </p>
-              </div>
             </div>
-          )}
+          </div>
+        )}
 
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
@@ -486,10 +486,10 @@ export default function PublicBookingPage() {
                   </label>
                   <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
                     {customerProfile.email}
+          </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ) : (
+                ) : (
               // Show input fields for guest users
               <>
                 <div className="mb-3">
@@ -504,7 +504,7 @@ export default function PublicBookingPage() {
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
-                </div>
+                          </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {t('common.email')} <span className="text-red-500">*</span>
@@ -517,18 +517,18 @@ export default function PublicBookingPage() {
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
-                </div>
-              </>
-            )}
-          </div>
+                      </div>
+                  </>
+                )}
+              </div>
 
-          <button
+                  <button
             onClick={bookAppointment}
             disabled={authLoading}
             className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {authLoading ? t('common.loading') : t('booking.bookNow')}
-          </button>
+                  </button>
         </div>
 
         {/* Right Column: AI Assistant */}
@@ -540,7 +540,7 @@ export default function PublicBookingPage() {
               <p className="text-gray-600">
                 Chat with our AI assistant for help with booking and shop information.
               </p>
-            </div>
+              </div>
           )}
         </div>
 
