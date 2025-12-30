@@ -1,8 +1,31 @@
 import express, { Request, Response, Router } from 'express';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseAdmin } from '../lib/supabase';
 import { createCustomerNotification, createOwnerNotification, getCustomerProfileId } from '../services/notificationService';
 
 const router = Router();
+const dbClient = supabaseAdmin || supabase;
+
+type BookingSource = 'guest' | 'web' | 'line';
+type BookingChannel = 'web' | 'line';
+
+function normalizeBookingSource(input: unknown): BookingSource | null {
+  const v = String(input || '').trim().toLowerCase();
+  if (v === 'guest' || v === 'web' || v === 'line') return v;
+  return null;
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+function toUserSafeBookingDbError(err: any): { status: number; error: string } {
+  const code = String(err?.code || '');
+  if (code === '23503') return { status: 400, error: 'Invalid shop or service. Please refresh and try again.' };
+  if (code === '23502') return { status: 400, error: 'Missing required booking information. Please check the form and try again.' };
+  if (code === '23514') return { status: 400, error: 'This booking request is not valid. Please refresh and try again.' };
+  if (code === '22P02') return { status: 400, error: 'Invalid data format. Please check the form and try again.' };
+  return { status: 500, error: 'Could not create booking. Please try again.' };
+}
 
 // GET /bookings
 router.get('/', async (req: Request, res: Response) => {
@@ -90,92 +113,82 @@ router.get('/', async (req: Request, res: Response) => {
 // POST /bookings
 router.post('/', async (req: Request, res: Response) => {
     try {
-        const { 
-            service_id, 
-            staff_id, 
-            start_time, 
-            end_time, 
-            notes, 
-            shop_id, 
-            channel, // Explicit context: 'guest', 'line', 'web'
-            guest_name, // Guest
-            guest_email, // Guest
-            line_user_id, // LINE
-            auth_user_id // Web
-        } = req.body;
+        const {
+            service_id,
+            staff_id,
+            start_time,
+            end_time,
+            notes,
+            shop_id,
+            // Canonical booking fields
+            source: sourceRaw,
+            guest_name,
+            guest_email,
+            // Optional legacy inputs (for backward compatibility)
+            channel: legacyChannel,
+            customer_name,
+            customer_email,
+            customer_phone,
+            line_user_id,
+            customer_id: customerIdBody,
+        } = req.body || {};
 
-        // Get user_id from header (for logged-in customers)
-        const userId = req.headers['x-user-id'] as string;
+        const requestedSource = normalizeBookingSource(sourceRaw ?? legacyChannel);
 
-        // Get customer_profile_id if user is logged in - auto-create if it doesn't exist
-        let customerProfileId: string | null = null;
-        if (userId) {
-            // Try to find customer profile by customer_auth_id
-            let { data: profile, error: profileError } = await supabase
-                .from("customer_profiles")
-                .select("id")
-                .eq("customer_auth_id", userId)
+        // Infer source if not provided (backward compatibility)
+        const headerCustomerId =
+            (req.headers['x-customer-id'] as string | undefined) ||
+            (req.headers['x-user-id'] as string | undefined);
+
+        const source: BookingSource = requestedSource || (headerCustomerId ? 'web' : 'guest');
+        const channel: BookingChannel = source === 'line' ? 'line' : 'web';
+
+        // Resolve per-branch required fields
+        let customerId: string | null = null;
+        let finalGuestName: string | null = null;
+        let finalGuestEmail: string | null = null;
+
+        if (source === 'guest') {
+            finalGuestName = String(guest_name ?? customer_name ?? '').trim();
+            finalGuestEmail = String(guest_email ?? customer_email ?? '').trim();
+            if (!finalGuestName) return res.status(400).json({ error: 'name is required for guest bookings' });
+            if (!finalGuestEmail) return res.status(400).json({ error: 'email is required for guest bookings' });
+            customerId = null; // MUST be NULL for guest bookings
+        } else if (source === 'web') {
+            customerId = (customerIdBody as string | undefined) || headerCustomerId || null;
+            if (!customerId) return res.status(401).json({ error: 'Authentication required' });
+            if (!isUuid(customerId)) return res.status(400).json({ error: 'Invalid customer_id' });
+
+            const { data: customer, error: custErr } = await dbClient
+                .from('customers')
+                .select('id, role')
+                .eq('id', customerId)
                 .maybeSingle();
 
-            if (profile?.id) {
-                customerProfileId = profile.id;
-            } else {
-                // Fallback: check if customer_profiles.id = user.id (old structure)
-                const { data: profileFallback } = await supabase
-                    .from("customer_profiles")
-                    .select("id")
-                    .eq("id", userId)
-                    .maybeSingle();
-                
-                if (profileFallback?.id) {
-                    customerProfileId = profileFallback.id;
-                } else {
-                    // Auto-create customer profile if it doesn't exist
-                    try {
-                        const { data: authUser } = await supabase.auth.admin.getUserById(userId);
-                        const userEmail = authUser?.user?.email || '';
-                        const userName = authUser?.user?.user_metadata?.name || authUser?.user?.email?.split('@')[0] || 'Customer';
-                        
-                        const { data: profileId, error: createError } = await supabase
-                            .rpc('create_customer_profile', {
-                                p_customer_auth_id: userId,
-                                p_email: userEmail,
-                                p_name: userName,
-                                p_phone: null
-                            });
-
-                        if (createError || !profileId) {
-                            console.error('[Booking] Error creating customer profile:', createError);
-                            // Don't fail the booking, just log the error
-                        } else {
-                            // Fetch the newly created profile
-                            const { data: newProfile } = await supabase
-                                .from("customer_profiles")
-                                .select("id")
-                                .eq("id", profileId)
-                                .single();
-
-                            if (newProfile?.id) {
-                                customerProfileId = newProfile.id;
-                                console.log('[Booking] ✅ Auto-created customer profile:', customerProfileId);
-                            }
-                        }
-                    } catch (createErr: any) {
-                        console.error('[Booking] Error auto-creating customer profile:', createErr);
-                        // Don't fail the booking, just log the error
-                    }
-                }
+            if (custErr) {
+                console.error('[Booking] Error resolving web customer:', custErr);
+                return res.status(500).json({ error: 'Failed to resolve customer' });
             }
-        }
+            if (!customer?.id) return res.status(401).json({ error: 'Customer account not found. Please sign in again.' });
+            if ((customer as any).role !== 'customer') return res.status(403).json({ error: 'Only customers can create web bookings' });
+        } else {
+            // LINE bookings: resolve customer_id via line_user_id -> customers.id
+            const lineUserId = String(line_user_id || '').trim();
+            if (!lineUserId) return res.status(400).json({ error: 'LINE booking requires line_user_id' });
 
-        // Support both new format (customer_name) and legacy (first_name)
-        const finalCustomerName = customer_name || first_name || '';
+            const { data: customer, error: custErr } = await dbClient
+                .from('customers')
+                .select('id, role')
+                .eq('line_user_id', lineUserId)
+                .maybeSingle();
 
-        // Validate required fields for public bookings
-        if (!customer_id && !finalCustomerName) {
-            return res.status(400).json({ 
-                error: 'customer_name is required (or customer_id for owner bookings)' 
-            });
+            if (custErr) {
+                console.error('[Booking] Error resolving LINE customer:', custErr);
+                return res.status(500).json({ error: 'Failed to resolve LINE customer' });
+            }
+            if (!customer?.id) return res.status(401).json({ error: 'LINE account not linked. Please authenticate via LINE and try again.' });
+            if ((customer as any).role !== 'customer') return res.status(403).json({ error: 'Only customers can create LINE bookings' });
+            customerId = customer.id;
         }
 
         // Verify shop is verified (required for all bookings)
@@ -199,50 +212,32 @@ router.post('/', async (req: Request, res: Response) => {
         // customer_email and customer_phone are required for guest bookings
         // --- Data Model Logic Strict Enforcement ---
         const bookingData: any = {
+            shop_id,
             service_id,
             staff_id: staff_id || null,
             start_time,
             end_time,
             notes: notes || null,
-            shop_id,
             status: 'pending',
+
+            // REQUIRED: explicit branch values
+            source,
+            channel,
+            customer_id: source === 'guest' ? null : customerId,
+            guest_name: source === 'guest' ? finalGuestName : null,
+            guest_email: source === 'guest' ? finalGuestEmail : null,
+
+            // Keep legacy display fields populated for guests (owner UI, notifications, etc.)
+            customer_name: source === 'guest' ? finalGuestName : (customer_name || null),
+            customer_email: source === 'guest' ? finalGuestEmail : (customer_email || null),
+            customer_phone: customer_phone || null,
         };
 
-        // Normalize context for booking insert
-        if (!channel) {
-            return res.status(400).json({ error: 'Missing booking context (channel).' });
+        if (!supabaseAdmin) {
+            return res.status(500).json({ error: 'Server misconfigured' });
         }
-        bookingData.channel = channel;
-        if (channel === 'guest') {
-            bookingData.guest_name = guest_name;
-            bookingData.guest_email = guest_email;
-            bookingData.auth_user_id = null;
-            bookingData.line_user_id = null;
-        } else if (channel === 'line') {
-            if (!line_user_id) {
-                return res.status(400).json({ error: 'LINE booking requires line_user_id.' });
-            }
-            bookingData.line_user_id = line_user_id;
-            bookingData.auth_user_id = null;
-            bookingData.guest_name = null;
-            bookingData.guest_email = null;
-        } else if (channel === 'web') {
-            if (!auth_user_id) {
-                return res.status(401).json({ error: 'Web booking requires authentication.' });
-            }
-            bookingData.auth_user_id = auth_user_id;
-            bookingData.line_user_id = null;
-            bookingData.guest_name = null;
-            bookingData.guest_email = null;
-        } else {
-            return res.status(400).json({ error: 'Invalid booking channel.' });
-        }
-        // Optionally add customer_id if known for owner-created
-        if (customer_id) bookingData.customer_id = customer_id;
-        if (customer_phone || phone) bookingData.customer_phone = customer_phone || phone;
 
-
-        const { data: newBooking, error } = await supabase
+        const { data: newBooking, error } = await supabaseAdmin
             .from('bookings')
             .insert([bookingData])
             .select('*, shops(name, owner_user_id), services(name), customer_profile_id, customer_id')
@@ -250,17 +245,18 @@ router.post('/', async (req: Request, res: Response) => {
 
         if (error) {
             console.error('Error creating booking:', error);
-            return res.status(500).json({ error: error.message });
+            const safe = toUserSafeBookingDbError(error);
+            return res.status(safe.status).json({ error: safe.error });
         }
 
         // Log guest booking information for debugging
-        if (!userId) {
+        if (source === 'guest') {
             console.log('[GUEST BOOKING] ✅ Created guest booking:', {
                 booking_id: newBooking.id,
                 booking_source: 'guest',
-                user_id: null,
-                guest_email: newBooking.customer_email,
-                guest_name: newBooking.customer_name,
+                customer_id: null,
+                guest_email: newBooking.guest_email || newBooking.customer_email,
+                guest_name: newBooking.guest_name || newBooking.customer_name,
                 shop_id: newBooking.shop_id,
                 service_id: newBooking.service_id,
             });
@@ -339,7 +335,7 @@ router.post('/', async (req: Request, res: Response) => {
         return res.status(201).json(newBooking ?? { message: 'Booking created' });
     } catch (error: any) {
         console.error('Error during booking creation:', error);
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 });
 
