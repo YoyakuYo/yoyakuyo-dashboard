@@ -9,117 +9,12 @@ import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import ReviewCard from '../components/ReviewCard';
 import ReviewStats from '../components/ReviewStats';
+import ShopCalendar from '../components/ShopCalendar';
+import { useBookingNotifications } from '../components/BookingNotificationContext';
+import NotificationDot from '../components/NotificationDot';
+import PushNotificationButton from '../components/PushNotificationButton';
+import { useNotifications } from '@/lib/useNotifications';
 
-// LINE QR Code Component
-function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | null; user: any }) {
-  const [connecting, setConnecting] = useState(false);
-
-  const deeplinkUrl = shop?.line_destination_id 
-    ? `https://line.me/R/ti/p/${shop.line_destination_id}`
-    : null;
-
-  const handleConnectLine = async () => {
-    if (!user?.id || !shopId) return;
-
-    try {
-      setConnecting(true);
-      const res = await fetch(`${apiUrl}/line/shop-auth-url?shopId=${shopId}`, {
-        headers: {
-          'x-user-id': user.id,
-        },
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.authUrl) {
-          // Redirect to LINE OAuth
-          window.location.href = data.authUrl;
-        } else {
-          alert('Failed to get LINE OAuth URL');
-        }
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Failed to connect LINE account');
-      }
-    } catch (error) {
-      console.error('Error connecting LINE:', error);
-      alert('Failed to connect LINE account');
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  const handleCopyLink = () => {
-    if (deeplinkUrl) {
-      navigator.clipboard.writeText(deeplinkUrl);
-      alert('LINE link copied to clipboard!');
-    }
-  };
-
-  const handleDownloadQr = () => {
-    if (shop?.line_qr_code_url) {
-      const link = document.createElement('a');
-      link.href = shop.line_qr_code_url;
-      link.download = `line-qr-${shopId}.png`;
-      link.click();
-    }
-  };
-
-  // Check for success/error messages in URL
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('line_connected') === 'success') {
-      alert('LINE account connected successfully!');
-      // Remove query param
-      window.history.replaceState({}, '', window.location.pathname);
-      // Reload shop data
-      window.location.reload();
-    } else if (params.get('line_error')) {
-      alert(`LINE connection error: ${params.get('line_error')}`);
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, []);
-
-  if (!shop?.line_qr_code_url || !shop?.line_destination_id) {
-    return (
-      <div className="text-center space-y-4 py-4">
-        <p className="text-gray-500">Connect LINE to generate QR code</p>
-        <button
-          onClick={handleConnectLine}
-          disabled={connecting}
-          className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {connecting ? 'Connecting...' : 'Connect LINE Account'}
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col items-center space-y-4">
-      <img 
-        src={shop.line_qr_code_url} 
-        alt="LINE QR Code" 
-        className="w-48 h-48 border-2 border-gray-300 rounded-lg" 
-      />
-      <p className="text-sm text-gray-600 text-center">LINEで予約はこちら</p>
-      <div className="flex gap-2">
-        <button
-          onClick={handleCopyLink}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Copy LINE Link
-        </button>
-        <button
-          onClick={handleDownloadQr}
-          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-        >
-          Download QR Code
-        </button>
-      </div>
-    </div>
-  );
-}
 
 interface Shop {
   id: string;
@@ -134,8 +29,6 @@ interface Shop {
   zip_code?: string | null;
   description?: string | null;
   language_code?: string | null;
-  line_qr_code_url?: string | null;
-  line_destination_id?: string | null;
   logo_url?: string | null;
   cover_photo_url?: string | null;
   latitude?: number | null;
@@ -186,15 +79,97 @@ interface Booking {
   services?: { name: string } | null;
 }
 
+// Opening Hours Editor Component
+function OpeningHoursEditor({ 
+  openingHours, 
+  onChange 
+}: { 
+  openingHours: any; 
+  onChange: (hours: any) => void;
+}) {
+  const t = useTranslations();
+  const days = [
+    { key: 'monday', label: t('myShop.monday') },
+    { key: 'tuesday', label: t('myShop.tuesday') },
+    { key: 'wednesday', label: t('myShop.wednesday') },
+    { key: 'thursday', label: t('myShop.thursday') },
+    { key: 'friday', label: t('myShop.friday') },
+    { key: 'saturday', label: t('myShop.saturday') },
+    { key: 'sunday', label: t('myShop.sunday') },
+  ];
+
+  const handleDayChange = (day: string, openTime: string, closeTime: string) => {
+    const updated = { ...(openingHours || {}) };
+    if (openTime && closeTime) {
+      updated[day] = [openTime, closeTime];
+    } else {
+      updated[day] = null;
+    }
+    onChange(updated);
+  };
+
+  const getDayHours = (day: string): [string, string] => {
+    if (openingHours && openingHours[day] && Array.isArray(openingHours[day])) {
+      return [openingHours[day][0] || '09:00', openingHours[day][1] || '18:00'];
+    }
+    return ['09:00', '18:00'];
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        {t('myShop.openingHours')}
+      </label>
+      {days.map((day) => {
+        const [openTime, closeTime] = getDayHours(day.key);
+        return (
+          <div key={day.key} className="flex items-center gap-3">
+            <div className="w-24 text-sm font-medium text-gray-700">
+              {day.label}
+            </div>
+            <input
+              type="time"
+              value={openTime}
+              onChange={(e) => handleDayChange(day.key, e.target.value, closeTime)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+            <span className="text-gray-500">-</span>
+            <input
+              type="time"
+              value={closeTime}
+              onChange={(e) => handleDayChange(day.key, openTime, e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => handleDayChange(day.key, '', '')}
+              className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              {t('myShop.closed')}
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 const MyShopPage = () => {
   const { user, loading } = useAuth();
   const authLoading = Boolean(loading); // Ensure it's always a boolean for stable dependency array
   const router = useRouter();
   const t = useTranslations();
+  const { unreadBookingsCount } = useBookingNotifications();
+  const { notifications, markAsRead } = useNotifications('owner', user?.id || '');
+  
+  // Count unread review notifications
+  const unreadReviewsCount = notifications.filter(
+    (n) => !n.is_read && n.type === 'new_review'
+  ).length;
 
   const [shop, setShop] = useState<Shop | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'staff' | 'bookings' | 'photos' | 'reviews'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'staff' | 'bookings' | 'photos' | 'reviews' | 'calendar'>('overview');
   
   // Form states
   const [editingShop, setEditingShop] = useState(false);
@@ -210,6 +185,7 @@ const MyShopPage = () => {
     zip_code: '',
     description: '',
     language_code: '',
+    opening_hours: null,
   });
   const [showCreateShop, setShowCreateShop] = useState(false);
   const [showClaimShop, setShowClaimShop] = useState(false);
@@ -252,7 +228,7 @@ const MyShopPage = () => {
   const [statusUpdateModal, setStatusUpdateModal] = useState<{
     isOpen: boolean;
     bookingId: string | null;
-    newStatus: 'confirmed' | 'rejected' | null;
+    newStatus: 'confirmed' | 'rejected' | 'completed' | null;
     bookingCustomerName: string | null;
   }>({
     isOpen: false,
@@ -301,7 +277,8 @@ const MyShopPage = () => {
       const fetchUnclaimedShops = async () => {
         try {
           setClaimLoading(true);
-          const res = await fetch(`${apiUrl}/shops?unclaimed=true`, {
+          // Use pagination to limit response (limit to 50 for performance)
+          const res = await fetch(`${apiUrl}/shops?unclaimed=true&page=1&limit=50`, {
             headers: {
               'Content-Type': 'application/json',
             },
@@ -311,7 +288,15 @@ const MyShopPage = () => {
             const contentType = res.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
               const data = await res.json();
-              setUnclaimedShops(Array.isArray(data) ? data : []);
+              // Handle paginated response: { shops: [...], page, limit, total, totalPages }
+              const shopsArray = Array.isArray(data)
+                ? data
+                : (data.shops && Array.isArray(data.shops)
+                  ? data.shops
+                  : (data.data && Array.isArray(data.data)
+                    ? data.data
+                    : []));
+              setUnclaimedShops(shopsArray);
             } else {
               console.error('Expected JSON but received:', contentType);
               setUnclaimedShops([]);
@@ -359,7 +344,8 @@ const MyShopPage = () => {
         }
 
         // Fetch shops owned by user - backend filters by owner_user_id when my_shops=true
-        const url = `${apiUrl}/shops?my_shops=true`;
+        // Use pagination to limit response (only need first shop, limit to 1 for performance)
+        const url = `${apiUrl}/shops?my_shops=true&page=1&limit=1`;
         console.log('Fetching shop from:', url);
         console.log('User ID:', user.id);
         
@@ -397,12 +383,14 @@ const MyShopPage = () => {
           if (contentType && contentType.includes('application/json')) {
             try {
               const response = await res.json();
-              // Backend returns: { data: [...], pagination: {...} }
+              // Backend returns paginated: { shops: [...], page, limit, total, totalPages }
               const shopsArray = Array.isArray(response) 
                 ? response 
-                : (response.data && Array.isArray(response.data) 
-                  ? response.data 
-                  : []);
+                : (response.shops && Array.isArray(response.shops)
+                  ? response.shops
+                  : (response.data && Array.isArray(response.data) 
+                    ? response.data 
+                    : []));
               if (shopsArray.length > 0) {
                 // Use the first shop if multiple exist
                 const userShop = shopsArray[0];
@@ -508,12 +496,12 @@ const MyShopPage = () => {
       if (res.ok) {
         const data = await res.json();
         setStaff(Array.isArray(data) ? data : []);
+      } else {
+        // Silently handle errors - staff feature may be disabled
+        setStaff([]);
       }
     } catch (error: any) {
       // Silently handle connection errors (API server not running)
-      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-        console.error('Error fetching staff:', error);
-      }
       setStaff([]);
     }
   };
@@ -716,95 +704,22 @@ const MyShopPage = () => {
     });
   };
   
-  // Staff handlers
+  // Staff handlers - DISABLED: Staff management was removed
   const handleCreateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!shop || !user) return;
-    
-    setStaffError(null);
-    try {
-      const res = await fetch(`${apiUrl}/staff`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user.id,
-        },
-        body: JSON.stringify({
-          shop_id: shop.id,
-          first_name: staffForm.first_name,
-          last_name: staffForm.last_name,
-          phone: staffForm.phone,
-          email: staffForm.email,
-        }),
-      });
-      
-      if (res.ok) {
-        await fetchStaff(shop.id);
-        setStaffForm({ first_name: '', last_name: '', phone: '', email: '' });
-      } else {
-        const errorData = await res.json().catch(() => ({ error: 'Failed to create staff' }));
-        setStaffError(errorData.error || 'Failed to create staff');
-      }
-    } catch (error) {
-      console.error('Error creating staff:', error);
-      setStaffError('Failed to create staff');
-    }
+    // Staff management disabled
+    return;
   };
   
   const handleUpdateStaff = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!shop || !user || !editingStaff) return;
-    
-    setStaffError(null);
-    try {
-      const res = await fetch(`${apiUrl}/staff/${editingStaff.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user.id,
-        },
-        body: JSON.stringify({
-          first_name: staffForm.first_name,
-          last_name: staffForm.last_name,
-          phone: staffForm.phone,
-          email: staffForm.email,
-        }),
-      });
-      
-      if (res.ok) {
-        await fetchStaff(shop.id);
-        setEditingStaff(null);
-        setStaffForm({ first_name: '', last_name: '', phone: '', email: '' });
-      } else {
-        const errorData = await res.json().catch(() => ({ error: 'Failed to update staff' }));
-        setStaffError(errorData.error || 'Failed to update staff');
-      }
-    } catch (error) {
-      console.error('Error updating staff:', error);
-      setStaffError('Failed to update staff');
-    }
+    // Staff management disabled
+    return;
   };
   
   const handleDeleteStaff = async (staffId: string) => {
-    if (!shop || !user || !confirm('Are you sure you want to delete this staff member?')) return;
-    
-    try {
-      const res = await fetch(`${apiUrl}/staff/${staffId}`, {
-        method: 'DELETE',
-        headers: {
-          'x-user-id': user.id,
-        },
-      });
-      
-      if (res.ok) {
-        await fetchStaff(shop.id);
-      } else {
-        alert('Failed to delete staff');
-      }
-    } catch (error) {
-      console.error('Error deleting staff:', error);
-      alert('Failed to delete staff');
-    }
+    // Staff management disabled
+    return;
   };
   
   const startEditStaff = (staffMember: Staff) => {
@@ -818,7 +733,11 @@ const MyShopPage = () => {
   };
 
   // Booking status handlers
-  const openStatusUpdateModal = (bookingId: string, newStatus: 'confirmed' | 'rejected', customerName: string | null) => {
+  const openStatusUpdateModal = (
+    bookingId: string,
+    newStatus: 'confirmed' | 'rejected' | 'completed',
+    customerName: string | null
+  ) => {
     setStatusUpdateModal({
       isOpen: true,
       bookingId,
@@ -857,9 +776,19 @@ const MyShopPage = () => {
       });
 
       if (res.ok) {
+        let successText: string;
+        if (statusUpdateModal.newStatus === 'confirmed') {
+          successText = t('myShop.bookingConfirmed');
+        } else if (statusUpdateModal.newStatus === 'rejected') {
+          successText = t('myShop.bookingRejected');
+        } else {
+          // completed
+          successText = 'Booking marked as completed.';
+        }
+
         setStatusUpdateMessage({
           type: 'success',
-          text: statusUpdateModal.newStatus === 'confirmed' ? t('myShop.bookingConfirmed') : t('myShop.bookingRejected'),
+          text: successText,
         });
         
         // Refresh bookings list
@@ -1080,6 +1009,7 @@ const MyShopPage = () => {
       if (shopForm.zip_code !== undefined && shopForm.zip_code !== null) updateData.zip_code = shopForm.zip_code;
       if (shopForm.description !== undefined && shopForm.description !== null) updateData.description = shopForm.description;
       if (shopForm.language_code !== undefined && shopForm.language_code !== null) updateData.language_code = shopForm.language_code;
+      if (shopForm.opening_hours !== undefined) updateData.opening_hours = shopForm.opening_hours;
 
       const res = await fetch(`${apiUrl}/shops/${shop.id}`, {
         method: 'PUT',
@@ -1115,23 +1045,59 @@ const MyShopPage = () => {
     }
 
     try {
-      // Create FormData
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('shopId', shop.id);
-      formData.append('type', type);
-
-      // Ensure API URL is set correctly
-      const uploadUrl = `${apiUrl}/photos/upload`;
+      // First, upload file to Supabase Storage to get the URL
+      // Use getSupabaseClient() to get authenticated client with user session
+      const { getSupabaseClient } = await import('@/lib/supabaseClient');
+      const supabase = getSupabaseClient();
       
-      // Upload to API using multipart/form-data
+      // Ensure user has a valid session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error('You must be logged in to upload photos. Please refresh the page and try again.');
+      }
+      
+      const bucket = 'shop_photos';
+      const timestamp = Date.now();
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `${shop.id}/${type}/${timestamp}_${sanitizedFileName}`;
+
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('Upload error details:', uploadError);
+        throw new Error(`Failed to upload file: ${uploadError.message}`);
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(filePath);
+
+      const photoUrl = urlData.publicUrl;
+
+      if (!photoUrl) {
+        throw new Error('Failed to get photo URL');
+      }
+
+      // Now send shop_id, type, and url to the backend API
+      const uploadUrl = `${apiUrl}/photos/upload`;
       const res = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'x-user-id': user.id,
-          // Don't set Content-Type - browser will set it with boundary
         },
-        body: formData,
+        body: JSON.stringify({
+          shop_id: shop.id,
+          type: type,
+          url: photoUrl,
+        }),
       });
 
       // Validate response is JSON before parsing
@@ -1323,7 +1289,7 @@ const MyShopPage = () => {
               <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('myShop.claimExistingShop')}</h3>
               <p className="text-gray-600 mb-4">{t('myShop.claimOwnership')}</p>
               <button
-                onClick={() => setShowClaimShop(true)}
+                onClick={() => router.push('/owner/claim')}
                 className="w-full px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
               >
                 {t('myShop.claimShop')}
@@ -1332,69 +1298,33 @@ const MyShopPage = () => {
           </div>
         </div>
 
-        {/* Create Shop Form */}
+        {/* Create Shop Form - Redirect to Multi-Step Wizard */}
         {showCreateShop && (
           <div className="bg-white rounded-xl shadow-md border border-gray-100 p-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('myShop.createNewShop')}</h2>
-            <form onSubmit={handleCreateShop}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('myShop.shopName')}</label>
-                  <input
-                    type="text"
-                    required
-                    value={shopForm.name || ''}
-                    onChange={(e) => setShopForm(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('myShop.address')}</label>
-                  <input
-                    type="text"
-                    required
-                    value={shopForm.address || ''}
-                    onChange={(e) => setShopForm(prev => ({ ...prev, address: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('myShop.phone')}</label>
-                  <input
-                    type="tel"
-                    required
-                    value={shopForm.phone || ''}
-                    onChange={(e) => setShopForm(prev => ({ ...prev, phone: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('myShop.email')}</label>
-                  <input
-                    type="email"
-                    required
-                    value={shopForm.email || ''}
-                    onChange={(e) => setShopForm(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
-                </div>
-                <div className="flex gap-4">
-                  <button
-                    type="submit"
-                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    {t('myShop.createShop')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateShop(false)}
-                    className="px-6 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 transition-colors"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                </div>
+            <div className="space-y-4">
+              <p className="text-gray-600 mb-6">
+                Create your shop using our comprehensive setup wizard. You'll be guided through owner identity, business information, shop details, and verification documents.
+              </p>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    router.push('/owner/create-shop');
+                  }}
+                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Start Shop Setup Wizard
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateShop(false)}
+                  className="px-6 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  {t('common.cancel')}
+                </button>
               </div>
-            </form>
+            </div>
           </div>
         )}
 
@@ -1487,17 +1417,22 @@ const MyShopPage = () => {
     <div className="max-w-5xl mx-auto px-4 py-6">
       {/* Section Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('myShop.title')}</h1>
-        <p className="text-lg text-gray-600">{shop.name}</p>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('myShop.title')}</h1>
+            <p className="text-lg text-gray-600">{shop.name}</p>
+          </div>
+          <PushNotificationButton userType="owner" />
+        </div>
       </div>
 
       {/* Tabs */}
       <div className="mb-6 border-b border-gray-200">
         <div className="flex gap-1">
-          {(['overview', 'services', 'bookings', 'photos', 'reviews'] as const).map((tab) => (
+          {(['overview', 'services', 'bookings', 'photos', 'reviews', 'calendar'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => {
+              onClick={async () => {
                 setActiveTab(tab);
                 // Fetch data when tab is clicked
                 if (shop && user) {
@@ -1509,6 +1444,13 @@ const MyShopPage = () => {
                     fetchPhotos(shop.id);
                   } else if (tab === 'reviews') {
                     fetchReviews(shop.id);
+                    // Mark all review notifications as read when viewing reviews tab
+                    const reviewNotifications = notifications.filter(
+                      (n) => !n.is_read && n.type === 'new_review'
+                    );
+                    for (const notification of reviewNotifications) {
+                      await markAsRead(notification.id);
+                    }
                   }
                 }
               }}
@@ -1519,6 +1461,12 @@ const MyShopPage = () => {
               }`}
             >
               {t(`myShop.${tab}`)}
+              {tab === 'bookings' && unreadBookingsCount > 0 && (
+                <NotificationDot className="absolute top-1 right-1" />
+              )}
+              {tab === 'reviews' && unreadReviewsCount > 0 && (
+                <NotificationDot className="absolute top-1 right-1" />
+              )}
               {activeTab === tab && (
                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
               )}
@@ -1596,6 +1544,12 @@ const MyShopPage = () => {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
                 </div>
+                <div>
+                  <OpeningHoursEditor
+                    openingHours={shopForm.opening_hours || {}}
+                    onChange={(hours) => setShopForm(prev => ({ ...prev, opening_hours: hours }))}
+                  />
+                </div>
                 <div className="flex gap-4">
                   <button
                     type="submit"
@@ -1619,6 +1573,7 @@ const MyShopPage = () => {
                         zip_code: shop.zip_code || '',
                         description: shop.description || '',
                         language_code: shop.language_code || '',
+                        opening_hours: shop.opening_hours || null,
                         category: shop.category || null,
                         subcategory: shop.subcategory || null,
                         logo_url: shop.logo_url || null,
@@ -1635,6 +1590,7 @@ const MyShopPage = () => {
                         zip_code: '',
                         description: '',
                         language_code: '',
+                        opening_hours: null,
                       });
                     }}
                     className="px-6 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 transition-colors"
@@ -1677,13 +1633,6 @@ const MyShopPage = () => {
             </div>
           )}
 
-          {/* LINE QR Code Section */}
-          {shop && (
-            <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">LINE QR Code</h3>
-              <LineQrSection shopId={shop.id} shop={shop} user={user} />
-            </div>
-          )}
         </div>
       )}
 
@@ -1780,7 +1729,7 @@ const MyShopPage = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="min-w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('common.name')}</th>
@@ -1838,8 +1787,8 @@ const MyShopPage = () => {
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('myShop.customer')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('common.email')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('common.phone')}</th>
+                    <th className="hidden md:table-cell text-left py-3 px-4 font-semibold text-gray-700">{t('common.email')}</th>
+                    <th className="hidden md:table-cell text-left py-3 px-4 font-semibold text-gray-700">{t('common.phone')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('myShop.dateTime')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('myShop.service')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('common.status')}</th>
@@ -1852,8 +1801,8 @@ const MyShopPage = () => {
                       <td className="py-3 px-4 text-gray-900 font-medium">
                         {booking.customer_name || t('common.unknown')}
                       </td>
-                      <td className="py-3 px-4 text-gray-600">{booking.customer_email || 'N/A'}</td>
-                      <td className="py-3 px-4 text-gray-600">{booking.customer_phone || 'N/A'}</td>
+                      <td className="hidden md:table-cell py-3 px-4 text-gray-600 max-w-xs truncate">{booking.customer_email || 'N/A'}</td>
+                      <td className="hidden md:table-cell py-3 px-4 text-gray-600">{booking.customer_phone || 'N/A'}</td>
                       <td className="py-3 px-4 text-gray-700">
                         {booking.start_time ? new Date(booking.start_time).toLocaleString() : 'N/A'}
                       </td>
@@ -1876,29 +1825,63 @@ const MyShopPage = () => {
                           {(!booking.status || booking.status === 'pending') && (
                             <>
                               <button
-                                onClick={() => openStatusUpdateModal(booking.id, 'confirmed', booking.customer_name || null)}
+                                onClick={() =>
+                                  openStatusUpdateModal(
+                                    booking.id,
+                                    'confirmed',
+                                    booking.customer_name || null
+                                  )
+                                }
                                 className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
                               >
                                 {t('common.confirm')}
                               </button>
                               <button
-                                onClick={() => openStatusUpdateModal(booking.id, 'rejected', booking.customer_name || null)}
+                                onClick={() =>
+                                  openStatusUpdateModal(
+                                    booking.id,
+                                    'rejected',
+                                    booking.customer_name || null
+                                  )
+                                }
                                 className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium"
                               >
                                 {t('common.reject')}
                               </button>
                             </>
                           )}
+                          {booking.status === 'confirmed' && (
+                            <button
+                              onClick={() =>
+                                openStatusUpdateModal(
+                                  booking.id,
+                                  'completed',
+                                  booking.customer_name || null
+                                )
+                              }
+                              className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                            >
+                              {t('status.completed')}
+                            </button>
+                          )}
                           {booking.status && booking.status !== 'cancelled' && booking.status !== 'completed' && (
                             <>
                               <button
-                                onClick={() => openCancelModal(booking.id, booking.customer_name || null)}
+                                onClick={() =>
+                                  openCancelModal(booking.id, booking.customer_name || null)
+                                }
                                 className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium"
                               >
                                 {t('booking.cancelBooking')}
                               </button>
                               <button
-                                onClick={() => openRescheduleModal(booking.id, booking.customer_name || null, booking.start_time)}
+                                onClick={() =>
+                                  openRescheduleModal(
+                                    booking.id,
+                                    booking.customer_name || null,
+                                    booking.start_time
+                                  )
+                                }
                                 className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
                               >
                                 {t('booking.rescheduleBooking')}
@@ -1968,6 +1951,10 @@ const MyShopPage = () => {
             </>
           )}
         </div>
+      )}
+
+      {activeTab === 'calendar' && shop && user && (
+        <ShopCalendar shopId={shop.id} userId={user.id} />
       )}
 
       {activeTab === 'photos' && (
@@ -2156,11 +2143,20 @@ const MyShopPage = () => {
             </button>
             
             <h3 className="text-xl font-bold text-gray-900 mb-4">
-              {statusUpdateModal.newStatus === 'confirmed' ? t('myShop.confirmBooking') : t('myShop.rejectBooking')}
+              {statusUpdateModal.newStatus === 'confirmed'
+                ? t('myShop.confirmBooking')
+                : statusUpdateModal.newStatus === 'completed'
+                ? 'Mark booking as completed'
+                : t('myShop.rejectBooking')}
             </h3>
             
             <p className="text-gray-600 mb-6">
-              {statusUpdateModal.newStatus === 'confirmed' ? t('myShop.areYouSureConfirm') : t('myShop.areYouSureReject')} {statusUpdateModal.bookingCustomerName ? `${t('common.for')} ${statusUpdateModal.bookingCustomerName}` : ''}?
+              {statusUpdateModal.newStatus === 'confirmed'
+                ? t('myShop.areYouSureConfirm')
+                : statusUpdateModal.newStatus === 'completed'
+                ? 'Are you sure you want to mark this booking as completed'
+                : t('myShop.areYouSureReject')}{' '}
+              {statusUpdateModal.bookingCustomerName ? `${t('common.for')} ${statusUpdateModal.bookingCustomerName}` : ''}?
             </p>
 
             {statusUpdateMessage && (
@@ -2189,10 +2185,18 @@ const MyShopPage = () => {
                 className={`px-4 py-2 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   statusUpdateModal.newStatus === 'confirmed'
                     ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-red-600 hover:bg-red-700'
+                    : statusUpdateModal.newStatus === 'completed'
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : 'b」と-레g:bg-red-700'
                 }`}
               >
-                {statusUpdateLoading ? t('common.updating') : statusUpdateModal.newStatus === 'confirmed' ? t('common.confirm') : t('common.reject')}
+                {statusUpdateLoading
+                  ? t('common.updating')
+                  : statusUpdateModal.newStatus === 'confirmed'
+                  ? t('common.confirm')
+                  : statusUpdateModal.newStatus === 'completed'
+                  ? 'Mark as completed'
+                  : t('common.reject')}
               </button>
             </div>
           </div>

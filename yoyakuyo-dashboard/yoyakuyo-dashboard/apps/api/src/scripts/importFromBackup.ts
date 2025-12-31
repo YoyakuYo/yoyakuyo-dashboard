@@ -167,7 +167,7 @@ async function importFromBackup() {
     // Get or create category ID
     let categoryId = categoryMap.get(categoryName);
     if (!categoryId) {
-      categoryId = await getOrCreateCategoryId(categoryName) || null;
+      categoryId = (await getOrCreateCategoryId(categoryName) || null) as string | undefined;
       if (categoryId) {
         categoryMap.set(categoryName, categoryId);
       }

@@ -411,10 +411,6 @@
     "private_karaoke_rooms": "カラオケルーム",
     "unknown": "不明",
     "activities_and_sports": "アクティビティ・スポーツ",
-<<<<<<< HEAD
-    "beauty_services": "美容サービス",
-=======
->>>>>>> 5c8c6279 (fix: remove unsafe user.name lookup, use user user_metadata.name fallback)
     "clinics_and_medical_care": "クリニック・医療",
     "dining_and_izakaya": "飲食・居酒屋",
     "hotels_and_stays": "ホテル・宿泊",
@@ -422,15 +418,11 @@
     "spa_onsen_relaxation": "スパ・温泉・リラクゼーション",
     "spa_onsen": "スパ・温泉・リラクゼーション",
     "spa_and_onsen_and_relaxation": "スパ・温泉・リラクゼーション",
-<<<<<<< HEAD
-    "spa": "スパ・温泉・リラクゼーション"
-=======
     "spa": "スパ・温泉・リラクゼーション",
     "ryokan_onsen": "旅館温泉",
     "ryokan_stay": "旅館宿泊",
     "waxing": "脱毛",
     "yoga": "ヨガ"
->>>>>>> 5c8c6279 (fix: remove unsafe user.name lookup, use user user_metadata.name fallback)
   },
   "prefectures": {
     "hokkaido": "北海道",
@@ -819,9 +811,6 @@
   },
   "reviews": {
     "title": "レビュー",
-    "description": "お客様が体験について語っている声をご覧ください",
-    "browseShops": "店舗を探す",
-    "viewAllShops": "すべての店舗とレビューを見る",
     "writeReview": "レビューを書く",
     "rating": "評価",
     "comment": "コメント",
@@ -946,16 +935,6 @@
     "lineConnected": "LINE接続済み",
     "lineNotConnected": "LINE未接続",
     "shareOnLine": "LINEでシェア",
-<<<<<<< HEAD
-    "disconnect": "切断"
-  },
-  "categoryActivitiesTitle": "アクティビティ・スポーツ",
-  "categoryBeautyTitle": "美容サービス",
-  "categoryClinicsTitle": "クリニック・医療",
-  "categoryDiningTitle": "飲食・居酒屋",
-  "categoryHotelsTitle": "ホテル・宿泊",
-  "categorySpaTitle": "スパ・温泉・リラクゼーション"
-=======
     "disconnect": "切断",
     "lineQRCode": "LINE QRコード",
     "connectLineToGenerate": "QRコードを生成するためにLINEに接続",
@@ -1537,5 +1516,4 @@
     "errorFileSize": "Each file must be less than 10MB",
     "errorFileType": "Only JPG, PNG, and PDF files are allowed"
   }
->>>>>>> 5c8c6279 (fix: remove unsafe user.name lookup, use user user_metadata.name fallback)
 }

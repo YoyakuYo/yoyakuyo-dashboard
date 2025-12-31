@@ -259,12 +259,15 @@ export default function PublicBookingPage() {
           alert(t('booking.bookingFailed'));
         }
   };
-    } else if (user != null) {
-      // For logged-in users, use customer profile data
-      // user is guaranteed not null in this block
-      const u = user!;
-      const finalName = customerProfile?.name || name || u.user_metadata?.name || u.email?.split('@')[0] || 'Customer';
-      const finalEmail = customerProfile?.email || email || u.email || '';
+    } else {
+      // For logged-in users, use customer profile data (handle possible null user safely)
+      const finalName =
+        customerProfile?.name ||
+        name ||
+        user?.user_metadata?.name ||
+        user?.email?.split('@')[0] ||
+        'Customer';
+      const finalEmail = customerProfile?.email || email || user?.email || '';
       setName(finalName);
       setEmail(finalEmail);
     }
