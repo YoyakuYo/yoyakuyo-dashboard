@@ -1,0 +1,197 @@
+[1mdiff --git a/yoyakuyo-dashboard/app/browse/page.tsx b/yoyakuyo-dashboard/app/browse/page.tsx[m
+[1mindex cbc91c1..23b4b75 100644[m
+[1m--- a/yoyakuyo-dashboard/app/browse/page.tsx[m
+[1m+++ b/yoyakuyo-dashboard/app/browse/page.tsx[m
+[36m@@ -1,370 +1,19 @@[m
+ 'use client';[m
+ [m
+[31m-import React, { useEffect, useMemo, useState } from 'react';[m
+[31m-import Link from 'next/link';[m
+[31m-[m
+[31m-type Shop = {[m
+[31m-  id: string;[m
+[31m-  name: string;[m
+[31m-  address: string | null;[m
+[31m-  city: string | null;[m
+[31m-  category_id: string | null;[m
+[31m-  claim_status: string | null;[m
+[31m-  image_url: string | null;[m
+[31m-  cover_photo_url: string | null;[m
+[31m-  logo_url: string | null;[m
+[31m-  [key: string]: any;[m
+[31m-};[m
+[31m-[m
+[31m-type Category = {[m
+[31m-  id: string;[m
+[31m-  name: string;[m
+[31m-  description?: string | null;[m
+[31m-  [key: string]: any;[m
+[31m-};[m
+[31m-[m
+[31m-const ALL_PREFECTURES = [[m
+[31m-  '北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',[m
+[31m-  '茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県',[m
+[31m-  '新潟県','富山県','石川県','福井県','山梨県','長野県',[m
+[31m-  '岐阜県','静岡県','愛知県','三重県',[m
+[31m-  '滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県',[m
+[31m-  '鳥取県','島根県','岡山県','広島県','山口県',[m
+[31m-  '徳島県','香川県','愛媛県','高知県',[m
+[31m-  '福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'[m
+[31m-];[m
+[31m-[m
+[31m-// Try to detect prefecture from address string[m
+[31m-function getPrefectureFromAddress(shop: Shop): string {[m
+[31m-  const addr = (shop.address || '') + ' ' + (shop.city || '');[m
+[31m-  for (const pref of ALL_PREFECTURES) {[m
+[31m-    if (addr.includes(pref)) return pref;[m
+[31m-  }[m
+[31m-  return '不明';[m
+[31m-}[m
+[31m-[m
+[31m-function normalizeApiBase(): string {[m
+[31m-  const envBase = process.env.NEXT_PUBLIC_API_URL || '';[m
+[31m-  if (!envBase) return ''; // then we will use relative URLs[m
+[31m-  return envBase.endsWith('/') ? envBase.slice(0, -1) : envBase;[m
+[31m-}[m
+[31m-[m
+[31m-const BrowsePage: React.FC = () => {[m
+[31m-  const [shops, setShops] = useState<Shop[]>([]);[m
+[31m-  const [categories, setCategories] = useState<Category[]>([]);[m
+[31m-  const [loading, setLoading] = useState(true);[m
+[31m-  const [error, setError] = useState<string | null>(null);[m
+[31m-[m
+[31m-  const [selectedPrefecture, setSelectedPrefecture] = useState<string | null>(null);[m
+[31m-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);[m
+[31m-  const [searchQuery, setSearchQuery] = useState('');[m
+[31m-[m
+[31m-  useEffect(() => {[m
+[31m-    const fetchData = async () => {[m
+[31m-      try {[m
+[31m-        setLoading(true);[m
+[31m-        setError(null);[m
+[31m-[m
+[31m-        const base = normalizeApiBase();[m
+[31m-[m
+[31m-        const shopsUrl = base ? `${base}/shops` : '/api/shops';[m
+[31m-        const categoriesUrl = base ? `${base}/categories` : '/api/categories';[m
+[31m-[m
+[31m-        const [shopsRes, categoriesRes] = await Promise.all([[m
+[31m-          fetch(shopsUrl),[m
+[31m-          fetch(categoriesUrl),[m
+[31m-        ]);[m
+[31m-[m
+[31m-        if (!shopsRes.ok) {[m
+[31m-          throw new Error(`Failed to load shops: ${shopsRes.status}`);[m
+[31m-        }[m
+[31m-        if (!categoriesRes.ok) {[m
+[31m-          throw new Error(`Failed to load categories: ${categoriesRes.status}`);[m
+[31m-        }[m
+[31m-[m
+[31m-        const shopsJson = await shopsRes.json();[m
+[31m-        const categoriesJson = await categoriesRes.json();[m
+[31m-[m
+[31m-        // Handle different response formats: array, { data: [] }, or { shops: [] }[m
+[31m-        const shopsData: Shop[] = Array.isArray(shopsJson) [m
+[31m-          ? shopsJson [m
+[31m-          : shopsJson.data ?? shopsJson.shops ?? [];[m
+[31m-        const categoriesData: Category[] = Array.isArray(categoriesJson)[m
+[31m-          ? categoriesJson[m
+[31m-          : categoriesJson.data ?? [];[m
+[31m-[m
+[31m-        setShops(shopsData);[m
+[31m-        setCategories(categoriesData);[m
+[31m-      } catch (err: any) {[m
+[31m-        console.error(err);[m
+[31m-        setError(err.message || 'Failed to load data');[m
+[31m-      } finally {[m
+[31m-        setLoading(false);[m
+[31m-      }[m
+[31m-    };[m
+[31m-[m
+[31m-    fetchData();[m
+[31m-  }, []);[m
+[31m-[m
+[31m-  // Prefectures that actually have shops[m
+[31m-  const prefecturesWithShops = useMemo(() => {[m
+[31m-    const set = new Set<string>();[m
+[31m-    for (const shop of shops) {[m
+[31m-      if (shop.claim_status === 'hidden') continue;[m
+[31m-      const pref = getPrefectureFromAddress(shop);[m
+[31m-      if (pref !== '不明') set.add(pref);[m
+[31m-    }[m
+[31m-    // Only keep those that are valid prefectures[m
+[31m-    return ALL_PREFECTURES.filter((pref) => set.has(pref));[m
+[31m-  }, [shops]);[m
+[31m-[m
+[31m-  // Categories that actually have shops[m
+[31m-  const categoriesWithShops = useMemo(() => {[m
+[31m-    const usedCategoryIds = new Set([m
+[31m-      shops[m
+[31m-        .filter((s) => s.claim_status !== 'hidden' && s.category_id)[m
+[31m-        .map((s) => s.category_id as string)[m
+[31m-    );[m
+[31m-    return categories.filter((c) => usedCategoryIds.has(c.id));[m
+[31m-  }, [shops, categories]);[m
+[31m-[m
+[31m-  const filteredShops = useMemo(() => {[m
+[31m-    const q = searchQuery.trim().toLowerCase();[m
+[31m-[m
+[31m-    return shops.filter((shop) => {[m
+[31m-      if (shop.claim_status === 'hidden') return false;[m
+[31m-[m
+[31m-      const pref = getPrefectureFromAddress(shop);[m
+[31m-[m
+[31m-      if (selectedPrefecture && pref !== selectedPrefecture) return false;[m
+[31m-      if (selectedCategoryId && shop.category_id !== selectedCategoryId) return false;[m
+[31m-[m
+[31m-      if (q) {[m
+[31m-        const name = (shop.name || '').toLowerCase();[m
+[31m-        const addr = (shop.address || '').toLowerCase();[m
+[31m-        const city = (shop.city || '').toLowerCase();[m
+[31m-        if ([m
+[31m-          !name.includes(q) &&[m
+[31m-          !addr.includes(q) &&[m
+[31m-          !city.includes(q)[m
+[31m-        ) {[m
+[31m-          return false;[m
+[31m-        }[m
+[31m-      }[m
+[31m-[m
+[31m-      return true;[m
+[31m-    });[m
+[31m-  }, [shops, selectedPrefecture, selectedCategoryId, searchQuery]);[m
+[31m-[m
+[31m-  const handleClearFilters = () => {[m
+[31m-    setSelectedPrefecture(null);[m
+[31m-    setSelectedCategoryId(null);[m
+[31m-    setSearchQuery('');[m
+[31m-  };[m
+[31m-[m
+[31m-  if (loading) {[m
+[31m-    return ([m
+[31m-      <div className="min-h-screen px-4 py-8 flex items-center justify-center">[m
+[31m-        <div className="text-gray-500">Loading shops…</div>[m
+[31m-      </div>[m
+[31m-    );[m
+[31m-  }[m
+[31m-[m
+[31m-  if (error) {[m
+[31m-    return ([m
+[31m-      <div className="min-h-screen px-4 py-8 flex flex-col items-center justify-center gap-4">[m
+[31m-        <div className="text-red-600 font-medium">Failed to load browse data</div>[m
+[31m-        <div className="text-sm text-gray-500">{error}</div>[m
+[31m-      </div>[m
+[31m-    );[m
+[31m-  }[m
+[31m-[m
+[32m+[m[32mexport default function BrowseTest() {[m
+   return ([m
+[31m-    <div className="min-h-screen px-4 py-8 max-w-6xl mx-auto flex flex-col gap-6">[m
+[31m-      {/* Search */}[m
+[31m-      <div className="w-full">[m
+[31m-        <input[m
+[31m-          type="text"[m
+[31m-          placeholder="Search by shop name, area or service…"[m
+[31m-          value={searchQuery}[m
+[31m-          onChange={(e) => setSearchQuery(e.target.value)}[m
+[31m-          className="w-full rounded-full border border-gray-200 px-4 py-2 text-sm shadow-sm fo
