@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useAdminAuth } from "@/lib/useAdminAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 
 interface User {
   id: string;
@@ -30,7 +30,7 @@ export default function UserManagementTable({
   onRefresh,
 }: UserManagementTableProps) {
   const t = useTranslations();
-  const { admin: currentAdmin } = useAdminAuth();
+  const { user: currentUser } = useCustomAuth();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [banReason, setBanReason] = useState<Record<string, string>>({});
   const [showBanModal, setShowBanModal] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export default function UserManagementTable({
       const response = await fetch(`${apiUrl}/admin/users/${userId}`, {
         method: "PATCH",
         headers: {
-          "x-user-id": currentAdmin?.id || "",
+          "x-user-id": currentUser?.id || "",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -81,7 +81,7 @@ export default function UserManagementTable({
       const response = await fetch(`${apiUrl}/admin/users/${userId}`, {
         method: "PATCH",
         headers: {
-          "x-user-id": currentAdmin?.id || "",
+          "x-user-id": currentUser?.id || "",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

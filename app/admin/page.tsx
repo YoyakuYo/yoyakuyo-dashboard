@@ -1,11 +1,10 @@
 // Admin dashboard main page
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useAdminAuth } from "@/lib/useAdminAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 import AdminStatsCard from "@/app/components/admin/AdminStatsCard";
 import LineChart from "@/app/components/LineChart";
 
@@ -32,29 +31,42 @@ interface PlatformStats {
 
 export default function AdminDashboardPage() {
   const t = useTranslations();
-  const router = useRouter();
-  const { admin, loading: authLoading } = useAdminAuth();
+  const { user } = useCustomAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const loadingRef = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (admin?.id) {
-      loadStats();
-    } else if (!authLoading && !admin) {
-      // Redirect to login if not authenticated
-      router.push("/admin/login");
+    // Prevent multiple simultaneous loads
+    if (loadingRef.current) {
+      return;
     }
-  }, [admin, authLoading, router]);
+
+    // If user hasn't changed, don't reload
+    if (user?.id === lastUserIdRef.current && lastUserIdRef.current !== null) {
+      return;
+    }
+
+    if (user?.id) {
+      lastUserIdRef.current = user.id;
+      loadStats();
+    }
+  }, [user?.id]);
 
   const loadStats = async () => {
+    if (loadingRef.current) {
+      return;
+    }
+    loadingRef.current = true;
     try {
       setLoading(true);
       setError(null);
 
       const response = await fetch(`${apiUrl}/admin/stats`, {
         headers: {
-          "x-user-id": admin?.id || "",
+          "x-user-id": user?.id || "",
           "Content-Type": "application/json",
         },
       });
@@ -75,6 +87,7 @@ export default function AdminDashboardPage() {
       setError(err.message || "Failed to load stats");
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
   };
 

@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useAdminAuth } from "@/lib/useAdminAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 import ShopManagementTable from "@/app/components/admin/ShopManagementTable";
 
 interface Shop {
@@ -19,7 +19,7 @@ interface Shop {
 
 export default function AdminShopsPage() {
   const t = useTranslations();
-  const { admin } = useAdminAuth();
+  const { user } = useCustomAuth();
   const [loading, setLoading] = useState(true);
   const [shops, setShops] = useState<Shop[]>([]);
   const [page, setPage] = useState(1);
@@ -31,10 +31,11 @@ export default function AdminShopsPage() {
   });
 
   useEffect(() => {
-    if (admin?.id) {
+    if (user?.id) {
       loadShops();
     }
-  }, [admin, page, filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, page, filters.verified, filters.hidden, filters.search]);
 
   const loadShops = async () => {
     try {
@@ -50,7 +51,7 @@ export default function AdminShopsPage() {
 
       const response = await fetch(`${apiUrl}/admin/shops?${params}`, {
         headers: {
-          "x-user-id": admin?.id || "",
+          "x-user-id": user?.id || "",
           "Content-Type": "application/json",
         },
       });
