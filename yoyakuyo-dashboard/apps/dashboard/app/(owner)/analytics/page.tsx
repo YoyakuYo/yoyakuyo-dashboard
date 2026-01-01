@@ -250,14 +250,14 @@ export default function AnalyticsPage() {
             {t('analytics.custom')}
           </button>
           {dateRange === 'custom' && (
-            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
               <input
                 type="date"
                 value={customStartDate}
                 onChange={(e) => setCustomStartDate(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-md"
               />
-              <span>to</span>
+              <span>{t('common.to')}</span>
               <input
                 type="date"
                 value={customEndDate}
