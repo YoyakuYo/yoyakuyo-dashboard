@@ -229,23 +229,23 @@ export default function AnalyticsPage() {
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">{t('analytics.title') || 'Analytics Dashboard'}</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{t('analytics.title')}</h1>
         <div className="flex gap-4">
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as "7" | "30" | "90" | "365")}
             className="px-4 py-2 border border-gray-300 rounded-lg"
           >
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="365">Last year</option>
+            <option value="7">{t('analytics.last7Days')}</option>
+            <option value="30">{t('analytics.last30Days')}</option>
+            <option value="90">{t('analytics.last90Days')}</option>
+            <option value="365">{t('analytics.lastYear')}</option>
           </select>
           <button
             onClick={exportReport}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            Export Report
+            {t('analytics.exportReport')}
           </button>
         </div>
       </div>
@@ -253,11 +253,11 @@ export default function AnalyticsPage() {
       {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-gray-200">
         {[
-          { key: "overview", label: "Overview" },
-          { key: "revenue", label: "Revenue" },
-          { key: "customers", label: "Customers" },
-          { key: "bookings", label: "Bookings" },
-          { key: "performance", label: "Performance" },
+          { key: "overview", label: t('analytics.overview') },
+          { key: "revenue", label: t('analytics.revenue') },
+          { key: "customers", label: t('analytics.customerAnalytics') },
+          { key: "bookings", label: t('analytics.bookings') },
+          { key: "performance", label: t('analytics.performance') },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -279,48 +279,48 @@ export default function AnalyticsPage() {
           {/* Key Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <AnalyticsCard
-              title="Total Revenue"
+              title={t('analytics.totalRevenue')}
               value={formatCurrency(
                 performanceData?.total_revenue ??
                   performanceData?.total_booked_value ??
                   0
               )}
-              subtitle="All time (completed bookings)"
+              subtitle={t('analytics.allTimeCompletedBookings')}
             />
             <AnalyticsCard
-              title="Total Bookings"
+              title={t('analytics.totalBookings')}
               value={performanceData?.total_bookings || 0}
-              subtitle={`${performanceData?.completed_bookings || 0} completed`}
+              subtitle={`${performanceData?.completed_bookings || 0} ${t('analytics.completed')}`}
             />
             <AnalyticsCard
-              title="Unique Customers"
+              title={t('analytics.uniqueCustomers')}
               value={performanceData?.unique_customers || 0}
-              subtitle={`${performanceData?.new_customers_30_days || 0} new (30d)`}
+              subtitle={`${t('analytics.newCustomers')}: ${performanceData?.new_customers_30_days || 0}`}
             />
             <AnalyticsCard
-              title="Average Rating"
+              title={t('analytics.averageRating')}
               value={performanceData?.average_rating?.toFixed(1) || "0.0"}
-              subtitle={`${performanceData?.total_reviews || 0} reviews`}
+              subtitle={`${performanceData?.total_reviews || 0} ${t('analytics.reviews')}`}
             />
           </div>
 
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4">Revenue Trend</h3>
+              <h3 className="text-lg font-semibold mb-4">{t('analytics.revenueTrend')}</h3>
               {revenueChartData.length > 0 ? (
                 <LineChart data={revenueChartData} height={300} color="#10B981" />
               ) : (
-                <p className="text-gray-500">No revenue data available</p>
+                <p className="text-gray-500">{t('analytics.noAnalyticsData')}</p>
               )}
             </div>
 
             <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4">Booking Status</h3>
+              <h3 className="text-lg font-semibold mb-4">{t('analytics.bookingStatus')}</h3>
               {bookingStatusChartData.length > 0 ? (
                 <BarChart data={bookingStatusChartData} height={300} />
               ) : (
-                <p className="text-gray-500">No booking data available</p>
+                <p className="text-gray-500">{t('analytics.noAnalyticsData')}</p>
               )}
             </div>
           </div>
@@ -355,15 +355,15 @@ export default function AnalyticsPage() {
             return (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <AnalyticsCard
-                  title="Total Revenue"
+                  title={t('analytics.totalRevenue')}
                   value={formatCurrency(totalRevenueValue)}
                 />
                 <AnalyticsCard
-                  title="Last 30 Days"
+                  title={t('analytics.last30Days')}
                   value={formatCurrency(last30Value)}
                 />
                 <AnalyticsCard
-                  title="Last 7 Days"
+                  title={t('analytics.last7Days')}
                   value={formatCurrency(last7Value)}
                 />
               </div>
@@ -371,23 +371,29 @@ export default function AnalyticsPage() {
           })()}
 
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Daily Revenue</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('analytics.dailyRevenue')}</h3>
             {revenueChartData.length > 0 ? (
               <LineChart data={revenueChartData} height={400} color="#10B981" />
             ) : (
-              <p className="text-gray-500">No revenue data available</p>
+              <p className="text-gray-500">{t('analytics.noAnalyticsData')}</p>
             )}
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Revenue Details</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('analytics.revenueDetails')}</h3>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bookings</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      {t('analytics.date')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      {t('analytics.bookings')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      {t('analytics.revenue')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -424,19 +430,19 @@ export default function AnalyticsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <AnalyticsCard
-              title="Total Customers"
+              title={t('analytics.totalCustomers')}
               value={customerData.summary?.total_customers || 0}
             />
             <AnalyticsCard
-              title="New (30 days)"
+              title={t('analytics.new30Days')}
               value={customerData.summary?.new_customers_30_days || 0}
             />
             <AnalyticsCard
-              title="Avg Bookings/Customer"
+              title={t('analytics.avgBookingsPerCustomer')}
               value={customerData.summary?.average_bookings_per_customer?.toFixed(1) || "0.0"}
             />
             <AnalyticsCard
-              title="Avg Spent/Customer"
+              title={t('analytics.avgSpentPerCustomer')}
               value={formatCurrency(
                 customerData.summary?.average_spent_per_customer ?? 0
               )}
@@ -444,16 +450,26 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Top Customers</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('analytics.topCustomers')}</h3>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bookings</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Completed</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Spent</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Booking</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      {t('analytics.customer')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      {t('analytics.bookings')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      {t('analytics.completed')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      {t('analytics.totalSpent')}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      {t('analytics.lastBooking')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -463,7 +479,7 @@ export default function AnalyticsPage() {
                     .map((customer, idx) => (
                       <tr key={idx}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          Customer {customer.customer_id.slice(0, 8)}
+                          {t('analytics.customer')} {customer.customer_id.slice(0, 8)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{customer.total_bookings}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{customer.completed_bookings}</td>
@@ -487,37 +503,33 @@ export default function AnalyticsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
             <AnalyticsCard
-              title="Total"
+              title={t('analytics.totalBookings')}
               value={bookingData.totals.total}
             />
             <AnalyticsCard
-              title="Completed"
+              title={t('analytics.completed')}
               value={bookingData.totals.completed}
-              subtitle="green"
             />
             <AnalyticsCard
-              title="Confirmed"
+              title={t('analytics.confirmed')}
               value={bookingData.totals.confirmed}
-              subtitle="blue"
             />
             <AnalyticsCard
-              title="Pending"
+              title={t('analytics.pending')}
               value={bookingData.totals.pending}
-              subtitle="yellow"
             />
             <AnalyticsCard
-              title="Cancelled"
+              title={t('analytics.cancelled')}
               value={bookingData.totals.cancelled}
-              subtitle="red"
             />
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Bookings Over Time</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('analytics.bookingTrends')}</h3>
             {bookingsChartData.length > 0 ? (
               <BarChart data={bookingsChartData} height={400} />
             ) : (
-              <p className="text-gray-500">No booking data available</p>
+              <p className="text-gray-500">{t('analytics.noAnalyticsData')}</p>
             )}
           </div>
         </div>
@@ -528,55 +540,55 @@ export default function AnalyticsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <AnalyticsCard
-              title="Completion Rate"
+              title={t('analytics.completionRate')}
               value={`${performanceData.completion_rate?.toFixed(1) || 0}%`}
             />
             <AnalyticsCard
-              title="Cancellation Rate"
+              title={t('analytics.cancellationRate')}
               value={`${performanceData.cancellation_rate?.toFixed(1) || 0}%`}
             />
             <AnalyticsCard
-              title="Avg Booking Value"
+              title={t('analytics.averageBookingValue')}
               value={formatCurrency(performanceData.average_booking_value || 0)}
             />
             <AnalyticsCard
-              title="Bookings (Last 7d)"
+              title={t('analytics.bookingsLast7Days')}
               value={performanceData.bookings_last_7_days || 0}
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4">Performance Metrics</h3>
+              <h3 className="text-lg font-semibold mb-4">{t('analytics.performanceMetrics')}</h3>
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Total Bookings:</span>
+                  <span className="text-gray-600">{t('analytics.totalBookings')}:</span>
                   <span className="font-semibold">{performanceData.total_bookings}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Completed:</span>
+                  <span className="text-gray-600">{t('analytics.completed')}:</span>
                   <span className="font-semibold text-green-600">{performanceData.completed_bookings}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Cancelled:</span>
+                  <span className="text-gray-600">{t('analytics.cancelled')}:</span>
                   <span className="font-semibold text-red-600">{performanceData.cancelled_bookings}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Completion Rate:</span>
+                  <span className="text-gray-600">{t('analytics.completionRate')}:</span>
                   <span className="font-semibold">{performanceData.completion_rate?.toFixed(1)}%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Cancellation Rate:</span>
+                  <span className="text-gray-600">{t('analytics.cancellationRate')}:</span>
                   <span className="font-semibold">{performanceData.cancellation_rate?.toFixed(1)}%</span>
                 </div>
               </div>
             </div>
 
             <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4">Revenue Metrics</h3>
+              <h3 className="text-lg font-semibold mb-4">{t('analytics.revenueMetrics')}</h3>
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Total Revenue:</span>
+                  <span className="text-gray-600">{t('analytics.totalRevenue')}:</span>
                   <span className="font-semibold text-green-600">
                     {formatCurrency(
                       performanceData.total_revenue ??
@@ -586,7 +598,7 @@ export default function AnalyticsPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Last 30 Days:</span>
+                  <span className="text-gray-600">{t('analytics.last30Days')}:</span>
                   <span className="font-semibold">
                     {formatCurrency(
                       performanceData.revenue_last_30_days ??
@@ -596,7 +608,7 @@ export default function AnalyticsPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Last 7 Days:</span>
+                  <span className="text-gray-600">{t('analytics.last7Days')}:</span>
                   <span className="font-semibold">
                     {formatCurrency(
                       performanceData.revenue_last_7_days ??
@@ -606,7 +618,7 @@ export default function AnalyticsPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Avg Booking Value:</span>
+                  <span className="text-gray-600">{t('analytics.averageBookingValue')}:</span>
                   <span className="font-semibold">
                     {formatCurrency(performanceData.average_booking_value || 0)}
                   </span>
