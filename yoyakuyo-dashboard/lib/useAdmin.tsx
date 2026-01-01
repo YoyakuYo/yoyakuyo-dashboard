@@ -2,16 +2,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "./useAuth";
+import { useCustomAuth } from "./useCustomAuth";
 import { apiUrl } from "./apiClient";
 
 export function useAdmin() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, role } = useCustomAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (authLoading || !user) {
+      setLoading(false);
+      setIsAdmin(false);
+      return;
+    }
+
+    // Only check admin status for owners (customers can't be admins)
+    if (role !== 'owner') {
       setLoading(false);
       setIsAdmin(false);
       return;
@@ -38,7 +45,7 @@ export function useAdmin() {
     };
 
     checkAdmin();
-  }, [user, authLoading]);
+  }, [user, authLoading, role]);
 
   return { isAdmin, loading: loading || authLoading };
 }

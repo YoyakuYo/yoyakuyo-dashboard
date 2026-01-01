@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useAuth } from "@/lib/useAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 import AdminStatsCard from "@/app/components/admin/AdminStatsCard";
 import LineChart from "@/app/components/LineChart";
 
@@ -31,7 +31,7 @@ interface PlatformStats {
 
 export default function AdminDashboardPage() {
   const t = useTranslations();
-  const { user } = useAuth();
+  const { user } = useCustomAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [error, setError] = useState<string | null>(null);

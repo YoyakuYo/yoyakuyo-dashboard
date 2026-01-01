@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
-import { useAuth } from '@/lib/useAuth';
+import { useCustomAuth } from '@/lib/useCustomAuth';
 
 interface ClaimFile {
   id: string;
@@ -47,7 +47,7 @@ interface ClaimRequest {
 export default function AdminShopClaimsPage() {
   const t = useTranslations();
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useCustomAuth();
   const [claims, setClaims] = useState<ClaimRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);

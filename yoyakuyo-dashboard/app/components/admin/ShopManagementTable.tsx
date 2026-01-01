@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useAuth } from "@/lib/useAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 import Link from "next/link";
 
 interface Shop {
@@ -29,7 +29,7 @@ export default function ShopManagementTable({
   onRefresh,
 }: ShopManagementTableProps) {
   const t = useTranslations();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser } = useCustomAuth();
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const handleVerify = async (shopId: string) => {

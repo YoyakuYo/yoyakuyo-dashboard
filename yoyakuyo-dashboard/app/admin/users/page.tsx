@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useAuth } from "@/lib/useAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 import UserManagementTable from "@/app/components/admin/UserManagementTable";
 
 interface User {
@@ -21,7 +21,7 @@ interface User {
 
 export default function AdminUsersPage() {
   const t = useTranslations();
-  const { user } = useAuth();
+  const { user } = useCustomAuth();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [page, setPage] = useState(1);

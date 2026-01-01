@@ -5,12 +5,12 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useAuth } from "@/lib/useAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 
 const AdminSidebar = React.memo(() => {
   const pathname = usePathname();
   const t = useTranslations();
-  const { signOut, user } = useAuth();
+  const { signOut, user } = useCustomAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const navItems = [

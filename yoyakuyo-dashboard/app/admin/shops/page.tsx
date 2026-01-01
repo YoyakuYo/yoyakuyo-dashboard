@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useAuth } from "@/lib/useAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 import ShopManagementTable from "@/app/components/admin/ShopManagementTable";
 
 interface Shop {
@@ -19,7 +19,7 @@ interface Shop {
 
 export default function AdminShopsPage() {
   const t = useTranslations();
-  const { user } = useAuth();
+  const { user } = useCustomAuth();
   const [loading, setLoading] = useState(true);
   const [shops, setShops] = useState<Shop[]>([]);
   const [page, setPage] = useState(1);
