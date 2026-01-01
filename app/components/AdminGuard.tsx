@@ -1,4 +1,4 @@
-// Component to protect admin routes - redirects if user is not admin
+// Component to protect admin routes - redirects to admin login if not authenticated
 "use client";
 
 import { useEffect } from "react";
@@ -11,7 +11,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (!loading && !isAdmin) {
-      router.push("/");
+      router.push("/admin/login");
     }
   }, [isAdmin, loading, router]);
 
@@ -27,7 +27,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
   }
 
   if (!isAdmin) {
-    return null; // Will redirect
+    return null; // Will redirect to /admin/login
   }
 
   return <>{children}</>;

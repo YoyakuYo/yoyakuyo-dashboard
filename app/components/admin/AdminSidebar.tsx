@@ -5,12 +5,12 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useAuth } from "@/lib/useAuth";
+import { useAdminAuth } from "@/lib/useAdminAuth";
 
 const AdminSidebar = React.memo(() => {
   const pathname = usePathname();
   const t = useTranslations();
-  const { signOut, user } = useAuth();
+  const { signOut, admin } = useAdminAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const navItems = [
@@ -65,7 +65,7 @@ const AdminSidebar = React.memo(() => {
         </ul>
         <div className="mt-auto pt-4 border-t border-slate-700">
           <div className="px-4 py-2 text-sm text-gray-400 mb-2">
-            {user?.email}
+            {admin?.email}
           </div>
           <button
             onClick={signOut}
@@ -124,7 +124,7 @@ const AdminSidebar = React.memo(() => {
         </nav>
         <div className="p-4 border-t border-slate-700">
           <div className="px-4 py-2 text-sm text-gray-400 mb-2 truncate">
-            {user?.email}
+            {admin?.email}
           </div>
           <button
             onClick={signOut}

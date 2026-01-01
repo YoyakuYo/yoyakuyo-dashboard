@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useAuth } from "@/lib/useAuth";
+import { useAdminAuth } from "@/lib/useAdminAuth";
 
 interface User {
   id: string;
@@ -30,7 +30,7 @@ export default function UserManagementTable({
   onRefresh,
 }: UserManagementTableProps) {
   const t = useTranslations();
-  const { user: currentUser } = useAuth();
+  const { admin: currentAdmin } = useAdminAuth();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [banReason, setBanReason] = useState<Record<string, string>>({});
   const [showBanModal, setShowBanModal] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export default function UserManagementTable({
       const response = await fetch(`${apiUrl}/admin/users/${userId}`, {
         method: "PATCH",
         headers: {
-          "x-user-id": currentUser?.id || "",
+          "x-user-id": currentAdmin?.id || "",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -81,7 +81,7 @@ export default function UserManagementTable({
       const response = await fetch(`${apiUrl}/admin/users/${userId}`, {
         method: "PATCH",
         headers: {
-          "x-user-id": currentUser?.id || "",
+          "x-user-id": currentAdmin?.id || "",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

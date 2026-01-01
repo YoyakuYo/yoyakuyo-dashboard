@@ -2,9 +2,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useAuth } from "@/lib/useAuth";
+import { useAdminAuth } from "@/lib/useAdminAuth";
 import AdminStatsCard from "@/app/components/admin/AdminStatsCard";
 import LineChart from "@/app/components/LineChart";
 
@@ -31,16 +32,20 @@ interface PlatformStats {
 
 export default function AdminDashboardPage() {
   const t = useTranslations();
-  const { user } = useAuth();
+  const router = useRouter();
+  const { admin, loading: authLoading } = useAdminAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.id) {
+    if (admin?.id) {
       loadStats();
+    } else if (!authLoading && !admin) {
+      // Redirect to login if not authenticated
+      router.push("/admin/login");
     }
-  }, [user]);
+  }, [admin, authLoading, router]);
 
   const loadStats = async () => {
     try {
@@ -49,7 +54,7 @@ export default function AdminDashboardPage() {
 
       const response = await fetch(`${apiUrl}/admin/stats`, {
         headers: {
-          "x-user-id": user?.id || "",
+          "x-user-id": admin?.id || "",
           "Content-Type": "application/json",
         },
       });

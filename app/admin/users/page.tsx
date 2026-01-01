@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useAuth } from "@/lib/useAuth";
+import { useAdminAuth } from "@/lib/useAdminAuth";
 import UserManagementTable from "@/app/components/admin/UserManagementTable";
 
 interface User {
@@ -21,7 +21,7 @@ interface User {
 
 export default function AdminUsersPage() {
   const t = useTranslations();
-  const { user } = useAuth();
+  const { admin } = useAdminAuth();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [page, setPage] = useState(1);
@@ -33,10 +33,10 @@ export default function AdminUsersPage() {
   });
 
   useEffect(() => {
-    if (user?.id) {
+    if (admin?.id) {
       loadUsers();
     }
-  }, [user, page, filters]);
+  }, [admin, page, filters]);
 
   const loadUsers = async () => {
     try {
@@ -52,7 +52,7 @@ export default function AdminUsersPage() {
 
       const response = await fetch(`${apiUrl}/admin/users?${params}`, {
         headers: {
-          "x-user-id": user?.id || "",
+          "x-user-id": admin?.id || "",
           "Content-Type": "application/json",
         },
       });

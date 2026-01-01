@@ -1,45 +1,14 @@
-// Hook to check if current user has admin role
+// Hook to check if current user has admin role - uses independent admin auth
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAuth } from "./useAuth";
-import { apiUrl } from "./apiClient";
+import { useAdminAuth } from "./useAdminAuth";
 
 export function useAdmin() {
-  const { user, loading: authLoading } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (authLoading || !user) {
-      setLoading(false);
-      setIsAdmin(false);
-      return;
-    }
-
-    // Check admin status by trying to access admin stats endpoint
-    // This will return 403 if not admin, 200 if admin
-    const checkAdmin = async () => {
-      try {
-        const response = await fetch(`${apiUrl}/admin/stats`, {
-          headers: {
-            "x-user-id": user.id,
-            "Content-Type": "application/json",
-          },
-        });
-
-        setIsAdmin(response.ok);
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-        setIsAdmin(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAdmin();
-  }, [user, authLoading]);
-
-  return { isAdmin, loading: loading || authLoading };
+  const { admin, loading } = useAdminAuth();
+  
+  return { 
+    isAdmin: !!admin, 
+    loading 
+  };
 }
 

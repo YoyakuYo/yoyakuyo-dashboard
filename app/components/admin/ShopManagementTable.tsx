@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useAuth } from "@/lib/useAuth";
+import { useAdminAuth } from "@/lib/useAdminAuth";
 import Link from "next/link";
 
 interface Shop {
@@ -29,7 +29,7 @@ export default function ShopManagementTable({
   onRefresh,
 }: ShopManagementTableProps) {
   const t = useTranslations();
-  const { user: currentUser } = useAuth();
+  const { admin: currentAdmin } = useAdminAuth();
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const handleVerify = async (shopId: string) => {
@@ -38,7 +38,7 @@ export default function ShopManagementTable({
       const response = await fetch(`${apiUrl}/admin/shops/${shopId}`, {
         method: "PATCH",
         headers: {
-          "x-user-id": currentUser?.id || "",
+          "x-user-id": currentAdmin?.id || "",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ is_verified: true }),
@@ -64,7 +64,7 @@ export default function ShopManagementTable({
       const response = await fetch(`${apiUrl}/admin/shops/${shopId}`, {
         method: "PATCH",
         headers: {
-          "x-user-id": currentUser?.id || "",
+          "x-user-id": currentAdmin?.id || "",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ is_hidden: hide }),
@@ -94,7 +94,7 @@ export default function ShopManagementTable({
       const response = await fetch(`${apiUrl}/admin/shops/${shopId}`, {
         method: "DELETE",
         headers: {
-          "x-user-id": currentUser?.id || "",
+          "x-user-id": currentAdmin?.id || "",
           "Content-Type": "application/json",
         },
       });

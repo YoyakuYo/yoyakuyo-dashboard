@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
-import { useAuth } from '@/lib/useAuth';
+import { useAdminAuth } from '@/lib/useAdminAuth';
 
 interface ClaimFile {
   id: string;
@@ -47,7 +47,7 @@ interface ClaimRequest {
 export default function AdminShopClaimsPage() {
   const t = useTranslations();
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { admin, loading: authLoading } = useAdminAuth();
   const [claims, setClaims] = useState<ClaimRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -55,10 +55,10 @@ export default function AdminShopClaimsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && admin) {
       fetchPendingClaims();
     }
-  }, [authLoading, user]);
+  }, [authLoading, admin]);
 
   const fetchPendingClaims = async () => {
     try {
@@ -66,7 +66,7 @@ export default function AdminShopClaimsPage() {
       const res = await fetch(`${apiUrl}/shop-claims/pending`, {
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id || '',
+          'x-user-id': admin?.id || '',
         },
       });
 
@@ -98,7 +98,7 @@ export default function AdminShopClaimsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id || '',
+          'x-user-id': admin?.id || '',
         },
         body: JSON.stringify({
           admin_note: adminNote[claimId] || null,
@@ -134,7 +134,7 @@ export default function AdminShopClaimsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id || '',
+          'x-user-id': admin?.id || '',
         },
         body: JSON.stringify({
           admin_note: adminNote[claimId] || null,
@@ -177,8 +177,8 @@ export default function AdminShopClaimsPage() {
     );
   }
 
-  if (!user) {
-    router.push('/login');
+  if (!admin) {
+    router.push('/admin/login');
     return null;
   }
 
