@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCustomAuth } from "@/lib/useCustomAuth";
 import { useCustomerNotifications } from "./CustomerNotificationContext";
-import NotificationDot from "@/app/components/NotificationDot";
 
 export default function CustomerSidebar() {
   const pathname = usePathname();
