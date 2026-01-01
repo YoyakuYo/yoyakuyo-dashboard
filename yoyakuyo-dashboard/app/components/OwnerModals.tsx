@@ -79,22 +79,9 @@ export default function OwnerModals() {
 
   useEffect(() => {
     // Only listen for owner-specific events (from role selection modal)
-    // DO NOT listen to openLoginModal/openSignupModal - those go to RoleSelectionModal first
+    // Always show the login modal when explicitly requested, even if a session exists.
     const handleOpenOwnerLoginModal = () => {
-      // If Supabase session exists, restore and redirect (no re-entry).
-      try {
-        const supabase = getSupabaseClient();
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session?.user) {
-            router.push('/shops');
-            router.refresh();
-          } else {
-            setShowLoginModal(true);
-          }
-        }).catch(() => setShowLoginModal(true));
-      } catch {
-        setShowLoginModal(true);
-      }
+      setShowLoginModal(true);
     };
     const handleOpenOwnerSignupModal = () => {
       setShowSignupModal(true);

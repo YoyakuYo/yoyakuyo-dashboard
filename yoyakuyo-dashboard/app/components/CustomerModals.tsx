@@ -67,25 +67,7 @@ export default function CustomerModals() {
 
   useEffect(() => {
     const openLogin = () => {
-      // If a valid customer session already exists, restore it and redirect (no re-entry).
-      try {
-        const storedSession = localStorage.getItem("yoyaku_session");
-        const storedUser = localStorage.getItem("yoyaku_user");
-        if (storedSession && storedUser) {
-          const sessionData = JSON.parse(storedSession) as { expires_at?: string; role?: string };
-          const userData = JSON.parse(storedUser) as { role?: string };
-          const expiresAt = sessionData?.expires_at ? new Date(sessionData.expires_at) : null;
-          const notExpired = !!expiresAt && expiresAt > new Date();
-          const role = sessionData?.role || userData?.role;
-          if (notExpired && role === "customer") {
-            router.push("/customer/home");
-            router.refresh();
-            return;
-          }
-        }
-      } catch {
-        // Ignore parse errors; fall back to showing modal.
-      }
+      // Always show the login modal when requested, even if a session exists.
       setShowLoginModal(true);
     };
 
