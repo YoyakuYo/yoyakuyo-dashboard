@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCustomAuth } from "@/lib/useCustomAuth";
 
 const Modal = React.memo(
@@ -43,6 +44,7 @@ Modal.displayName = "Modal";
 
 export default function CustomerModals() {
   const router = useRouter();
+  const t = useTranslations();
   const { signIn, signUp } = useCustomAuth();
 
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -205,6 +207,15 @@ export default function CustomerModals() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
             />
+          </div>
+
+          <div className="flex justify-end -mt-2">
+            <Link
+              href="/forgot-password"
+              className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+            >
+              {t("forgotPassword") || "Forgot your password?"}
+            </Link>
           </div>
 
           <button
