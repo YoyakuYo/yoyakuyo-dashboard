@@ -26,6 +26,7 @@ interface PlatformStats {
   };
   growth: Array<{
     date: string;
+    admins: number;
     owners: number;
     customers: number;
   }>;
@@ -140,13 +141,13 @@ export default function AdminDashboardPage() {
     return null;
   }
 
-  // Prepare growth chart data
+  // Prepare growth chart data (include admins in total)
   const growthChartData = stats.growth.map((day) => ({
     x: new Date(day.date).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
     }),
-    y: day.owners + day.customers,
+    y: (day.admins || 0) + day.owners + day.customers,
   }));
 
   return (
