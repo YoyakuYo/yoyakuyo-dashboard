@@ -25,12 +25,23 @@ BEGIN
     FOR admin_record IN 
       SELECT id FROM admins WHERE status = 'active'
     LOOP
-      -- Ensure customer record exists (should exist if they're in auth.users)
-      INSERT INTO customers (id, role, is_admin, created_at)
-      VALUES (admin_record.id, 'customer', true, NOW())
-      ON CONFLICT (id) DO UPDATE SET is_admin = true;
-      
-      RAISE NOTICE 'Set is_admin = true for customer ID: %', admin_record.id;
+      -- Check if customer record already exists (by auth_user_id, since id is generated UUID)
+      IF EXISTS (SELECT 1 FROM customers WHERE auth_user_id = admin_record.id) THEN
+        -- Customer exists, just update is_admin flag
+        UPDATE customers 
+        SET is_admin = true 
+        WHERE auth_user_id = admin_record.id;
+        
+        RAISE NOTICE 'Updated is_admin = true for existing customer with auth_user_id: %', admin_record.id;
+      ELSE
+        -- Customer doesn't exist, create with 'web' role (admins are authenticated users)
+        -- Note: customer_role enum values are ('guest', 'web', 'line')
+        -- For 'web' role: auth_user_id must be set, email and line_user_id must be NULL
+        INSERT INTO customers (role, is_admin, auth_user_id, created_at)
+        VALUES ('web'::customer_role, true, admin_record.id, NOW());
+        
+        RAISE NOTICE 'Created customer with is_admin = true for auth_user_id: %', admin_record.id;
+      END IF;
     END LOOP;
   END IF;
 END $$;
