@@ -14,9 +14,9 @@ interface User {
   is_banned: boolean;
   banned_at: string | null;
   banned_reason: string | null;
-  user_type: "admin";
-  role?: "super_admin" | "support"; // Admin role: only super_admin or support
-  status?: "active" | "disabled"; // Admin status
+  user_type: "admin" | "owner" | "customer"; // All user types
+  role: "guest" | "customer" | "owner"; // Customer role
+  is_admin: boolean; // Admin flag
 }
 
 interface UserManagementTableProps {
@@ -47,7 +47,7 @@ export default function UserManagementTable({
     getUserId();
   }, []);
 
-  const handleBan = async (userId: string, userType: string) => {
+  const handleBan = async (userId: string) => {
     if (!confirm(t("admin.confirmBan"))) {
       return;
     }
@@ -63,7 +63,6 @@ export default function UserManagementTable({
         body: JSON.stringify({
           is_banned: true,
           banned_reason: banReason[userId] || null,
-          user_type: userType,
         }),
       });
 
@@ -83,7 +82,7 @@ export default function UserManagementTable({
     }
   };
 
-  const handleUnban = async (userId: string, userType: string) => {
+  const handleUnban = async (userId: string) => {
     if (!confirm(t("admin.confirmUnban"))) {
       return;
     }
@@ -98,7 +97,6 @@ export default function UserManagementTable({
         },
         body: JSON.stringify({
           is_banned: false,
-          user_type: userType,
         }),
       });
 
@@ -172,19 +170,34 @@ export default function UserManagementTable({
                   {user.email}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                    Admin
-                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {user.is_admin && (
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                        {t("admin.admin") || "Admin"}
+                      </span>
+                    )}
+                    {user.role === 'owner' && (
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                        {t("admin.owner") || "Owner"}
+                      </span>
+                    )}
+                    {(user.role === 'customer' || user.role === 'guest') && (
+                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                        {t("admin.customer") || "Customer"}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {user.role && (
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                      {user.role === 'super_admin' ? 'Super Admin' : 'Support'}
-                    </span>
-                  )}
+                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                    {user.role === 'owner' ? (t("admin.owner") || "Owner") :
+                     user.role === 'customer' ? (t("admin.customer") || "Customer") :
+                     user.role === 'guest' ? (t("admin.guest") || "Guest") :
+                     user.role}
+                  </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {user.is_banned || user.status === 'disabled' ? (
+                  {user.is_banned ? (
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
                       {t("admin.banned") || "Banned"}
                     </span>
@@ -200,7 +213,7 @@ export default function UserManagementTable({
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   {user.is_banned ? (
                     <button
-                      onClick={() => handleUnban(user.id, user.user_type)}
+                      onClick={() => handleUnban(user.id)}
                       disabled={processingId === user.id}
                       className="text-green-600 hover:text-green-900 disabled:opacity-50"
                     >
@@ -254,7 +267,7 @@ export default function UserManagementTable({
                     onClick={() => {
                       const user = users.find((u) => u.id === showBanModal);
                       if (user) {
-                        handleBan(user.id, user.user_type);
+                        handleBan(user.id);
                       }
                     }}
                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"

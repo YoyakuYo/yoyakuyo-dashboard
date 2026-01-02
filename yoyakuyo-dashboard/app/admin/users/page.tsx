@@ -15,9 +15,9 @@ interface User {
   is_banned: boolean;
   banned_at: string | null;
   banned_reason: string | null;
-  user_type: "admin";
-  role?: "super_admin" | "support"; // Admin role: only super_admin or support
-  status?: "active" | "disabled"; // Admin status
+  user_type: "admin" | "owner" | "customer"; // All user types
+  role: "guest" | "customer" | "owner"; // Customer role
+  is_admin: boolean; // Admin flag
 }
 
 export default function AdminUsersPage() {
@@ -28,8 +28,7 @@ export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
-    role: "",
-    status: "",
+    role: "", // 'admin', 'owner', 'customer'
     search: "",
   });
 
@@ -60,8 +59,7 @@ export default function AdminUsersPage() {
         limit: "50",
       });
 
-      if (filters.role) params.append("role", filters.role);
-      if (filters.status) params.append("status", filters.status);
+      if (filters.role) params.append("role", filters.role); // 'admin', 'owner', 'customer'
       if (filters.search) params.append("search", filters.search);
 
       const response = await fetch(`${apiUrl}/admin/users?${params}`, {
@@ -109,27 +107,12 @@ export default function AdminUsersPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
               <option value="">{t("admin.allRoles") || "All Roles"}</option>
-              <option value="super_admin">Super Admin</option>
-              <option value="support">Support</option>
+              <option value="admin">{t("admin.admin") || "Admin"}</option>
+              <option value="owner">{t("admin.owner") || "Owner"}</option>
+              <option value="customer">{t("admin.customer") || "Customer"}</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("admin.filterByStatus") || "Filter by Status"}
-            </label>
-            <select
-              value={filters.status}
-              onChange={(e) =>
-                setFilters({ ...filters, status: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            >
-              <option value="">{t("admin.allStatuses") || "All Statuses"}</option>
-              <option value="active">{t("admin.active") || "Active"}</option>
-              <option value="disabled">{t("admin.banned") || "Banned"}</option>
-            </select>
-          </div>
-          <div className="md:col-span-2">
+          <div className="md:col-span-3">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("common.search") || "Search"}
             </label>
