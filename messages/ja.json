@@ -1020,6 +1020,8 @@
     "addressLine2": "住所2行目"
   },
   "admin": {
+    "adminLogin": "管理者ログイン",
+    "adminLoginDesc": "管理者ダッシュボードにアクセスするにはサインインしてください",
     "shopClaimRequests": "店舗申請リクエスト",
     "reviewAndApprove": "店舗所有権の申請を確認して承認/拒否",
     "importantVerificationRule": "重要な認証ルール:",

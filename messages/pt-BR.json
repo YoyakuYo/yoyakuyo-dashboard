@@ -810,6 +810,8 @@
     "addressLine2": "Linha de Endereço 2"
   },
   "admin": {
+    "adminLogin": "Login de Administrador",
+    "adminLoginDesc": "Faça login para acessar o painel de administração",
     "shopClaimRequests": "Solicitações de Reivindicação de Lojas",
     "reviewAndApprove": "Revisar e aprovar/rejeitar solicitações de propriedade de lojas",
     "importantVerificationRule": "Regra de Verificação Importante:",

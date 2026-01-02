@@ -1054,6 +1054,8 @@
     "addressLine2": "Address Line 2"
   },
   "admin": {
+    "adminLogin": "Admin Login",
+    "adminLoginDesc": "Sign in to access the admin dashboard",
     "shopClaimRequests": "Shop Claim Requests",
     "reviewAndApprove": "Review and approve/reject shop ownership claims",
     "importantVerificationRule": "Important Verification Rule:",

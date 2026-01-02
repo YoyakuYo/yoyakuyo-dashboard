@@ -810,6 +810,8 @@
     "addressLine2": "地址第二行"
   },
   "admin": {
+    "adminLogin": "管理员登录",
+    "adminLoginDesc": "登录以访问管理仪表板",
     "shopClaimRequests": "店铺申请请求",
     "reviewAndApprove": "审查并批准/拒绝店铺所有权申请",
     "importantVerificationRule": "重要验证规则:",
