@@ -48,6 +48,7 @@ export default function AdminSupportPage() {
   const [conversations, setConversations] = useState<SupportConversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<SupportConversation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
   const [filters, setFilters] = useState({
@@ -79,11 +80,13 @@ export default function AdminSupportPage() {
     if (userId) {
       fetchSupportConversations();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, page, filters.status, filters.user_type]);
 
   const fetchSupportConversations = async () => {
     try {
       setLoading(true);
+      setError(null);
       const params = new URLSearchParams({
         page: page.toString(),
         limit: "50",
@@ -108,6 +111,7 @@ export default function AdminSupportPage() {
       setTotalPages(data.pagination?.totalPages || 1);
     } catch (error: any) {
       console.error("Error loading support conversations:", error);
+      setError(error.message || "Failed to load support conversations");
     } finally {
       setLoading(false);
     }
@@ -192,6 +196,18 @@ export default function AdminSupportPage() {
         </h1>
         <p className="text-gray-600">{t("admin.supportDesc") || "Manage support tickets from shop owners and customers"}</p>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
+          <p className="text-red-800">{error}</p>
+          <button
+            onClick={fetchSupportConversations}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            {t("common.refresh") || "Refresh"}
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
