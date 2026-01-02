@@ -48,6 +48,7 @@ export default function AdminShopClaimsPage() {
   const t = useTranslations();
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [claims, setClaims] = useState<ClaimRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -57,10 +58,16 @@ export default function AdminShopClaimsPage() {
   // Get user from Supabase Auth
   useEffect(() => {
     const getUserId = async () => {
-      const supabase = getSupabaseClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUserId(session.user.id);
+      try {
+        const supabase = getSupabaseClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUserId(session.user.id);
+        }
+      } catch (error) {
+        console.error("Error getting user session:", error);
+      } finally {
+        setAuthLoading(false);
       }
     };
     getUserId();
@@ -189,8 +196,8 @@ export default function AdminShopClaimsPage() {
     );
   }
 
-  if (!user) {
-    router.push('/login');
+  if (!userId) {
+    router.push('/admin/login');
     return null;
   }
 
