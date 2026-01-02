@@ -182,11 +182,17 @@ export default function UserManagementTable({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {user.role && (
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                      {user.role === 'web' ? (t("admin.web") || "Web") :
-                       user.role === 'line' ? (t("admin.line") || "LINE") :
-                       user.role === 'guest' ? (t("admin.guest") || "Guest") :
-                       user.role}
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      user.user_type === 'admin' 
+                        ? (user.role === 'super_admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800')
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {user.user_type === 'admin' 
+                        ? (user.role === 'super_admin' ? (t("admin.superAdmin") || "Super Admin") : (t("admin.support") || "Support"))
+                        : (user.role === 'web' ? (t("admin.web") || "Web") :
+                           user.role === 'line' ? (t("admin.line") || "LINE") :
+                           user.role === 'guest' ? (t("admin.guest") || "Guest") :
+                           user.role)}
                     </span>
                   )}
                 </td>

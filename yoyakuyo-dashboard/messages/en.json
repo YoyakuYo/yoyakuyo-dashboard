@@ -1015,6 +1015,8 @@
     "filterByRole": "Filter by Role",
     "allRoles": "All Roles",
     "admin": "Admin",
+    "superAdmin": "Super Admin",
+    "support": "Support",
     "owner": "Owner",
     "customer": "Customer",
     "guest": "Guest",

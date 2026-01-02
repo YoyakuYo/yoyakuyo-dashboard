@@ -19,6 +19,9 @@ import {
   type CategoryTree,
 } from '@/lib/shopBrowseData';
 
+// Force dynamic rendering to avoid prerendering errors
+export const dynamic = 'force-dynamic';
+
 interface Category {
   id: string;
   name: string;

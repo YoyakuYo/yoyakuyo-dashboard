@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 import { useTranslations } from "next-intl";
 import { useBookingNotifications } from "@/app/components/BookingNotificationContext";
-import NotificationBadge from "@/app/components/NotificationBadge";
+import NotificationDot from "@/app/components/NotificationDot";
 import PaymentDetailsModal from "@/app/components/payments/PaymentDetailsModal";
 import Link from "next/link";
 // Format date helper
@@ -191,13 +191,7 @@ export default function BookingsPage() {
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold text-gray-900">{t('nav.bookings')}</h1>
-          {hasPendingBookings && (
-            <NotificationBadge
-              count={pendingCount}
-              className="ml-1"
-              ariaLabelPrefix="You have"
-            />
-          )}
+          {hasPendingBookings && <NotificationDot />}
         </div>
         
         <div className="flex gap-2">
@@ -219,10 +213,7 @@ export default function BookingsPage() {
 
       {hasPendingBookings && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-2">
-          <NotificationBadge
-            count={pendingCount}
-            ariaLabelPrefix="You have"
-          />
+          <NotificationDot />
           <p className="text-sm text-yellow-800">{t('dashboard.notifications.pending')}</p>
         </div>
       )}

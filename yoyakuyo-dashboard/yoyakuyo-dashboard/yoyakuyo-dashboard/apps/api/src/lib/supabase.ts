@@ -34,6 +34,14 @@ if (!supabaseKey) {
   // Don't throw in production - let it fail gracefully when used
 }
 
+if (!supabaseServiceKey) {
+  console.error("⚠️ SUPABASE_SERVICE_ROLE_KEY is missing from environment variables");
+  if (process.env.NODE_ENV === 'production') {
+    console.error("Please set SUPABASE_SERVICE_ROLE_KEY in Render environment variables");
+  }
+  // Don't throw in production - let it fail gracefully when used
+}
+
 // Create Supabase clients only if we have the required environment variables
 // Use placeholder values if missing to prevent immediate crash
 export const supabase = (supabaseUrl && supabaseKey)

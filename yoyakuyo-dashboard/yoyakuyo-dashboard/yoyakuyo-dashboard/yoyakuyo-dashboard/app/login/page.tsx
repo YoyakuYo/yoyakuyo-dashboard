@@ -115,17 +115,19 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <h1 className="text-3xl font-bold mb-6 text-center">Login</h1>
         
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} autoComplete="on" className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-2">
               Email
             </label>
             <input
               id="email"
+              name="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="username"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="your@email.com"
             />
@@ -137,10 +139,12 @@ export default function LoginPage() {
             </label>
             <input
               id="password"
+              name="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
             />

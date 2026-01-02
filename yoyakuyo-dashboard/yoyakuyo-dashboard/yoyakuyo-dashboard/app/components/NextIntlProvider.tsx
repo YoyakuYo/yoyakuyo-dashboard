@@ -9,6 +9,7 @@ import jaMessages from '../../messages/ja.json';
 import zhMessages from '../../messages/zh.json';
 import esMessages from '../../messages/es.json';
 import ptBRMessages from '../../messages/pt-BR.json';
+import koMessages from '../../messages/ko.json';
 
 // Ensure messages are always valid objects
 const messageMap: Record<SupportedLocale, any> = {
@@ -17,36 +18,42 @@ const messageMap: Record<SupportedLocale, any> = {
   'zh': zhMessages && typeof zhMessages === 'object' ? zhMessages : {},
   'es': esMessages && typeof esMessages === 'object' ? esMessages : {},
   'pt-BR': ptBRMessages && typeof ptBRMessages === 'object' ? ptBRMessages : {},
+  'ko': koMessages && typeof koMessages === 'object' ? koMessages : {},
 };
 
+// Get locale from cookie or localStorage (synchronous for initial render)
+function getStoredLocale(): SupportedLocale {
+  if (typeof window === 'undefined') return 'ja';
+  
+  // Try cookie first
+  const cookies = document.cookie.split(';');
+  const langCookie = cookies.find(c => c.trim().startsWith('yoyaku_yo_language='));
+  if (langCookie) {
+    const value = langCookie.split('=')[1]?.trim() as SupportedLocale;
+    if (value && messageMap[value]) {
+      return value;
+    }
+  }
+  
+  // Fallback to localStorage
+  const stored = localStorage.getItem('yoyaku_yo_language') as SupportedLocale;
+  if (stored && messageMap[stored]) {
+    return stored;
+  }
+  
+  return 'ja'; // Default to Japanese
+}
+
 export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<SupportedLocale>('ja'); // Default to Japanese
+  // Initialize with default locale to avoid SSR/client mismatch
+  // Will update after mount with stored locale
+  const [locale, setLocale] = useState<SupportedLocale>('ja');
   const [messages, setMessages] = useState<any>(messageMap['ja']);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Get locale from cookie or localStorage
-    const getStoredLocale = (): SupportedLocale => {
-      if (typeof window === 'undefined') return 'ja';
-      
-      // Try cookie first
-      const cookies = document.cookie.split(';');
-      const langCookie = cookies.find(c => c.trim().startsWith('yoyaku_yo_language='));
-      if (langCookie) {
-        const value = langCookie.split('=')[1]?.trim() as SupportedLocale;
-        if (value && messageMap[value]) {
-          return value;
-        }
-      }
-      
-      // Fallback to localStorage
-      const stored = localStorage.getItem('yoyaku_yo_language') as SupportedLocale;
-      if (stored && messageMap[stored]) {
-        return stored;
-      }
-      
-      return 'ja'; // Default to Japanese
-    };
-
+    // Set mounted flag and load stored locale after mount
+    setMounted(true);
     const currentLocale = getStoredLocale();
     setLocale(currentLocale);
     setMessages(messageMap[currentLocale] || messageMap['ja']);
@@ -54,24 +61,31 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
 
   // Listen for locale changes
   useEffect(() => {
-    const handleStorageChange = () => {
-      // Check both cookie and localStorage
-      const cookies = document.cookie.split(';');
-      const langCookie = cookies.find(c => c.trim().startsWith('yoyaku_yo_language='));
+    const handleLanguageChange = (event: Event) => {
+      // Check if event has detail with locale
+      const customEvent = event as CustomEvent<{ locale?: SupportedLocale }>;
       let newLocale: SupportedLocale | null = null;
       
-      if (langCookie) {
-        const value = langCookie.split('=')[1]?.trim() as SupportedLocale;
-        if (value && messageMap[value]) {
-          newLocale = value;
+      if (customEvent.detail?.locale && messageMap[customEvent.detail.locale]) {
+        newLocale = customEvent.detail.locale;
+      } else {
+        // Check both cookie and localStorage
+        const cookies = document.cookie.split(';');
+        const langCookie = cookies.find(c => c.trim().startsWith('yoyaku_yo_language='));
+        
+        if (langCookie) {
+          const value = langCookie.split('=')[1]?.trim() as SupportedLocale;
+          if (value && messageMap[value]) {
+            newLocale = value;
+          }
         }
-      }
-      
-      // Fallback to localStorage if cookie not found
-      if (!newLocale) {
-        const stored = localStorage.getItem('yoyaku_yo_language') as SupportedLocale;
-        if (stored && messageMap[stored]) {
-          newLocale = stored;
+        
+        // Fallback to localStorage if cookie not found
+        if (!newLocale) {
+          const stored = localStorage.getItem('yoyaku_yo_language') as SupportedLocale;
+          if (stored && messageMap[stored]) {
+            newLocale = stored;
+          }
         }
       }
       
@@ -79,7 +93,8 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
         // Use functional update to avoid dependency on locale
         setLocale(prevLocale => {
           if (prevLocale !== newLocale) {
-            setMessages(messageMap[newLocale!] || messageMap['ja']);
+            const newMessages = messageMap[newLocale!] || messageMap['ja'];
+            setMessages(newMessages);
             return newLocale!;
           }
           return prevLocale;
@@ -87,12 +102,16 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
       }
     };
 
+    const handleStorageChange = () => {
+      handleLanguageChange(new Event('storage'));
+    };
+
     // Listen for custom event when language changes
-    window.addEventListener('languageChanged', handleStorageChange);
+    window.addEventListener('languageChanged', handleLanguageChange);
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
-      window.removeEventListener('languageChanged', handleStorageChange);
+      window.removeEventListener('languageChanged', handleLanguageChange);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []); // Empty dependency array - only set up listeners once
@@ -109,6 +128,7 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
       'zh': '照片',
       'es': 'Fotos',
       'pt-BR': 'Fotos',
+      'ko': '사진',
     };
     safeMessages.shops = {
       ...safeMessages.shops,
@@ -136,8 +156,19 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
             'zh': '照片',
             'es': 'Fotos',
             'pt-BR': 'Fotos',
+            'ko': '사진',
           };
           return photoTexts[locale] || 'Photos';
+        }
+        
+        // Handle missing category keys gracefully
+        if (key.startsWith('categories.')) {
+          // Extract the category name from the key (e.g., "categories.beauty_services" -> "Beauty Services")
+          const categoryName = key.replace('categories.', '')
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, (l) => l.toUpperCase())
+            .trim();
+          return categoryName;
         }
         
         // Handle missing city/prefecture keys gracefully
