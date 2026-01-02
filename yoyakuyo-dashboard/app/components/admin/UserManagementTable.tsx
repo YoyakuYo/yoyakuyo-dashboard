@@ -128,7 +128,7 @@ export default function UserManagementTable({
   if (users.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500">
-        <p>{t("admin.noUsersFound")}</p>
+        <p>{t("admin.noUsersFound") || "No users found"}</p>
       </div>
     );
   }
@@ -140,25 +140,25 @@ export default function UserManagementTable({
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t("common.name")}
+                {t("common.name") || "Name"}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t("common.email")}
+                {t("common.email") || "Email"}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t("admin.type")}
+                {t("admin.type") || "Type"}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t("admin.role")}
+                {t("admin.role") || "Role"}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t("admin.status")}
+                {t("admin.status") || "Status"}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t("common.date")}
+                {t("common.date") || "Date"}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {t("common.actions")}
+                {t("common.actions") || "Actions"}
               </th>
             </tr>
           </thead>
@@ -184,13 +184,13 @@ export default function UserManagementTable({
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {user.is_banned ? (
+                  {user.is_banned || user.status === 'disabled' ? (
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
-                      {t("admin.banned")}
+                      {t("admin.banned") || "Banned"}
                     </span>
                   ) : (
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                      {t("admin.active")}
+                      {t("admin.active") || "Active"}
                     </span>
                   )}
                 </td>
@@ -205,8 +205,8 @@ export default function UserManagementTable({
                       className="text-green-600 hover:text-green-900 disabled:opacity-50"
                     >
                       {processingId === user.id
-                        ? t("common.loading")
-                        : t("admin.unban")}
+                        ? (t("common.loading") || "Loading")
+                        : (t("admin.unban") || "Unban")}
                     </button>
                   ) : (
                     <button
@@ -214,7 +214,7 @@ export default function UserManagementTable({
                       disabled={processingId === user.id}
                       className="text-red-600 hover:text-red-900 disabled:opacity-50"
                     >
-                      {t("admin.ban")}
+                      {t("admin.ban") || "Ban"}
                     </button>
                   )}
                 </td>
@@ -228,9 +228,9 @@ export default function UserManagementTable({
       {showBanModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-bold mb-4">{t("admin.banUser")}</h3>
+            <h3 className="text-lg font-bold mb-4">{t("admin.banUser") || "Ban User"}</h3>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t("admin.banReason")} ({t("common.optional")})
+              {t("admin.banReason") || "Ban Reason"} ({t("common.optional") || "Optional"})
             </label>
             <textarea
               value={banReason[showBanModal] || ""}
@@ -248,19 +248,19 @@ export default function UserManagementTable({
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
-                {t("common.cancel")}
-              </button>
-              <button
-                onClick={() => {
-                  const user = users.find((u) => u.id === showBanModal);
-                  if (user) {
-                    handleBan(user.id, user.user_type);
-                  }
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                {t("admin.ban")}
-              </button>
+                    {t("common.cancel") || "Cancel"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const user = users.find((u) => u.id === showBanModal);
+                      if (user) {
+                        handleBan(user.id, user.user_type);
+                      }
+                    }}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    {t("admin.ban") || "Ban"}
+                  </button>
             </div>
           </div>
         </div>

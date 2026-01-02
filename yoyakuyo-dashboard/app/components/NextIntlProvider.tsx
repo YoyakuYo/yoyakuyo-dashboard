@@ -47,8 +47,9 @@ function getStoredLocale(): SupportedLocale {
 export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
   // Initialize with default locale to avoid SSR/client mismatch
   // Will update after mount with stored locale
-  const [locale, setLocale] = useState<SupportedLocale>('ja');
-  const [messages, setMessages] = useState<any>(messageMap['ja']);
+  // Default to 'en' for admin pages to ensure translations work
+  const [locale, setLocale] = useState<SupportedLocale>('en');
+  const [messages, setMessages] = useState<any>(messageMap['en']);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -56,7 +57,8 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
     setMounted(true);
     const currentLocale = getStoredLocale();
     setLocale(currentLocale);
-    setMessages(messageMap[currentLocale] || messageMap['ja']);
+    // Fallback to 'en' if locale messages are missing
+    setMessages(messageMap[currentLocale] || messageMap['en'] || messageMap['ja']);
   }, []);
 
   // Listen for locale changes
@@ -117,7 +119,8 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
   }, []); // Empty dependency array - only set up listeners once
 
   // Ensure messages is always a valid object with proper structure
-  const safeMessages = messages && typeof messages === 'object' ? messages : messageMap['ja'];
+  // Fallback to English first, then Japanese
+  const safeMessages = messages && typeof messages === 'object' ? messages : (messageMap['en'] || messageMap['ja']);
   
   // Validate that shops.photos exists in messages
   if (process.env.NODE_ENV === 'development' && safeMessages.shops && !safeMessages.shops.photos) {
@@ -161,6 +164,20 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
           return photoTexts[locale] || 'Photos';
         }
         
+        // Handle missing admin keys - fallback to English
+        if (key.startsWith('admin.')) {
+          const adminKey = key.replace('admin.', '');
+          const enAdminMessages = messageMap['en']?.admin || {};
+          if (enAdminMessages[adminKey]) {
+            return enAdminMessages[adminKey];
+          }
+          // If not in English, try to format the key nicely
+          return adminKey
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, str => str.toUpperCase())
+            .trim();
+        }
+        
         // Handle missing category keys gracefully
         if (key.startsWith('categories.')) {
           // Extract the category name from the key (e.g., "categories.beauty_services" -> "Beauty Services")
@@ -182,8 +199,24 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
             .trim();
         }
         
-        // For other missing keys, return the key itself (next-intl will handle it)
-        return key;
+        // Handle missing common keys - fallback to English
+        if (key.startsWith('common.')) {
+          const commonKey = key.replace('common.', '');
+          const enCommonMessages = messageMap['en']?.common || {};
+          if (enCommonMessages[commonKey]) {
+            return enCommonMessages[commonKey];
+          }
+        }
+        
+        // For other missing keys, try to format nicely
+        const formattedKey = key
+          .split('.')
+          .pop()
+          ?.replace(/([A-Z])/g, ' $1')
+          .replace(/^./, str => str.toUpperCase())
+          .trim() || key;
+        
+        return formattedKey;
       }}
     >
       {children}

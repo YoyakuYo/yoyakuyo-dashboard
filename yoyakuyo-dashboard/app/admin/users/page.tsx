@@ -89,9 +89,9 @@ export default function AdminUsersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {t("admin.users")}
+          {t("admin.users") || "Users"}
         </h1>
-        <p className="text-gray-600">{t("admin.manageUsers")}</p>
+        <p className="text-gray-600">{t("admin.manageUsers") || "Manage and monitor all platform users"}</p>
       </div>
 
       {/* Filters */}
@@ -99,7 +99,7 @@ export default function AdminUsersPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("admin.filterByRole")}
+              {t("admin.filterByRole") || "Filter by Role"}
             </label>
             <select
               value={filters.role}
@@ -108,14 +108,14 @@ export default function AdminUsersPage() {
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
-              <option value="">{t("admin.allRoles")}</option>
+              <option value="">{t("admin.allRoles") || "All Roles"}</option>
               <option value="super_admin">Super Admin</option>
               <option value="support">Support</option>
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("admin.filterByStatus")}
+              {t("admin.filterByStatus") || "Filter by Status"}
             </label>
             <select
               value={filters.status}
@@ -124,14 +124,14 @@ export default function AdminUsersPage() {
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
-              <option value="">{t("admin.allStatuses")}</option>
-              <option value="active">{t("admin.active")}</option>
-              <option value="disabled">{t("admin.banned")}</option>
+              <option value="">{t("admin.allStatuses") || "All Statuses"}</option>
+              <option value="active">{t("admin.active") || "Active"}</option>
+              <option value="disabled">{t("admin.banned") || "Banned"}</option>
             </select>
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("common.search")}
+              {t("common.search") || "Search"}
             </label>
             <input
               type="text"
@@ -139,7 +139,7 @@ export default function AdminUsersPage() {
               onChange={(e) =>
                 setFilters({ ...filters, search: e.target.value })
               }
-              placeholder={t("admin.searchUsers")}
+              placeholder={t("admin.searchUsers") || "Search users..."}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
@@ -165,9 +165,9 @@ export default function AdminUsersPage() {
           >
             {t("common.previous")}
           </button>
-          <span className="text-gray-600">
-            {t("admin.page")} {page} {t("admin.of")} {totalPages}
-          </span>
+              <span className="text-gray-600">
+                {t("admin.page") || "Page"} {page} {t("admin.of") || "of"} {totalPages}
+              </span>
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
