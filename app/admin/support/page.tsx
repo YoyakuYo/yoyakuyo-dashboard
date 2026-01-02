@@ -57,6 +57,13 @@ export default function AdminSupportPage() {
   });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [showNewConversationModal, setShowNewConversationModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [newMessageContent, setNewMessageContent] = useState("");
+  const [creatingConversation, setCreatingConversation] = useState(false);
 
   // Get user from Supabase Auth
   useEffect(() => {
@@ -172,6 +179,80 @@ export default function AdminSupportPage() {
     }
   };
 
+  const handleSearchUsers = async () => {
+    if (searchQuery.trim().length < 2) {
+      return;
+    }
+
+    try {
+      setSearching(true);
+      const response = await fetch(`${apiUrl}/admin/users/search?q=${encodeURIComponent(searchQuery)}`, {
+        headers: {
+          "x-user-id": userId || "",
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.users || []);
+      } else {
+        const error = await response.json();
+        alert(error.error || (t("admin.searchFailed") || "Failed to search users"));
+      }
+    } catch (error: any) {
+      console.error("Error searching users:", error);
+      alert(error.message || (t("admin.searchFailed") || "Failed to search users"));
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleCreateConversation = async () => {
+    if (!selectedUser || !newMessageContent.trim()) {
+      return;
+    }
+
+    try {
+      setCreatingConversation(true);
+      const response = await fetch(`${apiUrl}/admin/support/conversations/create`, {
+        method: "POST",
+        headers: {
+          "x-user-id": userId || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer_ref: selectedUser.customer_ref,
+          customer_type: selectedUser.customer_type,
+          shop_id: selectedUser.shop_id || null,
+          content: newMessageContent,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setShowNewConversationModal(false);
+        setSearchQuery("");
+        setSearchResults([]);
+        setSelectedUser(null);
+        setNewMessageContent("");
+        fetchSupportConversations();
+        // Select the newly created conversation
+        if (data.conversation) {
+          handleSelectConversation(data.conversation);
+        }
+      } else {
+        const error = await response.json();
+        alert(error.error || (t("admin.createFailed") || "Failed to create conversation"));
+      }
+    } catch (error: any) {
+      console.error("Error creating conversation:", error);
+      alert(error.message || (t("admin.createFailed") || "Failed to create conversation"));
+    } finally {
+      setCreatingConversation(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -209,9 +290,9 @@ export default function AdminSupportPage() {
         </div>
       )}
 
-      {/* Filters */}
+      {/* Filters and New Conversation Button */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("admin.filterByStatus") || "Filter by Status"}
@@ -242,10 +323,16 @@ export default function AdminSupportPage() {
               <option value="customer">{t("admin.customer") || "Customer"}</option>
             </select>
           </div>
-          <div className="flex items-end">
+          <div className="flex items-end gap-2">
+            <button
+              onClick={() => setShowNewConversationModal(true)}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              {t("admin.newConversation") || "New Conversation"}
+            </button>
             <button
               onClick={fetchSupportConversations}
-              className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+              className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
             >
               {t("common.refresh") || "Refresh"}
             </button>
@@ -368,6 +455,141 @@ export default function AdminSupportPage() {
           )}
         </div>
       </div>
+
+      {/* New Conversation Modal */}
+      {showNewConversationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {t("admin.newConversation") || "New Conversation"}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowNewConversationModal(false);
+                    setSearchQuery("");
+                    setSearchResults([]);
+                    setSelectedUser(null);
+                    setNewMessageContent("");
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {!selectedUser ? (
+                <>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t("admin.searchUser") || "Search for Customer or Owner"}
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyPress={async (e) => {
+                          if (e.key === 'Enter' && searchQuery.trim().length >= 2) {
+                            await handleSearchUsers();
+                          }
+                        }}
+                        placeholder={t("admin.searchPlaceholder") || "Enter name or email..."}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                      />
+                      <button
+                        onClick={handleSearchUsers}
+                        disabled={searchQuery.trim().length < 2 || searching}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {searching ? (t("common.loading") || "Searching...") : (t("common.search") || "Search")}
+                      </button>
+                    </div>
+                  </div>
+
+                  {searchResults.length > 0 && (
+                    <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
+                      {searchResults.map((user) => (
+                        <button
+                          key={user.id}
+                          onClick={() => setSelectedUser(user)}
+                          className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="font-medium text-gray-900">{user.name}</div>
+                          <div className="text-sm text-gray-500">{user.email}</div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            {user.type === 'owner' ? (t("admin.owner") || "Owner") : (t("admin.customer") || "Customer")}
+                            {user.shop_name && ` • ${user.shop_name}`}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {searchQuery.trim().length >= 2 && searchResults.length === 0 && !searching && (
+                    <div className="text-center py-4 text-gray-500">
+                      {t("admin.noUsersFound") || "No users found"}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="font-medium text-gray-900">{selectedUser.name}</div>
+                    <div className="text-sm text-gray-500">{selectedUser.email}</div>
+                    <div className="text-xs text-gray-400 mt-1">
+                      {selectedUser.type === 'owner' ? (t("admin.owner") || "Owner") : (t("admin.customer") || "Customer")}
+                      {selectedUser.shop_name && ` • ${selectedUser.shop_name}`}
+                    </div>
+                    <button
+                      onClick={() => setSelectedUser(null)}
+                      className="mt-2 text-sm text-blue-600 hover:text-blue-700"
+                    >
+                      {t("admin.changeUser") || "Change user"}
+                    </button>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t("admin.message") || "Message"}
+                    </label>
+                    <textarea
+                      value={newMessageContent}
+                      onChange={(e) => setNewMessageContent(e.target.value)}
+                      placeholder={t("admin.messagePlaceholder") || "Enter your message..."}
+                      rows={6}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleCreateConversation}
+                      disabled={!newMessageContent.trim() || creatingConversation}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {creatingConversation ? (t("common.loading") || "Creating...") : (t("admin.createConversation") || "Create Conversation")}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowNewConversationModal(false);
+                        setSearchQuery("");
+                        setSearchResults([]);
+                        setSelectedUser(null);
+                        setNewMessageContent("");
+                      }}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                    >
+                      {t("common.cancel") || "Cancel"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
