@@ -7,7 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
-const AdminSidebar = React.memo(() => {
+const AdminSidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations();
@@ -35,7 +35,13 @@ const AdminSidebar = React.memo(() => {
     { href: "/admin", labelKey: "admin.dashboard", icon: "📊" },
     { href: "/admin/users", labelKey: "admin.users", icon: "👥" },
     { href: "/admin/shops", labelKey: "admin.shops", icon: "🏪" },
+    { href: "/admin/verified-shops", labelKey: "admin.verifiedShops", icon: "✅" },
     { href: "/admin/shop-claims", labelKey: "admin.claims", icon: "📋" },
+    { href: "/admin/support", labelKey: "admin.support", icon: "💬" },
+    { href: "/admin/bookings", labelKey: "admin.bookings", icon: "📅" },
+    { href: "/admin/analytics", labelKey: "admin.analytics", icon: "📈" },
+    { href: "/admin/reviews", labelKey: "admin.reviews", icon: "⭐" },
+    { href: "/admin/disputes", labelKey: "admin.disputes", icon: "⚖️" },
   ];
 
   const MobileDrawer = (
@@ -155,9 +161,7 @@ const AdminSidebar = React.memo(() => {
       </aside>
     </>
   );
-});
-
-AdminSidebar.displayName = "AdminSidebar";
+};
 
 export default AdminSidebar;
 
