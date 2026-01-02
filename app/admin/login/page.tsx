@@ -11,6 +11,7 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [error, setError] = useState("");
   const router = useRouter();
   const t = useTranslations();
@@ -34,10 +35,14 @@ export default function AdminLoginPage() {
           if (response.ok) {
             // Already admin, redirect to dashboard
             router.push("/admin");
+            return;
           }
         }
       } catch (err) {
         // Ignore errors, just stay on login page
+        console.error("Error checking admin session:", err);
+      } finally {
+        setCheckingSession(false);
       }
     };
 
@@ -88,6 +93,18 @@ export default function AdminLoginPage() {
       setLoading(false);
     }
   };
+
+  // Show loading while checking session
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
