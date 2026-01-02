@@ -16,7 +16,8 @@ interface User {
   banned_at: string | null;
   banned_reason: string | null;
   user_type: "admin";
-  role?: "super_admin" | "admin" | "support";
+  role?: "super_admin" | "support"; // Admin role: only super_admin or support
+  status?: "active" | "disabled"; // Admin status
 }
 
 export default function AdminUsersPage() {
@@ -28,7 +29,7 @@ export default function AdminUsersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
     role: "",
-    banned: "",
+    status: "",
     search: "",
   });
 
@@ -49,7 +50,7 @@ export default function AdminUsersPage() {
       loadUsers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, page, filters.role, filters.banned, filters.search]);
+  }, [userId, page, filters.role, filters.status, filters.search]);
 
   const loadUsers = async () => {
     try {
@@ -60,7 +61,7 @@ export default function AdminUsersPage() {
       });
 
       if (filters.role) params.append("role", filters.role);
-      if (filters.banned) params.append("banned", filters.banned);
+      if (filters.status) params.append("status", filters.status);
       if (filters.search) params.append("search", filters.search);
 
       const response = await fetch(`${apiUrl}/admin/users?${params}`, {
@@ -109,7 +110,6 @@ export default function AdminUsersPage() {
             >
               <option value="">{t("admin.allRoles")}</option>
               <option value="super_admin">Super Admin</option>
-              <option value="admin">Admin</option>
               <option value="support">Support</option>
             </select>
           </div>
@@ -118,15 +118,15 @@ export default function AdminUsersPage() {
               {t("admin.filterByStatus")}
             </label>
             <select
-              value={filters.banned}
+              value={filters.status}
               onChange={(e) =>
-                setFilters({ ...filters, banned: e.target.value })
+                setFilters({ ...filters, status: e.target.value })
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
               <option value="">{t("admin.allStatuses")}</option>
-              <option value="false">{t("admin.active")}</option>
-              <option value="true">{t("admin.banned")}</option>
+              <option value="active">{t("admin.active")}</option>
+              <option value="disabled">{t("admin.banned")}</option>
             </select>
           </div>
           <div className="md:col-span-2">

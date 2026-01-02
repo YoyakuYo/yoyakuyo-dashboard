@@ -15,7 +15,8 @@ interface User {
   banned_at: string | null;
   banned_reason: string | null;
   user_type: "admin";
-  role?: "super_admin" | "admin" | "support"; // Admin role
+  role?: "super_admin" | "support"; // Admin role: only super_admin or support
+  status?: "active" | "disabled"; // Admin status
 }
 
 interface UserManagementTableProps {
@@ -178,7 +179,7 @@ export default function UserManagementTable({
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {user.role && (
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                      {user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'Support'}
+                      {user.role === 'super_admin' ? 'Super Admin' : 'Support'}
                     </span>
                   )}
                 </td>
