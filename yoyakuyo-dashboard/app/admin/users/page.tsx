@@ -49,7 +49,7 @@ export default function AdminUsersPage() {
       loadUsers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, page, filters.role, filters.status, filters.search]);
+  }, [userId, page, filters.role, filters.search]);
 
   const loadUsers = async () => {
     try {
