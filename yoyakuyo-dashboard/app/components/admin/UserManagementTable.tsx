@@ -1,10 +1,10 @@
 // User management table component
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useCustomAuth } from "@/lib/useCustomAuth";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 
 interface User {
   id: string;
@@ -14,8 +14,8 @@ interface User {
   is_banned: boolean;
   banned_at: string | null;
   banned_reason: string | null;
-  user_type: "owner" | "customer";
-  role?: string; // For owners
+  user_type: "admin";
+  role?: "super_admin" | "admin" | "support"; // Admin role
 }
 
 interface UserManagementTableProps {
@@ -30,10 +30,21 @@ export default function UserManagementTable({
   onRefresh,
 }: UserManagementTableProps) {
   const t = useTranslations();
-  const { user: currentUser } = useCustomAuth();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [banReason, setBanReason] = useState<Record<string, string>>({});
   const [showBanModal, setShowBanModal] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getUserId = async () => {
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setCurrentUserId(session.user.id);
+      }
+    };
+    getUserId();
+  }, []);
 
   const handleBan = async (userId: string, userType: string) => {
     if (!confirm(t("admin.confirmBan"))) {
@@ -45,7 +56,7 @@ export default function UserManagementTable({
       const response = await fetch(`${apiUrl}/admin/users/${userId}`, {
         method: "PATCH",
         headers: {
-          "x-user-id": currentUser?.id || "",
+          "x-user-id": currentUserId || "",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -81,7 +92,7 @@ export default function UserManagementTable({
       const response = await fetch(`${apiUrl}/admin/users/${userId}`, {
         method: "PATCH",
         headers: {
-          "x-user-id": currentUser?.id || "",
+          "x-user-id": currentUserId || "",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -160,22 +171,14 @@ export default function UserManagementTable({
                   {user.email}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      user.user_type === "owner"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-green-100 text-green-800"
-                    }`}
-                  >
-                    {user.user_type === "owner"
-                      ? t("admin.owner")
-                      : t("admin.customer")}
+                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                    Admin
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {user.role && (
                     <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                      {user.role}
+                      {user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'Support'}
                     </span>
                   )}
                 </td>

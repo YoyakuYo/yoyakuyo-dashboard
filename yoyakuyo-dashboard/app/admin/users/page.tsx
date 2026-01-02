@@ -15,8 +15,8 @@ interface User {
   is_banned: boolean;
   banned_at: string | null;
   banned_reason: string | null;
-  user_type: "owner" | "customer";
-  role?: string;
+  user_type: "admin";
+  role?: "super_admin" | "admin" | "support";
 }
 
 export default function AdminUsersPage() {
@@ -108,8 +108,9 @@ export default function AdminUsersPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
               <option value="">{t("admin.allRoles")}</option>
-              <option value="owner">{t("admin.owner")}</option>
-              <option value="customer">{t("admin.customer")}</option>
+              <option value="super_admin">Super Admin</option>
+              <option value="admin">Admin</option>
+              <option value="support">Support</option>
             </select>
           </div>
           <div>
