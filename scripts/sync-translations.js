@@ -44,8 +44,8 @@ function getNestedValue(obj, path) {
 
 // Main function
 function syncTranslations() {
-  const messagesDir = path.join(__dirname, '..', 'messages');
-  const languages = ['en', 'ja', 'zh', 'es', 'pt-BR'];
+  const messagesDir = path.join(__dirname, '..', 'yoyakuyo-dashboard', 'messages');
+  const languages = ['en', 'ja', 'zh', 'es', 'pt-BR', 'tl', 'ko'];
   
   // Load English as the source of truth
   const enPath = path.join(messagesDir, 'en.json');
