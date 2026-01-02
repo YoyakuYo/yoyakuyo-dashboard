@@ -170,31 +170,25 @@ export default function UserManagementTable({
                   {user.email}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <div className="flex flex-wrap gap-1">
-                    {user.is_admin && (
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                        {t("admin.admin") || "Admin"}
-                      </span>
-                    )}
-                    {user.role === 'owner' && (
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                        {t("admin.owner") || "Owner"}
-                      </span>
-                    )}
-                    {(user.role === 'customer' || user.role === 'guest') && (
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                        {t("admin.customer") || "Customer"}
-                      </span>
-                    )}
-                  </div>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    user.user_type === 'admin' ? 'bg-blue-100 text-blue-800' :
+                    user.user_type === 'owner' ? 'bg-purple-100 text-purple-800' :
+                    'bg-green-100 text-green-800'
+                  }`}>
+                    {user.user_type === 'admin' ? (t("admin.admin") || "Admin") :
+                     user.user_type === 'owner' ? (t("admin.owner") || "Owner") :
+                     (t("admin.customer") || "Customer")}
+                  </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                    {user.role === 'owner' ? (t("admin.owner") || "Owner") :
-                     user.role === 'customer' ? (t("admin.customer") || "Customer") :
-                     user.role === 'guest' ? (t("admin.guest") || "Guest") :
-                     user.role}
-                  </span>
+                  {user.role && (
+                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                      {user.role === 'web' ? (t("admin.web") || "Web") :
+                       user.role === 'line' ? (t("admin.line") || "LINE") :
+                       user.role === 'guest' ? (t("admin.guest") || "Guest") :
+                       user.role}
+                    </span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {user.is_banned ? (
