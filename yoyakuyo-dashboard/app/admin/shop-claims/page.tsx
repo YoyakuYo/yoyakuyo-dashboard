@@ -82,6 +82,7 @@ export default function AdminShopClaimsPage() {
   const fetchPendingClaims = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await fetch(`${apiUrl}/shop-claims/pending`, {
         headers: {
           'Content-Type': 'application/json',
@@ -92,12 +93,21 @@ export default function AdminShopClaimsPage() {
       if (res.ok) {
         const data = await res.json();
         setClaims(data || []);
+        if (data && data.length === 0) {
+          // No error, just no pending claims
+          setError(null);
+        }
       } else {
-        console.error('Failed to fetch pending claims');
+        const errorData = await res.json().catch(() => ({ error: 'Failed to fetch pending claims' }));
+        const errorMessage = errorData.error || `Failed to fetch pending claims (${res.status})`;
+        console.error('Failed to fetch pending claims:', errorMessage);
+        setError(errorMessage);
         setClaims([]);
       }
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error.message || 'Error fetching pending claims. Please check your connection.';
       console.error('Error fetching pending claims:', error);
+      setError(errorMessage);
       setClaims([]);
     } finally {
       setLoading(false);
