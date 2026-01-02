@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useAuth } from "@/lib/useAuth";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 import ShopManagementTable from "@/app/components/admin/ShopManagementTable";
 
 interface Shop {
@@ -19,7 +19,7 @@ interface Shop {
 
 export default function AdminShopsPage() {
   const t = useTranslations();
-  const { user } = useAuth();
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [shops, setShops] = useState<Shop[]>([]);
   const [page, setPage] = useState(1);
@@ -30,11 +30,24 @@ export default function AdminShopsPage() {
     search: "",
   });
 
+  // Get user from Supabase Auth
   useEffect(() => {
-    if (user?.id) {
+    const getUserId = async () => {
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserId(session.user.id);
+      }
+    };
+    getUserId();
+  }, []);
+
+  useEffect(() => {
+    if (userId) {
       loadShops();
     }
-  }, [user, page, filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, page, filters.verified, filters.hidden, filters.search]);
 
   const loadShops = async () => {
     try {
@@ -50,7 +63,7 @@ export default function AdminShopsPage() {
 
       const response = await fetch(`${apiUrl}/admin/shops?${params}`, {
         headers: {
-          "x-user-id": user?.id || "",
+          "x-user-id": userId || "",
           "Content-Type": "application/json",
         },
       });

@@ -10,7 +10,7 @@ import LineChart from "@/app/components/LineChart";
 
 interface PlatformStats {
   totals: {
-    admin_users: number; // Admins are customers with is_admin=true
+    admins: number; // Admins from admins table
     owners: number;
     customers: number;
     shops: number;
@@ -18,7 +18,7 @@ interface PlatformStats {
     revenue: number;
   };
   recent: {
-    admin_users: number;
+    admins: number;
     owners: number;
     customers: number;
     shops: number;
@@ -163,35 +163,35 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <AdminStatsCard
           title={t("admin.totalUsers")}
-          value={stats.totals.admin_users + stats.totals.owners + stats.totals.customers}
-          subtitle={`${stats.totals.admin_users || 0} ${t("admin.admins") || "Admins"}, ${stats.totals.owners || 0} ${t("admin.owners")}, ${stats.totals.customers || 0} ${t("admin.customers")}`}
+          value={(stats.totals.admins || 0) + (stats.totals.owners || 0) + (stats.totals.customers || 0)}
+          subtitle={`${stats.totals.admins || 0} ${t("admin.admins") || "Admins"}, ${stats.totals.owners || 0} ${t("admin.owners")}, ${stats.totals.customers || 0} ${t("admin.customers")}`}
           icon="👥"
           trend={{
-            value: stats.recent.admin_users + stats.recent.owners + stats.recent.customers,
+            value: (stats.recent.admins || 0) + (stats.recent.owners || 0) + (stats.recent.customers || 0),
             label: t("admin.newLast7Days"),
           }}
         />
         <AdminStatsCard
           title={t("admin.totalShops")}
-          value={stats.totals.shops}
+          value={stats.totals.shops || 0}
           icon="🏪"
           trend={{
-            value: stats.recent.shops,
+            value: stats.recent.shops || 0,
             label: t("admin.newLast7Days"),
           }}
         />
         <AdminStatsCard
           title={t("admin.totalBookings")}
-          value={stats.totals.bookings}
+          value={stats.totals.bookings || 0}
           icon="📅"
           trend={{
-            value: stats.recent.bookings,
+            value: stats.recent.bookings || 0,
             label: t("admin.newLast7Days"),
           }}
         />
         <AdminStatsCard
           title={t("admin.totalRevenue")}
-          value={formatCurrency(stats.totals.revenue)}
+          value={formatCurrency(stats.totals.revenue || 0)}
           icon="💰"
         />
       </div>
@@ -215,31 +215,31 @@ export default function AdminDashboardPage() {
           <div>
             <p className="text-sm text-gray-600">{t("admin.newAdmins") || "New Admins"}</p>
             <p className="text-2xl font-bold text-gray-900">
-              {stats.recent.admin_users || 0}
+              {stats.recent.admins || 0}
             </p>
           </div>
           <div>
             <p className="text-sm text-gray-600">{t("admin.newOwners")}</p>
             <p className="text-2xl font-bold text-gray-900">
-              {stats.recent.owners}
+              {stats.recent.owners || 0}
             </p>
           </div>
           <div>
             <p className="text-sm text-gray-600">{t("admin.newCustomers")}</p>
             <p className="text-2xl font-bold text-gray-900">
-              {stats.recent.customers}
+              {stats.recent.customers || 0}
             </p>
           </div>
           <div>
             <p className="text-sm text-gray-600">{t("admin.newShops")}</p>
             <p className="text-2xl font-bold text-gray-900">
-              {stats.recent.shops}
+              {stats.recent.shops || 0}
             </p>
           </div>
           <div>
             <p className="text-sm text-gray-600">{t("admin.newBookings")}</p>
             <p className="text-2xl font-bold text-gray-900">
-              {stats.recent.bookings}
+              {stats.recent.bookings || 0}
             </p>
           </div>
         </div>

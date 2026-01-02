@@ -1,17 +1,35 @@
 // Admin sidebar navigation component
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useAuth } from "@/lib/useAuth";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 
 const AdminSidebar = React.memo(() => {
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations();
-  const { signOut, user } = useAuth();
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const getUserEmail = async () => {
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.email) {
+        setUserEmail(session.user.email);
+      }
+    };
+    getUserEmail();
+  }, []);
+
+  const handleSignOut = async () => {
+    const supabase = getSupabaseClient();
+    await supabase.auth.signOut();
+    router.push("/admin/login");
+  };
 
   const navItems = [
     { href: "/admin", labelKey: "admin.dashboard", icon: "📊" },
@@ -57,7 +75,7 @@ const AdminSidebar = React.memo(() => {
                   onClick={() => setDrawerOpen(false)}
                 >
                   <span className="text-xl">{item.icon}</span>
-                  <span>{t(item.labelKey)}</span>
+                  <span>{t(item.labelKey) || item.labelKey.replace('admin.', '')}</span>
                 </Link>
               </li>
             );
@@ -65,10 +83,10 @@ const AdminSidebar = React.memo(() => {
         </ul>
         <div className="mt-auto pt-4 border-t border-slate-700">
           <div className="px-4 py-2 text-sm text-gray-400 mb-2">
-            {user?.email}
+            {userEmail}
           </div>
           <button
-            onClick={signOut}
+            onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-slate-800 hover:text-white transition-colors"
           >
             <span>🚪</span>
@@ -96,7 +114,7 @@ const AdminSidebar = React.memo(() => {
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white min-h-screen">
         <div className="p-6 border-b border-slate-700">
-          <h1 className="text-xl font-bold">{t("admin.dashboard")}</h1>
+          <h1 className="text-xl font-bold">{t("admin.dashboard") || "Admin Dashboard"}</h1>
         </div>
         <nav className="flex-1 p-4">
           <ul className="space-y-1">
@@ -115,7 +133,7 @@ const AdminSidebar = React.memo(() => {
                     }`}
                   >
                     <span className="text-xl">{item.icon}</span>
-                    <span>{t(item.labelKey)}</span>
+                    <span>{t(item.labelKey) || item.labelKey.replace('admin.', '').replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim()}</span>
                   </Link>
                 </li>
               );
@@ -124,10 +142,10 @@ const AdminSidebar = React.memo(() => {
         </nav>
         <div className="p-4 border-t border-slate-700">
           <div className="px-4 py-2 text-sm text-gray-400 mb-2 truncate">
-            {user?.email}
+            {userEmail}
           </div>
           <button
-            onClick={signOut}
+            onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-slate-800 hover:text-white transition-colors"
           >
             <span>🚪</span>

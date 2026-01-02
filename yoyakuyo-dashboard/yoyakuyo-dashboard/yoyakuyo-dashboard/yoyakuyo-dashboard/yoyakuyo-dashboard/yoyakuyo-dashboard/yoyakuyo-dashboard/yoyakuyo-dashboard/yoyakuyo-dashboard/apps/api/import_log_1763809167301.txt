@@ -1,0 +1,25 @@
+[2025-11-22T10:59:27.344Z] 🚀 Starting Japan Business Importer
+[2025-11-22T10:59:27.349Z] ============================================================
+[2025-11-22T10:59:27.351Z] 📦 Creating backup of existing shops...
+[2025-11-22T10:59:28.050Z] ✅ Backup created: C:\Users\81704\bookyo\apps\api\backups\shops_backup_2025-11-22T10-59-27-352Z.json (1000 shops)
+[2025-11-22T10:59:28.054Z] ✅ Backup saved: C:\Users\81704\bookyo\apps\api\backups\shops_backup_2025-11-22T10-59-27-352Z.json
+
+[2025-11-22T10:59:28.081Z] 📡 Fetching businesses from all sources...
+
+[2025-11-22T10:59:28.090Z] 
+📊 Source 1: Japan Government Open Data
+[2025-11-22T10:59:28.100Z] ────────────────────────────────────────────────────────────
+[2025-11-22T10:59:28.103Z]   ⏸️  DISABLED - Government data fetching temporarily disabled
+[2025-11-22T10:59:28.110Z]   ℹ️  Will be enabled once dataset URLs are configured
+[2025-11-22T10:59:28.114Z] 
+🗺️  Source 2: OpenStreetMap (Overpass API)
+[2025-11-22T10:59:28.116Z] ────────────────────────────────────────────────────────────
+[2025-11-22T10:59:28.123Z]   📍 Processing Tokyo...
+[2025-11-22T11:01:02.602Z]   📍 Processing Osaka...
+[2025-11-22T11:01:09.406Z]   ⚠️  Failed to fetch Osaka - beauty_salon: 429
+[2025-11-22T11:01:17.495Z]   ⚠️  Failed to fetch Osaka - barbershop: 429
+[2025-11-22T11:01:25.553Z]   ⚠️  Failed to fetch Osaka - nail_salon: 429
+[2025-11-22T11:01:57.946Z]   ⚠️  Failed to fetch Osaka - restaurant: 429
+[2025-11-22T11:02:19.845Z]   📍 Processing Kyoto...
+[2025-11-22T11:02:27.465Z]   ⚠️  Failed to fetch Kyoto - beauty_salon: 429
+[2025-11-22T11:03:20.697Z]   📍 Processing Kanagawa...

@@ -6,6 +6,8 @@ export interface Shop {
   name: string;
   address: string;
   city?: string | null;
+  prefecture?: string | null;
+  normalized_city?: string | null;
   country?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -26,8 +28,14 @@ export interface Category {
   description?: string | null;
 }
 
-// Extract prefecture from address or city field
+// Extract prefecture from shop - use backend-provided field first
 export function extractPrefecture(shop: Shop): string {
+  // Use backend-provided prefecture field if available
+  if (shop.prefecture && shop.prefecture.trim()) {
+    return shop.prefecture.trim();
+  }
+  
+  // Fallback: try to extract from address or city field
   const address = shop.address || '';
   const city = shop.city || '';
   const combined = `${address} ${city}`.toLowerCase();
@@ -92,14 +100,19 @@ export function extractPrefecture(shop: Shop): string {
   return 'unknown';
 }
 
-// Extract city/ward from address or use city field
+// Extract city from shop - use backend-provided normalized_city field first
 export function extractCity(shop: Shop): string {
-  // Use city field if available
+  // Use backend-provided normalized_city field if available
+  if (shop.normalized_city && shop.normalized_city.trim()) {
+    return shop.normalized_city.trim();
+  }
+  
+  // Fallback: Use city field if available
   if (shop.city && shop.city.trim()) {
     return shop.city.trim();
   }
 
-  // Extract from address
+  // Fallback: Extract from address
   const address = shop.address || '';
   
   // Try to extract ward/city patterns

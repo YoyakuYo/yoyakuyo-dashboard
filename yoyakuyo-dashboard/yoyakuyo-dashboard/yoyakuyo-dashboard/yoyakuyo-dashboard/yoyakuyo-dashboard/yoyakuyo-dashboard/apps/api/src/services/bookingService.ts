@@ -21,6 +21,7 @@ export type CreateBookingInput = {
   notes?: string | null;
   source: 'ai' | 'manual';
   customerId?: string | null; // Optional: for owner-created bookings
+  customerProfileId?: string | null; // Optional: for logged-in customers
 };
 
 export interface BookingResult {
@@ -41,6 +42,28 @@ export async function createBookingFromAi(input: CreateBookingInput): Promise<Bo
         success: false,
         error: 'shopId and customerName are required',
       };
+    }
+
+    // HARD SAFETY CHECK (MANDATORY):
+    // Reject AI-originated bookings for unverified shops, even if the AI tries.
+    if (input.source === 'ai') {
+      const { data: shop, error: shopError } = await dbClient
+        .from('shops')
+        .select('id, is_verified')
+        .eq('id', input.shopId)
+        .maybeSingle();
+
+      if (shopError) {
+        return { success: false, error: shopError.message };
+      }
+
+      if (!shop?.id) {
+        return { success: false, error: 'Shop not found' };
+      }
+
+      if (!shop.is_verified) {
+        return { success: false, error: 'Shop is not verified' };
+      }
     }
 
     if (!input.startTime || !input.endTime) {
@@ -69,22 +92,32 @@ export async function createBookingFromAi(input: CreateBookingInput): Promise<Bo
       };
     }
 
-    // Create or find customer record (NO email/phone - only name)
-    // Use a placeholder email for customer lookup (will be replaced by permanent ID system)
-    const placeholderEmail = `customer_${Date.now()}@yoyaku-yo.temp`;
-    const { customerId } = await findOrCreateCustomer(
-      placeholderEmail,
-      input.customerName,
-      undefined // No phone
-    );
+    // Get customer_profile_id if provided (for logged-in customers)
+    const customerProfileId: string | null = input.customerProfileId || null;
 
-    // Ensure customer has permanent ID and magic code
-    if (customerId) {
-      try {
-        await ensureCustomerId(customerId, input.customerName);
-      } catch (idError) {
-        console.error('Error ensuring customer ID:', idError);
-        // Continue even if ID generation fails
+    // Prefer explicit canonical customerId if provided by caller.
+    // This avoids creating extra placeholder customer records.
+    let customerId: string | null = input.customerId || null;
+
+    if (!customerProfileId && !customerId) {
+      // Create or find customer record (NO email/phone - only name)
+      // Use a placeholder email for customer lookup (will be replaced by permanent ID system)
+      const placeholderEmail = `customer_${Date.now()}@yoyaku-yo.temp`;
+      const { customerId: createdCustomerId } = await findOrCreateCustomer(
+        placeholderEmail,
+        input.customerName,
+        undefined // No phone
+      );
+      customerId = createdCustomerId || null;
+
+      // Ensure customer has permanent ID and magic code
+      if (customerId) {
+        try {
+          await ensureCustomerId(customerId, input.customerName);
+        } catch (idError) {
+          console.error('Error ensuring customer ID:', idError);
+          // Continue even if ID generation fails
+        }
       }
     }
 
@@ -101,7 +134,8 @@ export async function createBookingFromAi(input: CreateBookingInput): Promise<Bo
       customer_phone: input.customerPhone || null,
       language_code: input.languageCode || null,
       notes: input.notes || null,
-      customer_id: input.customerId || customerId || null, // Use created customer ID if available
+      customer_id: customerId || null, // Use explicit or created canonical customer ID if available
+      customer_profile_id: customerProfileId || null, // Add customer_profile_id for logged-in customers
       status: 'pending', // Same default as manual booking flow
       created_by_ai: true, // Mark as AI-created booking
     };

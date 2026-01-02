@@ -15,7 +15,7 @@ interface User {
   banned_at: string | null;
   banned_reason: string | null;
   user_type: "admin" | "owner" | "customer"; // All user types
-  role: "guest" | "customer" | "owner"; // Customer role
+  role: "super_admin" | "support" | "guest" | "web" | "line"; // Admin roles or customer roles
   is_admin: boolean; // Admin flag
 }
 

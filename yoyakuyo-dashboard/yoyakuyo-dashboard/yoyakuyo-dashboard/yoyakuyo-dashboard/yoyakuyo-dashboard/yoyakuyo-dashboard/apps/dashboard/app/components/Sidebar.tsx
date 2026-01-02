@@ -1,165 +1,99 @@
 // apps/dashboard/app/components/Sidebar.tsx
+// Owner dashboard sidebar navigation
 
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+
+import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
 import { useTranslations } from 'next-intl';
-import { getSupabaseClient } from '@/lib/supabaseClient';
-import { apiUrl } from '@/lib/apiClient';
-import { useBookingNotifications } from './BookingNotificationContext';
 
-const Sidebar = React.memo(() => {
+export default function Sidebar() {
   const pathname = usePathname();
-  const { signOut, user } = useAuth();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
   const t = useTranslations();
-  const [unreadCount, setUnreadCount] = useState(0);
-  const subscriptionRef = useRef<any>(null);
-  const { unreadBookingsCount } = useBookingNotifications();
 
-  // Load unread summary on mount
-  useEffect(() => {
-    if (user?.id) {
-      loadUnreadSummary();
-      subscribeToUnreadUpdates();
-    }
-
-    return () => {
-      if (subscriptionRef.current) {
-        const supabase = getSupabaseClient();
-        supabase.removeChannel(subscriptionRef.current);
-      }
-    };
-  }, [user]);
-
-  const loadUnreadSummary = async () => {
-    try {
-      const res = await fetch(`${apiUrl}/messages/owner/unread-summary`, {
-        headers: {
-          'x-user-id': user?.id || '',
-        },
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setUnreadCount(data.unreadCount || 0);
-      }
-    } catch (error: any) {
-      // Silently handle connection errors (API server not running)
-      if (error?.message?.includes('Failed to fetch') || error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-        // API server is not running - this is expected during development
-        setUnreadCount(0);
-        return;
-      }
-      // Only log unexpected errors
-      console.error('Error loading unread summary:', error);
-    }
-  };
-
-  const subscribeToUnreadUpdates = () => {
-    if (!user?.id) return;
-
-    const supabase = getSupabaseClient();
-    
-    // Subscribe to shop_messages for the owner's shops
-    // We'll need to get shop IDs first, but for now, subscribe to all and filter client-side
-    const channel = supabase
-      .channel('unread_messages_updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'shop_messages',
-          filter: 'sender_type=eq.customer',
-        },
-        () => {
-          // Reload unread summary when new customer message arrives
-          loadUnreadSummary();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'shop_messages',
-          filter: 'read_by_owner=eq.true',
-        },
-        () => {
-          // Reload unread summary when messages are marked as read
-          loadUnreadSummary();
-        }
-      )
-      .subscribe();
-
-    subscriptionRef.current = channel;
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/');
   };
 
   const navItems = [
-    { href: '/shops', label: t('nav.myShop'), icon: '🏪' },
-    { href: '/analytics', label: t('analytics.title'), icon: '📊' },
-    { href: '/assistant', label: t('nav.aiAssistant'), icon: '🤖', badge: unreadCount > 0 ? unreadCount : undefined },
-    { href: '/bookings', label: t('nav.bookings'), icon: '📅', badge: unreadBookingsCount > 0 ? unreadBookingsCount : undefined },
-    { href: '/settings', label: 'Settings', icon: '⚙️' },
+    {
+      href: '/shops',
+      label: t('nav.myShop'),
+      icon: '🏪',
+    },
+    {
+      href: '/owner/analytics',
+      label: t('nav.analytics'),
+      icon: '📈',
+    },
+    {
+      href: '/assistant',
+      label: t('nav.aiAssistant'),
+      icon: '🤖',
+    },
+    {
+      href: '/settings',
+      label: t('nav.settings'),
+      icon: '⚙️',
+    },
   ];
 
   return (
-    <aside className="hidden lg:block w-64 bg-slate-900 text-white min-h-screen fixed left-0 top-0 pt-16">
-      <nav className="p-4 flex flex-col h-full">
-        <ul className="space-y-1 flex-1">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors relative ${
-                    isActive
-                      ? 'bg-blue-600 text-white font-bold'
-                      : 'text-gray-300 hover:bg-slate-800 hover:text-white'
-                  }`}
-                >
-                  {isActive && (
-                    <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r"></span>
-                  )}
-                  <span className="text-xl">{item.icon}</span>
-                  <span className={`font-medium ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
-                  {item.badge !== undefined && item.badge > 0 && (
-                    <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-        
-        {/* User info and logout */}
-        <div className="mt-auto pt-4 border-t border-gray-700">
-          {user && (
-            <div className="px-4 py-2 mb-2">
-              <p className="text-sm text-gray-400 truncate" title={user.email || undefined}>
+    <aside className="fixed top-0 left-0 z-50 w-64 bg-white shadow-lg h-screen flex flex-col">
+      {/* Logo */}
+      <div className="flex items-center justify-center h-16 px-4 bg-blue-600">
+        <h1 className="text-xl font-bold text-white">Yoyaku Yo</h1>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                isActive
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+            >
+              <span className="mr-3">{item.icon}</span>
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* User section - always visible at bottom */}
+      <div className="p-4 border-t border-gray-200 bg-white">
+        {user && (
+          <div className="flex items-center space-x-3 mb-3">
+            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+              {user.email?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">
                 {user.email}
               </p>
             </div>
-          )}
-          <button
-            onClick={signOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-          >
-            <span className="text-xl">🚪</span>
-            <span className="font-medium">{t('nav.logout')}</span>
-          </button>
-        </div>
-      </nav>
+          </div>
+        )}
+
+        <button
+          onClick={handleSignOut}
+          className="flex items-center w-full px-4 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 hover:text-red-700 transition-colors border border-red-200"
+        >
+          <span className="mr-3">🚪</span>
+          {t('nav.logout')}
+        </button>
+      </div>
     </aside>
   );
-});
-
-Sidebar.displayName = 'Sidebar';
-
-export default Sidebar;
-
+}
