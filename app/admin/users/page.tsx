@@ -15,8 +15,9 @@ interface User {
   is_banned: boolean;
   banned_at: string | null;
   banned_reason: string | null;
-  user_type: "owner" | "customer";
-  role?: string;
+  user_type: "admin" | "owner" | "customer"; // All user types
+  role: "guest" | "customer" | "owner"; // Customer role
+  is_admin: boolean; // Admin flag
 }
 
 export default function AdminUsersPage() {
@@ -27,8 +28,7 @@ export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
-    role: "",
-    banned: "",
+    role: "", // 'admin', 'owner', 'customer'
     search: "",
   });
 
@@ -49,7 +49,7 @@ export default function AdminUsersPage() {
       loadUsers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, page, filters.role, filters.banned, filters.search]);
+  }, [userId, page, filters.role, filters.status, filters.search]);
 
   const loadUsers = async () => {
     try {
@@ -59,8 +59,7 @@ export default function AdminUsersPage() {
         limit: "50",
       });
 
-      if (filters.role) params.append("role", filters.role);
-      if (filters.banned) params.append("banned", filters.banned);
+      if (filters.role) params.append("role", filters.role); // 'admin', 'owner', 'customer'
       if (filters.search) params.append("search", filters.search);
 
       const response = await fetch(`${apiUrl}/admin/users?${params}`, {
@@ -88,9 +87,9 @@ export default function AdminUsersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {t("admin.users")}
+          {t("admin.users") || "Users"}
         </h1>
-        <p className="text-gray-600">{t("admin.manageUsers")}</p>
+        <p className="text-gray-600">{t("admin.manageUsers") || "Manage and monitor all platform users"}</p>
       </div>
 
       {/* Filters */}
@@ -98,7 +97,7 @@ export default function AdminUsersPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("admin.filterByRole")}
+              {t("admin.filterByRole") || "Filter by Role"}
             </label>
             <select
               value={filters.role}
@@ -107,30 +106,15 @@ export default function AdminUsersPage() {
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
-              <option value="">{t("admin.allRoles")}</option>
-              <option value="owner">{t("admin.owner")}</option>
-              <option value="customer">{t("admin.customer")}</option>
+              <option value="">{t("admin.allRoles") || "All Roles"}</option>
+              <option value="admin">{t("admin.admin") || "Admin"}</option>
+              <option value="owner">{t("admin.owner") || "Owner"}</option>
+              <option value="customer">{t("admin.customer") || "Customer"}</option>
             </select>
           </div>
-          <div>
+          <div className="md:col-span-3">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("admin.filterByStatus")}
-            </label>
-            <select
-              value={filters.banned}
-              onChange={(e) =>
-                setFilters({ ...filters, banned: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            >
-              <option value="">{t("admin.allStatuses")}</option>
-              <option value="false">{t("admin.active")}</option>
-              <option value="true">{t("admin.banned")}</option>
-            </select>
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("common.search")}
+              {t("common.search") || "Search"}
             </label>
             <input
               type="text"
@@ -138,7 +122,7 @@ export default function AdminUsersPage() {
               onChange={(e) =>
                 setFilters({ ...filters, search: e.target.value })
               }
-              placeholder={t("admin.searchUsers")}
+              placeholder={t("admin.searchUsers") || "Search users..."}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
@@ -164,9 +148,9 @@ export default function AdminUsersPage() {
           >
             {t("common.previous")}
           </button>
-          <span className="text-gray-600">
-            {t("admin.page")} {page} {t("admin.of")} {totalPages}
-          </span>
+              <span className="text-gray-600">
+                {t("admin.page") || "Page"} {page} {t("admin.of") || "of"} {totalPages}
+              </span>
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}

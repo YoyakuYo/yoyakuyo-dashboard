@@ -10,6 +10,7 @@ import LineChart from "@/app/components/LineChart";
 
 interface PlatformStats {
   totals: {
+    admin_users: number; // Admins are customers with is_admin=true
     owners: number;
     customers: number;
     shops: number;
@@ -17,6 +18,7 @@ interface PlatformStats {
     revenue: number;
   };
   recent: {
+    admin_users: number;
     owners: number;
     customers: number;
     shops: number;
@@ -24,6 +26,7 @@ interface PlatformStats {
   };
   growth: Array<{
     date: string;
+    admins: number;
     owners: number;
     customers: number;
   }>;
@@ -138,13 +141,13 @@ export default function AdminDashboardPage() {
     return null;
   }
 
-  // Prepare growth chart data
+  // Prepare growth chart data (include admins in total)
   const growthChartData = stats.growth.map((day) => ({
     x: new Date(day.date).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
     }),
-    y: day.owners + day.customers,
+    y: (day.admins || 0) + day.owners + day.customers,
   }));
 
   return (
@@ -160,11 +163,11 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <AdminStatsCard
           title={t("admin.totalUsers")}
-          value={stats.totals.owners + stats.totals.customers}
-          subtitle={`${stats.totals.owners} ${t("admin.owners")}, ${stats.totals.customers} ${t("admin.customers")}`}
+          value={stats.totals.admin_users + stats.totals.owners + stats.totals.customers}
+          subtitle={`${stats.totals.admin_users || 0} ${t("admin.admins") || "Admins"}, ${stats.totals.owners || 0} ${t("admin.owners")}, ${stats.totals.customers || 0} ${t("admin.customers")}`}
           icon="👥"
           trend={{
-            value: stats.recent.owners + stats.recent.customers,
+            value: stats.recent.admin_users + stats.recent.owners + stats.recent.customers,
             label: t("admin.newLast7Days"),
           }}
         />
@@ -208,7 +211,13 @@ export default function AdminDashboardPage() {
         <h2 className="text-xl font-bold text-gray-900 mb-4">
           {t("admin.recentActivity")}
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div>
+            <p className="text-sm text-gray-600">{t("admin.newAdmins") || "New Admins"}</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {stats.recent.admin_users || 0}
+            </p>
+          </div>
           <div>
             <p className="text-sm text-gray-600">{t("admin.newOwners")}</p>
             <p className="text-2xl font-bold text-gray-900">
