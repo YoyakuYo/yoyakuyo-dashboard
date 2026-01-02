@@ -133,7 +133,7 @@ const AdminSidebar = React.memo(() => {
                     }`}
                   >
                     <span className="text-xl">{item.icon}</span>
-                    <span>{t(item.labelKey) || item.labelKey.replace('admin.', '')}</span>
+                    <span>{t(item.labelKey) || item.labelKey.replace('admin.', '').replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim()}</span>
                   </Link>
                 </li>
               );

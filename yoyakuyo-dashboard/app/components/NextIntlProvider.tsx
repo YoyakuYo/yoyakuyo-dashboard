@@ -164,7 +164,7 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
           return photoTexts[locale] || 'Photos';
         }
         
-        // Handle missing admin keys - fallback to English
+        // Handle missing admin keys - ALWAYS fallback to English first
         if (key.startsWith('admin.')) {
           const adminKey = key.replace('admin.', '');
           const enAdminMessages = messageMap['en']?.admin || {};
@@ -172,10 +172,15 @@ export function NextIntlProviderWrapper({ children }: { children: ReactNode }) {
             return enAdminMessages[adminKey];
           }
           // If not in English, try to format the key nicely
-          return adminKey
+          const formatted = adminKey
             .replace(/([A-Z])/g, ' $1')
             .replace(/^./, str => str.toUpperCase())
             .trim();
+          // Log in development to help identify missing keys
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`Missing admin translation key: ${key}, formatted as: ${formatted}`);
+          }
+          return formatted;
         }
         
         // Handle missing category keys gracefully
