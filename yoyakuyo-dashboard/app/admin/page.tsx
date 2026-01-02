@@ -121,28 +121,30 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={loadStats}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            {t("common.refresh")}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Default stats if not loaded yet
+  const defaultStats: PlatformStats = {
+    totals: {
+      admins: 0,
+      owners: 0,
+      customers: 0,
+      shops: 0,
+      bookings: 0,
+      revenue: 0,
+    },
+    recent: {
+      admins: 0,
+      owners: 0,
+      customers: 0,
+      shops: 0,
+      bookings: 0,
+    },
+    growth: [],
+  };
 
-  if (!stats) {
-    return null;
-  }
+  const displayStats = stats || defaultStats;
 
   // Prepare growth chart data (include admins in total)
-  const growthChartData = stats.growth.map((day) => ({
+  const growthChartData = displayStats.growth.map((day) => ({
     x: new Date(day.date).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -152,57 +154,80 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {t("admin.dashboard")}
-        </h1>
-        <p className="text-gray-600">{t("admin.platformOverview")}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {t("admin.dashboard")}
+          </h1>
+          <p className="text-gray-600">{t("admin.platformOverview")}</p>
+        </div>
+        <button
+          onClick={loadStats}
+          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+        >
+          {t("common.refresh")}
+        </button>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <AdminStatsCard
           title={t("admin.totalUsers")}
-          value={(stats.totals.admins || 0) + (stats.totals.owners || 0) + (stats.totals.customers || 0)}
-          subtitle={`${stats.totals.admins || 0} ${t("admin.admins") || "Admins"}, ${stats.totals.owners || 0} ${t("admin.owners")}, ${stats.totals.customers || 0} ${t("admin.customers")}`}
+          value={(displayStats.totals.admins || 0) + (displayStats.totals.owners || 0) + (displayStats.totals.customers || 0)}
+          subtitle={`${displayStats.totals.admins || 0} ${t("admin.admins") || "Admins"}, ${displayStats.totals.owners || 0} ${t("admin.owners")}, ${displayStats.totals.customers || 0} ${t("admin.customers")}`}
           icon="👥"
           trend={{
-            value: (stats.recent.admins || 0) + (stats.recent.owners || 0) + (stats.recent.customers || 0),
+            value: (displayStats.recent.admins || 0) + (displayStats.recent.owners || 0) + (displayStats.recent.customers || 0),
             label: t("admin.newLast7Days"),
           }}
         />
         <AdminStatsCard
           title={t("admin.totalShops")}
-          value={stats.totals.shops || 0}
+          value={displayStats.totals.shops || 0}
           icon="🏪"
           trend={{
-            value: stats.recent.shops || 0,
+            value: displayStats.recent.shops || 0,
             label: t("admin.newLast7Days"),
           }}
         />
         <AdminStatsCard
           title={t("admin.totalBookings")}
-          value={stats.totals.bookings || 0}
+          value={displayStats.totals.bookings || 0}
           icon="📅"
           trend={{
-            value: stats.recent.bookings || 0,
+            value: displayStats.recent.bookings || 0,
             label: t("admin.newLast7Days"),
           }}
         />
         <AdminStatsCard
           title={t("admin.totalRevenue")}
-          value={formatCurrency(stats.totals.revenue || 0)}
+          value={formatCurrency(displayStats.totals.revenue || 0)}
           icon="💰"
         />
       </div>
 
       {/* Growth Chart */}
-      {stats.growth.length > 0 && (
+      {displayStats.growth.length > 0 ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">
             {t("admin.userGrowth")}
           </h2>
           <LineChart data={growthChartData} height={300} color="#3B82F6" />
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            {t("admin.userGrowth")}
+          </h2>
+          <div className="text-center py-12 text-gray-500">
+            <p>{t("admin.noGrowthData") || "No growth data available yet"}</p>
+          </div>
         </div>
       )}
 
@@ -215,31 +240,31 @@ export default function AdminDashboardPage() {
           <div>
             <p className="text-sm text-gray-600">{t("admin.newAdmins") || "New Admins"}</p>
             <p className="text-2xl font-bold text-gray-900">
-              {stats.recent.admins || 0}
+              {displayStats.recent.admins || 0}
             </p>
           </div>
           <div>
             <p className="text-sm text-gray-600">{t("admin.newOwners")}</p>
             <p className="text-2xl font-bold text-gray-900">
-              {stats.recent.owners || 0}
+              {displayStats.recent.owners || 0}
             </p>
           </div>
           <div>
             <p className="text-sm text-gray-600">{t("admin.newCustomers")}</p>
             <p className="text-2xl font-bold text-gray-900">
-              {stats.recent.customers || 0}
+              {displayStats.recent.customers || 0}
             </p>
           </div>
           <div>
             <p className="text-sm text-gray-600">{t("admin.newShops")}</p>
             <p className="text-2xl font-bold text-gray-900">
-              {stats.recent.shops || 0}
+              {displayStats.recent.shops || 0}
             </p>
           </div>
           <div>
             <p className="text-sm text-gray-600">{t("admin.newBookings")}</p>
             <p className="text-2xl font-bold text-gray-900">
-              {stats.recent.bookings || 0}
+              {displayStats.recent.bookings || 0}
             </p>
           </div>
         </div>
