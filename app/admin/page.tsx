@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useCustomAuth } from "@/lib/useCustomAuth";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 import AdminStatsCard from "@/app/components/admin/AdminStatsCard";
 import LineChart from "@/app/components/LineChart";
 
@@ -31,12 +31,24 @@ interface PlatformStats {
 
 export default function AdminDashboardPage() {
   const t = useTranslations();
-  const { user } = useCustomAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const loadingRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
+
+  // Get user from Supabase Auth
+  useEffect(() => {
+    const getUserId = async () => {
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserId(session.user.id);
+      }
+    };
+    getUserId();
+  }, []);
 
   useEffect(() => {
     // Prevent multiple simultaneous loads
@@ -45,15 +57,15 @@ export default function AdminDashboardPage() {
     }
 
     // If user hasn't changed, don't reload
-    if (user?.id === lastUserIdRef.current && lastUserIdRef.current !== null) {
+    if (userId === lastUserIdRef.current && lastUserIdRef.current !== null) {
       return;
     }
 
-    if (user?.id) {
-      lastUserIdRef.current = user.id;
+    if (userId) {
+      lastUserIdRef.current = userId;
       loadStats();
     }
-  }, [user?.id]);
+  }, [userId]);
 
   const loadStats = async () => {
     if (loadingRef.current) {
@@ -66,7 +78,7 @@ export default function AdminDashboardPage() {
 
       const response = await fetch(`${apiUrl}/admin/stats`, {
         headers: {
-          "x-user-id": user?.id || "",
+          "x-user-id": userId || "",
           "Content-Type": "application/json",
         },
       });

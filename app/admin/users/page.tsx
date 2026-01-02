@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useCustomAuth } from "@/lib/useCustomAuth";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 import UserManagementTable from "@/app/components/admin/UserManagementTable";
 
 interface User {
@@ -21,7 +21,7 @@ interface User {
 
 export default function AdminUsersPage() {
   const t = useTranslations();
-  const { user } = useCustomAuth();
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [page, setPage] = useState(1);
@@ -32,12 +32,24 @@ export default function AdminUsersPage() {
     search: "",
   });
 
+  // Get user from Supabase Auth
   useEffect(() => {
-    if (user?.id) {
+    const getUserId = async () => {
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserId(session.user.id);
+      }
+    };
+    getUserId();
+  }, []);
+
+  useEffect(() => {
+    if (userId) {
       loadUsers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, page, filters.role, filters.banned, filters.search]);
+  }, [userId, page, filters.role, filters.banned, filters.search]);
 
   const loadUsers = async () => {
     try {
@@ -53,7 +65,7 @@ export default function AdminUsersPage() {
 
       const response = await fetch(`${apiUrl}/admin/users?${params}`, {
         headers: {
-          "x-user-id": user?.id || "",
+          "x-user-id": userId || "",
           "Content-Type": "application/json",
         },
       });

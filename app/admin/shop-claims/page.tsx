@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
-import { useCustomAuth } from '@/lib/useCustomAuth';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 
 interface ClaimFile {
   id: string;
@@ -47,18 +47,30 @@ interface ClaimRequest {
 export default function AdminShopClaimsPage() {
   const t = useTranslations();
   const router = useRouter();
-  const { user, loading: authLoading } = useCustomAuth();
+  const [userId, setUserId] = useState<string | null>(null);
   const [claims, setClaims] = useState<ClaimRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [adminNote, setAdminNote] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
+  // Get user from Supabase Auth
   useEffect(() => {
-    if (!authLoading && user) {
+    const getUserId = async () => {
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserId(session.user.id);
+      }
+    };
+    getUserId();
+  }, []);
+
+  useEffect(() => {
+    if (userId) {
       fetchPendingClaims();
     }
-  }, [authLoading, user]);
+  }, [userId]);
 
   const fetchPendingClaims = async () => {
     try {
@@ -66,7 +78,7 @@ export default function AdminShopClaimsPage() {
       const res = await fetch(`${apiUrl}/shop-claims/pending`, {
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id || '',
+          'x-user-id': userId || '',
         },
       });
 
@@ -98,7 +110,7 @@ export default function AdminShopClaimsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id || '',
+          'x-user-id': userId || '',
         },
         body: JSON.stringify({
           admin_note: adminNote[claimId] || null,
@@ -134,7 +146,7 @@ export default function AdminShopClaimsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user?.id || '',
+          'x-user-id': userId || '',
         },
         body: JSON.stringify({
           admin_note: adminNote[claimId] || null,

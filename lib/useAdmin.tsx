@@ -1,12 +1,11 @@
-// Hook to check if current user has admin role
+// Hook to check if current user has admin role - uses Supabase Auth
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useCustomAuth } from "./useCustomAuth";
+import { getSupabaseClient } from "./supabaseClient";
 import { apiUrl } from "./apiClient";
 
 export function useAdmin() {
-  const { user, loading: authLoading, role } = useCustomAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const checkingRef = useRef(false);
@@ -18,57 +17,64 @@ export function useAdmin() {
       return;
     }
 
-    // If user hasn't changed, don't re-check
-    if (user?.id === lastUserIdRef.current && lastUserIdRef.current !== null) {
-      return;
-    }
-
-    if (authLoading) {
-      return;
-    }
-
-    if (!user) {
-      setLoading(false);
-      setIsAdmin(false);
-      lastUserIdRef.current = null;
-      return;
-    }
-
-    // Only check admin status for owners (customers can't be admins)
-    if (role !== 'owner') {
-      setLoading(false);
-      setIsAdmin(false);
-      lastUserIdRef.current = user.id;
-      return;
-    }
-
-    // Check admin status by trying to access admin stats endpoint
-    // This will return 403 if not admin, 200 if admin
-    checkingRef.current = true;
-    const checkAdmin = async () => {
+    const checkAdminStatus = async () => {
       try {
+        const supabase = getSupabaseClient();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError || !session?.user) {
+          setLoading(false);
+          setIsAdmin(false);
+          lastUserIdRef.current = null;
+          return;
+        }
+
+        const userId = session.user.id;
+
+        // If user hasn't changed, don't re-check
+        if (userId === lastUserIdRef.current && lastUserIdRef.current !== null) {
+          return;
+        }
+
+        // Check admin status by trying to access admin stats endpoint
+        // This will return 403 if not admin, 200 if admin
+        checkingRef.current = true;
+        
         const response = await fetch(`${apiUrl}/admin/stats`, {
           headers: {
-            "x-user-id": user.id,
+            "x-user-id": userId,
             "Content-Type": "application/json",
           },
         });
 
         setIsAdmin(response.ok);
-        lastUserIdRef.current = user.id;
+        lastUserIdRef.current = userId;
       } catch (error) {
         console.error("Error checking admin status:", error);
         setIsAdmin(false);
-        lastUserIdRef.current = user.id;
+        lastUserIdRef.current = null;
       } finally {
         setLoading(false);
         checkingRef.current = false;
       }
     };
 
-    checkAdmin();
-  }, [user?.id, authLoading, role]);
+    checkAdminStatus();
 
-  return { isAdmin, loading: loading || authLoading };
+    // Listen for auth state changes
+    const supabase = getSupabaseClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      // Reset and re-check when auth state changes
+      lastUserIdRef.current = null;
+      checkingRef.current = false;
+      checkAdminStatus();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  return { isAdmin, loading };
 }
 

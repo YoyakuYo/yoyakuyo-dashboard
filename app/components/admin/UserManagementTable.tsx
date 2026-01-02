@@ -1,10 +1,10 @@
 // User management table component
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useCustomAuth } from "@/lib/useCustomAuth";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 
 interface User {
   id: string;
@@ -30,10 +30,21 @@ export default function UserManagementTable({
   onRefresh,
 }: UserManagementTableProps) {
   const t = useTranslations();
-  const { user: currentUser } = useCustomAuth();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [banReason, setBanReason] = useState<Record<string, string>>({});
   const [showBanModal, setShowBanModal] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getUserId = async () => {
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setCurrentUserId(session.user.id);
+      }
+    };
+    getUserId();
+  }, []);
 
   const handleBan = async (userId: string, userType: string) => {
     if (!confirm(t("admin.confirmBan"))) {
@@ -45,7 +56,7 @@ export default function UserManagementTable({
       const response = await fetch(`${apiUrl}/admin/users/${userId}`, {
         method: "PATCH",
         headers: {
-          "x-user-id": currentUser?.id || "",
+          "x-user-id": currentUserId || "",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -81,7 +92,7 @@ export default function UserManagementTable({
       const response = await fetch(`${apiUrl}/admin/users/${userId}`, {
         method: "PATCH",
         headers: {
-          "x-user-id": currentUser?.id || "",
+          "x-user-id": currentUserId || "",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

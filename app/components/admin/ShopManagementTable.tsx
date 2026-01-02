@@ -1,10 +1,10 @@
 // Shop management table component
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useCustomAuth } from "@/lib/useCustomAuth";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
 
 interface Shop {
@@ -29,8 +29,19 @@ export default function ShopManagementTable({
   onRefresh,
 }: ShopManagementTableProps) {
   const t = useTranslations();
-  const { user: currentUser } = useCustomAuth();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getUserId = async () => {
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setCurrentUserId(session.user.id);
+      }
+    };
+    getUserId();
+  }, []);
 
   const handleVerify = async (shopId: string) => {
     try {
@@ -38,7 +49,7 @@ export default function ShopManagementTable({
       const response = await fetch(`${apiUrl}/admin/shops/${shopId}`, {
         method: "PATCH",
         headers: {
-          "x-user-id": currentUser?.id || "",
+          "x-user-id": currentUserId || "",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ is_verified: true }),
@@ -64,7 +75,7 @@ export default function ShopManagementTable({
       const response = await fetch(`${apiUrl}/admin/shops/${shopId}`, {
         method: "PATCH",
         headers: {
-          "x-user-id": currentUser?.id || "",
+          "x-user-id": currentUserId || "",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ is_hidden: hide }),
@@ -94,7 +105,7 @@ export default function ShopManagementTable({
       const response = await fetch(`${apiUrl}/admin/shops/${shopId}`, {
         method: "DELETE",
         headers: {
-          "x-user-id": currentUser?.id || "",
+          "x-user-id": currentUserId || "",
           "Content-Type": "application/json",
         },
       });
