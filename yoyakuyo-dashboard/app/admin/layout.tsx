@@ -1,6 +1,7 @@
 // Admin layout with AdminGuard and AdminSidebar
 "use client";
 
+import { usePathname } from "next/navigation";
 import AdminGuard from "@/app/components/AdminGuard";
 import AdminSidebar from "@/app/components/admin/AdminSidebar";
 
@@ -9,6 +10,14 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  
+  // Login page should not have sidebar or guard (it handles its own auth)
+  if (pathname === "/admin/login" || pathname?.startsWith("/admin/login/")) {
+    return <>{children}</>;
+  }
+
+  // All other admin pages get the guard and sidebar
   return (
     <AdminGuard>
       <div className="flex min-h-screen bg-gray-50">
