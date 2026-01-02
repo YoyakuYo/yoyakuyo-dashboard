@@ -1,15 +1,16 @@
 // Admin dashboard main page
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useCustomAuth } from "@/lib/useCustomAuth";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 import AdminStatsCard from "@/app/components/admin/AdminStatsCard";
 import LineChart from "@/app/components/LineChart";
 
 interface PlatformStats {
   totals: {
+    admin_users: number; // Admins are customers with is_admin=true
     owners: number;
     customers: number;
     shops: number;
@@ -17,6 +18,7 @@ interface PlatformStats {
     revenue: number;
   };
   recent: {
+    admin_users: number;
     owners: number;
     customers: number;
     shops: number;
@@ -31,25 +33,54 @@ interface PlatformStats {
 
 export default function AdminDashboardPage() {
   const t = useTranslations();
-  const { user } = useCustomAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const loadingRef = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
+
+  // Get user from Supabase Auth
+  useEffect(() => {
+    const getUserId = async () => {
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserId(session.user.id);
+      }
+    };
+    getUserId();
+  }, []);
 
   useEffect(() => {
-    if (user?.id) {
+    // Prevent multiple simultaneous loads
+    if (loadingRef.current) {
+      return;
+    }
+
+    // If user hasn't changed, don't reload
+    if (userId === lastUserIdRef.current && lastUserIdRef.current !== null) {
+      return;
+    }
+
+    if (userId) {
+      lastUserIdRef.current = userId;
       loadStats();
     }
-  }, [user]);
+  }, [userId]);
 
   const loadStats = async () => {
+    if (loadingRef.current) {
+      return;
+    }
+    loadingRef.current = true;
     try {
       setLoading(true);
       setError(null);
 
       const response = await fetch(`${apiUrl}/admin/stats`, {
         headers: {
-          "x-user-id": user?.id || "",
+          "x-user-id": userId || "",
           "Content-Type": "application/json",
         },
       });
@@ -70,6 +101,7 @@ export default function AdminDashboardPage() {
       setError(err.message || "Failed to load stats");
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
   };
 
@@ -130,11 +162,11 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <AdminStatsCard
           title={t("admin.totalUsers")}
-          value={stats.totals.owners + stats.totals.customers}
-          subtitle={`${stats.totals.owners} ${t("admin.owners")}, ${stats.totals.customers} ${t("admin.customers")}`}
+          value={stats.totals.admin_users + stats.totals.owners + stats.totals.customers}
+          subtitle={`${stats.totals.admin_users} ${t("admin.admin") || "Admin"}, ${stats.totals.owners} ${t("admin.owners")}, ${stats.totals.customers} ${t("admin.customers")}`}
           icon="👥"
           trend={{
-            value: stats.recent.owners + stats.recent.customers,
+            value: stats.recent.admin_users + stats.recent.owners + stats.recent.customers,
             label: t("admin.newLast7Days"),
           }}
         />

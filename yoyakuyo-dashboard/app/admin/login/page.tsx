@@ -1,4 +1,4 @@
-// Admin login page - uses Supabase Auth, checks admin_users table for admin role
+// Admin login page - uses Supabase Auth, checks customers.is_admin for admin role
 "use client";
 
 import { useState, useEffect } from "react";
@@ -24,7 +24,7 @@ export default function AdminLoginPage() {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          // Check if user is admin by querying admin_users table
+          // Check if user is admin by querying customers table (is_admin = true)
           const response = await fetch(`${apiUrl}/admin/stats`, {
             headers: {
               "x-user-id": session.user.id,
