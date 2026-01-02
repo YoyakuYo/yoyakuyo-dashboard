@@ -75,7 +75,7 @@ const AdminSidebar = React.memo(() => {
                   onClick={() => setDrawerOpen(false)}
                 >
                   <span className="text-xl">{item.icon}</span>
-                  <span>{t(item.labelKey)}</span>
+                  <span>{t(item.labelKey) || item.labelKey.replace('admin.', '')}</span>
                 </Link>
               </li>
             );
@@ -114,7 +114,7 @@ const AdminSidebar = React.memo(() => {
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white min-h-screen">
         <div className="p-6 border-b border-slate-700">
-          <h1 className="text-xl font-bold">{t("admin.dashboard")}</h1>
+          <h1 className="text-xl font-bold">{t("admin.dashboard") || "Admin Dashboard"}</h1>
         </div>
         <nav className="flex-1 p-4">
           <ul className="space-y-1">
@@ -133,7 +133,7 @@ const AdminSidebar = React.memo(() => {
                     }`}
                   >
                     <span className="text-xl">{item.icon}</span>
-                    <span>{t(item.labelKey)}</span>
+                    <span>{t(item.labelKey) || item.labelKey.replace('admin.', '').replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim()}</span>
                   </Link>
                 </li>
               );

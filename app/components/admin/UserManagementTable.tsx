@@ -211,7 +211,10 @@ export default function UserManagementTable({
                   {new Date(user.created_at).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  {user.is_banned ? (
+                  {user.user_type === 'admin' ? (
+                    // Admins cannot be banned/unbanned by other admins
+                    <span className="text-gray-400 text-xs">Protected</span>
+                  ) : user.is_banned ? (
                     <button
                       onClick={() => handleUnban(user.id)}
                       disabled={processingId === user.id}
