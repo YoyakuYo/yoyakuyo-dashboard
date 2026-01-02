@@ -11,16 +11,28 @@ export interface Category {
 // Category mapping: English name -> Japanese name -> image filename
 export const CATEGORIES: Category[] = [
   {
-    id: 'restaurants_izakaya',
-    name: 'Restaurants & Izakaya',
-    nameJa: 'レストラン・居酒屋',
+    id: 'restaurant',
+    name: 'Restaurant',
+    nameJa: 'レストラン',
     imageKey: 'restaurant',
   },
   {
-    id: 'hotels_ryokan',
-    name: 'Hotels & Ryokan',
-    nameJa: 'ホテル・旅館',
+    id: 'izakaya',
+    name: 'Izakaya',
+    nameJa: '居酒屋',
+    imageKey: 'izakaya',
+  },
+  {
+    id: 'hotel',
+    name: 'Hotel',
+    nameJa: 'ホテル',
     imageKey: 'hotel',
+  },
+  {
+    id: 'ryokan',
+    name: 'Ryokan',
+    nameJa: '旅館',
+    imageKey: 'ryokan',
   },
   {
     id: 'hair_salon',

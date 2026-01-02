@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
 
@@ -13,6 +14,7 @@ function ResetPasswordForm() {
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
   const router = useRouter();
+  const t = useTranslations();
 
   useEffect(() => {
     // Check if we have a valid access token from Supabase redirect
@@ -24,7 +26,7 @@ function ResetPasswordForm() {
         if (error) {
           console.error("Error checking session:", error);
           setIsValidToken(false);
-          setMessage("Invalid or expired reset link. Please request a new password reset.");
+          setMessage(t('invalidExpiredResetLink'));
           setMessageType("error");
           return;
         }
@@ -73,7 +75,7 @@ function ResetPasswordForm() {
 
     // Validate passwords match
     if (password !== confirmPassword) {
-      setMessage("Passwords do not match. Please try again.");
+      setMessage(t('passwordsDoNotMatch'));
       setMessageType("error");
       setLoading(false);
       return;
@@ -81,7 +83,7 @@ function ResetPasswordForm() {
 
     // Validate password length
     if (password.length < 6) {
-      setMessage("Password must be at least 6 characters long.");
+      setMessage(t('passwordTooShort'));
       setMessageType("error");
       setLoading(false);
       return;
@@ -115,7 +117,7 @@ function ResetPasswordForm() {
         setMessageType("error");
         setLoading(false);
       } else {
-        setMessage("Password updated successfully! Redirecting to login...");
+        setMessage(t('passwordUpdated'));
         setMessageType("success");
         setLoading(false);
         
@@ -138,7 +140,7 @@ function ResetPasswordForm() {
         <div className="w-full max-w-md">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Validating reset link...</p>
+            <p className="text-gray-600">{t('validatingResetLink')}</p>
           </div>
         </div>
       </main>
@@ -150,7 +152,7 @@ function ResetPasswordForm() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-24">
         <div className="w-full max-w-md">
-          <h1 className="text-3xl font-bold mb-6 text-center">Invalid Reset Link</h1>
+          <h1 className="text-3xl font-bold mb-6 text-center">{t('invalidResetLink')}</h1>
           
           {message && (
             <div className="mb-6 p-3 bg-red-100 text-red-800 rounded-lg text-sm text-center">
@@ -160,7 +162,7 @@ function ResetPasswordForm() {
 
           <div className="text-center space-y-2">
             <Link href="/forgot-password" className="text-blue-600 hover:underline block">
-              Request New Reset Link
+              {t('requestNewResetLink')}
             </Link>
             <Link href="/login" className="text-gray-600 hover:underline block text-sm">
               ← Back to Login
@@ -174,15 +176,15 @@ function ResetPasswordForm() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
       <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-6 text-center">Set New Password</h1>
+        <h1 className="text-3xl font-bold mb-6 text-center">{t('setNewPassword')}</h1>
         <p className="text-gray-600 mb-6 text-center">
-          Please enter your new password below.
+          {t('setNewPasswordDescription')}
         </p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="password" className="block text-sm font-medium mb-2">
-              New Password
+              {t('newPassword')}
             </label>
             <input
               id="password"
@@ -199,7 +201,7 @@ function ResetPasswordForm() {
 
           <div>
             <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
-              Confirm New Password
+              {t('confirmNewPassword')}
             </label>
             <input
               id="confirmPassword"
@@ -218,7 +220,7 @@ function ResetPasswordForm() {
             disabled={loading}
             className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Updating..." : "Update Password"}
+            {loading ? t('updating') : t('updatePassword')}
           </button>
         </form>
 

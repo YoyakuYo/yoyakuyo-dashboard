@@ -31,6 +31,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Admin routes - allow /admin/login without auth, protect other /admin/* routes
+  if (pathname.startsWith("/admin")) {
+    // Allow /admin/login to pass through (no auth required)
+    if (pathname === "/admin/login" || pathname.startsWith("/admin/login/")) {
+      return NextResponse.next();
+    }
+    // Other admin routes are protected by AdminGuard component
+    return NextResponse.next();
+  }
+
   return NextResponse.next();
 }
 

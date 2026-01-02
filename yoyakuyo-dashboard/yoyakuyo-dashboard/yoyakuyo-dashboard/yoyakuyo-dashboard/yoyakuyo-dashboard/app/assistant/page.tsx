@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useAuth } from "@/lib/useAuth";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import OwnerPowerBot from "@/app/components/OwnerPowerBot";
 
 export default function AssistantPage() {
   const { user, loading: authLoading } = useAuth();
@@ -29,11 +28,82 @@ export default function AssistantPage() {
     return null;
   }
 
+  // MODIFIED: Replace blank screen with static capabilities list (now fully translated)
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">{t('nav.aiAssistant')}</h1>
-      <div className="bg-white rounded-lg shadow p-6">
-        <OwnerPowerBot />
+    <div className="min-h-screen bg-gray-50 py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Title Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            {t('assistant.capabilitiesTitle')}
+          </h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            {t('assistant.capabilitiesDescription')}
+          </p>
+        </div>
+
+        {/* Capabilities List */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 md:p-12">
+          <ul className="space-y-4 text-gray-700">
+            <li className="flex items-start gap-3">
+              <span className="text-blue-600 font-bold text-xl mt-1">•</span>
+              <span className="text-lg">{t('assistant.capabilityManageBookings')}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-blue-600 font-bold text-xl mt-1">•</span>
+              <span className="text-lg">{t('assistant.capabilityModifySchedule')}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-blue-600 font-bold text-xl mt-1">•</span>
+              <span className="text-lg">{t('assistant.capabilityUpdateShopHours')}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-blue-600 font-bold text-xl mt-1">•</span>
+              <span className="text-lg">{t('assistant.capabilityAnswerMessages')}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-blue-600 font-bold text-xl mt-1">•</span>
+              <span className="text-lg">{t('assistant.capabilityAutomatedResponses')}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-blue-600 font-bold text-xl mt-1">•</span>
+              <span className="text-lg">{t('assistant.capabilityAnalyzePerformance')}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-blue-600 font-bold text-xl mt-1">•</span>
+              <span className="text-lg">{t('assistant.capabilityRemindBookings')}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-blue-600 font-bold text-xl mt-1">•</span>
+              <span className="text-lg">{t('assistant.capabilityEditServices')}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-blue-600 font-bold text-xl mt-1">•</span>
+              <span className="text-lg">{t('assistant.capabilityAddStaff')}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-blue-600 font-bold text-xl mt-1">•</span>
+              <span className="text-lg">{t('assistant.capabilityMarkHolidays')}</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="text-blue-600 font-bold text-xl mt-1">•</span>
+              <span className="text-lg">{t('assistant.capabilityCheckAvailability')}</span>
+            </li>
+          </ul>
+        </div>
+
+        {/* Call to Action */}
+        <div className="text-center mt-8">
+          <p className="text-gray-600 mb-4">
+            {t('assistant.capabilitiesCTA')}
+          </p>
+          <button
+            onClick={() => router.push('/shops')}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            {t('nav.myShop')}
+          </button>
+        </div>
       </div>
     </div>
   );

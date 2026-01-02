@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
 import { useBookingNotifications } from './BookingNotificationContext';
+import NotificationDot from './NotificationDot';
 
 const Sidebar = React.memo(() => {
   const pathname = usePathname();
@@ -107,7 +108,7 @@ const Sidebar = React.memo(() => {
   // Owner navigation: put "My Shop" at the top and remove the legacy Dashboard link
   const navItems = [
     { href: '/owner/shop-profile', labelKey: 'nav.myShop', icon: '🏪' },
-    { href: '/owner/bookings', labelKey: 'nav.bookings', icon: '📅', badge: unreadBookingsCount > 0 ? unreadBookingsCount : undefined },
+    { href: '/owner/bookings', labelKey: 'nav.bookings', icon: '📅' },
     { href: '/owner/calendar', labelKey: 'nav.calendar', icon: '📆' },
     { href: '/analytics', labelKey: 'nav.analytics', icon: '📊' },
     { href: '/owner/messages', labelKey: 'nav.messages', icon: '💬', badge: unreadCount > 0 ? unreadCount : undefined },

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
 
@@ -11,6 +12,7 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const router = useRouter();
+  const t = useTranslations();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,9 +38,14 @@ export default function ForgotPasswordPage() {
 
       const supabase = getSupabaseClient();
       
+      // Get current origin for dynamic redirect URL
+      const currentOrigin = typeof window !== 'undefined'
+        ? window.location.origin
+        : 'https://yoyakuyo-dashboard.vercel.app';
+
       // Send password reset email
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: "https://yoyakuyo-dashboard.vercel.app/reset-password",
+        redirectTo: `${currentOrigin}/reset-password`,
       });
 
       if (error) {
@@ -46,7 +53,7 @@ export default function ForgotPasswordPage() {
         setMessageType("error");
         setLoading(false);
       } else {
-        setMessage("Password reset email sent! Please check your inbox and follow the instructions to reset your password.");
+        setMessage(t('resetEmailSent'));
         setMessageType("success");
         setLoading(false);
         // Clear email field after successful submission
@@ -62,9 +69,9 @@ export default function ForgotPasswordPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
       <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-6 text-center">Reset Password</h1>
+        <h1 className="text-3xl font-bold mb-6 text-center">{t('resetPassword')}</h1>
         <p className="text-gray-600 mb-6 text-center">
-          Enter your email address and we'll send you a link to reset your password.
+          {t('resetPasswordDescription')}
         </p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -88,7 +95,7 @@ export default function ForgotPasswordPage() {
             disabled={loading}
             className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Sending..." : "Send Reset Link"}
+            {loading ? t('sending') : t('sendResetLink')}
           </button>
         </form>
 

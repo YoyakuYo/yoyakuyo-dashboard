@@ -73,7 +73,33 @@ export default function SettingsPage() {
         }),
       });
 
-      const responseData = await res.json();
+      // Check content type before parsing
+      const contentType = res.headers.get('content-type');
+      let responseData: any = {};
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          responseData = await res.json();
+        } catch (parseError) {
+          console.error('Error parsing JSON response:', parseError);
+          setMessage({ type: 'error', text: 'Failed to parse server response' });
+          return;
+        }
+      } else {
+        // Non-JSON response - try to read as text
+        const text = await res.text();
+        console.warn('Non-JSON response from server:', text);
+        if (res.ok) {
+          setMessage({ type: 'success', text: 'Preferences saved successfully!' });
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+          return;
+        } else {
+          setMessage({ type: 'error', text: text || 'Failed to save preferences' });
+          return;
+        }
+      }
 
       if (res.ok) {
         setMessage({ type: 'success', text: 'Preferences saved successfully!' });
@@ -89,7 +115,12 @@ export default function SettingsPage() {
       }
     } catch (error: any) {
       console.error('Error saving preferences:', error);
-      setMessage({ type: 'error', text: `Failed to save preferences: ${error.message || 'Network error'}` });
+      // Check if it's a JSON parse error
+      if (error.message && error.message.includes('JSON')) {
+        setMessage({ type: 'error', text: 'Invalid response from server. Please try again.' });
+      } else {
+        setMessage({ type: 'error', text: `Failed to save preferences: ${error.message || 'Network error'}` });
+      }
     } finally {
       setSaving(false);
     }

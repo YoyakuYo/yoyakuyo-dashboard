@@ -1,7 +1,31 @@
 import express, { Request, Response, Router } from 'express';
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseAdmin } from '../lib/supabase';
+import { createCustomerNotification, createOwnerNotification, getCustomerProfileId } from '../services/notificationService';
 
 const router = Router();
+const dbClient = supabaseAdmin || supabase;
+
+type BookingSource = 'guest' | 'web' | 'line';
+type BookingChannel = 'web' | 'line';
+
+function normalizeBookingSource(input: unknown): BookingSource | null {
+  const v = String(input || '').trim().toLowerCase();
+  if (v === 'guest' || v === 'web' || v === 'line') return v;
+  return null;
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+function toUserSafeBookingDbError(err: any): { status: number; error: string } {
+  const code = String(err?.code || '');
+  if (code === '23503') return { status: 400, error: 'Invalid shop or service. Please refresh and try again.' };
+  if (code === '23502') return { status: 400, error: 'Missing required booking information. Please check the form and try again.' };
+  if (code === '23514') return { status: 400, error: 'This booking request is not valid. Please refresh and try again.' };
+  if (code === '22P02') return { status: 400, error: 'Invalid data format. Please check the form and try again.' };
+  return { status: 500, error: 'Could not create booking. Please try again.' };
+}
 
 // GET /bookings
 router.get('/', async (req: Request, res: Response) => {
@@ -11,7 +35,7 @@ router.get('/', async (req: Request, res: Response) => {
         
         let query = supabase
             .from('bookings')
-            .select('id, shop_id, service_id, staff_id, customer_id, start_time, end_time, notes, status, customer_name, customer_email, customer_phone, shops(name), services(name), staff(first_name, last_name)');
+            .select('id, shop_id, service_id, staff_id, customer_id, customer_profile_id, start_time, end_time, notes, status, customer_name, customer_email, customer_phone, shops(name), services(name), staff(first_name, last_name)');
         
         // If user_id provided, filter by shops owned by user
         if (userId) {
@@ -89,64 +113,229 @@ router.get('/', async (req: Request, res: Response) => {
 // POST /bookings
 router.post('/', async (req: Request, res: Response) => {
     try {
-        const { 
-            service_id, 
-            staff_id, 
-            start_time, 
-            end_time, 
-            notes, 
-            shop_id, 
-            customer_id,  // Optional: for owner-created bookings
-            customer_name,  // Required for public bookings
-            customer_email,  // Required for public bookings
-            customer_phone,  // Optional
-            first_name,  // Legacy support
-            last_name,  // Legacy support
-            phone,  // Legacy support
-            email  // Legacy support
-        } = req.body;
+        const {
+            service_id,
+            staff_id,
+            start_time,
+            end_time,
+            notes,
+            shop_id,
+            // Canonical booking fields
+            source: sourceRaw,
+            guest_name,
+            guest_email,
+            // Optional legacy inputs (for backward compatibility)
+            channel: legacyChannel,
+            customer_name,
+            customer_email,
+            customer_phone,
+            line_user_id,
+            customer_id: customerIdBody,
+        } = req.body || {};
 
-        // Support both new format (customer_name) and legacy (first_name)
-        const finalCustomerName = customer_name || first_name || '';
+        const requestedSource = normalizeBookingSource(sourceRaw ?? legacyChannel);
 
-        // Validate required fields for public bookings
-        if (!customer_id && !finalCustomerName) {
-            return res.status(400).json({ 
-                error: 'customer_name is required (or customer_id for owner bookings)' 
-            });
+        // Infer source if not provided (backward compatibility)
+        const headerCustomerId =
+            (req.headers['x-customer-id'] as string | undefined) ||
+            (req.headers['x-user-id'] as string | undefined);
+
+        const source: BookingSource = requestedSource || (headerCustomerId ? 'web' : 'guest');
+        const channel: BookingChannel = source === 'line' ? 'line' : 'web';
+
+        // Resolve per-branch required fields
+        let customerId: string | null = null;
+        let finalGuestName: string | null = null;
+        let finalGuestEmail: string | null = null;
+
+        if (source === 'guest') {
+            finalGuestName = String(guest_name ?? customer_name ?? '').trim();
+            finalGuestEmail = String(guest_email ?? customer_email ?? '').trim();
+            if (!finalGuestName) return res.status(400).json({ error: 'name is required for guest bookings' });
+            if (!finalGuestEmail) return res.status(400).json({ error: 'email is required for guest bookings' });
+            customerId = null; // MUST be NULL for guest bookings
+        } else if (source === 'web') {
+            customerId = (customerIdBody as string | undefined) || headerCustomerId || null;
+            if (!customerId) return res.status(401).json({ error: 'Authentication required' });
+            if (!isUuid(customerId)) return res.status(400).json({ error: 'Invalid customer_id' });
+
+            const { data: customer, error: custErr } = await dbClient
+                .from('customers')
+                .select('id, role')
+                .eq('id', customerId)
+                .maybeSingle();
+
+            if (custErr) {
+                console.error('[Booking] Error resolving web customer:', custErr);
+                return res.status(500).json({ error: 'Failed to resolve customer' });
+            }
+            if (!customer?.id) return res.status(401).json({ error: 'Customer account not found. Please sign in again.' });
+            if ((customer as any).role !== 'customer') return res.status(403).json({ error: 'Only customers can create web bookings' });
+        } else {
+            // LINE bookings: resolve customer_id via line_user_id -> customers.id
+            const lineUserId = String(line_user_id || '').trim();
+            if (!lineUserId) return res.status(400).json({ error: 'LINE booking requires line_user_id' });
+
+            const { data: customer, error: custErr } = await dbClient
+                .from('customers')
+                .select('id, role')
+                .eq('line_user_id', lineUserId)
+                .maybeSingle();
+
+            if (custErr) {
+                console.error('[Booking] Error resolving LINE customer:', custErr);
+                return res.status(500).json({ error: 'Failed to resolve LINE customer' });
+            }
+            if (!customer?.id) return res.status(401).json({ error: 'LINE account not linked. Please authenticate via LINE and try again.' });
+            if ((customer as any).role !== 'customer') return res.status(403).json({ error: 'Only customers can create LINE bookings' });
+            customerId = customer.id;
+        }
+
+        // Verify shop is verified (required for all bookings)
+        const { data: shop, error: shopError } = await supabase
+            .from('shops')
+            .select('id, is_verified')
+            .eq('id', shop_id)
+            .maybeSingle();
+
+        if (shopError) {
+            console.error('Error checking shop verification:', shopError);
+            return res.status(500).json({ error: 'Failed to verify shop' });
+        }
+
+        if (!shop?.is_verified) {
+            return res.status(403).json({ error: 'This shop is not verified for bookings' });
         }
 
         // Create the booking - use customer_name directly
-        // customer_id is optional (can be null for public bookings)
-        // NO email or phone - only name + permanent ID system
+        // customer_id is optional (can be null for public/guest bookings)
+        // customer_email and customer_phone are required for guest bookings
+        // --- Data Model Logic Strict Enforcement ---
         const bookingData: any = {
+            shop_id,
             service_id,
             staff_id: staff_id || null,
             start_time,
             end_time,
             notes: notes || null,
-            shop_id,
-            customer_id: customer_id || null,  // Optional
-            customer_name: finalCustomerName,
-            customer_email: null,  // Removed - not required
-            customer_phone: null,  // Removed - not required
             status: 'pending',
+
+            // REQUIRED: explicit branch values
+            source,
+            channel,
+            customer_id: source === 'guest' ? null : customerId,
+            guest_name: source === 'guest' ? finalGuestName : null,
+            guest_email: source === 'guest' ? finalGuestEmail : null,
+
+            // Keep legacy display fields populated for guests (owner UI, notifications, etc.)
+            customer_name: source === 'guest' ? finalGuestName : (customer_name || null),
+            customer_email: source === 'guest' ? finalGuestEmail : (customer_email || null),
+            customer_phone: customer_phone || null,
         };
 
-        const { data: newBooking, error } = await supabase
+        if (!supabaseAdmin) {
+            return res.status(500).json({ error: 'Server misconfigured' });
+        }
+
+        const { data: newBooking, error } = await supabaseAdmin
             .from('bookings')
             .insert([bookingData])
-            .select('*');
+            .select('*, shops(name, owner_user_id), services(name), customer_profile_id, customer_id')
+            .single();
 
         if (error) {
             console.error('Error creating booking:', error);
-            return res.status(500).json({ error: error.message });
+            const safe = toUserSafeBookingDbError(error);
+            return res.status(safe.status).json({ error: safe.error });
         }
 
-        return res.status(201).json(newBooking?.[0] ?? { message: 'Booking created' });
+        // Log guest booking information for debugging
+        if (source === 'guest') {
+            console.log('[GUEST BOOKING] ✅ Created guest booking:', {
+                booking_id: newBooking.id,
+                booking_source: 'guest',
+                customer_id: null,
+                guest_email: newBooking.guest_email || newBooking.customer_email,
+                guest_name: newBooking.guest_name || newBooking.customer_name,
+                shop_id: newBooking.shop_id,
+                service_id: newBooking.service_id,
+            });
+        }
+
+        // Create notification for owner when customer creates booking
+        if (newBooking?.shop_id) {
+            const shop = newBooking.shops as any;
+            const service = newBooking.services as any;
+            
+            if (shop?.owner_user_id) {
+                const shopName = shop.name || 'your shop';
+                const serviceName = service?.name || 'a service';
+                const bookingDate = newBooking.start_time 
+                    ? new Date(newBooking.start_time).toLocaleDateString()
+                    : 'N/A';
+                const bookingTime = newBooking.start_time 
+                    ? new Date(newBooking.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                    : 'N/A';
+                
+                await createOwnerNotification(
+                    shop.owner_user_id,
+                    'new_booking',
+                    'New Booking Request',
+                    `New booking request for ${serviceName} on ${bookingDate} at ${bookingTime} from ${newBooking.customer_name || 'a customer'}`,
+                    {
+                        booking_id: newBooking.id,
+                        shop_id: newBooking.shop_id,
+                        customer_name: newBooking.customer_name,
+                        service_name: serviceName,
+                        date: bookingDate,
+                        time: bookingTime
+                    }
+                );
+            }
+        }
+
+        // Create chat thread automatically for this booking
+        if (newBooking?.id && newBooking?.shop_id) {
+            try {
+                // Check if thread already exists
+                const { data: existingThread } = await supabase
+                    .from('shop_threads')
+                    .select('id')
+                    .eq('booking_id', newBooking.id)
+                    .eq('shop_id', newBooking.shop_id)
+                    .maybeSingle();
+
+                if (!existingThread) {
+                    // Get customer_profile_id if customer_id exists
+                    let customerProfileId = newBooking.customer_profile_id;
+                    if (!customerProfileId && newBooking.customer_id) {
+                        customerProfileId = await getCustomerProfileId(newBooking.customer_id);
+                    }
+
+                    // Use customer_profile_id as customer_id in shop_threads
+                    // (customer_id in shop_threads stores customer_profile.id)
+                    const threadCustomerId = customerProfileId || newBooking.customer_id || null;
+
+                    // Create new thread for this booking
+                    await supabase
+                        .from('shop_threads')
+                        .insert({
+                            shop_id: newBooking.shop_id,
+                            booking_id: newBooking.id,
+                            customer_id: threadCustomerId,
+                            customer_email: newBooking.customer_email || null,
+                        });
+                }
+            } catch (threadError) {
+                console.error('Error creating chat thread:', threadError);
+                // Don't fail booking creation if thread creation fails
+            }
+        }
+
+        return res.status(201).json(newBooking ?? { message: 'Booking created' });
     } catch (error: any) {
         console.error('Error during booking creation:', error);
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 });
 
@@ -212,6 +401,22 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
             }
         }
 
+        // Get booking details before updating (for notification)
+        const { data: bookingBeforeUpdate } = await supabase
+            .from('bookings')
+            .select(`
+                customer_profile_id,
+                customer_id,
+                customer_name,
+                start_time,
+                date,
+                time_slot,
+                services:service_id (name),
+                shops:shop_id (name)
+            `)
+            .eq('id', bookingId)
+            .single();
+
         // Update the booking status
         const { data: updatedBooking, error: updateError } = await supabase
             .from('bookings')
@@ -223,6 +428,50 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
         if (updateError) {
             console.error('Error updating booking status:', updateError);
             return res.status(500).json({ error: updateError.message });
+        }
+
+        // Create notification for customer when owner confirms/rejects/cancels
+        if (bookingBeforeUpdate && (status === 'confirmed' || status === 'rejected' || status === 'cancelled')) {
+            const shopName = (bookingBeforeUpdate.shops as any)?.name || 'the shop';
+            const serviceName = (bookingBeforeUpdate.services as any)?.name || 'service';
+            const date = bookingBeforeUpdate.date || (bookingBeforeUpdate.start_time 
+                ? new Date(bookingBeforeUpdate.start_time).toLocaleDateString()
+                : 'N/A');
+            const time = bookingBeforeUpdate.start_time 
+                ? new Date(bookingBeforeUpdate.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                : bookingBeforeUpdate.time_slot || 'N/A';
+
+            // Get customer_profile_id (support both customer_profile_id and customer_id)
+            let customerProfileId = bookingBeforeUpdate.customer_profile_id;
+            if (!customerProfileId && bookingBeforeUpdate.customer_id) {
+                customerProfileId = await getCustomerProfileId(bookingBeforeUpdate.customer_id);
+            }
+
+            if (customerProfileId) {
+                let title = '';
+                let body = '';
+
+                if (status === 'confirmed') {
+                    title = 'Booking Confirmed';
+                    body = `Your booking for ${serviceName} at ${shopName} on ${date} at ${time} has been confirmed!`;
+                } else if (status === 'cancelled') {
+                    title = 'Booking Cancelled';
+                    body = `Your booking for ${serviceName} at ${shopName} on ${date} has been cancelled.`;
+                } else if (status === 'rejected') {
+                    title = 'Booking Rejected';
+                    body = `Your booking request for ${serviceName} at ${shopName} on ${date} has been rejected.`;
+                }
+
+                if (title && body) {
+                    await createCustomerNotification(
+                        customerProfileId,
+                        'booking_update',
+                        title,
+                        body,
+                        { booking_id: bookingId, status: status, shop_name: shopName, service_name: serviceName, date: date, time: time }
+                    );
+                }
+            }
         }
 
         return res.json(updatedBooking);
@@ -276,6 +525,22 @@ router.post('/:id/cancel', async (req: Request, res: Response) => {
             return res.status(403).json({ error: 'You do not own this shop' });
         }
 
+        // Get booking details before updating (for notification)
+        const { data: bookingBeforeUpdate } = await supabase
+            .from('bookings')
+            .select(`
+                customer_profile_id,
+                customer_id,
+                customer_name,
+                start_time,
+                date,
+                time_slot,
+                services:service_id (name),
+                shops:shop_id (name)
+            `)
+            .eq('id', bookingId)
+            .single();
+
         // Update the booking status to cancelled
         const { error: updateError } = await supabase
             .from('bookings')
@@ -285,6 +550,34 @@ router.post('/:id/cancel', async (req: Request, res: Response) => {
         if (updateError) {
             console.error('Error cancelling booking:', updateError);
             return res.status(500).json({ error: updateError.message });
+        }
+
+        // Create notification for customer
+        if (bookingBeforeUpdate) {
+            const shopName = (bookingBeforeUpdate.shops as any)?.name || 'the shop';
+            const serviceName = (bookingBeforeUpdate.services as any)?.name || 'service';
+            const date = bookingBeforeUpdate.date || (bookingBeforeUpdate.start_time 
+                ? new Date(bookingBeforeUpdate.start_time).toLocaleDateString()
+                : 'N/A');
+            const time = bookingBeforeUpdate.start_time 
+                ? new Date(bookingBeforeUpdate.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                : bookingBeforeUpdate.time_slot || 'N/A';
+
+            // Get customer_profile_id
+            let customerProfileId = bookingBeforeUpdate.customer_profile_id;
+            if (!customerProfileId && bookingBeforeUpdate.customer_id) {
+                customerProfileId = await getCustomerProfileId(bookingBeforeUpdate.customer_id);
+            }
+
+            if (customerProfileId) {
+                await createCustomerNotification(
+                    customerProfileId,
+                    'booking_update',
+                    'Booking Cancelled',
+                    `Your booking for ${serviceName} at ${shopName} on ${date} has been cancelled.`,
+                    { booking_id: bookingId, status: 'cancelled', shop_name: shopName, service_name: serviceName, date: date, time: time }
+                );
+            }
         }
 
         // Send instant message to customer about cancellation (multilingual)
@@ -406,6 +699,19 @@ router.post('/:id/reschedule', async (req: Request, res: Response) => {
             endTime = new Date(newDateTime.getTime() + 60 * 60000);
         }
 
+        // Get booking details before updating (for notification)
+        const { data: bookingBeforeUpdate } = await supabase
+            .from('bookings')
+            .select(`
+                customer_profile_id,
+                customer_id,
+                customer_name,
+                services:service_id (name),
+                shops:shop_id (name)
+            `)
+            .eq('id', bookingId)
+            .single();
+
         // Update the booking start_time and end_time
         const { error: updateError } = await supabase
             .from('bookings')
@@ -418,6 +724,30 @@ router.post('/:id/reschedule', async (req: Request, res: Response) => {
         if (updateError) {
             console.error('Error rescheduling booking:', updateError);
             return res.status(500).json({ error: updateError.message });
+        }
+
+        // Create notification for customer
+        if (bookingBeforeUpdate) {
+            const shopName = (bookingBeforeUpdate.shops as any)?.name || 'the shop';
+            const serviceName = (bookingBeforeUpdate.services as any)?.name || 'service';
+            const newDate = newDateTime.toLocaleDateString();
+            const newTime = newDateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+            // Get customer_profile_id
+            let customerProfileId = bookingBeforeUpdate.customer_profile_id;
+            if (!customerProfileId && bookingBeforeUpdate.customer_id) {
+                customerProfileId = await getCustomerProfileId(bookingBeforeUpdate.customer_id);
+            }
+
+            if (customerProfileId) {
+                await createCustomerNotification(
+                    customerProfileId,
+                    'booking_update',
+                    'Booking Rescheduled',
+                    `Your booking for ${serviceName} at ${shopName} has been rescheduled to ${newDate} at ${newTime}.`,
+                    { booking_id: bookingId, status: 'rescheduled', shop_name: shopName, service_name: serviceName, date: newDate, time: newTime }
+                );
+            }
         }
 
         return res.json({ success: true });
@@ -496,6 +826,26 @@ router.patch('/:id', async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'No valid fields to update' });
         }
 
+        // Get booking details before updating (for notification if status changed)
+        let bookingBeforeUpdate: any = null;
+        if (status !== undefined) {
+            const { data } = await supabase
+                .from('bookings')
+                .select(`
+                    customer_profile_id,
+                    customer_id,
+                    customer_name,
+                    start_time,
+                    date,
+                    time_slot,
+                    services:service_id (name),
+                    shops:shop_id (name)
+                `)
+                .eq('id', bookingId)
+                .single();
+            bookingBeforeUpdate = data;
+        }
+
         // Update the booking
         const { data: updatedBooking, error: updateError } = await supabase
             .from('bookings')
@@ -507,6 +857,50 @@ router.patch('/:id', async (req: Request, res: Response) => {
         if (updateError) {
             console.error('Error updating booking:', updateError);
             return res.status(500).json({ error: updateError.message });
+        }
+
+        // Create notification for customer when status changes
+        if (status !== undefined && bookingBeforeUpdate && (status === 'confirmed' || status === 'rejected' || status === 'cancelled')) {
+            const shopName = (bookingBeforeUpdate.shops as any)?.name || 'the shop';
+            const serviceName = (bookingBeforeUpdate.services as any)?.name || 'service';
+            const date = bookingBeforeUpdate.date || (bookingBeforeUpdate.start_time 
+                ? new Date(bookingBeforeUpdate.start_time).toLocaleDateString()
+                : 'N/A');
+            const time = bookingBeforeUpdate.start_time 
+                ? new Date(bookingBeforeUpdate.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                : bookingBeforeUpdate.time_slot || 'N/A';
+
+            // Get customer_profile_id
+            let customerProfileId = bookingBeforeUpdate.customer_profile_id;
+            if (!customerProfileId && bookingBeforeUpdate.customer_id) {
+                customerProfileId = await getCustomerProfileId(bookingBeforeUpdate.customer_id);
+            }
+
+            if (customerProfileId) {
+                let title = '';
+                let body = '';
+
+                if (status === 'confirmed') {
+                    title = 'Booking Confirmed';
+                    body = `Your booking for ${serviceName} at ${shopName} on ${date} at ${time} has been confirmed!`;
+                } else if (status === 'cancelled') {
+                    title = 'Booking Cancelled';
+                    body = `Your booking for ${serviceName} at ${shopName} on ${date} has been cancelled.`;
+                } else if (status === 'rejected') {
+                    title = 'Booking Rejected';
+                    body = `Your booking request for ${serviceName} at ${shopName} on ${date} has been rejected.`;
+                }
+
+                if (title && body) {
+                    await createCustomerNotification(
+                        customerProfileId,
+                        'booking_update',
+                        title,
+                        body,
+                        { booking_id: bookingId, status: status, shop_name: shopName, service_name: serviceName, date: date, time: time }
+                    );
+                }
+            }
         }
 
         return res.json(updatedBooking);

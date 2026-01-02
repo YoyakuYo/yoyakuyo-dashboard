@@ -220,10 +220,10 @@ export default function AnalyticsPage() {
   })) || [];
 
   const bookingStatusChartData = bookingData?.totals ? [
-    { label: "Completed", value: bookingData.totals.completed || 0, color: "#10B981" },
-    { label: "Confirmed", value: bookingData.totals.confirmed || 0, color: "#3B82F6" },
-    { label: "Pending", value: bookingData.totals.pending || 0, color: "#F59E0B" },
-    { label: "Cancelled", value: bookingData.totals.cancelled || 0, color: "#EF4444" },
+    { label: t('analytics.completed'), value: bookingData.totals.completed || 0, color: "#10B981" },
+    { label: t('analytics.confirmed'), value: bookingData.totals.confirmed || 0, color: "#3B82F6" },
+    { label: t('analytics.pending'), value: bookingData.totals.pending || 0, color: "#F59E0B" },
+    { label: t('analytics.cancelled'), value: bookingData.totals.cancelled || 0, color: "#EF4444" },
   ] : [];
 
   return (

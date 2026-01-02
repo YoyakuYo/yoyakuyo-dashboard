@@ -80,10 +80,6 @@ router.post('/upload', (req: Request, res: Response, next: NextFunction) => {
             return res.status(403).json({ error: 'You do not own this shop' });
         }
 
-        if (!supabaseAdmin) {
-            return res.status(500).json({ error: 'Supabase admin client not configured. SUPABASE_SERVICE_ROLE_KEY is required.' });
-        }
-
         // Generate file path based on type
         const sanitizedFileName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
         let filePath: string;
@@ -95,7 +91,11 @@ router.post('/upload', (req: Request, res: Response, next: NextFunction) => {
             filePath = `shop_${shopId}/${sanitizedFileName}`;
         }
 
-        // Upload file to Supabase Storage
+        // Upload file to Supabase Storage (prefer admin client to bypass RLS)
+        if (!supabaseAdmin) {
+            return res.status(500).json({ error: 'Supabase admin client not configured. SUPABASE_SERVICE_ROLE_KEY is required.' });
+        }
+
         const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
             .from('shop_photos')
             .upload(filePath, file.buffer, {
@@ -116,7 +116,9 @@ router.post('/upload', (req: Request, res: Response, next: NextFunction) => {
         const publicUrl = publicUrlData?.publicUrl || '';
 
         // Insert photo record into shop_photos table
-        const { data: photoRecord, error: photoError } = await supabase
+        // Use admin client to bypass RLS safely (we already verified ownership above)
+        const tableClient = supabaseAdmin || supabase;
+        const { data: photoRecord, error: photoError } = await tableClient
             .from('shop_photos')
             .insert({
                 shop_id: shopId,
@@ -134,7 +136,7 @@ router.post('/upload', (req: Request, res: Response, next: NextFunction) => {
         // For logo and cover, also update the shop record (backward compatibility)
         if (type === 'logo' || type === 'cover') {
             const updateField = type === 'logo' ? 'logo_url' : 'cover_photo_url';
-            await supabase
+            await tableClient
                 .from('shops')
                 .update({ [updateField]: publicUrl })
                 .eq('id', shopId);
