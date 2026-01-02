@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
@@ -78,22 +79,9 @@ export default function OwnerModals() {
 
   useEffect(() => {
     // Only listen for owner-specific events (from role selection modal)
-    // DO NOT listen to openLoginModal/openSignupModal - those go to RoleSelectionModal first
+    // Always show the login modal when explicitly requested, even if a session exists.
     const handleOpenOwnerLoginModal = () => {
-      // If Supabase session exists, restore and redirect (no re-entry).
-      try {
-        const supabase = getSupabaseClient();
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session?.user) {
-            router.push('/shops');
-            router.refresh();
-          } else {
-            setShowLoginModal(true);
-          }
-        }).catch(() => setShowLoginModal(true));
-      } catch {
-        setShowLoginModal(true);
-      }
+      setShowLoginModal(true);
     };
     const handleOpenOwnerSignupModal = () => {
       setShowSignupModal(true);
@@ -366,6 +354,15 @@ export default function OwnerModals() {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
               placeholder="••••••••"
             />
+          </div>
+
+          <div className="flex justify-end -mt-2">
+            <Link
+              href="/forgot-password"
+              className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+            >
+              {tAuth('forgotPassword') || t('forgotPassword') || 'Forgot your password?'}
+            </Link>
           </div>
 
           <button

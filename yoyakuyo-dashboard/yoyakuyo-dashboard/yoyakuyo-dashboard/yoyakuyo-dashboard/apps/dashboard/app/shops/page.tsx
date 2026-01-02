@@ -35,15 +35,15 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
           // Redirect to LINE OAuth
           window.location.href = data.authUrl;
         } else {
-          alert('Failed to get LINE OAuth URL');
+          alert(t('line.failedToGetOAuthUrl'));
         }
       } else {
         const error = await res.json();
-        alert(error.error || 'Failed to connect LINE account');
+        alert(error.error || t('line.failedToConnect'));
       }
     } catch (error) {
       console.error('Error connecting LINE:', error);
-      alert('Failed to connect LINE account');
+      alert(t('line.failedToConnect'));
     } finally {
       setConnecting(false);
     }
@@ -52,7 +52,7 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
   const handleCopyLink = () => {
     if (deeplinkUrl) {
       navigator.clipboard.writeText(deeplinkUrl);
-      alert('LINE link copied to clipboard!');
+      alert(t('line.lineLinkCopied'));
     }
   };
 
@@ -69,7 +69,7 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('line_connected') === 'success') {
-      alert('LINE account connected successfully!');
+      alert(t('line.connectedSuccessfully'));
       // Remove query param
       window.history.replaceState({}, '', window.location.pathname);
       // Reload shop data
@@ -83,13 +83,13 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
   if (!shop?.line_qr_code_url || !shop?.line_destination_id) {
     return (
       <div className="text-center space-y-4 py-4">
-        <p className="text-gray-500">Connect LINE to generate QR code</p>
+        <p className="text-gray-500">{t('line.connectLineToGenerate')}</p>
         <button
           onClick={handleConnectLine}
           disabled={connecting}
           className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {connecting ? 'Connecting...' : 'Connect LINE Account'}
+          {connecting ? t('line.connecting') : t('line.connectLineAccountButton')}
         </button>
       </div>
     );
@@ -108,13 +108,13 @@ function LineQrSection({ shopId, shop, user }: { shopId: string; shop: Shop | nu
           onClick={handleCopyLink}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
-          Copy LINE Link
+          {t('line.copyLineLink')}
         </button>
         <button
           onClick={handleDownloadQr}
           className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
         >
-          Download QR Code
+          {t('line.downloadQRCode')}
         </button>
       </div>
     </div>
@@ -252,7 +252,7 @@ const MyShopPage = () => {
   const [statusUpdateModal, setStatusUpdateModal] = useState<{
     isOpen: boolean;
     bookingId: string | null;
-    newStatus: 'confirmed' | 'rejected' | null;
+    newStatus: 'confirmed' | 'rejected' | 'completed' | null;
     bookingCustomerName: string | null;
   }>({
     isOpen: false,
@@ -494,22 +494,35 @@ const MyShopPage = () => {
   };
 
   const fetchBookings = async (shopId: string) => {
-    if (!shopId || !user) return;
+    if (!shopId || !user) {
+      console.log('fetchBookings: Missing shopId or user', { shopId, user: !!user });
+      return;
+    }
     try {
-      const res = await fetch(`${apiUrl}/bookings`, {
+      console.log('fetchBookings: Calling API for shop:', shopId);
+      // Use owner bookings endpoint to get all bookings for this shop
+      const res = await fetch(`${apiUrl}/owner/bookings`, {
         headers: {
           'x-user-id': user.id,
         },
       });
+      console.log('fetchBookings: API response status:', res.status);
+
       if (res.ok) {
         const data = await res.json();
+        console.log('fetchBookings: Raw API data:', data);
         // Filter to only this shop's bookings
-        const shopBookings = Array.isArray(data) 
+        const shopBookings = Array.isArray(data)
           ? data.filter((b: any) => b.shop_id === shopId)
           : [];
+        console.log('fetchBookings: Filtered bookings for shop', shopId, ':', shopBookings);
         setBookings(shopBookings);
+      } else {
+        console.error('fetchBookings: API returned error', res.status, res.statusText);
+        setBookings([]);
       }
     } catch (error: any) {
+      console.error('fetchBookings: Exception:', error);
       // Silently handle connection errors (API server not running)
       if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
         console.error('Error fetching bookings:', error);
@@ -832,9 +845,19 @@ const MyShopPage = () => {
       });
 
       if (res.ok) {
+        let successText: string;
+        if (statusUpdateModal.newStatus === 'confirmed') {
+          successText = t('myShop.bookingConfirmed');
+        } else if (statusUpdateModal.newStatus === 'rejected') {
+          successText = t('myShop.bookingRejected');
+        } else {
+          // completed
+          successText = 'Booking marked as completed.';
+        }
+
         setStatusUpdateMessage({
           type: 'success',
-          text: statusUpdateModal.newStatus === 'confirmed' ? t('myShop.bookingConfirmed') : t('myShop.bookingRejected'),
+          text: successText,
         });
         
         // Refresh bookings list
@@ -1755,7 +1778,7 @@ const MyShopPage = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="min-w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('common.name')}</th>
@@ -1813,8 +1836,8 @@ const MyShopPage = () => {
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('myShop.customer')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('common.email')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('common.phone')}</th>
+                    <th className="hidden md:table-cell text-left py-3 px-4 font-semibold text-gray-700">{t('common.email')}</th>
+                    <th className="hidden md:table-cell text-left py-3 px-4 font-semibold text-gray-700">{t('common.phone')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('myShop.dateTime')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('myShop.service')}</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('common.status')}</th>
@@ -1827,8 +1850,8 @@ const MyShopPage = () => {
                       <td className="py-3 px-4 text-gray-900 font-medium">
                         {booking.customer_name || t('common.unknown')}
                       </td>
-                      <td className="py-3 px-4 text-gray-600">{booking.customer_email || 'N/A'}</td>
-                      <td className="py-3 px-4 text-gray-600">{booking.customer_phone || 'N/A'}</td>
+                      <td className="hidden md:table-cell py-3 px-4 text-gray-600 max-w-xs truncate">{booking.customer_email || 'N/A'}</td>
+                      <td className="hidden md:table-cell py-3 px-4 text-gray-600">{booking.customer_phone || 'N/A'}</td>
                       <td className="py-3 px-4 text-gray-700">
                         {booking.start_time ? new Date(booking.start_time).toLocaleString() : 'N/A'}
                       </td>
@@ -1863,6 +1886,20 @@ const MyShopPage = () => {
                                 {t('common.reject')}
                               </button>
                             </>
+                          )}
+                          {booking.status === 'confirmed' && (
+                            <button
+                              onClick={() =>
+                                openStatusUpdateModal(
+                                  booking.id,
+                                  'completed',
+                                  booking.customer_name || null
+                                )
+                              }
+                              className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                            >
+                              {t('status.completed')}
+                            </button>
                           )}
                           {booking.status && booking.status !== 'cancelled' && booking.status !== 'completed' && (
                             <>
@@ -2131,11 +2168,20 @@ const MyShopPage = () => {
             </button>
             
             <h3 className="text-xl font-bold text-gray-900 mb-4">
-              {statusUpdateModal.newStatus === 'confirmed' ? t('myShop.confirmBooking') : t('myShop.rejectBooking')}
+              {statusUpdateModal.newStatus === 'confirmed'
+                ? t('myShop.confirmBooking')
+                : statusUpdateModal.newStatus === 'completed'
+                ? 'Mark booking as completed'
+                : t('myShop.rejectBooking')}
             </h3>
             
             <p className="text-gray-600 mb-6">
-              {statusUpdateModal.newStatus === 'confirmed' ? t('myShop.areYouSureConfirm') : t('myShop.areYouSureReject')} {statusUpdateModal.bookingCustomerName ? `${t('common.for')} ${statusUpdateModal.bookingCustomerName}` : ''}?
+              {statusUpdateModal.newStatus === 'confirmed'
+                ? t('myShop.areYouSureConfirm')
+                : statusUpdateModal.newStatus === 'completed'
+                ? 'Are you sure you want to mark this booking as completed'
+                : t('myShop.areYouSureReject')}{' '}
+              {statusUpdateModal.bookingCustomerName ? `${t('common.for')} ${statusUpdateModal.bookingCustomerName}` : ''}?
             </p>
 
             {statusUpdateMessage && (
@@ -2164,10 +2210,18 @@ const MyShopPage = () => {
                 className={`px-4 py-2 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   statusUpdateModal.newStatus === 'confirmed'
                     ? 'bg-green-600 hover:bg-green-700'
+                    : statusUpdateModal.newStatus === 'completed'
+                    ? 'bg-blue-600 hover:bg-blue-700'
                     : 'bg-red-600 hover:bg-red-700'
                 }`}
               >
-                {statusUpdateLoading ? t('common.updating') : statusUpdateModal.newStatus === 'confirmed' ? t('common.confirm') : t('common.reject')}
+                {statusUpdateLoading
+                  ? t('common.updating')
+                  : statusUpdateModal.newStatus === 'confirmed'
+                  ? t('common.confirm')
+                  : statusUpdateModal.newStatus === 'completed'
+                  ? 'Complete'
+                  : t('common.reject')}
               </button>
             </div>
           </div>

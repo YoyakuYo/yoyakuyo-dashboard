@@ -24,30 +24,35 @@ export default function DashboardLayout({
   const pathname = usePathname();
   
   // Route matching rules:
-  // DashboardLayout should ONLY apply to routes in the (owner) folder
-  // All other routes are public and use (public)/layout.tsx
+  // DashboardLayout is the single source of truth for OWNER routes.
+  // All other routes are public and use (public)/layout.tsx.
   const isOwnerRoute = useMemo(() => {
     const route = pathname || "";
     
     // Owner dashboard routes (protected, should use DashboardLayout)
-    const ownerRoutes = [
-      '/shops', // Owner dashboard (not /shops/[id] which is public)
-      '/assistant',
-      '/bookings',
-      '/settings',
+    const ownerExactRoutes = [
+      '/shops',      // main owner dashboard
+      '/assistant',  // owner AI assistant
+      '/bookings',   // owner bookings
+      '/settings',   // owner settings
+      '/services',   // owner services management
+      '/timeslots',  // owner calendar / timeslots
     ];
     
-    // Check exact matches
-    if (ownerRoutes.includes(route)) {
+    // Exact matches
+    if (ownerExactRoutes.includes(route)) {
       return true;
     }
     
-    // Check if it starts with owner route patterns
-    if (route.startsWith('/shops/services')) {
+    // Owner sub-routes
+    if (
+      route.startsWith('/owner/') ||      // e.g. /owner/analytics, /owner/shop-profile
+      route.startsWith('/shops/services') // nested owner services routes
+    ) {
       return true;
     }
     
-    // Everything else is public (uses (public)/layout.tsx)
+    // Everything else is public (uses PublicLayoutWrapper)
     return false;
   }, [pathname]);
   

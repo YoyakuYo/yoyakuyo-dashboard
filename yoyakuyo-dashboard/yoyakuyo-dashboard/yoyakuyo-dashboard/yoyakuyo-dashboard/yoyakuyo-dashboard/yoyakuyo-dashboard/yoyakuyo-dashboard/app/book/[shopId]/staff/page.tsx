@@ -1,9 +1,13 @@
 // apps/dashboard/app/book/[shopId]/staff/page.tsx
 
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { apiUrl } from '@/lib/apiClient';
+
+// Force dynamic rendering to avoid prerendering errors
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface Staff {
   id: string;
@@ -11,11 +15,11 @@ interface Staff {
   last_name: string;
 }
 
-export default function StaffPage() {
+function StaffPageContent() {
   const params = useParams();
   const shopId = params?.shopId as string;
-    const searchParams = useSearchParams();
-    const serviceId = searchParams.get('serviceId');
+  const searchParams = useSearchParams();
+  const serviceId = searchParams.get('serviceId');
   const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const router = useRouter();
@@ -75,5 +79,22 @@ export default function StaffPage() {
                 Choose Date
             </button>
     </div>
+  );
+}
+
+export default function StaffPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto p-4">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <StaffPageContent />
+    </Suspense>
   );
 }

@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
-import { useAuth } from "@/lib/useAuth";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 import UserManagementTable from "@/app/components/admin/UserManagementTable";
 
 interface User {
@@ -15,28 +15,41 @@ interface User {
   is_banned: boolean;
   banned_at: string | null;
   banned_reason: string | null;
-  user_type: "owner" | "customer";
-  role?: string;
+  user_type: "admin" | "owner" | "customer"; // All user types
+  role: "guest" | "customer" | "owner"; // Customer role
+  is_admin: boolean; // Admin flag
 }
 
 export default function AdminUsersPage() {
   const t = useTranslations();
-  const { user } = useAuth();
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
-    role: "",
-    banned: "",
+    role: "", // 'admin', 'owner', 'customer'
     search: "",
   });
 
+  // Get user from Supabase Auth
   useEffect(() => {
-    if (user?.id) {
+    const getUserId = async () => {
+      const supabase = getSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserId(session.user.id);
+      }
+    };
+    getUserId();
+  }, []);
+
+  useEffect(() => {
+    if (userId) {
       loadUsers();
     }
-  }, [user, page, filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, page, filters.role, filters.status, filters.search]);
 
   const loadUsers = async () => {
     try {
@@ -46,13 +59,12 @@ export default function AdminUsersPage() {
         limit: "50",
       });
 
-      if (filters.role) params.append("role", filters.role);
-      if (filters.banned) params.append("banned", filters.banned);
+      if (filters.role) params.append("role", filters.role); // 'admin', 'owner', 'customer'
       if (filters.search) params.append("search", filters.search);
 
       const response = await fetch(`${apiUrl}/admin/users?${params}`, {
         headers: {
-          "x-user-id": user?.id || "",
+          "x-user-id": userId || "",
           "Content-Type": "application/json",
         },
       });
@@ -75,9 +87,9 @@ export default function AdminUsersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {t("admin.users")}
+          {t("admin.users") || "Users"}
         </h1>
-        <p className="text-gray-600">{t("admin.manageUsers")}</p>
+        <p className="text-gray-600">{t("admin.manageUsers") || "Manage and monitor all platform users"}</p>
       </div>
 
       {/* Filters */}
@@ -85,7 +97,7 @@ export default function AdminUsersPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("admin.filterByRole")}
+              {t("admin.filterByRole") || "Filter by Role"}
             </label>
             <select
               value={filters.role}
@@ -94,30 +106,15 @@ export default function AdminUsersPage() {
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
-              <option value="">{t("admin.allRoles")}</option>
-              <option value="owner">{t("admin.owner")}</option>
-              <option value="customer">{t("admin.customer")}</option>
+              <option value="">{t("admin.allRoles") || "All Roles"}</option>
+              <option value="admin">{t("admin.admin") || "Admin"}</option>
+              <option value="owner">{t("admin.owner") || "Owner"}</option>
+              <option value="customer">{t("admin.customer") || "Customer"}</option>
             </select>
           </div>
-          <div>
+          <div className="md:col-span-3">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("admin.filterByStatus")}
-            </label>
-            <select
-              value={filters.banned}
-              onChange={(e) =>
-                setFilters({ ...filters, banned: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            >
-              <option value="">{t("admin.allStatuses")}</option>
-              <option value="false">{t("admin.active")}</option>
-              <option value="true">{t("admin.banned")}</option>
-            </select>
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("common.search")}
+              {t("common.search") || "Search"}
             </label>
             <input
               type="text"
@@ -125,7 +122,7 @@ export default function AdminUsersPage() {
               onChange={(e) =>
                 setFilters({ ...filters, search: e.target.value })
               }
-              placeholder={t("admin.searchUsers")}
+              placeholder={t("admin.searchUsers") || "Search users..."}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
@@ -151,9 +148,9 @@ export default function AdminUsersPage() {
           >
             {t("common.previous")}
           </button>
-          <span className="text-gray-600">
-            {t("admin.page")} {page} {t("admin.of")} {totalPages}
-          </span>
+              <span className="text-gray-600">
+                {t("admin.page") || "Page"} {page} {t("admin.of") || "of"} {totalPages}
+              </span>
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}

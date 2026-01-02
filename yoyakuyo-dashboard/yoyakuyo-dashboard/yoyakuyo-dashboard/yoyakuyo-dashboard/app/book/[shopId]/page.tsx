@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
+import { useAuth } from '@/lib/useAuth';
 
 interface Service {
   id: string;
@@ -37,35 +38,49 @@ export default function PublicBookingPage() {
   const params = useParams();
   const shopId = params?.shopId as string;
   const t = useTranslations();
+  const { user, loading: authLoading } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
   const [timeslots, setTimeslots] = useState<Timeslot[]>([]);
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedTimeslot, setSelectedTimeslot] = useState<Timeslot | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [customerProfile, setCustomerProfile] = useState<{ name: string; email: string } | null>(null);
+  const [shopName, setShopName] = useState<string>('');
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [availabilityChecked, setAvailabilityChecked] = useState(false);
 
-  // Chat state
-  const [threadId, setThreadId] = useState<string | null>(null);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatInput, setChatInput] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const subscriptionRef = useRef<any>(null);
   
   // Anonymous session ID for public visitors
   const [anonymousSessionId, setAnonymousSessionId] = useState<string | null>(null);
+  const [guestId, setGuestIdState] = useState<string | null>(null);
+
+  // Helper functions for guest ID management
+  const getOrCreateGuestId = (): string => {
+    if (typeof window === 'undefined') return '';
+    let gid = localStorage.getItem('yoyaku_yo_guest_id');
+    if (!gid) {
+      gid = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('yoyaku_yo_guest_id', gid);
+    }
+    return gid;
+  };
+
+  const setGuestId = (id: string): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('yoyaku_yo_guest_id', id);
+    }
+    setGuestIdState(id);
+  };
   
   // LINE QR code state
   const [lineQrUrl, setLineQrUrl] = useState<string | null>(null);
   const [lineDeeplinkUrl, setLineDeeplinkUrl] = useState<string | null>(null);
 
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
 
   // Initialize anonymous session ID on mount
   useEffect(() => {
@@ -76,200 +91,59 @@ export default function PublicBookingPage() {
         localStorage.setItem('yoyaku_yo_anonymous_session', sessionId);
       }
       setAnonymousSessionId(sessionId);
+
+      // Guest UUID for persistence across bookings + messaging
+      const gid = getOrCreateGuestId();
+      setGuestIdState(gid);
     }
   }, []);
 
-  // Load LINE QR code on mount
+  // Load customer profile if user is logged in
   useEffect(() => {
-    if (shopId) {
-      const loadQrCode = async () => {
+    if (user?.id) {
+      const loadCustomerProfile = async () => {
+        const supabase = getSupabaseClient();
+        const { data: profile } = await supabase
+          .from("customer_profiles")
+          .select("name, email, full_name")
+          .eq("customer_auth_id", user.id)
+          .maybeSingle();
+
+        if (profile) {
+          const profileName = profile.full_name || profile.name || user.user_metadata?.name || user.email?.split('@')[0] || '';
+          const profileEmail = profile.email || user.email || '';
+          setCustomerProfile({ name: profileName, email: profileEmail });
+          setName(profileName);
+          setEmail(profileEmail);
+        } else {
+          // Fallback to user data if profile not found
+          const userName = user.user_metadata?.name || user.email?.split('@')[0] || '';
+          const userEmail = user.email || '';
+          setCustomerProfile({ name: userName, email: userEmail });
+          setName(userName);
+          setEmail(userEmail);
+        }
+      };
+      loadCustomerProfile();
+    }
+  }, [user]);
+
+  // LINE QR code feature removed - staff features were removed
+  // Keeping state for potential future implementation
+
+  useEffect(() => {
+    const fetchShopInfo = async () => {
         try {
-          const res = await fetch(`${apiUrl}/qr/shop/${shopId}/line`);
+        const res = await fetch(`${apiUrl}/shops/${shopId}`);
           if (res.ok) {
             const data = await res.json();
-            setLineQrUrl(data.qrImageUrl);
-            setLineDeeplinkUrl(data.deeplinkUrl);
+          setShopName(data.name || '');
           }
         } catch (error) {
           // Silently handle errors
-        }
-      };
-      loadQrCode();
-    }
-  }, [shopId, apiUrl]);
-
-  // Initialize thread on mount
-  useEffect(() => {
-    if (shopId && !threadId && anonymousSessionId) {
-      const startThread = async () => {
-        try {
-          const res = await fetch(`${apiUrl}/messages/start-thread`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              shopId,
-              bookingId: null,
-              threadType: 'customer', // Public visitors always use customer threads
-              anonymousSessionId: anonymousSessionId,
-            }),
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-            setThreadId(data.threadId);
-            
-            // Load message history
-            loadMessages(data.threadId);
-            
-            // Subscribe to realtime updates
-            subscribeToMessages(data.threadId);
-          }
-        } catch (error: any) {
-          // Silently handle connection errors (API server not running)
-          if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-            console.error('Error starting thread:', error);
-          }
-        }
-      };
-
-      startThread();
-    }
-
-    // Cleanup subscription on unmount
-    return () => {
-      if (subscriptionRef.current) {
-        const supabase = getSupabaseClient();
-        supabase.removeChannel(subscriptionRef.current);
       }
     };
-  }, [shopId, threadId, apiUrl]);
 
-  const loadMessages = async (threadIdToLoad: string) => {
-    try {
-      const url = anonymousSessionId 
-        ? `${apiUrl}/messages/thread/${threadIdToLoad}?anonymousSessionId=${encodeURIComponent(anonymousSessionId)}`
-        : `${apiUrl}/messages/thread/${threadIdToLoad}`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const messages = await res.json();
-        setChatMessages(Array.isArray(messages) ? messages : []);
-      }
-    } catch (error: any) {
-      // Silently handle connection errors (API server not running)
-      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-        console.error('Error loading messages:', error);
-      }
-    }
-  };
-
-  const subscribeToMessages = (threadIdToSubscribe: string) => {
-    const supabase = getSupabaseClient();
-    
-    const channel = supabase
-      .channel(`shop_messages:thread_id=eq.${threadIdToSubscribe}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'shop_messages',
-          filter: `thread_id=eq.${threadIdToSubscribe}`,
-        },
-        (payload: any) => {
-          const newMessage = payload.new;
-          if (newMessage && newMessage.thread_id === threadIdToSubscribe) {
-            // Check if message already exists
-            setChatMessages((prev) => {
-              const exists = prev.some((msg) => msg.id === newMessage.id);
-              if (exists) return prev;
-              
-              return [
-                ...prev,
-                {
-                  id: newMessage.id,
-                  senderType: newMessage.sender_type,
-                  content: newMessage.content,
-                  createdAt: newMessage.created_at,
-                  readByOwner: newMessage.read_by_owner || false,
-                  readByCustomer: newMessage.read_by_customer || false,
-                },
-              ];
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    subscriptionRef.current = channel;
-  };
-
-  const sendMessage = async () => {
-    if (!threadId || !chatInput.trim() || chatLoading) return;
-
-    const messageContent = chatInput.trim();
-    setChatInput('');
-    
-    // Optimistic update
-    const tempId = `temp-${Date.now()}`;
-    const optimisticMessage: ChatMessage = {
-      id: tempId,
-      senderType: 'customer',
-      content: messageContent,
-      createdAt: new Date().toISOString(),
-      readByOwner: false,
-      readByCustomer: true,
-    };
-    
-    setChatMessages((prev) => [...prev, optimisticMessage]);
-    setChatLoading(true);
-
-    try {
-      const res = await fetch(`${apiUrl}/messages/thread/${threadId}/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          senderType: 'customer',
-          content: messageContent,
-        }),
-      });
-
-      if (res.ok) {
-        const sentMessage = await res.json();
-        // Replace optimistic message with real one
-        setChatMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === tempId
-              ? {
-                  id: sentMessage.id,
-                  senderType: sentMessage.senderType,
-                  content: sentMessage.content,
-                  createdAt: sentMessage.createdAt,
-                  readByOwner: sentMessage.readByOwner,
-                  readByCustomer: sentMessage.readByCustomer,
-                }
-              : msg
-          )
-        );
-      } else {
-        // Remove optimistic message on error
-        setChatMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-        alert('Failed to send message. Please try again.');
-      }
-    } catch (error: any) {
-      // Silently handle connection errors (API server not running)
-      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-        console.error('Error sending message:', error);
-      }
-      setChatMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-        alert('Failed to send message. Please try again.');
-      }
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
-  useEffect(() => {
     const fetchServices = async () => {
       try {
         const res = await fetch(`${apiUrl}/shops/${shopId}/services`);
@@ -289,27 +163,8 @@ export default function PublicBookingPage() {
       }
     };
 
-    const fetchStaff = async () => {
-      try {
-        const res = await fetch(`${apiUrl}/shops/${shopId}/staff`);
-        if (res.ok) {
-          const data = await res.json();
-          setStaffMembers(Array.isArray(data) ? data : []);
-        } else {
-          console.error("Failed to fetch staff:", res.status, res.statusText);
-          setStaffMembers([]);
-        }
-      } catch (error: any) {
-        // Silently handle connection errors (API server not running)
-        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-          console.error("Error fetching staff:", error);
-        }
-        setStaffMembers([]);
-      }
-    };
-
+    fetchShopInfo();
     fetchServices();
-    fetchStaff();
   }, [shopId, apiUrl]);
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -317,31 +172,69 @@ export default function PublicBookingPage() {
   };
 
   const fetchAvailability = async () => {
-    if (selectedDate && selectedStaff) {
-      try {
-        const res = await fetch(`${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`);
+    if (!selectedDate) {
+      alert(t('booking.selectDate') || 'Please select a date first');
+      return;
+    }
+
+    setLoadingAvailability(true);
+    setSelectedTimeslot(null);
+    setTimeslots([]);
+    setAvailabilityChecked(false);
+
+    try {
+      const url = `${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`;
+
+      const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          setTimeslots(Array.isArray(data) ? data : []);
+        const availableSlots = Array.isArray(data) ? data : [];
+        setTimeslots(availableSlots);
+        setAvailabilityChecked(true);
+        if (availableSlots.length === 0) {
+          alert(t('booking.noAvailability') || 'No available timeslots for this date');
+        }
         } else {
-          console.error("Failed to fetch availability:", res.status, res.statusText);
+        const errorData = await res.json().catch(() => ({ error: 'Failed to fetch availability' }));
+        alert(errorData.error || t('booking.availabilityError') || 'Failed to check availability');
           setTimeslots([]);
+        setAvailabilityChecked(true);
         }
       } catch (error: any) {
-        // Silently handle connection errors (API server not running)
         if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
           console.error("Error fetching availability:", error);
+        alert(t('booking.availabilityError') || 'Failed to check availability');
         }
         setTimeslots([]);
-      }
+      setAvailabilityChecked(true);
+    } finally {
+      setLoadingAvailability(false);
     }
   };
 
   const bookAppointment = async () => {
-    if (selectedService && selectedStaff && selectedDate && name) {
+    // For authenticated users, name/email are not required (come from account)
+    // For guests, name is required
+    const isAuthenticated = user && !authLoading;
+    const requiresName = !isAuthenticated;
+
+    if (selectedService && selectedStaff && selectedDate && (!requiresName || name)) {
+      const bookingData: any = {
+        shop_id: shopId,
+        service_id: selectedService,
+        staff_id: selectedStaff,
+        start_time: selectedDate,
+        end_time: selectedDate,
+      };
+
+      // Only include name/email for guest users
+      if (!isAuthenticated) {
       const nameParts = name.trim().split(/\s+/);
-      const first_name = nameParts[0] || name;
-      const last_name = nameParts.slice(1).join(' ') || null;
+        bookingData.first_name = nameParts[0] || name;
+        bookingData.last_name = nameParts.slice(1).join(' ') || null;
+        bookingData.email = email;
+        bookingData.notes = `Booking for ${name}`;
+      }
 
       try {
         const res = await fetch(`${apiUrl}/bookings`, {
@@ -349,16 +242,7 @@ export default function PublicBookingPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            shop_id: shopId,
-            service_id: selectedService,
-            staff_id: selectedStaff,
-            start_time: selectedDate,
-            end_time: selectedDate,
-            first_name: first_name,
-            last_name: last_name,
-            notes: `Booking for ${name}`,
-          }),
+          body: JSON.stringify(bookingData),
         });
 
         if (res.ok) {
@@ -374,7 +258,101 @@ export default function PublicBookingPage() {
           console.error('Error creating booking:', error);
           alert(t('booking.bookingFailed'));
         }
+  };
+    } else if (user != null) {
+      // For logged-in users, use customer profile data
+      // user is guaranteed not null in this block
+      const u = user!;
+      const finalName = customerProfile?.name || name || u.user_metadata?.name || u.email?.split('@')[0] || 'Customer';
+      const finalEmail = customerProfile?.email || email || u.email || '';
+      setName(finalName);
+      setEmail(finalEmail);
+    }
+
+    setBookingLoading(true);
+
+    // Calculate start_time and end_time from date and selected timeslot
+    let startDateTime: Date;
+    let endDateTime: Date;
+    
+    const timeslotToUse = selectedTimeslot || (timeslots.length > 0 ? timeslots[0] : null);
+    
+    if (timeslotToUse && selectedDate) {
+      startDateTime = new Date(`${selectedDate}T${timeslotToUse.start_time}`);
+      endDateTime = new Date(`${selectedDate}T${timeslotToUse.end_time}`);
+    } else {
+      alert(t('booking.selectTimeslot') || 'Please select a timeslot');
+      setBookingLoading(false);
+      return;
+    }
+
+    try {
+      // Use customer profile data if logged in, otherwise use form input
+      const finalName = user && customerProfile 
+        ? customerProfile.name 
+        : name.trim();
+      const finalEmail = user && customerProfile 
+        ? customerProfile.email 
+        : email.trim();
+
+      const res = await fetch(`${apiUrl}/bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(user?.id && { 'x-user-id': user.id }), // Include user ID if logged in
+          ...(!user?.id && guestId ? { 'x-guest-id': guestId } : {}), // Guest identity for persistence
+        },
+        body: JSON.stringify({
+          shop_id: shopId,
+          service_id: selectedService,
+          customer_name: finalName,
+          customer_email: finalEmail || null,
+          date: selectedDate,
+          time_slot: `${timeslotToUse.start_time}-${timeslotToUse.end_time}`,
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
+          notes: `Booking for ${finalName}`,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // If backend issued a new guest_id, persist it for future booking/messages.
+        if (!user?.id && data?.guest_id && typeof data.guest_id === 'string') {
+          setGuestId(data.guest_id);
+          setGuestIdState(data.guest_id);
+        }
+        if (!user?.id && data?.guest_id) {
+          alert(
+            `${t('booking.bookingSuccessful') || 'Booking successful!'}\n\n` +
+              `Guest ID: ${data.guest_id}\n` +
+              `Save this Guest ID. You can use it to come back and continue messages later.`
+          );
+        } else {
+          alert(t('booking.bookingSuccessful') || 'Booking successful!');
+        }
+        // Reset form (but keep customer profile data if logged in)
+        setSelectedService(null);
+        setSelectedDate(null);
+        setSelectedTimeslot(null);
+        setTimeslots([]);
+        setAvailabilityChecked(false);
+        if (!user) {
+          // Only clear name/email for guest users
+          setName('');
+          setEmail('');
+        }
+      } else {
+        const errorData = await res.json().catch(() => ({ error: t('common.unknown') }));
+        alert(`${t('booking.bookingFailed') || 'Booking failed'}: ${errorData.error || t('common.tryAgain') || 'Please try again'}`);
       }
+    } catch (error: any) {
+      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
+        console.error('Error creating booking:', error);
+        alert(t('booking.bookingFailed') || 'Failed to create booking');
+      }
+    } finally {
+      setBookingLoading(false);
     }
   };
 
@@ -392,7 +370,7 @@ export default function PublicBookingPage() {
 
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Booking Form */}
-        <div>
+        <div className="space-y-6">
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-2">{t('booking.chooseService')}</h2>
             <select
@@ -404,22 +382,6 @@ export default function PublicBookingPage() {
               {services.map((service) => (
                 <option key={service.id} value={service.id}>
                   {service.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">{t('booking.chooseStaff')}</h2>
-            <select
-              value={selectedStaff || ''}
-              onChange={(e) => setSelectedStaff(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            >
-              <option value="">{t('booking.selectStaff')}</option>
-              {staffMembers.map((staff) => (
-                <option key={staff.id} value={staff.id}>
-                  {staff.first_name} {staff.last_name}
                 </option>
               ))}
             </select>
@@ -438,27 +400,42 @@ export default function PublicBookingPage() {
           <div className="mb-6">
             <button
               onClick={fetchAvailability}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              disabled={!selectedDate || loadingAvailability}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {t('booking.checkAvailability')}
+              {loadingAvailability ? (t('booking.checking') || 'Checking...') : (t('booking.checkAvailability') || 'Check Availability')}
             </button>
           </div>
 
           <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">{t('booking.chooseTimeslot')}</h2>
-            <div className="grid grid-cols-2 gap-2">
+            <h2 className="text-xl font-semibold mb-2">{t('booking.chooseTimeslot') || 'Choose Timeslot'}</h2>
+            {loadingAvailability ? (
+              <p className="text-gray-500 text-sm">{t('booking.checking') || 'Checking availability...'}</p>
+            ) : availabilityChecked && timeslots.length === 0 ? (
+              <p className="text-gray-500 text-sm">{t('booking.noAvailability') || 'No available timeslots for this date. Please try another date.'}</p>
+            ) : !availabilityChecked ? (
+              <p className="text-gray-500 text-sm">{t('booking.clickCheckAvailability') || 'Click "Check Availability" to see available timeslots'}</p>
+            ) : (
+              <div className="space-y-2">
               {timeslots.map((timeslot) => (
                 <button
                   key={timeslot.id}
-                  onClick={() => alert(t('booking.timeslotSelected'))}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    onClick={() => setSelectedTimeslot(timeslot)}
+                    className={`w-full px-4 py-3 border rounded-lg hover:bg-gray-50 transition-colors text-left ${
+                      selectedTimeslot?.id === timeslot.id
+                        ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
+                        : 'border-gray-300'
+                    }`}
                 >
                   {timeslot.start_time} - {timeslot.end_time}
                 </button>
               ))}
             </div>
+            )}
           </div>
 
+          {/* Only show name/email fields for guest users */}
+          {(!user || authLoading) && (
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
             <input
@@ -466,6 +443,7 @@ export default function PublicBookingPage() {
               placeholder={t('booking.yourName')}
               value={name}
               onChange={(e) => setName(e.target.value)}
+                required={!user}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2"
             />
             <input
@@ -473,158 +451,101 @@ export default function PublicBookingPage() {
               placeholder={t('booking.yourEmail')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+                required={!user}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
           </div>
+          )}
 
-          <button
-            onClick={bookAppointment}
-            className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700"
-          >
-            {t('booking.submit')}
-          </button>
-        </div>
-
-        {/* LINE QR Code Section */}
-        {lineQrUrl && lineDeeplinkUrl && (
-          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold mb-4 text-center">LINEで予約 / LINE でお問い合わせ</h2>
-            <div className="flex flex-col items-center space-y-4">
-              {lineQrUrl && (
-                <div className="flex flex-col items-center">
-                  <img 
-                    src={lineQrUrl} 
-                    alt="LINE QR Code" 
-                    className="w-48 h-48 border-2 border-gray-200 rounded-lg"
-                  />
-                  <p className="mt-2 text-sm text-gray-600 text-center">LINEで予約はこちら</p>
-                </div>
-              )}
-              {lineDeeplinkUrl && (
-                <a
-                  href={lineDeeplinkUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors"
-                >
-                  LINEで予約はこちら
-                </a>
-              )}
+          {/* Show authenticated user info */}
+          {user && !authLoading && (
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-2">{t('booking.bookingAs')}</h2>
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-green-800">
+                  ✅ {t('booking.loggedInAs')} {user.email}
+                </p>
             </div>
           </div>
         )}
 
-        {/* Chat with AI Assistant */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-[600px]">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-800">Chat with AI Assistant</h2>
-            <button
-              onClick={() => setShowChat(!showChat)}
-              className="text-gray-600 hover:text-gray-900"
-            >
-              {showChat ? '−' : '+'}
-            </button>
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
+            {user && customerProfile ? (
+              // Show customer info for logged-in users (read-only)
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('booking.yourName')}
+                  </label>
+                  <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
+                    {customerProfile.name}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('common.email')}
+                  </label>
+                  <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
+                    {customerProfile.email}
           </div>
-
-          {showChat && (
-            <>
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                {chatMessages.length === 0 ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center">
-                      <div className="text-6xl mb-4">🤖</div>
-                      <h3 className="text-xl font-semibold text-gray-800 mb-2">Start a conversation</h3>
-                      <p className="text-gray-600">
-                        Ask me anything about booking! I can help with appointments, availability, and more.
-                      </p>
                     </div>
                   </div>
                 ) : (
-                  <>
-                    {chatMessages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`flex gap-3 ${
-                          message.senderType === 'customer' ? 'justify-end' : 'justify-start'
-                        }`}
-                      >
-                        {message.senderType !== 'customer' && (
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                            <span className="text-lg">
-                              {message.senderType === 'ai' ? '🤖' : '👤'}
-                            </span>
+              // Show input fields for guest users
+              <>
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('booking.yourName')} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={t('booking.yourName')}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
                           </div>
-                        )}
-                        <div
-                          className={`max-w-[75%] rounded-lg px-4 py-3 ${
-                            message.senderType === 'customer'
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                          <p
-                            className={`text-xs mt-2 ${
-                              message.senderType === 'customer' ? 'text-blue-100' : 'text-gray-500'
-                            }`}
-                          >
-                            {formatTime(message.createdAt)}
-                          </p>
-                        </div>
-                        {message.senderType === 'customer' && (
-                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                            <span className="text-sm font-semibold text-gray-600">You</span>
-                          </div>
-                        )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('common.email')} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    placeholder={t('booking.yourEmail') || t('common.email')}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
                       </div>
-                    ))}
-                    {chatLoading && (
-                      <div className="flex gap-3 justify-start">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-lg">🤖</span>
-                        </div>
-                        <div className="bg-gray-100 rounded-lg px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
                   </>
                 )}
               </div>
 
-              <div className="px-6 py-4 border-t border-gray-200">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    sendMessage();
-                  }}
-                  className="flex gap-2"
-                >
-                  <input
-                    type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Type your message..."
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    disabled={chatLoading}
-                  />
                   <button
-                    type="submit"
-                    disabled={!chatInput.trim() || chatLoading}
-                    className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Send
+            onClick={bookAppointment}
+            disabled={authLoading}
+            className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {authLoading ? t('common.loading') : t('booking.bookNow')}
                   </button>
-                </form>
+        </div>
+
+        {/* Right Column: AI Assistant */}
+        <div className="space-y-6">
+          {/* AI Assistant Placeholder */}
+          {shopId && (
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">AI Assistant</h3>
+              <p className="text-gray-600">
+                Chat with our AI assistant for help with booking and shop information.
+              </p>
               </div>
-            </>
           )}
         </div>
+
       </div>
     </div>
   );

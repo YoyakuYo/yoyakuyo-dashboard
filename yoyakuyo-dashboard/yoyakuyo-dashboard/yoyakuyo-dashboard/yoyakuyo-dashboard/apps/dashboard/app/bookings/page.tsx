@@ -3,6 +3,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
 import { useBookingNotifications } from '../components/BookingNotificationContext';
 import BookingCalendar from '../components/BookingCalendar';
@@ -55,6 +56,7 @@ interface Timeslot {
 const BookingsPage = () => {
     const { user } = useAuth();
     const { setUnreadBookingsCount } = useBookingNotifications();
+    const pathname = usePathname();
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [shops, setShops] = useState<Shop[]>([]);
     const [services, setServices] = useState<Service[]>([]);
@@ -87,10 +89,78 @@ const BookingsPage = () => {
     } | null>(null);
     const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-    // Reset unread count when page loads
+    // BUG 2 FIX: Mark notifications as read ONLY when owner explicitly opens bookings page
+    // DO NOT auto-mark on mount, login, or websocket connect
+    // Only mark when owner is actually viewing the bookings page
+    const [hasMarkedAsRead, setHasMarkedAsRead] = useState(false);
+    const isFirstRender = useRef(true);
+    
     useEffect(() => {
-        setUnreadBookingsCount(0);
-    }, [setUnreadBookingsCount]);
+        // BUG 2 FIX 5: Remove auto-read logic
+        // Only mark as read when owner explicitly views the page (not on mount)
+        if (!user?.id || hasMarkedAsRead) return;
+        
+        // Skip on first render (prevents auto-marking on mount/login)
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+        
+        // Only mark as read when owner is on the bookings page
+        if (pathname !== '/bookings') {
+            return;
+        }
+        
+        // Only mark as read after owner has been on the page for a moment
+        // This ensures they're actually viewing the page, not just passing through
+        const timer = setTimeout(async () => {
+            try {
+                const supabase = getSupabaseClient();
+                
+                // Get shop IDs for this owner
+                const { data: shops, error: shopsError } = await supabase
+                    .from('shops')
+                    .select('id')
+                    .eq('owner_user_id', user.id);
+                
+                if (shopsError || !shops || shops.length === 0) {
+                    return;
+                }
+                
+                const shopIds = shops.map(s => s.id);
+                
+                // BUG 2 FIX: Mark all unread notifications as read
+                // This happens when owner explicitly opens the bookings page
+                const { error: updateError } = await supabase
+                    .from('shop_notifications')
+                    .update({ is_read: true })
+                    .in('shop_id', shopIds)
+                    .eq('is_read', false);
+                
+                if (updateError) {
+                    console.error('[Bookings Page] ❌ Error marking notifications as read:', updateError);
+                } else {
+                    // TASK 2: Clear + refetch after bookings page is opened
+                    // The useBookingNotifications hook will reload the count via realtime UPDATE event
+                    setUnreadBookingsCount(0);
+                    console.log('[Bookings Page] ✅ Marked notifications as read for shops:', shopIds);
+                    console.log('[Bookings Page] ✅ Badge count cleared, realtime will refresh count');
+                    setHasMarkedAsRead(true);
+                    
+                    // Force a manual refresh as well (in case realtime is slow)
+                    setTimeout(() => {
+                        // Trigger reload via context if available
+                        // The realtime UPDATE event should handle this, but this is a backup
+                        console.log('[Bookings Page] Backup: Manually triggering badge refresh');
+                    }, 500);
+                }
+            } catch (error) {
+                console.error('[Bookings Page] ❌ Error marking notifications as read:', error);
+            }
+        }, 2000); // 2 second delay to ensure owner is actually viewing the page
+        
+        return () => clearTimeout(timer);
+    }, [user?.id, pathname, setUnreadBookingsCount, hasMarkedAsRead]);
 
     // Subscribe to ALL new bookings (not just AI-created)
     useEffect(() => {
@@ -334,7 +404,7 @@ const BookingsPage = () => {
         if (!user?.id) return;
         setUpdatingStatus(bookingId);
         try {
-            const res = await fetch(`${apiUrl}/bookings/${bookingId}`, {
+            const res = await fetch(`${apiUrl}/bookings/${bookingId}/status`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -359,6 +429,37 @@ const BookingsPage = () => {
             setUpdatingStatus(null);
         }
     };
+    
+    const rejectBooking = async (bookingId: string) => {
+        if (!user?.id) return;
+        if (!confirm('Are you sure you want to reject this booking?')) return;
+        setUpdatingStatus(bookingId);
+        try {
+            const res = await fetch(`${apiUrl}/bookings/${bookingId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': user.id,
+                },
+                body: JSON.stringify({ status: 'rejected' }),
+            });
+
+            if (res.ok) {
+                await refreshBookings();
+            } else {
+                const errorData = await res.json().catch(() => ({}));
+                alert(errorData.error || 'Failed to reject booking');
+            }
+        } catch (error: any) {
+            // Silently handle connection errors (API server not running)
+            if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
+                console.error('Error rejecting booking:', error);
+                alert('Failed to reject booking');
+            }
+        } finally {
+            setUpdatingStatus(null);
+        }
+    };
 
     const cancelBooking = async (bookingId: string) => {
         if (!user?.id) return;
@@ -366,9 +467,11 @@ const BookingsPage = () => {
         
         setUpdatingStatus(bookingId);
         try {
-            const res = await fetch(`${apiUrl}/bookings/${bookingId}`, {
-                method: 'DELETE',
+            // Use POST /bookings/:id/cancel endpoint
+            const res = await fetch(`${apiUrl}/bookings/${bookingId}/cancel`, {
+                method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     'x-user-id': user.id,
                 },
             });
@@ -410,8 +513,9 @@ const BookingsPage = () => {
 
         setUpdatingStatus(editingBooking.id);
         try {
-            const res = await fetch(`${apiUrl}/bookings/${editingBooking.id}`, {
-                method: 'PATCH',
+            // Use the reschedule endpoint
+            const res = await fetch(`${apiUrl}/bookings/${editingBooking.id}/reschedule`, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'x-user-id': user.id,
@@ -623,6 +727,7 @@ const BookingsPage = () => {
                                     const canReschedule = booking.status !== 'cancelled' && booking.status !== 'completed';
                                     const canCancel = booking.status !== 'cancelled' && booking.status !== 'completed';
                                     const canConfirm = booking.status === 'pending';
+                                    const canReject = booking.status === 'pending';
 
                                     const getStatusBadge = (status: string) => {
                                         const baseClasses = "px-3 py-1 text-xs font-semibold rounded-full inline-flex items-center gap-1";
@@ -748,6 +853,21 @@ const BookingsPage = () => {
                                                             Confirm
                                                         </button>
                                                     )}
+                                                    {canReject && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setOpenDropdown(null);
+                                                                rejectBooking(booking.id);
+                                                            }}
+                                                            disabled={isUpdating}
+                                                            className="flex-1 px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                            Reject
+                                                        </button>
+                                                    )}
                                                     {canCancel && (
                                                         <button
                                                             onClick={() => {
@@ -760,7 +880,7 @@ const BookingsPage = () => {
                                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                                             </svg>
-                                                            Cancel
+                                                            Cancel Booking
                                                         </button>
                                                     )}
                                                 </div>

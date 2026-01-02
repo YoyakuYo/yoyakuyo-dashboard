@@ -19,25 +19,44 @@ export function useBookingNotificationsHook() {
     if (!user?.id) return;
 
     try {
-      const bookingsRes = await fetch(`${apiUrl}/bookings`, {
-        headers: {
-          'x-user-id': user.id,
-        },
-      });
-
-      if (bookingsRes.ok) {
-        const bookingsData = await bookingsRes.json();
-        const bookings = Array.isArray(bookingsData) ? bookingsData : [];
-        const pendingCount = bookings.filter((booking: any) => booking.status === 'pending').length;
-        setUnreadBookingsCount(pendingCount);
-      }
-      } catch (error: any) {
-        // Silently handle connection errors (API server not running)
-        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-          console.error('Error reloading pending bookings count:', error);
-        }
+      const supabase = getSupabaseClient();
+      
+      // Get shop IDs for this owner
+      const { data: shops, error: shopsError } = await supabase
+        .from('shops')
+        .select('id')
+        .eq('owner_user_id', user.id);
+      
+      if (shopsError || !shops || shops.length === 0) {
         setUnreadBookingsCount(0);
+        shopIdsRef.current = [];
+        return;
       }
+      
+      const shopIds = shops.map(s => s.id);
+      shopIdsRef.current = shopIds;
+      
+      // Count unread notifications for owner's shops
+      const { count, error: notificationsError } = await supabase
+        .from('shop_notifications')
+        .select('*', { count: 'exact', head: true })
+        .in('shop_id', shopIds)
+        .eq('is_read', false);
+      
+      if (notificationsError) {
+        console.error('Error loading notification count:', notificationsError);
+        setUnreadBookingsCount(0);
+      } else {
+        console.log(`[Notification Count] Found ${count || 0} unread notifications for shops:`, shopIds);
+        setUnreadBookingsCount(count || 0);
+      }
+    } catch (error: any) {
+      // Silently handle connection errors (API server not running)
+      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
+        console.error('Error reloading notification count:', error);
+      }
+      setUnreadBookingsCount(0);
+    }
   }, [user?.id, setUnreadBookingsCount]);
 
   const subscribeToBookingUpdates = useCallback(() => {
@@ -45,29 +64,39 @@ export function useBookingNotificationsHook() {
 
     const supabase = getSupabaseClient();
 
-    // Subscribe to bookings table for INSERT and UPDATE events
+    // Subscribe to shop_notifications table for INSERT and UPDATE events
     const channel = supabase
-      .channel('booking_notifications')
+      .channel('shop_notifications_realtime')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'bookings',
+          table: 'shop_notifications',
         },
         async (payload: any) => {
-          const newBooking = payload.new;
+          const newNotification = payload.new;
           
-          // Check if booking belongs to owner's shop and is pending
-          if (newBooking && newBooking.status === 'pending') {
-            // If we have shop IDs cached, check immediately
-            if (shopIdsRef.current.length > 0 && shopIdsRef.current.includes(newBooking.shop_id)) {
-              // Reload count to ensure accuracy
-              await reloadPendingCount();
-            } else {
-              // Otherwise, reload count to be safe
-              await reloadPendingCount();
-            }
+          console.log('[Notification Realtime] INSERT event received:', {
+            notification_id: newNotification?.id,
+            shop_id: newNotification?.shop_id,
+            type: newNotification?.type,
+            is_read: newNotification?.is_read,
+            owner_shops: shopIdsRef.current
+          });
+          
+          // TASK 2: Refetch on realtime booking event
+          // Check if notification belongs to owner's shop
+          if (newNotification && shopIdsRef.current.includes(newNotification.shop_id)) {
+            console.log('[Notification Realtime] ✅ Notification belongs to owner - reloading count');
+            // TASK 2: Refetch badge count on realtime booking event
+            await reloadPendingCount();
+          } else if (shopIdsRef.current.length === 0) {
+            // If shop IDs not loaded yet, reload to get them and check
+            console.log('[Notification Realtime] Shop IDs not loaded - reloading to get shops');
+            await reloadPendingCount();
+          } else {
+            console.log('[Notification Realtime] ⚠️ Notification does not belong to owner shops');
           }
         }
       )
@@ -76,19 +105,18 @@ export function useBookingNotificationsHook() {
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'bookings',
+          table: 'shop_notifications',
         },
         async (payload: any) => {
-          const updatedBooking = payload.new;
-          const oldBooking = payload.old;
+          const updatedNotification = payload.new;
+          const oldNotification = payload.old;
 
-          // If status changed from pending to something else, decrement
-          if (oldBooking?.status === 'pending' && updatedBooking?.status !== 'pending') {
-            // Reload count to ensure accuracy
+          // If is_read changed from false to true, reload count
+          if (oldNotification?.is_read === false && updatedNotification?.is_read === true) {
             await reloadPendingCount();
           }
-          // If status changed to pending, reload count
-          else if (oldBooking?.status !== 'pending' && updatedBooking?.status === 'pending') {
+          // If is_read changed from true to false, reload count
+          else if (oldNotification?.is_read === true && updatedNotification?.is_read === false) {
             await reloadPendingCount();
           }
         }
@@ -96,9 +124,10 @@ export function useBookingNotificationsHook() {
       .subscribe();
 
     subscriptionRef.current = channel;
-  }, [user?.id, reloadPendingCount, setUnreadBookingsCount]);
+  }, [user?.id, reloadPendingCount]);
 
-  // Load initial pending bookings count and get shop IDs
+  // TASK 2: Load initial pending bookings count and get shop IDs
+  // BUG 2 FIX: Fetch badge count on login
   useEffect(() => {
     if (!user?.id) {
       setUnreadBookingsCount(0);
@@ -106,45 +135,10 @@ export function useBookingNotificationsHook() {
     }
 
     const loadPendingBookingsCount = async () => {
-      try {
-        // First, get shop IDs for this owner
-        const shopsRes = await fetch(`${apiUrl}/shops`, {
-          headers: {
-            'x-user-id': user.id,
-          },
-        });
-
-        if (shopsRes.ok) {
-          const shopsData = await shopsRes.json();
-          const shops = Array.isArray(shopsData) ? shopsData : [];
-          shopIdsRef.current = shops.map((shop: any) => shop.id);
-
-          if (shopIdsRef.current.length === 0) {
-            setUnreadBookingsCount(0);
-            return;
-          }
-
-          // Get pending bookings count
-          const bookingsRes = await fetch(`${apiUrl}/bookings`, {
-            headers: {
-              'x-user-id': user.id,
-            },
-          });
-
-          if (bookingsRes.ok) {
-            const bookingsData = await bookingsRes.json();
-            const bookings = Array.isArray(bookingsData) ? bookingsData : [];
-            const pendingCount = bookings.filter((booking: any) => booking.status === 'pending').length;
-            setUnreadBookingsCount(pendingCount);
-          }
-        }
-      } catch (error: any) {
-        // Silently handle connection errors (API server not running)
-        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-          console.error('Error loading pending bookings count:', error);
-        }
-        setUnreadBookingsCount(0);
-      }
+      // TASK 2: Fetch badge count on login
+      // Use reloadPendingCount which queries shop_notifications (single source of truth)
+      console.log('[Notification Hook] Loading badge count on login/user change');
+      await reloadPendingCount();
     };
 
     loadPendingBookingsCount();
@@ -156,6 +150,6 @@ export function useBookingNotificationsHook() {
         supabase.removeChannel(subscriptionRef.current);
       }
     };
-  }, [user, setUnreadBookingsCount, subscribeToBookingUpdates]);
+  }, [user, setUnreadBookingsCount, subscribeToBookingUpdates, reloadPendingCount]);
 }
 
