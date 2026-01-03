@@ -103,21 +103,39 @@ export default function PublicBookingPage() {
     if (user?.id) {
       const loadCustomerProfile = async () => {
         const supabase = getSupabaseClient();
+        
+        // First try to get from users table (for WEB customers)
+        const { data: userData } = await supabase
+          .from("users")
+          .select("full_name, email")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (userData) {
+          const profileName = userData.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '';
+          const profileEmail = userData.email || user.email || '';
+          setCustomerProfile({ name: profileName, email: profileEmail });
+          setName(profileName);
+          setEmail(profileEmail);
+          return;
+        }
+
+        // Fallback: try customer_profiles (for LINE customers)
         const { data: profile } = await supabase
           .from("customer_profiles")
-          .select("name, email, full_name")
+          .select("name, email, full_name, line_display_name")
           .eq("customer_auth_id", user.id)
           .maybeSingle();
 
         if (profile) {
-          const profileName = profile.full_name || profile.name || user.user_metadata?.name || user.email?.split('@')[0] || '';
+          const profileName = profile.line_display_name || profile.full_name || profile.name || user.user_metadata?.name || user.email?.split('@')[0] || '';
           const profileEmail = profile.email || user.email || '';
           setCustomerProfile({ name: profileName, email: profileEmail });
           setName(profileName);
           setEmail(profileEmail);
         } else {
-          // Fallback to user data if profile not found
-          const userName = user.user_metadata?.name || user.email?.split('@')[0] || '';
+          // Final fallback to user metadata
+          const userName = user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || '';
           const userEmail = user.email || '';
           setCustomerProfile({ name: userName, email: userEmail });
           setName(userName);
@@ -125,6 +143,11 @@ export default function PublicBookingPage() {
         }
       };
       loadCustomerProfile();
+    } else {
+      // Clear customer profile when user logs out
+      setCustomerProfile(null);
+      setName('');
+      setEmail('');
     }
   }, [user]);
 
@@ -437,52 +460,18 @@ export default function PublicBookingPage() {
             )}
           </div>
 
-          {/* Only show name/email fields for guest users */}
-          {(!user || authLoading) && (
+          {/* Show customer information section */}
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
-            <input
-              type="text"
-              placeholder={t('booking.yourName')}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-                required={!user}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-2"
-            />
-            <input
-              type="email"
-              placeholder={t('booking.yourEmail')}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-                required={!user}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-            />
-          </div>
-          )}
-
-          {/* Show authenticated user info */}
-          {user && !authLoading && (
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">{t('booking.bookingAs')}</h2>
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-green-800">
-                  ✅ {t('booking.loggedInAs')} {user.email}
-                </p>
-            </div>
-          </div>
-        )}
-
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
-            {user && customerProfile ? (
-              // Show customer info for logged-in users (read-only)
+            {user && !authLoading ? (
+              // Show customer info for authenticated users (read-only)
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {t('booking.yourName')}
                   </label>
                   <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
-                    {customerProfile.name}
+                    {customerProfile?.name || user.user_metadata?.name || user.email?.split('@')[0] || 'Loading...'}
                   </div>
                 </div>
                 <div>
@@ -490,12 +479,17 @@ export default function PublicBookingPage() {
                     {t('common.email')}
                   </label>
                   <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
-                    {customerProfile.email}
-          </div>
-                    </div>
+                    {customerProfile?.email || user.email || 'Loading...'}
                   </div>
-                ) : (
-              // Show input fields for guest users
+                </div>
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-green-800 text-sm">
+                    ✅ {t('booking.loggedInAs') || 'Logged in as'} {user.email}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              // Show input fields for guest users only
               <>
                 <div className="mb-3">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -509,7 +503,7 @@ export default function PublicBookingPage() {
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
-                          </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     {t('common.email')} <span className="text-red-500">*</span>
@@ -522,10 +516,10 @@ export default function PublicBookingPage() {
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
-                      </div>
-                  </>
-                )}
-              </div>
+                </div>
+              </>
+            )}
+          </div>
 
                   <button
             onClick={bookAppointment}
