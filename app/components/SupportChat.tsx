@@ -351,9 +351,9 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
                         }`}>
                           {isCurrentUser ? '👤 You (Owner)' : (msg.sender?.role === 'admin' ? '👤 Admin Support' : '👤 Support')}
                         </span>
-                        {!isCurrentUser && (
+                        {!isCurrentUser && msg.sender?.display_name && msg.sender.display_name !== 'Unknown' && (
                           <span className="text-xs opacity-80">
-                            {getSenderDisplayName(msg)}
+                            {msg.sender.display_name}
                           </span>
                         )}
                       </div>
