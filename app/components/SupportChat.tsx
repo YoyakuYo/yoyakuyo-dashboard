@@ -297,15 +297,35 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
     if (!conversationId) {
       setSending(true);
       try {
-        await createSupportConversation(input.trim() || '📎 File attachment');
-        // After conversation is created, conversationId will be set and we'll send the file
-        // But we need to wait for the conversation to be created first
-        const newConvId = conversationId; // This will be set by createSupportConversation
-        if (selectedFile && newConvId) {
-          // We'll handle file upload after message is sent
+        const messageContent = input.trim() || (selectedFile ? '📎 File attachment' : '');
+        await createSupportConversation(messageContent);
+        
+        // After conversation is created, load messages to get the message ID
+        // Then upload file if one was selected
+        if (selectedFile && conversationId) {
+          // Wait a bit for messages to load
+          setTimeout(async () => {
+            await loadMessages(conversationId);
+            // Find the most recent message (the one we just sent)
+            const latestMessage = messages[messages.length - 1];
+            if (latestMessage) {
+              setUploadingFile(true);
+              try {
+                await uploadFileAttachment(latestMessage.id, selectedFile);
+                await loadMessages(conversationId); // Reload to show attachment
+              } catch (error: any) {
+                console.error('[SupportChat] Error uploading file:', error);
+                alert(`Message sent but file upload failed: ${error.message}`);
+              } finally {
+                setUploadingFile(false);
+              }
+            }
+          }, 500);
         }
+        
         setInput('');
         setSelectedFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
       } catch (error) {
         console.error('[SupportChat] Error creating conversation with message:', error);
       } finally {
