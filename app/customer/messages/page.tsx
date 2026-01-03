@@ -418,7 +418,12 @@ function CustomerMessagesPageContent() {
                       )}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      {new Date(conv.updated_at).toLocaleDateString()}
+                      {(() => {
+                        const dateStr = conv.updated_at || conv.created_at;
+                        if (!dateStr) return '';
+                        const date = new Date(dateStr);
+                        return isNaN(date.getTime()) ? '' : date.toLocaleDateString();
+                      })()}
                     </p>
                   </button>
                 );

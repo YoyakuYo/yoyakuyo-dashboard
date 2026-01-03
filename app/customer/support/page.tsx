@@ -506,7 +506,12 @@ export default function CustomerSupportPage() {
                     )}
                   </div>
                   <p className="text-xs text-gray-500">
-                    {new Date(conv.last_message_at || conv.created_at).toLocaleDateString()}
+                    {(() => {
+                      const dateStr = conv.last_message_at || conv.created_at;
+                      if (!dateStr) return '';
+                      const date = new Date(dateStr);
+                      return isNaN(date.getTime()) ? '' : date.toLocaleDateString();
+                    })()}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
                     {conv.support_status === 'open' 

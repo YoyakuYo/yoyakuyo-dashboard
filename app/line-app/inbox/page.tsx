@@ -1184,11 +1184,14 @@ function LineInboxPageContent() {
                           </span>
                         )}
                       </div>
-                      {conv.last_message_at && (
-                        <p className="text-xs text-gray-400">
-                          {new Date(conv.last_message_at).toLocaleString()}
-                        </p>
-                      )}
+                      {conv.last_message_at && (() => {
+                        const date = new Date(conv.last_message_at);
+                        return !isNaN(date.getTime()) ? (
+                          <p className="text-xs text-gray-400">
+                            {date.toLocaleString()}
+                          </p>
+                        ) : null;
+                      })()}
                     </button>
                   ))}
                 </div>
@@ -1228,7 +1231,10 @@ function LineInboxPageContent() {
                         </div>
                         {conv.last_message_at && (
                           <p className="text-xs text-gray-400">
-                            {new Date(conv.last_message_at).toLocaleString()}
+                            {(() => {
+                              const date = new Date(conv.last_message_at);
+                              return !isNaN(date.getTime()) ? date.toLocaleString() : '';
+                            })()}
                           </p>
                         )}
                       </button>
