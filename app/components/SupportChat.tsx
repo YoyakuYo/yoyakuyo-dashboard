@@ -167,16 +167,21 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const createSupportConversation = async () => {
+  const createSupportConversation = async (messageContent: string) => {
     if (!user?.id || !shopId) {
       console.error('Cannot create conversation: missing user.id or shopId', { userId: user?.id, shopId });
       return;
     }
 
+    if (!messageContent || messageContent.trim().length === 0) {
+      alert('Please enter a message before sending.');
+      return;
+    }
+
     try {
-      console.log('[SupportChat] Creating support conversation...', { shopId, ownerId: user.id });
+      console.log('[SupportChat] Creating support conversation with message...', { shopId, ownerId: user.id });
       
-      // Use the new owner support endpoint
+      // Use the new owner support endpoint - this creates conversation AND sends the message
       const res = await fetch(`${apiUrl}/owner/support/create`, {
         method: 'POST',
         headers: {
@@ -185,7 +190,7 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
         },
         body: JSON.stringify({
           shop_id: shopId,
-          content: 'Hello, I need support with my shop.',
+          content: messageContent.trim(),
         }),
       });
 
@@ -201,7 +206,6 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
         console.error('[SupportChat] Failed to create conversation:', res.status, errorData);
-        setLoading(false);
         alert(`Failed to create support conversation: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
@@ -232,8 +236,23 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!conversationId || !input.trim() || sending || !user?.id) return;
+    if (!input.trim() || sending || !user?.id) return;
 
+    // If no conversation exists yet, create one with this message
+    if (!conversationId) {
+      setSending(true);
+      try {
+        await createSupportConversation(input.trim());
+        setInput(''); // Clear input after creating conversation
+      } catch (error) {
+        console.error('[SupportChat] Error creating conversation with message:', error);
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
+    // If conversation exists, send reply
     setSending(true);
     try {
       // Use the new owner support endpoint
@@ -353,11 +372,11 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your message..."
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                disabled={sending || !conversationId}
+                disabled={sending}
               />
               <button
                 type="submit"
-                disabled={!input.trim() || sending || !conversationId}
+                disabled={!input.trim() || sending}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
               >
                 {sending ? '...' : 'Send'}
@@ -453,7 +472,7 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
             onChange={(e) => setInput(e.target.value)}
             placeholder={conversationId ? "Type your message..." : "Creating conversation..."}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={sending || !conversationId || loading}
+            disabled={sending || loading}
           />
           <button
             type="submit"
