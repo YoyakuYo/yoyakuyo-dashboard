@@ -106,7 +106,7 @@ export default function PublicBookingPage() {
   useEffect(() => {
     const userId = user?.id || (user as any)?.id;
     const userEmail = user?.email || (user as any)?.email;
-    const userName = (user as any)?.name || user?.user_metadata?.name;
+    const userName = (user as any)?.name || (user as any)?.user_metadata?.name;
     
     if (userId || userEmail) {
       const loadCustomerProfile = async () => {
@@ -132,7 +132,7 @@ export default function PublicBookingPage() {
             .maybeSingle();
 
           if (userData) {
-            const profileName = userData.full_name || user.user_metadata?.name || userEmail?.split('@')[0] || '';
+            const profileName = userData.full_name || userName || (user as any)?.user_metadata?.name || userEmail?.split('@')[0] || '';
             const profileEmail = userData.email || userEmail || '';
             setCustomerProfile({ name: profileName, email: profileEmail });
             setName(profileName);
@@ -148,14 +148,14 @@ export default function PublicBookingPage() {
             .maybeSingle();
 
           if (profile) {
-            const profileName = profile.line_display_name || profile.full_name || profile.name || user.user_metadata?.name || userEmail?.split('@')[0] || '';
+            const profileName = profile.line_display_name || profile.full_name || profile.name || userName || (user as any)?.user_metadata?.name || userEmail?.split('@')[0] || '';
             const profileEmail = profile.email || userEmail || '';
             setCustomerProfile({ name: profileName, email: profileEmail });
             setName(profileName);
             setEmail(profileEmail);
           } else {
             // Final fallback to user metadata
-            const finalUserName = userName || user.user_metadata?.full_name || userEmail?.split('@')[0] || '';
+            const finalUserName = userName || (user as any)?.user_metadata?.full_name || userEmail?.split('@')[0] || '';
             const finalUserEmail = userEmail || '';
             setCustomerProfile({ name: finalUserName, email: finalUserEmail });
             setName(finalUserName);
@@ -522,7 +522,7 @@ export default function PublicBookingPage() {
                     {t('booking.yourName')}
                   </label>
                   <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
-                    {customerProfile?.name || (user as any).name || user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'N/A'}
+                    {customerProfile?.name || (user as any).name || (user as any).user_metadata?.name || (user as any).user_metadata?.full_name || user.email?.split('@')[0] || 'N/A'}
                   </div>
                 </div>
                 <div>
