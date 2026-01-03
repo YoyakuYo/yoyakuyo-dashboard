@@ -4,6 +4,7 @@
 import { usePathname } from "next/navigation";
 import AdminGuard from "@/app/components/AdminGuard";
 import AdminSidebar from "@/app/components/admin/AdminSidebar";
+import AdminHeader from "@/app/components/admin/AdminHeader";
 
 export default function AdminLayout({
   children,
@@ -22,9 +23,12 @@ export default function AdminLayout({
     <AdminGuard>
       <div className="flex min-h-screen bg-gray-50">
         <AdminSidebar />
-        <main className="flex-1 lg:ml-0">
-          <div className="p-6 lg:p-8">{children}</div>
-        </main>
+        <div className="flex-1 lg:ml-0 flex flex-col">
+          <AdminHeader />
+          <main className="flex-1 overflow-auto">
+            <div className="p-6 lg:p-8">{children}</div>
+          </main>
+        </div>
       </div>
     </AdminGuard>
   );

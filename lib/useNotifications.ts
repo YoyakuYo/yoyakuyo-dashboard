@@ -17,7 +17,7 @@ interface Notification {
   created_at: string;
 }
 
-export function useNotifications(userType: 'owner' | 'customer', userId: string) {
+export function useNotifications(userType: 'owner' | 'customer' | 'admin', userId: string) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -126,7 +126,9 @@ export function useNotifications(userType: 'owner' | 'customer', userId: string)
         // For customers, userId is already customer_profile_id (passed from CustomerHeader)
         recipientId = userId;
         actualRecipientIdRef.current = userId;
-      } else {
+      } else if (userType === 'admin' || userType === 'owner') {
+        // For admin and owner, userId is the auth.uid() directly
+        recipientId = userId;
         actualRecipientIdRef.current = userId;
       }
 
@@ -139,14 +141,16 @@ export function useNotifications(userType: 'owner' | 'customer', userId: string)
             event: 'INSERT',
             schema: 'public',
             table: 'notifications',
-            filter: `recipient_type=eq.${userType}&recipient_id=eq.${recipientId}`,
+            filter: `recipient_type=eq.${userType}`,
           },
           (payload: any) => {
             const newNotification = payload.new as Notification;
             
-            // Add to notifications list
-            setNotifications((prev) => [newNotification, ...prev]);
-            setUnreadCount((prev) => prev + 1);
+            // Only process if this notification is for the current user
+            if (newNotification.recipient_type === userType && newNotification.recipient_id === recipientId) {
+              // Add to notifications list
+              setNotifications((prev) => [newNotification, ...prev]);
+              setUnreadCount((prev) => prev + 1);
 
             // Show toast notification
             toast.success(
@@ -164,19 +168,22 @@ export function useNotifications(userType: 'owner' | 'customer', userId: string)
             event: 'UPDATE',
             schema: 'public',
             table: 'notifications',
-            filter: `recipient_type=eq.${userType}&recipient_id=eq.${recipientId}`,
+            filter: `recipient_type=eq.${userType}`,
           },
           (payload: any) => {
             const updatedNotification = payload.new as Notification;
             
-            // Update in notifications list
-            setNotifications((prev) =>
-              prev.map((n) => (n.id === updatedNotification.id ? updatedNotification : n))
-            );
-            
-            // Update unread count
-            if (updatedNotification.is_read) {
-              setUnreadCount((prev) => Math.max(0, prev - 1));
+            // Only process if this notification is for the current user
+            if (updatedNotification.recipient_type === userType && updatedNotification.recipient_id === recipientId) {
+              // Update in notifications list
+              setNotifications((prev) =>
+                prev.map((n) => (n.id === updatedNotification.id ? updatedNotification : n))
+              );
+              
+              // Update unread count
+              if (updatedNotification.is_read) {
+                setUnreadCount((prev) => Math.max(0, prev - 1));
+              }
             }
           }
         )
