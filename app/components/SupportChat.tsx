@@ -5,12 +5,24 @@ import { useAuth } from '@/lib/useAuth';
 import { apiUrl } from '@/lib/apiClient';
 import { getSupabaseClient } from '@/lib/supabase';
 
+interface Attachment {
+  id: string;
+  message_id: string;
+  file_path: string;
+  file_name: string;
+  file_size?: number;
+  file_type?: string;
+  signed_url?: string;
+  created_at: string;
+}
+
 interface Message {
   id: string;
   content: string;
   sender_id: string;
   sender_role: 'owner';
   created_at: string;
+  attachments?: Attachment[];
   sender?: {
     id: string;
     full_name?: string;
@@ -33,9 +45,12 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string>('owner');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch current user's role from API
   useEffect(() => {
@@ -234,16 +249,63 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Invalid file type. Allowed: PDF, JPG, PNG, DOC, DOCX');
+      return;
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size exceeds 10MB limit');
+      return;
+    }
+
+    setSelectedFile(file);
+  };
+
+  const uploadFileAttachment = async (messageId: string, file: File): Promise<void> => {
+    if (!user?.id) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(`${apiUrl}/owner/support/messages/${messageId}/attachments`, {
+      method: 'POST',
+      headers: {
+        'x-user-id': user.id,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(errorData.error || 'Failed to upload file');
+    }
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || sending || !user?.id) return;
+    if ((!input.trim() && !selectedFile) || sending || uploadingFile || !user?.id) return;
 
     // If no conversation exists yet, create one with this message
     if (!conversationId) {
       setSending(true);
       try {
-        await createSupportConversation(input.trim());
-        setInput(''); // Clear input after creating conversation
+        await createSupportConversation(input.trim() || '📎 File attachment');
+        // After conversation is created, conversationId will be set and we'll send the file
+        // But we need to wait for the conversation to be created first
+        const newConvId = conversationId; // This will be set by createSupportConversation
+        if (selectedFile && newConvId) {
+          // We'll handle file upload after message is sent
+        }
+        setInput('');
+        setSelectedFile(null);
       } catch (error) {
         console.error('[SupportChat] Error creating conversation with message:', error);
       } finally {
@@ -255,18 +317,39 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
     // If conversation exists, send reply
     setSending(true);
     try {
-      // Use the new owner support endpoint
+      // Send message first
+      const messageContent = input.trim() || (selectedFile ? '📎 File attachment' : '');
       const res = await fetch(`${apiUrl}/owner/support/conversations/${conversationId}/reply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-user-id': user.id,
         },
-        body: JSON.stringify({ content: input.trim() }),
+        body: JSON.stringify({ content: messageContent }),
       });
 
       if (res.ok) {
+        const data = await res.json();
+        const newMessageId = data.message?.id;
+
+        // If file is selected, upload it after message is sent
+        if (selectedFile && newMessageId) {
+          setUploadingFile(true);
+          try {
+            await uploadFileAttachment(newMessageId, selectedFile);
+          } catch (error: any) {
+            console.error('[SupportChat] Error uploading file:', error);
+            alert(`Message sent but file upload failed: ${error.message}`);
+          } finally {
+            setUploadingFile(false);
+          }
+        }
+
         setInput('');
+        setSelectedFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
         await loadMessages(conversationId);
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
@@ -358,6 +441,34 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
                         )}
                       </div>
                       <p className="whitespace-pre-wrap">{msg.content}</p>
+                      
+                      {/* Display attachments */}
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {msg.attachments.map((att: Attachment) => (
+                            <a
+                              key={att.id}
+                              href={att.signed_url || '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`inline-flex items-center gap-2 px-2 py-1 rounded text-xs ${
+                                isCurrentUser
+                                  ? 'bg-blue-500 text-white hover:bg-blue-400'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              <span>📎</span>
+                              <span className="truncate max-w-[200px]">{att.file_name}</span>
+                              {att.file_size && (
+                                <span className="opacity-70">
+                                  ({(att.file_size / 1024).toFixed(1)} KB)
+                                </span>
+                              )}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      
                       <p className="text-xs mt-1 opacity-70">
                         {new Date(msg.created_at).toLocaleTimeString()}
                       </p>
@@ -371,21 +482,53 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
 
           {/* Input */}
           <form onSubmit={sendMessage} className="p-4 border-t bg-white">
+            {/* Selected file preview */}
+            {selectedFile && (
+              <div className="mb-2 flex items-center justify-between px-2 py-1 bg-blue-50 rounded text-xs">
+                <span className="truncate flex-1">📎 {selectedFile.name}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedFile(null);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }}
+                  className="ml-2 text-red-600 hover:text-red-800"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            
             <div className="flex gap-2">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                className="hidden"
+                id="file-input"
+                disabled={sending || uploadingFile}
+              />
+              <label
+                htmlFor="file-input"
+                className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center"
+              >
+                📎
+              </label>
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type your message..."
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                disabled={sending}
+                disabled={sending || uploadingFile}
               />
               <button
                 type="submit"
-                disabled={!input.trim() || sending}
+                disabled={(!input.trim() && !selectedFile) || sending || uploadingFile}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
               >
-                {sending ? '...' : 'Send'}
+                {uploadingFile ? 'Uploading...' : sending ? '...' : 'Send'}
               </button>
             </div>
           </form>
