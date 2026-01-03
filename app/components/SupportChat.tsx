@@ -94,34 +94,34 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
     const loadConversation = async () => {
       setLoading(true);
       try {
-        console.log('Loading conversation...', { shopId, userId: user.id });
-        // Support chat disabled - staff features removed
-        // Try to find existing support conversation
-        const res = await fetch(`${apiUrl}/api/conversations?type=customer_owner`, {
+        console.log('[SupportChat] Loading conversation...', { shopId, userId: user.id });
+        
+        // Try to find existing support conversation using new owner support endpoint
+        const res = await fetch(`${apiUrl}/owner/support/conversations?page=1&limit=10`, {
           headers: { 'x-user-id': user.id },
         });
         
         if (res.ok) {
           const data = await res.json();
-          console.log('Conversations loaded:', data.conversations?.length || 0);
+          console.log('[SupportChat] Conversations loaded:', data.conversations?.length || 0);
           // Find conversation for this shop
           const existingConv = data.conversations?.find((c: any) => 
-            c.shop_id === shopId && c.owner_id === user.id
+            c.shop_id === shopId && c.customer_ref === user.id && c.is_support_ticket === true
           );
           
           if (existingConv) {
-            console.log('Found existing conversation:', existingConv.id);
+            console.log('[SupportChat] Found existing conversation:', existingConv.id);
             setConversationId(existingConv.id);
             await loadMessages(existingConv.id);
           } else {
-            console.log('No existing conversation found, creating new one...');
+            console.log('[SupportChat] No existing conversation found, creating new one...');
             // Create new support conversation
             await createSupportConversation();
           }
         } else {
-          console.error('Failed to load conversations, status:', res.status);
-          const errorText = await res.text();
-          console.error('Error response:', errorText);
+          console.error('[SupportChat] Failed to load conversations, status:', res.status);
+          const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+          console.error('[SupportChat] Error response:', errorData);
         }
       } catch (error) {
         console.error('Error loading conversation:', error);
@@ -174,40 +174,38 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
     }
 
     try {
-      console.log('Creating support conversation...', { shopId, ownerId: user.id });
-      // Create conversation (staff_id can be null, will be assigned when staff replies)
-      const res = await fetch(`${apiUrl}/api/conversations`, {
+      console.log('[SupportChat] Creating support conversation...', { shopId, ownerId: user.id });
+      
+      // Use the new owner support endpoint
+      const res = await fetch(`${apiUrl}/owner/support/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-user-id': user.id,
         },
         body: JSON.stringify({
-          type: 'customer_owner',
           shop_id: shopId,
-          owner_id: user.id,
-          customer_id: user.id, // Using owner as customer for now (support disabled)
+          content: 'Hello, I need support with my shop.',
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        console.log('Conversation created:', data.conversation?.id);
+        console.log('[SupportChat] Conversation created:', data.conversation?.id);
         if (data.conversation?.id) {
           setConversationId(data.conversation.id);
           await loadMessages(data.conversation.id);
         } else {
-          console.error('Conversation created but no ID returned:', data);
+          console.error('[SupportChat] Conversation created but no ID returned:', data);
         }
       } else {
-        const errorText = await res.text();
-        console.error('Failed to create conversation:', res.status, errorText);
-        // Show error to user
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[SupportChat] Failed to create conversation:', res.status, errorData);
         setLoading(false);
-        alert(`Failed to create support conversation. Please check the console for details. Status: ${res.status}`);
+        alert(`Failed to create support conversation: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error creating conversation:', error);
+      console.error('[SupportChat] Error creating conversation:', error);
       alert('Failed to create support conversation. Please try again.');
     }
   };
@@ -216,16 +214,19 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
     if (!user?.id) return;
     
     try {
-      const res = await fetch(`${apiUrl}/api/conversations/${convId}`, {
+      // Use the new owner support endpoint
+      const res = await fetch(`${apiUrl}/owner/support/conversations/${convId}`, {
         headers: { 'x-user-id': user.id },
       });
       
       if (res.ok) {
         const data = await res.json();
         setMessages(data.messages || []);
+      } else {
+        console.error('[SupportChat] Failed to load messages:', res.status);
       }
     } catch (error) {
-      console.error('Error loading messages:', error);
+      console.error('[SupportChat] Error loading messages:', error);
     }
   };
 
@@ -235,7 +236,8 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
 
     setSending(true);
     try {
-      const res = await fetch(`${apiUrl}/api/conversations/${conversationId}/messages`, {
+      // Use the new owner support endpoint
+      const res = await fetch(`${apiUrl}/owner/support/conversations/${conversationId}/reply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -248,12 +250,12 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
         setInput('');
         await loadMessages(conversationId);
       } else {
-        const errorText = await res.text();
-        console.error('Failed to send message:', errorText);
-        alert('Failed to send message. Please try again.');
+        const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[SupportChat] Failed to send message:', errorData);
+        alert(`Failed to send message: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('[SupportChat] Error sending message:', error);
       alert('Failed to send message. Please try again.');
     } finally {
       setSending(false);
