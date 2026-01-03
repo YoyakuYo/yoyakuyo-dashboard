@@ -182,7 +182,7 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const createSupportConversation = async (messageContent: string) => {
+  const createSupportConversation = async (messageContent: string): Promise<any> => {
     if (!user?.id || !shopId) {
       console.error('Cannot create conversation: missing user.id or shopId', { userId: user?.id, shopId });
       return;
@@ -212,16 +212,12 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
       if (res.ok) {
         const data = await res.json();
         console.log('[SupportChat] Conversation created:', data.conversation?.id);
-        if (data.conversation?.id) {
-          setConversationId(data.conversation.id);
-          await loadMessages(data.conversation.id);
-        } else {
-          console.error('[SupportChat] Conversation created but no ID returned:', data);
-        }
+        return data; // Return data so caller can access message ID
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
         console.error('[SupportChat] Failed to create conversation:', res.status, errorData);
         alert(`Failed to create support conversation: ${errorData.error || 'Unknown error'}`);
+        throw new Error(errorData.error || 'Failed to create conversation');
       }
     } catch (error) {
       console.error('[SupportChat] Error creating conversation:', error);
@@ -298,29 +294,30 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
       setSending(true);
       try {
         const messageContent = input.trim() || (selectedFile ? '📎 File attachment' : '');
-        await createSupportConversation(messageContent);
+        const data = await createSupportConversation(messageContent);
         
-        // After conversation is created, load messages to get the message ID
-        // Then upload file if one was selected
-        if (selectedFile && conversationId) {
-          // Wait a bit for messages to load
-          setTimeout(async () => {
-            await loadMessages(conversationId);
-            // Find the most recent message (the one we just sent)
-            const latestMessage = messages[messages.length - 1];
-            if (latestMessage) {
-              setUploadingFile(true);
-              try {
-                await uploadFileAttachment(latestMessage.id, selectedFile);
-                await loadMessages(conversationId); // Reload to show attachment
-              } catch (error: any) {
-                console.error('[SupportChat] Error uploading file:', error);
-                alert(`Message sent but file upload failed: ${error.message}`);
-              } finally {
-                setUploadingFile(false);
-              }
+        // Get the message ID from the response
+        const newMessageId = data?.message?.id;
+        const newConvId = data?.conversation?.id;
+        
+        if (newConvId) {
+          setConversationId(newConvId);
+          
+          // If file is selected and we have a message ID, upload it
+          if (selectedFile && newMessageId) {
+            setUploadingFile(true);
+            try {
+              await uploadFileAttachment(newMessageId, selectedFile);
+              await loadMessages(newConvId); // Reload to show attachment
+            } catch (error: any) {
+              console.error('[SupportChat] Error uploading file:', error);
+              alert(`Message sent but file upload failed: ${error.message}`);
+            } finally {
+              setUploadingFile(false);
             }
-          }, 500);
+          } else {
+            await loadMessages(newConvId);
+          }
         }
         
         setInput('');
