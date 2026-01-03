@@ -317,13 +317,31 @@ export default function PublicBookingPage() {
       setEmail(finalEmail);
     }
 
+    // Validate required fields before proceeding
+    if (!selectedService) {
+      alert(t('booking.selectService') || 'Please select a service');
+      setBookingLoading(false);
+      return;
+    }
+    
+    if (!selectedDate) {
+      alert(t('booking.selectDate') || 'Please select a date');
+      setBookingLoading(false);
+      return;
+    }
+    
+    const timeslotToUse = selectedTimeslot || (timeslots.length > 0 ? timeslots[0] : null);
+    if (!timeslotToUse) {
+      alert(t('booking.selectTimeslot') || 'Please select a timeslot');
+      setBookingLoading(false);
+      return;
+    }
+
     setBookingLoading(true);
 
     // Calculate start_time and end_time from date and selected timeslot
     let startDateTime: Date;
     let endDateTime: Date;
-    
-    const timeslotToUse = selectedTimeslot || (timeslots.length > 0 ? timeslots[0] : null);
     
     if (timeslotToUse && selectedDate) {
       startDateTime = new Date(`${selectedDate}T${timeslotToUse.start_time}`);
@@ -338,6 +356,13 @@ export default function PublicBookingPage() {
       // For authenticated users, don't send name/email - API will fetch from database
       // For guest users, send name/email from form
       const isAuthenticated = user && (user.id || (user as any).email) && !authLoading;
+      
+      // Ensure all required fields are present
+      if (!shopId || !selectedService || !selectedDate || !timeslotToUse) {
+        alert(t('booking.fillRequiredFields') || 'Please fill in all required fields');
+        setBookingLoading(false);
+        return;
+      }
       
       const bookingPayload: any = {
         shop_id: shopId,
