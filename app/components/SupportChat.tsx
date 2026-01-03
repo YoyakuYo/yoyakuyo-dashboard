@@ -470,13 +470,13 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={conversationId ? "Type your message..." : "Creating conversation..."}
+            placeholder="Type your message..."
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={sending || loading}
           />
           <button
             type="submit"
-            disabled={!input.trim() || sending || !conversationId}
+            disabled={!input.trim() || sending}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
             {sending ? 'Sending...' : 'Send'}
