@@ -4,8 +4,12 @@
 "use client";
 
 import React, { useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function Header() {
+  const router = useRouter();
+  
   // Add mobile hamburger for opening sidebar
   const handleOpenSidebar = () => {
     if (typeof window !== 'undefined') {
@@ -23,7 +27,17 @@ export default function Header() {
         {/* Hamburger icon */}
         <span aria-hidden="true">☰</span>
       </button>
-      <span className="text-lg font-bold text-japanese-charcoal">Yoyaku Yo</span>
+      <Link 
+        href="/owner/shop-profile"
+        className="text-lg font-bold text-japanese-charcoal hover:text-blue-600 transition-colors cursor-pointer"
+        onClick={(e) => {
+          // Ensure logo click only navigates, never logs out
+          e.preventDefault();
+          router.push("/owner/shop-profile");
+        }}
+      >
+        Yoyaku Yo
+      </Link>
     </header>
   );
 }
