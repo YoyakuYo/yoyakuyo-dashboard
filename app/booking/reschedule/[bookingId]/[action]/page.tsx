@@ -50,9 +50,10 @@ export default function RescheduleActionPage() {
         }
 
         setSuccess(true);
-        setMessage(data.message || (action === 'accept' 
-          ? (tBooking('rescheduleAction.acceptSuccess') || 'You have accepted the rescheduled booking time.')
-          : (tBooking('rescheduleAction.rejectSuccess') || 'You have rejected the rescheduled booking time. The shop will contact you to find a better time.')));
+        // Always use translation, ignore API message to ensure correct language
+        setMessage(action === 'accept' 
+          ? tBooking('rescheduleAction.acceptSuccess')
+          : tBooking('rescheduleAction.rejectSuccess'));
         setLoading(false);
       } catch (err: any) {
         console.error('Error processing action:', err);
