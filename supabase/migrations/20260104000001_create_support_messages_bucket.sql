@@ -37,90 +37,96 @@ BEGIN
   IF EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'support-messages') THEN
     -- Storage Policy: Service role can manage all files
     DROP POLICY IF EXISTS "Service role can manage support messages files" ON storage.objects;
-    EXECUTE 'CREATE POLICY "Service role can manage support messages files"
-ON storage.objects
-FOR ALL
-TO service_role
-USING (bucket_id = 'support-messages')
-WITH CHECK (bucket_id = 'support-messages');
+    CREATE POLICY "Service role can manage support messages files"
+    ON storage.objects
+    FOR ALL
+    TO service_role
+    USING (bucket_id = 'support-messages')
+    WITH CHECK (bucket_id = 'support-messages');
 
--- Storage Policy: Owners can upload files to their support conversations
-DROP POLICY IF EXISTS "Owners can upload files to support conversations" ON storage.objects;
-CREATE POLICY "Owners can upload files to support conversations"
-ON storage.objects
-FOR INSERT
-TO authenticated
-WITH CHECK (
-  bucket_id = 'support-messages'
-  AND EXISTS (
-    SELECT 1 FROM conversations c
-    JOIN shops s ON s.id = c.shop_id
-    WHERE c.id::text = (storage.foldername(name))[1]
-    AND s.owner_user_id = auth.uid()
-    AND c.is_support_ticket = true
-  )
-);
+    -- Storage Policy: Owners can upload files to their support conversations
+    DROP POLICY IF EXISTS "Owners can upload files to support conversations" ON storage.objects;
+    CREATE POLICY "Owners can upload files to support conversations"
+    ON storage.objects
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+      bucket_id = 'support-messages'
+      AND EXISTS (
+        SELECT 1 FROM conversations c
+        JOIN shops s ON s.id = c.shop_id
+        WHERE c.id::text = (storage.foldername(name))[1]
+        AND s.owner_user_id = auth.uid()
+        AND c.is_support_ticket = true
+      )
+    );
 
--- Storage Policy: Owners can view files in their support conversations
-DROP POLICY IF EXISTS "Owners can view files in support conversations" ON storage.objects;
-CREATE POLICY "Owners can view files in support conversations"
-ON storage.objects
-FOR SELECT
-TO authenticated
-USING (
-  bucket_id = 'support-messages'
-  AND EXISTS (
-    SELECT 1 FROM conversations c
-    JOIN shops s ON s.id = c.shop_id
-    WHERE c.id::text = (storage.foldername(name))[1]
-    AND s.owner_user_id = auth.uid()
-    AND c.is_support_ticket = true
-  )
-);
+    -- Storage Policy: Owners can view files in their support conversations
+    DROP POLICY IF EXISTS "Owners can view files in support conversations" ON storage.objects;
+    CREATE POLICY "Owners can view files in support conversations"
+    ON storage.objects
+    FOR SELECT
+    TO authenticated
+    USING (
+      bucket_id = 'support-messages'
+      AND EXISTS (
+        SELECT 1 FROM conversations c
+        JOIN shops s ON s.id = c.shop_id
+        WHERE c.id::text = (storage.foldername(name))[1]
+        AND s.owner_user_id = auth.uid()
+        AND c.is_support_ticket = true
+      )
+    );
 
--- Storage Policy: Admins can view files in all support conversations
-DROP POLICY IF EXISTS "Admins can view files in support conversations" ON storage.objects;
-CREATE POLICY "Admins can view files in support conversations"
-ON storage.objects
-FOR SELECT
-TO authenticated
-USING (
-  bucket_id = 'support-messages'
-  AND EXISTS (
-    SELECT 1 FROM conversations c
-    WHERE c.id::text = (storage.foldername(name))[1]
-    AND c.is_support_ticket = true
-    AND EXISTS (
-      SELECT 1 FROM admins a
-      WHERE a.id = auth.uid()
-      AND a.status = 'active'
-    )
-  )
-);
+    -- Storage Policy: Admins can view files in all support conversations
+    DROP POLICY IF EXISTS "Admins can view files in support conversations" ON storage.objects;
+    CREATE POLICY "Admins can view files in support conversations"
+    ON storage.objects
+    FOR SELECT
+    TO authenticated
+    USING (
+      bucket_id = 'support-messages'
+      AND EXISTS (
+        SELECT 1 FROM conversations c
+        WHERE c.id::text = (storage.foldername(name))[1]
+        AND c.is_support_ticket = true
+        AND EXISTS (
+          SELECT 1 FROM admins a
+          WHERE a.id = auth.uid()
+          AND a.status = 'active'
+        )
+      )
+    );
 
--- Storage Policy: Admins can upload files to support conversations
-DROP POLICY IF EXISTS "Admins can upload files to support conversations" ON storage.objects;
-CREATE POLICY "Admins can upload files to support conversations"
-ON storage.objects
-FOR INSERT
-TO authenticated
-WITH CHECK (
-  bucket_id = 'support-messages'
-  AND EXISTS (
-    SELECT 1 FROM conversations c
-    WHERE c.id::text = (storage.foldername(name))[1]
-    AND c.is_support_ticket = true
-    AND EXISTS (
-      SELECT 1 FROM admins a
-      WHERE a.id = auth.uid()
-      AND a.status = 'active'
-    )
-  )
-);
-
-COMMENT ON POLICY "Service role can manage support messages files" ON storage.objects IS 'Allows service role to manage all files in support-messages bucket';
-COMMENT ON POLICY "Owners can upload files to support conversations" ON storage.objects IS 'Allows shop owners to upload files to their own support conversations';
-COMMENT ON POLICY "Owners can view files in support conversations" ON storage.objects IS 'Allows shop owners to view files in their own support conversations';
-COMMENT ON POLICY "Admins can view files in support conversations" ON storage.objects IS 'Allows active admins to view files in all support conversations';
-COMMENT ON POLICY "Admins can upload files to support conversations" ON storage.objects IS 'Allows active admins to upload files to support conversations';
-
+    -- Storage Policy: Admins can upload files to support conversations
+    DROP POLICY IF EXISTS "Admins can upload files to support conversations" ON storage.objects;
+    CREATE POLICY "Admins can upload files to support conversations"
+    ON storage.objects
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (
+      bucket_id = 'support-messages'
+      AND EXISTS (
+        SELECT 1 FROM conversations c
+        WHERE c.id::text = (storage.foldername(name))[1]
+        AND c.is_support_ticket = true
+        AND EXISTS (
+          SELECT 1 FROM admins a
+          WHERE a.id = auth.uid()
+          AND a.status = 'active'
+        )
+      )
+    );
+    
+    -- Add comments to policies
+    COMMENT ON POLICY "Service role can manage support messages files" ON storage.objects IS 'Allows service role to manage all files in support-messages bucket';
+    COMMENT ON POLICY "Owners can upload files to support conversations" ON storage.objects IS 'Allows shop owners to upload files to their own support conversations';
+    COMMENT ON POLICY "Owners can view files in support conversations" ON storage.objects IS 'Allows shop owners to view files in their own support conversations';
+    COMMENT ON POLICY "Admins can view files in support conversations" ON storage.objects IS 'Allows active admins to view files in all support conversations';
+    COMMENT ON POLICY "Admins can upload files to support conversations" ON storage.objects IS 'Allows active admins to upload files to support conversations';
+    
+    RAISE NOTICE '✅ Storage policies created successfully for support-messages bucket';
+  ELSE
+    RAISE NOTICE '⚠️  Bucket "support-messages" does not exist. Policies not created.';
+  END IF;
+END $$;
