@@ -152,14 +152,15 @@ export function useNotifications(userType: 'owner' | 'customer' | 'admin', userI
               setNotifications((prev) => [newNotification, ...prev]);
               setUnreadCount((prev) => prev + 1);
 
-            // Show toast notification
-            toast.success(
-              `${newNotification.title}\n${newNotification.body}`,
-              {
-                duration: 5000,
-                icon: '🔔',
-              }
-            );
+              // Show toast notification
+              toast.success(
+                `${newNotification.title}\n${newNotification.body}`,
+                {
+                  duration: 5000,
+                  icon: '🔔',
+                }
+              );
+            }
           }
         )
         .on(
