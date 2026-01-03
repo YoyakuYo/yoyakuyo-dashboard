@@ -372,6 +372,17 @@
     "rescheduled": "Booking rescheduled successfully!",
     "failedToCancel": "Failed to cancel booking",
     "failedToReschedule": "Failed to reschedule booking",
+    "rescheduleAction": {
+      "invalidLink": "无效的重新安排链接。",
+      "invalidAction": "无效操作。必须是\"accept\"或\"reject\"。",
+      "processing": "正在处理您的响应...",
+      "actionFailed": "处理重新安排操作失败。",
+      "unexpectedError": "发生意外错误。",
+      "acceptTitle": "预订已接受",
+      "acceptSuccess": "您已接受重新安排的预订时间。",
+      "rejectTitle": "预订已拒绝",
+      "rejectSuccess": "您已拒绝重新安排的预订时间。店铺将联系您以找到更好的时间。"
+    },
     "failedToCreate": "Failed to create booking. Please try again."
   },
   "auth": {

@@ -327,6 +327,17 @@
     "rescheduled": "Booking rescheduled successfully!",
     "failedToCancel": "Failed to cancel booking",
     "failedToReschedule": "Failed to reschedule booking",
+    "rescheduleAction": {
+      "invalidLink": "Invalid reschedule link.",
+      "invalidAction": "Invalid action. Must be \"accept\" or \"reject\".",
+      "processing": "Processing your response...",
+      "actionFailed": "Failed to process reschedule action.",
+      "unexpectedError": "An unexpected error occurred.",
+      "acceptTitle": "Booking Accepted",
+      "acceptSuccess": "You have accepted the rescheduled booking time.",
+      "rejectTitle": "Booking Rejected",
+      "rejectSuccess": "You have rejected the rescheduled booking time. The shop will contact you to find a better time."
+    },
     "failedToCreate": "Failed to create booking. Please try again.",
     "noBookingsFound": "No bookings found.",
     "payNow": "Pay Now",

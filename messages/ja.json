@@ -328,6 +328,17 @@
     "rescheduled": "予約が変更されました！",
     "failedToCancel": "予約のキャンセルに失敗しました",
     "failedToReschedule": "予約の変更に失敗しました",
+    "rescheduleAction": {
+      "invalidLink": "無効な予約変更リンクです。",
+      "invalidAction": "無効なアクションです。「accept」または「reject」である必要があります。",
+      "processing": "処理中...",
+      "actionFailed": "予約変更の処理に失敗しました。",
+      "unexpectedError": "予期しないエラーが発生しました。",
+      "acceptTitle": "予約が承認されました",
+      "acceptSuccess": "予約変更の時間を承認しました。",
+      "rejectTitle": "予約が拒否されました",
+      "rejectSuccess": "予約変更の時間を拒否しました。店舗がより良い時間を見つけるために連絡いたします。"
+    },
     "failedToCreate": "予約の作成に失敗しました。もう一度お試しください。",
     "noBookingsFound": "予約が見つかりませんでした。",
     "payNow": "今すぐ支払う",

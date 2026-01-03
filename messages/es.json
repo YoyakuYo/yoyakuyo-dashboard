@@ -372,6 +372,17 @@
     "rescheduled": "Booking rescheduled successfully!",
     "failedToCancel": "Failed to cancel booking",
     "failedToReschedule": "Failed to reschedule booking",
+    "rescheduleAction": {
+      "invalidLink": "Enlace de reprogramación inválido.",
+      "invalidAction": "Acción inválida. Debe ser \"accept\" o \"reject\".",
+      "processing": "Procesando su respuesta...",
+      "actionFailed": "Error al procesar la acción de reprogramación.",
+      "unexpectedError": "Ocurrió un error inesperado.",
+      "acceptTitle": "Reserva Aceptada",
+      "acceptSuccess": "Ha aceptado el nuevo horario de la reserva reprogramada.",
+      "rejectTitle": "Reserva Rechazada",
+      "rejectSuccess": "Ha rechazado el nuevo horario de la reserva reprogramada. La tienda se pondrá en contacto para encontrar un mejor horario."
+    },
     "failedToCreate": "Failed to create booking. Please try again."
   },
   "auth": {
