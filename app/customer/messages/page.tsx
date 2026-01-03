@@ -15,16 +15,17 @@ import Link from "next/link";
 interface Conversation {
   id: string;
   type: string;
-  shop_id: string;
+  shop_id: string | null;
   customer_id: string;
   owner_id: string;
   created_at: string;
   updated_at: string;
   unread_count: number;
+  is_support_ticket?: boolean;
   shop?: {
     id: string;
     name: string;
-  };
+  } | null;
   owner?: {
     id: string;
     email: string;
@@ -399,7 +400,9 @@ function CustomerMessagesPageContent() {
                     <div className="flex items-start justify-between mb-1">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 truncate">
-                          {conv.shop?.name || 'Shop'}
+                          {conv.is_support_ticket && !conv.shop_id
+                            ? (t('customer.support.adminSupport') || 'Admin Support')
+                            : conv.shop?.name || 'Shop'}
                         </p>
                         {lastMessage && (
                           <p className="text-sm text-gray-600 truncate mt-1">
@@ -430,7 +433,9 @@ function CustomerMessagesPageContent() {
             <>
               <div className="p-4 border-b border-gray-200">
                 <h2 className="font-semibold text-gray-900">
-                  {selectedConversation?.shop?.name || t('messages.shop') || 'Shop'}
+                  {selectedConversation?.is_support_ticket && !selectedConversation?.shop_id
+                    ? (t('customer.support.adminSupport') || 'Admin Support')
+                    : selectedConversation?.shop?.name || t('messages.shop') || 'Shop'}
                 </h2>
                 {selectedConversation?.owner && (
                   <p className="text-sm text-gray-600">
