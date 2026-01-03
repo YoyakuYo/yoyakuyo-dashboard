@@ -10,7 +10,7 @@ import Link from 'next/link';
 
 interface Conversation {
   id: string;
-  shop_id: string;
+  shop_id: string | null;
   booking_id: string | null;
   customer_type: string;
   customer_ref: string;
@@ -22,7 +22,7 @@ interface Conversation {
   shop?: {
     id: string;
     name: string;
-  };
+  } | null;
 }
 
 interface Message {
@@ -60,6 +60,8 @@ export default function CustomerSupportPage() {
   const [creating, setCreating] = useState(false);
   const [supportType, setSupportType] = useState<'admin' | 'owner' | null>(null);
   const [shopId, setShopId] = useState<string | null>(null);
+  const [shops, setShops] = useState<Array<{ id: string; name: string }>>([]);
+  const [loadingShops, setLoadingShops] = useState(false);
   const [initialMessage, setInitialMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
@@ -67,8 +69,49 @@ export default function CustomerSupportPage() {
   useEffect(() => {
     if (user) {
       loadConversations();
+      loadCustomerShops();
     }
   }, [user]);
+
+  const loadCustomerShops = async () => {
+    if (!user?.id) return;
+
+    try {
+      setLoadingShops(true);
+      // Fetch customer bookings to get shops they've interacted with
+      const res = await fetch(`${apiUrl}/customers/bookings`, {
+        headers: {
+          'x-user-id': user.id,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const bookings = Array.isArray(data) ? data : (data.bookings || []);
+        
+        // Extract unique shops from bookings
+        const shopMap = new Map<string, { id: string; name: string }>();
+        bookings.forEach((booking: any) => {
+          // Handle both shop object and shop_id/shop_name format
+          const shopId = booking.shop_id || booking.shop?.id;
+          const shopName = booking.shop_name || booking.shop?.name;
+          
+          if (shopId && shopName && !shopMap.has(shopId)) {
+            shopMap.set(shopId, {
+              id: shopId,
+              name: shopName,
+            });
+          }
+        });
+
+        setShops(Array.from(shopMap.values()));
+      }
+    } catch (error) {
+      console.error('Error loading customer shops:', error);
+    } finally {
+      setLoadingShops(false);
+    }
+  };
 
   useEffect(() => {
     if (selectedConversationId) {
@@ -355,16 +398,33 @@ export default function CustomerSupportPage() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t('customer.support.selectShop') || 'Select Shop'}
             </label>
-            <input
-              type="text"
-              placeholder={t('customer.support.shopIdPlaceholder') || 'Enter Shop ID'}
-              value={shopId || ''}
-              onChange={(e) => setShopId(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <p className="mt-2 text-sm text-gray-500">
-              {t('customer.support.shopIdHint') || 'You can find the Shop ID from the shop page URL'}
-            </p>
+            {loadingShops ? (
+              <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                {t('common.loading') || 'Loading shops...'}
+              </div>
+            ) : shops.length > 0 ? (
+              <select
+                value={shopId || ''}
+                onChange={(e) => setShopId(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">{t('customer.support.selectShopPlaceholder') || 'Select a shop...'}</option>
+                {shops.map((shop) => (
+                  <option key={shop.id} value={shop.id}>
+                    {shop.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                {t('customer.support.noShops') || 'No shops found. Please make a booking first.'}
+              </div>
+            )}
+            {shops.length === 0 && !loadingShops && (
+              <p className="mt-2 text-sm text-gray-500">
+                {t('customer.support.noShopsHint') || 'You need to have at least one booking to contact a shop owner.'}
+              </p>
+            )}
           </div>
         )}
 
@@ -423,7 +483,8 @@ export default function CustomerSupportPage() {
         ) : (
           <div className="divide-y divide-gray-200">
             {conversations.map((conv) => {
-              const isAdminSupport = conv.shop?.name === null || !conv.shop;
+              // Admin support tickets have null shop_id or no shop data
+              const isAdminSupport = !conv.shop_id || conv.shop_id === null || !conv.shop || conv.shop?.name === null;
               const displayName = isAdminSupport 
                 ? (t('customer.support.adminSupport') || 'Admin Support')
                 : conv.shop?.name || 'Shop Owner';
@@ -470,7 +531,7 @@ export default function CustomerSupportPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">
-                    {selectedConversation.shop?.name 
+                    {selectedConversation.shop_id && selectedConversation.shop?.name
                       ? selectedConversation.shop.name
                       : (t('customer.support.adminSupport') || 'Admin Support')}
                   </h3>
