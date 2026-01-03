@@ -11,6 +11,7 @@ export default function RescheduleActionPage() {
   const params = useParams();
   const router = useRouter();
   const t = useTranslations();
+  const tBooking = useTranslations('booking');
   const bookingId = params?.bookingId as string;
   const action = params?.action as string; // 'accept' or 'reject'
   const [loading, setLoading] = useState(true);
@@ -20,13 +21,13 @@ export default function RescheduleActionPage() {
 
   useEffect(() => {
     if (!bookingId || !action) {
-      setError(t('rescheduleAction.invalidLink') || 'Invalid booking or action');
+      setError(tBooking('rescheduleAction.invalidLink') || 'Invalid booking or action');
       setLoading(false);
       return;
     }
 
     if (action !== 'accept' && action !== 'reject') {
-      setError(t('rescheduleAction.invalidAction') || 'Invalid action. Must be "accept" or "reject"');
+      setError(tBooking('rescheduleAction.invalidAction') || 'Invalid action. Must be "accept" or "reject"');
       setLoading(false);
       return;
     }
@@ -43,32 +44,32 @@ export default function RescheduleActionPage() {
         const data = await response.json();
 
         if (!response.ok) {
-          setError(data.error || t('rescheduleAction.actionFailed') || 'Failed to process your response');
+          setError(data.error || tBooking('rescheduleAction.actionFailed') || 'Failed to process your response');
           setLoading(false);
           return;
         }
 
         setSuccess(true);
         setMessage(data.message || (action === 'accept' 
-          ? (t('rescheduleAction.acceptSuccess') || 'You have accepted the rescheduled booking time.')
-          : (t('rescheduleAction.rejectSuccess') || 'You have rejected the rescheduled booking time. The shop will contact you to find a better time.')));
+          ? (tBooking('rescheduleAction.acceptSuccess') || 'You have accepted the rescheduled booking time.')
+          : (tBooking('rescheduleAction.rejectSuccess') || 'You have rejected the rescheduled booking time. The shop will contact you to find a better time.')));
         setLoading(false);
       } catch (err: any) {
         console.error('Error processing action:', err);
-        setError(err.message || t('rescheduleAction.unexpectedError') || 'An error occurred while processing your response');
+        setError(err.message || tBooking('rescheduleAction.unexpectedError') || 'An error occurred while processing your response');
         setLoading(false);
       }
     };
 
     handleAction();
-  }, [bookingId, action]);
+  }, [bookingId, action, tBooking]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('rescheduleAction.processing') || 'Processing your response...'}</p>
+          <p className="text-gray-600">{tBooking('rescheduleAction.processing') || 'Processing your response...'}</p>
         </div>
       </div>
     );
@@ -99,8 +100,8 @@ export default function RescheduleActionPage() {
           <div className="text-6xl mb-4">{action === 'accept' ? '✅' : '⚠️'}</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-4">
             {action === 'accept' 
-              ? (t('rescheduleAction.acceptTitle') || 'Booking Accepted')
-              : (t('rescheduleAction.rejectTitle') || 'Booking Rejected')}
+              ? (tBooking('rescheduleAction.acceptTitle') || 'Booking Accepted')
+              : (tBooking('rescheduleAction.rejectTitle') || 'Booking Rejected')}
           </h1>
           <p className="text-gray-600 mb-6">{message}</p>
           <div className="flex gap-4 justify-center">
