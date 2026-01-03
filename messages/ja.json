@@ -48,7 +48,8 @@
     "viewDetails": "詳細を見る",
     "cannotBeChanged": "変更できません",
     "city": "市区町村",
-    "refresh": "更新"
+    "refresh": "更新",
+    "backToHome": "ホームに戻る"
   },
   "auth": {
     "signInToShop": "店舗にサインイン",

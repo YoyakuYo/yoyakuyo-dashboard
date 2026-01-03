@@ -487,7 +487,8 @@
     "duration": "Duration",
     "cannotBeChanged": "无法更改",
     "city": "城市",
-    "refresh": "刷新"
+    "refresh": "刷新",
+    "backToHome": "返回首页"
   },
   "nav": {
     "shops": "店铺",

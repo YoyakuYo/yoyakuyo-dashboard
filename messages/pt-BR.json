@@ -487,7 +487,8 @@
     "duration": "Duration",
     "cannotBeChanged": "não pode ser alterado",
     "city": "Cidade",
-    "refresh": "Atualizar"
+    "refresh": "Atualizar",
+    "backToHome": "Voltar para Início"
   },
   "nav": {
     "shops": "Lojas",

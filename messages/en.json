@@ -47,7 +47,8 @@
     "viewDetails": "View Details",
     "cannotBeChanged": "cannot be changed",
     "city": "City",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "backToHome": "Back to Home"
   },
   "auth": {
     "signInToShop": "Sign in to your shop",
