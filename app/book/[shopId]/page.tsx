@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
+import { useCustomAuth } from '@/lib/useCustomAuth';
 
 interface Service {
   id: string;
@@ -38,7 +39,10 @@ export default function PublicBookingPage() {
   const params = useParams();
   const shopId = params?.shopId as string;
   const t = useTranslations();
-  const { user, loading: authLoading } = useAuth();
+  const { user: supabaseUser, loading: authLoading } = useAuth();
+  const { user: customUser } = useCustomAuth();
+  // Use custom auth user if available, otherwise fall back to Supabase auth
+  const user = customUser || supabaseUser;
   const [services, setServices] = useState<Service[]>([]);
   const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
   const [timeslots, setTimeslots] = useState<Timeslot[]>([]);
@@ -100,46 +104,63 @@ export default function PublicBookingPage() {
 
   // Load customer profile if user is logged in
   useEffect(() => {
-    if (user?.id) {
+    const userId = user?.id || (user as any)?.id;
+    const userEmail = user?.email || (user as any)?.email;
+    const userName = (user as any)?.name || user?.user_metadata?.name;
+    
+    if (userId || userEmail) {
       const loadCustomerProfile = async () => {
-        const supabase = getSupabaseClient();
-        
-        // First try to get from users table (for WEB customers)
-        const { data: userData } = await supabase
-          .from("users")
-          .select("full_name, email")
-          .eq("id", user.id)
-          .maybeSingle();
-
-        if (userData) {
-          const profileName = userData.full_name || user.user_metadata?.name || user.email?.split('@')[0] || '';
-          const profileEmail = userData.email || user.email || '';
+        // If using custom auth, use the user data directly
+        if (customUser && !supabaseUser) {
+          const profileName = userName || userEmail?.split('@')[0] || '';
+          const profileEmail = userEmail || '';
           setCustomerProfile({ name: profileName, email: profileEmail });
           setName(profileName);
           setEmail(profileEmail);
           return;
         }
 
-        // Fallback: try customer_profiles (for LINE customers)
-        const { data: profile } = await supabase
-          .from("customer_profiles")
-          .select("name, email, full_name, line_display_name")
-          .eq("customer_auth_id", user.id)
-          .maybeSingle();
+        // For Supabase auth, fetch from database
+        if (userId && supabaseUser) {
+          const supabase = getSupabaseClient();
+          
+          // First try to get from users table (for WEB customers)
+          const { data: userData } = await supabase
+            .from("users")
+            .select("full_name, email")
+            .eq("id", userId)
+            .maybeSingle();
 
-        if (profile) {
-          const profileName = profile.line_display_name || profile.full_name || profile.name || user.user_metadata?.name || user.email?.split('@')[0] || '';
-          const profileEmail = profile.email || user.email || '';
-          setCustomerProfile({ name: profileName, email: profileEmail });
-          setName(profileName);
-          setEmail(profileEmail);
-        } else {
-          // Final fallback to user metadata
-          const userName = user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || '';
-          const userEmail = user.email || '';
-          setCustomerProfile({ name: userName, email: userEmail });
-          setName(userName);
-          setEmail(userEmail);
+          if (userData) {
+            const profileName = userData.full_name || user.user_metadata?.name || userEmail?.split('@')[0] || '';
+            const profileEmail = userData.email || userEmail || '';
+            setCustomerProfile({ name: profileName, email: profileEmail });
+            setName(profileName);
+            setEmail(profileEmail);
+            return;
+          }
+
+          // Fallback: try customer_profiles (for LINE customers)
+          const { data: profile } = await supabase
+            .from("customer_profiles")
+            .select("name, email, full_name, line_display_name")
+            .eq("customer_auth_id", userId)
+            .maybeSingle();
+
+          if (profile) {
+            const profileName = profile.line_display_name || profile.full_name || profile.name || user.user_metadata?.name || userEmail?.split('@')[0] || '';
+            const profileEmail = profile.email || userEmail || '';
+            setCustomerProfile({ name: profileName, email: profileEmail });
+            setName(profileName);
+            setEmail(profileEmail);
+          } else {
+            // Final fallback to user metadata
+            const finalUserName = userName || user.user_metadata?.full_name || userEmail?.split('@')[0] || '';
+            const finalUserEmail = userEmail || '';
+            setCustomerProfile({ name: finalUserName, email: finalUserEmail });
+            setName(finalUserName);
+            setEmail(finalUserEmail);
+          }
         }
       };
       loadCustomerProfile();
@@ -149,7 +170,7 @@ export default function PublicBookingPage() {
       setName('');
       setEmail('');
     }
-  }, [user]);
+  }, [user, customUser, supabaseUser]);
 
   // LINE QR code feature removed - staff features were removed
   // Keeping state for potential future implementation
@@ -315,7 +336,7 @@ export default function PublicBookingPage() {
     try {
       // For authenticated users, don't send name/email - API will fetch from database
       // For guest users, send name/email from form
-      const isAuthenticated = user && user.id && !authLoading;
+      const isAuthenticated = user && (user.id || (user as any).email) && !authLoading;
       
       const bookingPayload: any = {
         shop_id: shopId,
@@ -350,7 +371,7 @@ export default function PublicBookingPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(isAuthenticated && user.id && { 'x-user-id': user.id }), // Include user ID if logged in
+          ...(isAuthenticated && (user.id || (user as any).id) && { 'x-user-id': user.id || (user as any).id }), // Include user ID if logged in
           ...(!isAuthenticated && guestId ? { 'x-guest-id': guestId } : {}), // Guest identity for persistence
         },
         body: JSON.stringify(bookingPayload),
@@ -478,6 +499,14 @@ export default function PublicBookingPage() {
           {/* Show customer information section */}
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
+            
+            {/* Debug info - remove in production */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                <p>Debug: authLoading={String(authLoading)}, user={user ? `exists (id: ${user.id})` : 'null'}, customerProfile={customerProfile ? 'exists' : 'null'}</p>
+              </div>
+            )}
+            
             {authLoading ? (
               // Show loading state while checking auth
               <div className="space-y-3">
@@ -485,7 +514,7 @@ export default function PublicBookingPage() {
                   {t('common.loading') || 'Loading...'}
                 </div>
               </div>
-            ) : user && user.id ? (
+            ) : (user && (user.id || (user as any).email)) ? (
               // Show customer info for authenticated users (read-only)
               <div className="space-y-3">
                 <div>
@@ -493,7 +522,7 @@ export default function PublicBookingPage() {
                     {t('booking.yourName')}
                   </label>
                   <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
-                    {customerProfile?.name || user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'N/A'}
+                    {customerProfile?.name || (user as any).name || user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'N/A'}
                   </div>
                 </div>
                 <div>
@@ -501,12 +530,12 @@ export default function PublicBookingPage() {
                     {t('common.email')}
                   </label>
                   <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
-                    {customerProfile?.email || user.email || 'N/A'}
+                    {customerProfile?.email || user.email || (user as any).email || 'N/A'}
                   </div>
                 </div>
                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                   <p className="text-green-800 text-sm">
-                    ✅ {t('booking.loggedInAs') || 'Logged in as'} {user.email}
+                    ✅ {t('booking.loggedInAs') || 'Logged in as'} {user.email || (user as any).email}
                   </p>
                 </div>
               </div>
