@@ -114,9 +114,9 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
             setConversationId(existingConv.id);
             await loadMessages(existingConv.id);
           } else {
-            console.log('[SupportChat] No existing conversation found, creating new one...');
-            // Create new support conversation
-            await createSupportConversation();
+            console.log('[SupportChat] No existing conversation found. Owner can type a message to start.');
+            // Don't auto-create - let owner type their message first
+            // The conversation will be created when they send their first message
           }
         } else {
           console.error('[SupportChat] Failed to load conversations, status:', res.status);
