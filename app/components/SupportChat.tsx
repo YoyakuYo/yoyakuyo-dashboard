@@ -620,21 +620,53 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
 
       {/* Input */}
       <form onSubmit={sendMessage} className="p-4 border-t bg-white">
+        {/* Selected file preview */}
+        {selectedFile && (
+          <div className="mb-2 flex items-center justify-between px-2 py-1 bg-blue-50 rounded text-xs">
+            <span className="truncate flex-1">📎 {selectedFile.name}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedFile(null);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }}
+              className="ml-2 text-red-600 hover:text-red-800"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        
         <div className="flex gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+            className="hidden"
+            id="file-input-full"
+            disabled={sending || uploadingFile || loading}
+          />
+          <label
+            htmlFor="file-input-full"
+            className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center"
+          >
+            📎
+          </label>
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={sending || loading}
+            disabled={sending || uploadingFile || loading}
           />
           <button
             type="submit"
-            disabled={!input.trim() || sending}
+            disabled={(!input.trim() && !selectedFile) || sending || uploadingFile}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
-            {sending ? 'Sending...' : 'Send'}
+            {uploadingFile ? 'Uploading...' : sending ? 'Sending...' : 'Send'}
           </button>
         </div>
       </form>
