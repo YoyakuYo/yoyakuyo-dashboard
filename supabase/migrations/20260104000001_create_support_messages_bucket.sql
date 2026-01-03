@@ -5,25 +5,39 @@
 -- NOTE: The bucket itself must be created manually in Supabase Dashboard first!
 -- ============================================
 
--- Verify bucket exists (this will fail if bucket doesn't exist, which is intentional)
+-- Check if bucket exists and create policies only if it does
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'support-messages') THEN
-    RAISE EXCEPTION 'Bucket "support-messages" does not exist. Please create it in Supabase Dashboard first:
+    RAISE NOTICE '⚠️  Bucket "support-messages" does not exist yet. Skipping policy creation.
+    
+    Please create the bucket in Supabase Dashboard first:
     1. Go to Storage in Supabase Dashboard
     2. Click "New bucket"
     3. Name: support-messages
-    4. Public: false (private bucket)
+    4. Public: false (unchecked - private bucket)
     5. File size limit: 10 MB
-    6. Allowed MIME types: application/pdf, image/jpeg, image/jpg, image/png, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document
+    6. Allowed MIME types: 
+       - application/pdf
+       - image/jpeg
+       - image/jpg
+       - image/png
+       - application/msword
+       - application/vnd.openxmlformats-officedocument.wordprocessingml.document
     7. Click "Create bucket"
-    Then run this migration again.';
+    
+    After creating the bucket, run this migration again to create the storage policies.';
+    RETURN;
   END IF;
 END $$;
 
--- Storage Policy: Service role can manage all files
-DROP POLICY IF EXISTS "Service role can manage support messages files" ON storage.objects;
-CREATE POLICY "Service role can manage support messages files"
+-- Only create policies if bucket exists
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'support-messages') THEN
+    -- Storage Policy: Service role can manage all files
+    DROP POLICY IF EXISTS "Service role can manage support messages files" ON storage.objects;
+    EXECUTE 'CREATE POLICY "Service role can manage support messages files"
 ON storage.objects
 FOR ALL
 TO service_role
