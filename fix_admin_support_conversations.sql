@@ -1,5 +1,9 @@
 -- Fix existing admin support conversations that were incorrectly created with a shop_id
 -- Admin support tickets should have shop_id = null
+-- 
+-- NOTE: This script assumes shop_id is already nullable.
+-- If you get a NOT NULL constraint error, run the migration first:
+-- supabase/migrations/20260104000003_make_shop_id_nullable_for_support.sql
 
 -- First, identify admin support conversations that have a shop_id
 -- These are conversations where:
