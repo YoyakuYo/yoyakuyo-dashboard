@@ -448,21 +448,55 @@ export default function AdminSupportPage() {
                   {t("admin.messages") || "Messages"}
                 </h3>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {selectedConversation.messages?.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`p-3 rounded-lg ${
-                        message.sender_id.includes('admin') || message.sender_id === 'admin'
-                          ? "bg-blue-50 ml-8"
-                          : "bg-gray-50 mr-8"
-                      }`}
-                    >
-                      <p className="text-sm text-gray-900">{message.content}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(message.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                  ))}
+                  {selectedConversation.messages?.map((message) => {
+                    const isAdminMessage = message.sender_id.includes('admin') || message.sender_id === 'admin';
+                    const isDocumentRequest = message.content.includes('📎 **Document Request**');
+                    
+                    return (
+                      <div
+                        key={message.id}
+                        className={`p-3 rounded-lg ${
+                          isAdminMessage
+                            ? "bg-blue-50 ml-8"
+                            : "bg-gray-50 mr-8"
+                        } ${isDocumentRequest ? 'border-2 border-green-300' : ''}`}
+                      >
+                        {isDocumentRequest && (
+                          <div className="mb-2 px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">
+                            📎 Document Request
+                          </div>
+                        )}
+                        <p className="text-sm text-gray-900 whitespace-pre-wrap">{message.content}</p>
+                        
+                        {/* Display attachments */}
+                        {message.attachments && message.attachments.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {message.attachments.map((att: Attachment) => (
+                              <a
+                                key={att.id}
+                                href={att.signed_url || '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-2 py-1 rounded text-xs bg-white border border-gray-300 hover:bg-gray-50"
+                              >
+                                <span>📎</span>
+                                <span className="truncate max-w-[200px]">{att.file_name}</span>
+                                {att.file_size && (
+                                  <span className="opacity-70">
+                                    ({(att.file_size / 1024).toFixed(1)} KB)
+                                  </span>
+                                )}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(message.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
