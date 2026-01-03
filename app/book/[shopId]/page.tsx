@@ -308,10 +308,11 @@ export default function PublicBookingPage() {
       const finalName =
         customerProfile?.name ||
         name ||
-        user?.user_metadata?.name ||
+        (user as any)?.user_metadata?.name ||
+        (user as any)?.name ||
         user?.email?.split('@')[0] ||
         'Customer';
-      const finalEmail = customerProfile?.email || email || user?.email || '';
+      const finalEmail = customerProfile?.email || email || user?.email || (user as any)?.email || '';
       setName(finalName);
       setEmail(finalEmail);
     }
