@@ -313,16 +313,20 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
                 <p className="text-xs">Send us a message and we'll get back to you soon.</p>
               </div>
             ) : (
-              messages.map((msg) => {
-                // ALIGNMENT RULE: IF sender_id === currentUser.id → RIGHT, ELSE → LEFT
-                // Normalize IDs to strings for comparison
-                const isCurrentUser = String(msg.sender_id) === String(user?.id);
+              messages.map((msg: any) => {
+                // ALIGNMENT RULE: Check if message is from owner (current user)
+                // Use isOwnerMessage flag from backend, or check ownerUserId
+                const isCurrentUser = msg.isOwnerMessage === true || 
+                  (msg.ownerUserId && String(msg.ownerUserId) === String(user?.id)) ||
+                  (msg.sender?.role === 'owner' && String(msg.sender?.id) === String(user?.id));
                 
                 // DEBUG LOGGING - Required output
                 console.log('[SupportChat] Message render:', {
                   currentUserId: user?.id,
-                  currentUserRole: currentUserRole,
                   messageSenderId: msg.sender_id,
+                  messageOwnerUserId: msg.ownerUserId,
+                  messageIsOwner: msg.isOwnerMessage,
+                  senderRole: msg.sender?.role,
                   isCurrentUser,
                   alignment: isCurrentUser ? 'RIGHT' : 'LEFT',
                 });
@@ -345,11 +349,13 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
                             ? 'bg-blue-500 text-white'
                             : 'bg-gray-200 text-gray-700'
                         }`}>
-                          {getMessageLabel(msg)}
+                          {isCurrentUser ? '👤 You (Owner)' : (msg.sender?.role === 'admin' ? '👤 Admin Support' : '👤 Support')}
                         </span>
-                        <span className="text-xs opacity-80">
-                          {getSenderDisplayName(msg)}
-                        </span>
+                        {!isCurrentUser && (
+                          <span className="text-xs opacity-80">
+                            {getSenderDisplayName(msg)}
+                          </span>
+                        )}
                       </div>
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                       <p className="text-xs mt-1 opacity-70">
@@ -409,16 +415,20 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
             <p className="text-xs">Send us a message and we'll get back to you soon.</p>
           </div>
         ) : (
-          messages.map((msg) => {
-            // ALIGNMENT RULE: IF sender_id === currentUser.id → RIGHT, ELSE → LEFT
-            // Normalize IDs to strings for comparison
-            const isCurrentUser = String(msg.sender_id) === String(user?.id);
+          messages.map((msg: any) => {
+            // ALIGNMENT RULE: Check if message is from owner (current user)
+            // Use isOwnerMessage flag from backend, or check ownerUserId
+            const isCurrentUser = msg.isOwnerMessage === true || 
+              (msg.ownerUserId && String(msg.ownerUserId) === String(user?.id)) ||
+              (msg.sender?.role === 'owner' && msg.ownerUserId && String(msg.ownerUserId) === String(user?.id));
             
             // DEBUG LOGGING - Required output
             console.log('[SupportChat] Message render:', {
               currentUserId: user?.id,
-              currentUserRole: currentUserRole,
               messageSenderId: msg.sender_id,
+              messageOwnerUserId: msg.ownerUserId,
+              messageIsOwner: msg.isOwnerMessage,
+              senderRole: msg.sender?.role,
               isCurrentUser,
               alignment: isCurrentUser ? 'RIGHT' : 'LEFT',
             });
@@ -441,13 +451,15 @@ export default function SupportChat({ shopId, onClose, isFloating = false }: Sup
                         ? 'bg-blue-500 text-white'
                         : 'bg-blue-100 text-blue-700'
                     }`}>
-                      {getMessageLabel(msg)}
+                      {isCurrentUser ? '👤 You (Owner)' : (msg.sender?.role === 'admin' ? '👤 Admin Support' : '👤 Support')}
                     </span>
-                    <span className={`text-xs font-medium ${
-                      isCurrentUser ? 'opacity-90' : 'text-gray-600'
-                    }`}>
-                      {getSenderDisplayName(msg)}
-                    </span>
+                    {!isCurrentUser && msg.sender?.display_name && (
+                      <span className={`text-xs font-medium ${
+                        isCurrentUser ? 'opacity-90' : 'text-gray-600'
+                      }`}>
+                        {msg.sender.display_name}
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   <p className={`text-xs mt-1 ${
