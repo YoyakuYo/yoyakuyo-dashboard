@@ -313,32 +313,47 @@ export default function PublicBookingPage() {
     }
 
     try {
-      // Use customer profile data if logged in, otherwise use form input
-      const finalName = user && customerProfile 
-        ? customerProfile.name 
-        : name.trim();
-      const finalEmail = user && customerProfile 
-        ? customerProfile.email 
-        : email.trim();
+      // For authenticated users, don't send name/email - API will fetch from database
+      // For guest users, send name/email from form
+      const isAuthenticated = user && user.id && !authLoading;
+      
+      const bookingPayload: any = {
+        shop_id: shopId,
+        service_id: selectedService,
+        date: selectedDate,
+        time_slot: `${timeslotToUse.start_time}-${timeslotToUse.end_time}`,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+      };
+
+      // Only include name/email for guest users
+      if (!isAuthenticated) {
+        if (!name.trim()) {
+          alert(t('booking.enterName') || 'Please enter your name');
+          setBookingLoading(false);
+          return;
+        }
+        if (!email.trim()) {
+          alert(t('booking.enterEmail') || 'Please enter your email');
+          setBookingLoading(false);
+          return;
+        }
+        bookingPayload.customer_name = name.trim();
+        bookingPayload.customer_email = email.trim();
+        bookingPayload.notes = `Booking for ${name.trim()}`;
+      } else {
+        // For authenticated users, API will fetch name/email from database
+        bookingPayload.notes = `Booking for authenticated user`;
+      }
 
       const res = await fetch(`${apiUrl}/bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(user?.id && { 'x-user-id': user.id }), // Include user ID if logged in
-          ...(!user?.id && guestId ? { 'x-guest-id': guestId } : {}), // Guest identity for persistence
+          ...(isAuthenticated && user.id && { 'x-user-id': user.id }), // Include user ID if logged in
+          ...(!isAuthenticated && guestId ? { 'x-guest-id': guestId } : {}), // Guest identity for persistence
         },
-        body: JSON.stringify({
-          shop_id: shopId,
-          service_id: selectedService,
-          customer_name: finalName,
-          customer_email: finalEmail || null,
-          date: selectedDate,
-          time_slot: `${timeslotToUse.start_time}-${timeslotToUse.end_time}`,
-          start_time: startDateTime.toISOString(),
-          end_time: endDateTime.toISOString(),
-          notes: `Booking for ${finalName}`,
-        }),
+        body: JSON.stringify(bookingPayload),
       });
 
       if (res.ok) {
@@ -463,7 +478,14 @@ export default function PublicBookingPage() {
           {/* Show customer information section */}
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
-            {user && !authLoading ? (
+            {authLoading ? (
+              // Show loading state while checking auth
+              <div className="space-y-3">
+                <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-500">
+                  {t('common.loading') || 'Loading...'}
+                </div>
+              </div>
+            ) : user && user.id ? (
               // Show customer info for authenticated users (read-only)
               <div className="space-y-3">
                 <div>
@@ -471,7 +493,7 @@ export default function PublicBookingPage() {
                     {t('booking.yourName')}
                   </label>
                   <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
-                    {customerProfile?.name || user.user_metadata?.name || user.email?.split('@')[0] || 'Loading...'}
+                    {customerProfile?.name || user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'N/A'}
                   </div>
                 </div>
                 <div>
@@ -479,7 +501,7 @@ export default function PublicBookingPage() {
                     {t('common.email')}
                   </label>
                   <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
-                    {customerProfile?.email || user.email || 'Loading...'}
+                    {customerProfile?.email || user.email || 'N/A'}
                   </div>
                 </div>
                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
