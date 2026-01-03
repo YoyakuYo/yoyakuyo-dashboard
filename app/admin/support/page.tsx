@@ -64,6 +64,9 @@ export default function AdminSupportPage() {
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [newMessageContent, setNewMessageContent] = useState("");
   const [creatingConversation, setCreatingConversation] = useState(false);
+  const [showDocumentRequestModal, setShowDocumentRequestModal] = useState(false);
+  const [documentRequestText, setDocumentRequestText] = useState("");
+  const [sendingDocumentRequest, setSendingDocumentRequest] = useState(false);
 
   // Get user from Supabase Auth
   useEffect(() => {
@@ -176,6 +179,42 @@ export default function AdminSupportPage() {
       alert(error.message || (t("admin.replyFailed") || "Failed to send reply"));
     } finally {
       setSendingReply(false);
+    }
+  };
+
+  const handleRequestDocument = async () => {
+    if (!selectedConversation || !documentRequestText.trim()) {
+      return;
+    }
+
+    try {
+      setSendingDocumentRequest(true);
+      // Format message as a document request
+      const requestMessage = `📎 **Document Request**\n\n${documentRequestText.trim()}\n\nPlease upload the requested document as an attachment.`;
+      
+      const response = await fetch(`${apiUrl}/admin/support/conversations/${selectedConversation.id}/reply`, {
+        method: "POST",
+        headers: {
+          "x-user-id": userId || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: requestMessage }),
+      });
+
+      if (response.ok) {
+        setDocumentRequestText("");
+        setShowDocumentRequestModal(false);
+        fetchConversationDetails(selectedConversation.id);
+        fetchSupportConversations();
+      } else {
+        const error = await response.json();
+        alert(error.error || (t("admin.requestFailed") || "Failed to send document request"));
+      }
+    } catch (error: any) {
+      console.error("Error sending document request:", error);
+      alert(error.message || (t("admin.requestFailed") || "Failed to send document request"));
+    } finally {
+      setSendingDocumentRequest(false);
     }
   };
 
