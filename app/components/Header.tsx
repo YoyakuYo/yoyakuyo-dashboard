@@ -27,17 +27,17 @@ export default function Header() {
         {/* Hamburger icon */}
         <span aria-hidden="true">☰</span>
       </button>
-      <Link 
-        href="/owner/shop-profile"
-        className="text-lg font-bold text-japanese-charcoal hover:text-blue-600 transition-colors cursor-pointer"
+      <button
         onClick={(e) => {
           // Ensure logo click only navigates, never logs out
           e.preventDefault();
+          e.stopPropagation();
           router.push("/owner/shop-profile");
         }}
+        className="text-lg font-bold text-japanese-charcoal hover:text-blue-600 transition-colors cursor-pointer"
       >
         Yoyaku Yo
-      </Link>
+      </button>
     </header>
   );
 }

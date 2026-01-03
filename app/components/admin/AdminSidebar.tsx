@@ -58,13 +58,17 @@ const AdminSidebar = React.memo(() => {
         style={{ height: "100vh", width: "100%" }}
       >
         <div className="flex items-center justify-between mb-4">
-          <Link 
-            href="/admin"
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDrawerOpen(false);
+              router.push("/admin");
+            }}
             className="text-xl font-bold hover:text-blue-400 transition-colors cursor-pointer"
-            onClick={() => setDrawerOpen(false)}
           >
             {t("admin.dashboard") || "Admin Dashboard"}
-          </Link>
+          </button>
           <button
             aria-label="Close menu"
             className="text-2xl text-gray-400"
@@ -129,12 +133,16 @@ const AdminSidebar = React.memo(() => {
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white min-h-screen">
         <div className="p-6 border-b border-slate-700">
-          <Link 
-            href="/admin"
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              router.push("/admin");
+            }}
             className="text-xl font-bold hover:text-blue-400 transition-colors cursor-pointer"
           >
             {t("admin.dashboard") || "Admin Dashboard"}
-          </Link>
+          </button>
         </div>
         <nav className="flex-1 p-4">
           <ul className="space-y-1">
