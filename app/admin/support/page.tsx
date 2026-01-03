@@ -8,6 +8,17 @@ import { apiUrl } from "@/lib/apiClient";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import SupportConversationList from "@/app/components/admin/SupportConversationList";
 
+interface Attachment {
+  id: string;
+  message_id: string;
+  file_path: string;
+  file_name: string;
+  file_size?: number;
+  file_type?: string;
+  signed_url?: string;
+  created_at: string;
+}
+
 interface Message {
   id: string;
   conversation_id: string;
@@ -15,6 +26,7 @@ interface Message {
   content: string;
   created_at: string;
   is_read: boolean;
+  attachments?: Attachment[];
 }
 
 interface SupportConversation {
