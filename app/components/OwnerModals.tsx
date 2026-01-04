@@ -8,6 +8,7 @@ import { getSupabaseClient } from '@/lib/supabaseClient';
 import { AuthError } from '@supabase/supabase-js';
 import { apiUrl } from '@/lib/apiClient';
 import { authApi } from '@/lib/api';
+import { useAuthRole } from '@/lib/AuthRoleContext';
 
 const Modal = React.memo(({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) => {
   if (!isOpen) return null;
@@ -48,6 +49,7 @@ Modal.displayName = 'Modal';
 
 export default function OwnerModals() {
   const router = useRouter();
+  const { selectedRole, setSelectedRole, clearSelectedRole } = useAuthRole();
   
   let t: ReturnType<typeof useTranslations>;
   let tAuth: ReturnType<typeof useTranslations>;
@@ -81,6 +83,9 @@ export default function OwnerModals() {
     // Only listen for owner-specific events (from role selection modal)
     // DO NOT listen to openLoginModal/openSignupModal - those go to RoleSelectionModal first
     const handleOpenOwnerLoginModal = () => {
+      // CRITICAL: Persist role BEFORE showing login inputs
+      setSelectedRole("owner");
+      
       // If Supabase session exists, restore and redirect (no re-entry).
       try {
         const supabase = getSupabaseClient();
@@ -196,6 +201,25 @@ export default function OwnerModals() {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
+      // CRITICAL: Validate role on backend BEFORE proceeding
+      try {
+        const roleCheckResponse = await fetch(`${apiUrl}/auth/validate-role`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, role: 'owner' }),
+        });
+
+        if (!roleCheckResponse.ok) {
+          const errorData = await roleCheckResponse.json();
+          setLoginError(errorData.error || 'This account is not registered as an owner. Please use customer login.');
+          setLoginLoading(false);
+          return;
+        }
+      } catch (roleCheckError) {
+        console.warn('Role validation failed, proceeding with login:', roleCheckError);
+        // Continue with login if role check fails (non-blocking for now)
+      }
+
       // CRITICAL: Verify owner exists in owners table first
       const { data: ownerCheck } = await supabase
         .from('owners')

@@ -56,11 +56,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const {
           data: { subscription },
-        } = supabase.auth.onAuthStateChange((event, session) => {
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
           // Update session and user state whenever auth state changes
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
+          
+          // CRITICAL: Don't reset role on auth state change
+          // Role is persisted separately and should not be inferred from auth state
+          // This prevents the role leak where owner login gets reset to customer
           
           // Log auth events for debugging (only in development)
           if (process.env.NODE_ENV === 'development') {

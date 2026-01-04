@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { authApi } from "@/lib/api";
+import { useAuthRole } from "@/lib/AuthRoleContext";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -14,16 +15,44 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const router = useRouter();
   const t = useTranslations();
+  const { selectedRole, setSelectedRole } = useAuthRole();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
 
+    // CRITICAL: Require role selection before login
+    if (!selectedRole) {
+      setMessage("Error: Please select whether you are logging in as Owner or Customer");
+      setLoading(false);
+      return;
+    }
+
     try {
       const supabase = getSupabaseClient();
       let authData: any = null;
       let authError: any = null;
+
+      // CRITICAL: Validate role on backend BEFORE authentication
+      try {
+        const { apiUrl } = await import('@/lib/apiClient');
+        const roleCheckResponse = await fetch(`${apiUrl}/auth/validate-role`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, role: selectedRole }),
+        });
+
+        if (!roleCheckResponse.ok) {
+          const errorData = await roleCheckResponse.json();
+          setMessage(`Error: ${errorData.error || 'Invalid role for this email'}`);
+          setLoading(false);
+          return;
+        }
+      } catch (roleCheckError) {
+        console.warn('Role validation failed, proceeding with login:', roleCheckError);
+        // Continue with login if role check fails (non-blocking for now)
+      }
 
       // Try direct Supabase auth first (fastest, works if CORS is configured)
       try {
@@ -116,54 +145,64 @@ export default function LoginPage() {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      // CRITICAL: Check user role and redirect accordingly
-      // Only users with role='owner' should access owner routes
+      // CRITICAL: Use persisted role for redirect (don't infer from database)
       setMessage("Login successful! Redirecting...");
-      try {
-        const { apiUrl } = await import('@/lib/apiClient');
-        const roleResponse = await fetch(`${apiUrl}/users/me`, {
-          headers: { 'x-user-id': authData.user.id },
-        });
+      
+      // Clear selected role after successful login
+      setSelectedRole(null);
+      
+      // Redirect based on persisted role (not inferred from database)
+      if (selectedRole === 'owner') {
+        setTimeout(() => {
+          router.push("/owner/shop-profile");
+          router.refresh();
+        }, 300);
+      } else if (selectedRole === 'customer') {
+        setTimeout(() => {
+          router.push("/customer/home");
+          router.refresh();
+        }, 300);
+      } else {
+        // Fallback: check database role if persisted role is missing
+        try {
+          const { apiUrl } = await import('@/lib/apiClient');
+          const roleResponse = await fetch(`${apiUrl}/users/me`, {
+            headers: { 'x-user-id': authData.user.id },
+          });
 
-        if (roleResponse.ok) {
-          const roleData = await roleResponse.json();
-          const userRole = roleData.user?.role || roleData.role;
+          if (roleResponse.ok) {
+            const roleData = await roleResponse.json();
+            const userRole = roleData.user?.role || roleData.role;
 
-          // Redirect based on role
-          if (userRole === 'owner') {
-            // Owner: redirect to owner dashboard
-            setTimeout(() => {
-              router.push("/owner/shop-profile");
-              router.refresh();
-            }, 300);
-          } else if (userRole === 'admin') {
-            // Admin: redirect to admin dashboard
-            setTimeout(() => {
-              router.push("/admin");
-              router.refresh();
-            }, 300);
+            if (userRole === 'owner') {
+              setTimeout(() => {
+                router.push("/owner/shop-profile");
+                router.refresh();
+              }, 300);
+            } else if (userRole === 'admin') {
+              setTimeout(() => {
+                router.push("/admin");
+                router.refresh();
+              }, 300);
+            } else {
+              setTimeout(() => {
+                router.push("/customer/home");
+                router.refresh();
+              }, 300);
+            }
           } else {
-            // Customer or no role: redirect to customer dashboard
             setTimeout(() => {
               router.push("/customer/home");
               router.refresh();
             }, 300);
           }
-        } else {
-          // If role check fails, default to customer dashboard (safer)
-          console.warn('Failed to check user role, defaulting to customer dashboard');
+        } catch (roleError) {
+          console.error('Error checking user role:', roleError);
           setTimeout(() => {
             router.push("/customer/home");
             router.refresh();
           }, 300);
         }
-      } catch (roleError) {
-        // If role check fails, default to customer dashboard (safer)
-        console.error('Error checking user role:', roleError);
-        setTimeout(() => {
-          router.push("/customer/home");
-          router.refresh();
-        }, 300);
       }
     } catch (error: any) {
       setMessage(`Unexpected error: ${error.message}`);
