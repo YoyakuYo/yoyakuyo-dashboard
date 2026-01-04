@@ -79,7 +79,7 @@ SELECT
   c.id,
   c.email,
   c.name,
-  c.role,
+  c.role::text as role,
   c.auth_user_id,
   c.line_user_id,
   c.created_at
@@ -94,9 +94,9 @@ SELECT
   u.id,
   u.email,
   u.full_name as name,
-  u.role,
-  NULL as auth_user_id,
-  NULL as line_user_id,
+  u.role::text as role,
+  NULL::uuid as auth_user_id,
+  NULL::text as line_user_id,
   u.created_at
 FROM users u
 WHERE u.id = '78fea290-ef9a-43c8-96d6-90460c04efe5';
