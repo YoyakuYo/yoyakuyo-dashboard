@@ -46,11 +46,30 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
       const { getSupabaseClient } = await import('@/lib/supabaseClient');
       const supabase = getSupabaseClient();
       
-      const { data: ownerData } = await supabase
-        .from('owners')
-        .select('id, email')
-        .or(`id.eq.${user.id},email.eq.${user.email || ''}`)
-        .maybeSingle();
+      // Check owners table - try both id and email matches
+      let ownerData = null;
+      if (user.id) {
+        const { data: ownerById } = await supabase
+          .from('owners')
+          .select('id, email')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (ownerById) {
+          ownerData = ownerById;
+        }
+      }
+      
+      // If not found by id, try email
+      if (!ownerData && user.email) {
+        const { data: ownerByEmail } = await supabase
+          .from('owners')
+          .select('id, email')
+          .eq('email', user.email.toLowerCase().trim())
+          .maybeSingle();
+        if (ownerByEmail) {
+          ownerData = ownerByEmail;
+        }
+      }
 
       if (ownerData) {
         // Owner exists in owners table - allow access
