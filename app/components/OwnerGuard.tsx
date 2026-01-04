@@ -46,30 +46,50 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
       const { getSupabaseClient } = await import('@/lib/supabaseClient');
       const supabase = getSupabaseClient();
       
-      // Check owners table - try both id and email matches
+      // Check owners table - try both id and email matches separately (more reliable)
       let ownerData = null;
+      
+      // First try by id
       if (user.id) {
-        const { data: ownerById } = await supabase
+        const { data: ownerById, error: errorById } = await supabase
           .from('owners')
           .select('id, email')
           .eq('id', user.id)
           .maybeSingle();
+        
+        if (errorById) {
+          console.warn('[OwnerGuard] Error checking owners by id:', errorById);
+        }
+        
         if (ownerById) {
           ownerData = ownerById;
+          console.log('[OwnerGuard] Owner found by id:', ownerById);
         }
       }
       
       // If not found by id, try email
       if (!ownerData && user.email) {
-        const { data: ownerByEmail } = await supabase
+        const { data: ownerByEmail, error: errorByEmail } = await supabase
           .from('owners')
           .select('id, email')
           .eq('email', user.email.toLowerCase().trim())
           .maybeSingle();
+        
+        if (errorByEmail) {
+          console.warn('[OwnerGuard] Error checking owners by email:', errorByEmail);
+        }
+        
         if (ownerByEmail) {
           ownerData = ownerByEmail;
+          console.log('[OwnerGuard] Owner found by email:', ownerByEmail);
         }
       }
+      
+      console.log('[OwnerGuard] Owner lookup result:', { 
+        userId: user.id, 
+        userEmail: user.email, 
+        ownerFound: !!ownerData 
+      });
 
       if (ownerData) {
         // Owner exists in owners table - allow access
