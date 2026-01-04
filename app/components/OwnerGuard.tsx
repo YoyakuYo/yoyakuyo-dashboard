@@ -41,6 +41,7 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
 
     setRoleLoading(true);
     try {
+      // Check users table first
       const res = await fetch(`${apiUrl}/users/me`, {
         headers: { 'x-user-id': user.id },
       });
@@ -49,12 +50,48 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
         const data = await res.json();
         const role = data.user?.role || data.role;
 
-        // CRITICAL: Only allow users with role='owner' in users table
+        // CRITICAL: Check if user has role='owner' in users table
         if (role === 'owner') {
+          setIsAuthorized(true);
+          return;
+        }
+
+        // If not in users table with owner role, check owners table as fallback
+        // This handles cases where owner exists in owners table but not synced to users table
+        const { getSupabaseClient } = await import('@/lib/supabaseClient');
+        const supabase = getSupabaseClient();
+        
+        const { data: ownerData } = await supabase
+          .from('owners')
+          .select('id, email')
+          .or(`id.eq.${user.id},email.eq.${user.email}`)
+          .maybeSingle();
+
+        if (ownerData) {
+          // Owner exists in owners table - allow access and sync to users table
+          console.log('[OwnerGuard] Owner found in owners table, syncing to users table...');
+          
+          // Try to sync owner to users table with role='owner'
+          try {
+            await fetch(`${apiUrl}/users/me`, {
+              method: 'PUT',
+              headers: { 
+                'x-user-id': user.id,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ role: 'owner' })
+            }).catch(() => {
+              // If PUT fails, try to create/update via sync
+              console.warn('[OwnerGuard] Failed to update role, owner still allowed');
+            });
+          } catch (syncError) {
+            console.warn('[OwnerGuard] Failed to sync owner role:', syncError);
+          }
+          
           setIsAuthorized(true);
         } else {
           // User is not an owner - redirect to login with error message
-          console.error('[OwnerGuard] Access denied: User role is not owner', { 
+          console.error('[OwnerGuard] Access denied: User is not an owner', { 
             userId: user.id, 
             role,
             email: user.email 
@@ -62,9 +99,24 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
           router.push('/login?error=owner_access_required');
         }
       } else {
-        // Failed to verify role - deny access
-        console.error('[OwnerGuard] Failed to verify user role');
-        router.push('/login?error=verification_failed');
+        // If users/me fails, check owners table as fallback
+        const { getSupabaseClient } = await import('@/lib/supabaseClient');
+        const supabase = getSupabaseClient();
+        
+        const { data: ownerData } = await supabase
+          .from('owners')
+          .select('id, email')
+          .or(`id.eq.${user.id},email.eq.${user.email}`)
+          .maybeSingle();
+
+        if (ownerData) {
+          console.log('[OwnerGuard] Owner found in owners table (users table check failed)');
+          setIsAuthorized(true);
+        } else {
+          // Failed to verify role - deny access
+          console.error('[OwnerGuard] Failed to verify user role and not found in owners table');
+          router.push('/login?error=verification_failed');
+        }
       }
     } catch (error) {
       console.error('[OwnerGuard] Error checking user role:', error);

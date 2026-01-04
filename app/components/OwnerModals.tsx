@@ -185,16 +185,6 @@ export default function OwnerModals() {
         return;
       }
 
-      try {
-      await authApi.syncUser(
-          authData.user.id,
-          authData.user.email || email,
-          authData.user.user_metadata?.name
-        );
-      } catch (syncError) {
-        console.warn('Failed to sync user to users (non-blocking):', syncError);
-      }
-
       await new Promise(resolve => setTimeout(resolve, 200));
       
       const { data: { session: verifySession } } = await supabase.auth.getSession();
@@ -206,50 +196,114 @@ export default function OwnerModals() {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      // CRITICAL: Check user role and redirect accordingly
-      // Only users with role='owner' should access owner routes
+      // CRITICAL: Verify owner exists in owners table first
+      const { data: ownerCheck } = await supabase
+        .from('owners')
+        .select('id, email')
+        .or(`id.eq.${authData.user.id},email.eq.${email.toLowerCase().trim()}`)
+        .maybeSingle();
+
+      if (!ownerCheck) {
+        setLoginError('This account is not registered as an owner. Please use customer login.');
+        setLoginLoading(false);
+        return;
+      }
+
+      // CRITICAL: Ensure owner has role='owner' in users table
       try {
+        // First check current role
         const roleResponse = await fetch(`${apiUrl}/users/me`, {
           headers: { 'x-user-id': authData.user.id },
         });
 
+        let userRole = null;
         if (roleResponse.ok) {
           const roleData = await roleResponse.json();
-          const userRole = roleData.user?.role || roleData.role;
+          userRole = roleData.user?.role || roleData.role;
+        }
 
-          // Redirect based on role
-          if (userRole === 'owner') {
+        // If role is not 'owner', try to sync/update it
+        if (userRole !== 'owner') {
+          console.log('[Owner Login] Owner found but role not set, syncing...');
+          
+          // Try to sync user with owner role
+          try {
+            await authApi.syncUser(
+              authData.user.id,
+              authData.user.email || email,
+              authData.user.user_metadata?.name
+            );
+          } catch (syncError) {
+            console.warn('Failed to sync user to users (non-blocking):', syncError);
+          }
+
+          // Try to update role directly via users table
+          const { error: updateError } = await supabase
+            .from('users')
+            .upsert({
+              id: authData.user.id,
+              email: authData.user.email || email,
+              role: 'owner',
+              full_name: authData.user.user_metadata?.name || ownerCheck.name || null,
+            }, {
+              onConflict: 'id'
+            });
+
+          if (updateError) {
+            console.warn('[Owner Login] Failed to update role in users table:', updateError);
+          } else {
+            console.log('[Owner Login] Successfully set role=owner in users table');
+          }
+        }
+
+        // Wait a moment for the update to propagate
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Re-check role after update
+        const finalRoleResponse = await fetch(`${apiUrl}/users/me`, {
+          headers: { 'x-user-id': authData.user.id },
+        });
+
+        if (finalRoleResponse.ok) {
+          const finalRoleData = await finalRoleResponse.json();
+          const finalRole = finalRoleData.user?.role || finalRoleData.role;
+
+          if (finalRole === 'owner') {
             // Owner: redirect to owner dashboard
             setShowLoginModal(false);
             setTimeout(() => {
               router.push('/owner/shop-profile');
               router.refresh();
             }, 300);
-          } else if (userRole === 'admin') {
+            return;
+          } else if (finalRole === 'admin') {
             // Admin: redirect to admin dashboard
             setShowLoginModal(false);
             setTimeout(() => {
               router.push('/admin');
               router.refresh();
             }, 300);
-          } else {
-            // Customer or no role - not an owner, show error
-            setLoginError('This account is not registered as an owner. Please use customer login.');
-            setLoginLoading(false);
             return;
           }
-        } else {
-          // If role check fails, show error (don't allow access)
-          setLoginError('Failed to verify owner status. Please contact support.');
-          setLoginLoading(false);
-          return;
         }
+
+        // If still not owner role, but owner exists in owners table, allow access anyway
+        // (OwnerGuard will handle the final check)
+        console.log('[Owner Login] Owner verified in owners table, allowing access');
+        setShowLoginModal(false);
+        setTimeout(() => {
+          router.push('/owner/shop-profile');
+          router.refresh();
+        }, 300);
       } catch (roleError) {
-        // If role check fails, show error (don't allow access)
+        // If role check fails but owner exists in owners table, allow access
         console.error('Error checking user role:', roleError);
-        setLoginError('Failed to verify owner status. Please try again.');
-        setLoginLoading(false);
-        return;
+        console.log('[Owner Login] Owner verified in owners table, allowing access despite role check error');
+        setShowLoginModal(false);
+        setTimeout(() => {
+          router.push('/owner/shop-profile');
+          router.refresh();
+        }, 300);
       }
     } catch (err) {
       console.error('Login error:', err);
