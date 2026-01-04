@@ -384,13 +384,6 @@ export function useCustomerNotificationsHook() {
             
             subscriptionRef.current = { notificationsChannel, bookingsChannel, messagesChannel };
           });
-
-            subscriptionRef.current = { 
-              notificationsChannel, 
-              bookingsChannel, 
-              messagesChannel 
-            };
-          });
       });
   }, [user?.id, loadCounts, setNewNotification]);
 
