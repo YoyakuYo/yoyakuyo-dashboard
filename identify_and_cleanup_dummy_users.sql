@@ -76,13 +76,13 @@ GROUP BY c.id, u.email;
 SELECT 
   'DETAILED VIEW: 78fea290-ef9a-43c8-96d6-90460c04efe5' as check_type,
   'customer' as table_name,
-  c.id,
-  c.email,
-  c.name,
+  c.id::text as id,
+  COALESCE(c.email, '')::text as email,
+  COALESCE(c.name, '')::text as name,
   c.role::text as role,
-  c.auth_user_id,
-  c.line_user_id,
-  c.created_at
+  COALESCE(c.auth_user_id::text, '')::text as auth_user_id,
+  COALESCE(c.line_user_id, '')::text as line_user_id,
+  c.created_at::text as created_at
 FROM customers c
 WHERE c.id = '78fea290-ef9a-43c8-96d6-90460c04efe5'
 
@@ -91,13 +91,13 @@ UNION ALL
 SELECT 
   'DETAILED VIEW: 78fea290-ef9a-43c8-96d6-90460c04efe5' as check_type,
   'users' as table_name,
-  u.id,
-  u.email,
-  u.full_name as name,
-  u.role::text as role,
-  NULL::uuid as auth_user_id,
-  NULL::text as line_user_id,
-  u.created_at
+  u.id::text as id,
+  COALESCE(u.email, '')::text as email,
+  COALESCE(u.full_name, '')::text as name,
+  COALESCE(u.role::text, '')::text as role,
+  ''::text as auth_user_id,
+  ''::text as line_user_id,
+  u.created_at::text as created_at
 FROM users u
 WHERE u.id = '78fea290-ef9a-43c8-96d6-90460c04efe5';
 
