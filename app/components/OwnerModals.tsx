@@ -283,37 +283,11 @@ export default function OwnerModals() {
         // Wait a moment for the update to propagate
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Re-check role after update
-        const finalRoleResponse = await fetch(`${apiUrl}/users/me`, {
-          headers: { 'x-user-id': authData.user.id },
-        });
-
-        if (finalRoleResponse.ok) {
-          const finalRoleData = await finalRoleResponse.json();
-          const finalRole = finalRoleData.user?.role || finalRoleData.role;
-
-          if (finalRole === 'owner') {
-            // Owner: redirect to owner dashboard
-            setShowLoginModal(false);
-            setTimeout(() => {
-              router.push('/owner/shop-profile');
-              router.refresh();
-            }, 300);
-            return;
-          } else if (finalRole === 'admin') {
-            // Admin: redirect to admin dashboard
-            setShowLoginModal(false);
-            setTimeout(() => {
-              router.push('/admin');
-              router.refresh();
-            }, 300);
-            return;
-          }
-        }
-
-        // If still not owner role, but owner exists in owners table, allow access anyway
-        // (OwnerGuard will handle the final check)
-        console.log('[Owner Login] Owner verified in owners table, allowing access');
+        // CRITICAL: Use persisted role for redirect (don't infer from database)
+        // Clear selected role after successful login
+        clearSelectedRole();
+        
+        // Owner login should always redirect to owner dashboard (role is persisted)
         setShowLoginModal(false);
         setTimeout(() => {
           router.push('/owner/shop-profile');
@@ -321,8 +295,13 @@ export default function OwnerModals() {
         }, 300);
       } catch (roleError) {
         // If role check fails but owner exists in owners table, allow access
+        // CRITICAL: Use persisted role for redirect
         console.error('Error checking user role:', roleError);
         console.log('[Owner Login] Owner verified in owners table, allowing access despite role check error');
+        
+        // Clear selected role after successful login
+        clearSelectedRole();
+        
         setShowLoginModal(false);
         setTimeout(() => {
           router.push('/owner/shop-profile');
