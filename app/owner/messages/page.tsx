@@ -110,18 +110,47 @@ export default function OwnerMessagesPage() {
         );
         
         // Format conversations for customer messages
-        const formattedThreads: CustomerThread[] = conversationsWithShops.map((conv: any) => ({
-          id: conv.id,
-          session_id: conv.id,
-          shop_id: conv.shop_id,
-          shop_name: conv.shop?.name,
-          customer_name: conv.customer?.name || conv.customer_email || `${conv.customer_type} user`,
-          customer_email: conv.customer?.email || null,
-          lastMessageAt: conv.last_message_at || conv.created_at,
-          unreadCount: conv.unread_count || 0,
-        }));
+        const formattedThreads: CustomerThread[] = conversationsWithShops.map((conv: any) => {
+          // Prioritize customer name, but if not available, extract name from email or use type
+          let displayName: string | null = null;
+          
+          // First try: use customer name from API
+          if (conv.customer?.name) {
+            displayName = conv.customer.name;
+          }
+          // Second try: extract name from email
+          else if (conv.customer?.email) {
+            const emailName = conv.customer.email.split('@')[0];
+            // Capitalize first letter and use as display name
+            displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+          }
+          // Third try: use customer_type to generate generic label
+          else if (conv.customer_type) {
+            displayName = conv.customer_type === 'line' ? 'LINE Customer' : 
+                          conv.customer_type === 'web' ? 'Web Customer' : 
+                          'Guest';
+          }
+          // Final fallback
+          else {
+            displayName = 'Customer';
+          }
+          
+          console.log(`[Owner Messages] Formatted thread ${conv.id}: customer_name="${displayName}", customer_email="${conv.customer?.email || 'null'}"`);
+          
+          return {
+            id: conv.id,
+            session_id: conv.id,
+            shop_id: conv.shop_id,
+            shop_name: conv.shop?.name,
+            customer_name: displayName, // Always set, never null
+            customer_email: conv.customer?.email || null,
+            lastMessageAt: conv.last_message_at || conv.created_at,
+            unreadCount: conv.unread_count || 0,
+          };
+        });
         
         console.log('[Owner Messages] ✅ [DIAGNOSTIC] Formatted threads:', formattedThreads.length);
+        console.log('[Owner Messages] 📋 [DIAGNOSTIC] Sample thread:', formattedThreads[0]);
         setCustomerThreads(formattedThreads);
       } else {
         const errorText = await res.text();
@@ -336,7 +365,7 @@ export default function OwnerMessagesPage() {
                     }`}
                   >
                     <p className="font-medium text-sm text-gray-900">
-                      {thread.customer_name || thread.customer_email || t('messages.customer')}
+                      {thread.customer_name || t('messages.customer')}
                     </p>
                     {thread.shop_name && (
                       <p className="text-xs text-gray-500 mt-1">
