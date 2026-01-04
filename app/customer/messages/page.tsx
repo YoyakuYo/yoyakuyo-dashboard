@@ -269,46 +269,9 @@ function CustomerMessagesPageContent() {
         const { messages: msgs } = await res.json();
         setMessages(msgs || []);
         
-        // CRITICAL: Mark all owner/admin/ai messages as read when customer views conversation
-        const supabase = getSupabaseClient();
-        const { data: unreadMessages } = await supabase
-          .from('messages')
-          .select(`
-            id,
-            participants:participants!messages_sender_id_fkey (source)
-          `)
-          .eq('conversation_id', conversationId)
-          .eq('is_read', false);
-
-        if (unreadMessages && unreadMessages.length > 0) {
-          // Filter to only owner/admin/ai messages (not customer messages)
-          const ownerAdminAiMessageIds = unreadMessages
-            .filter((msg: any) => {
-              const participant = Array.isArray(msg.participants) ? msg.participants[0] : msg.participants;
-              const source = participant?.source || 'guest';
-              return source === 'admin' || source === 'owner' || source === 'ai';
-            })
-            .map((msg: any) => msg.id);
-
-          // Mark them as read
-          if (ownerAdminAiMessageIds.length > 0) {
-            const { error: updateError } = await supabase
-              .from('messages')
-              .update({ is_read: true })
-              .in('id', ownerAdminAiMessageIds);
-            
-            if (updateError) {
-              console.error('[Customer Messages] Error marking messages as read:', updateError);
-            } else {
-              console.log(`[Customer Messages] ✅ Marked ${ownerAdminAiMessageIds.length} message(s) as read`);
-              
-              // Refresh conversation list to update unread_count badge
-              await loadConversations();
-              
-              // Note: loadConversations() already updates setUnreadMessagesCount, so no need to call it again here
-            }
-          }
-        }
+        // API endpoint automatically marks owner/admin/ai messages as read when customer views conversation
+        // Refresh conversation list to update unread_count badge
+        await loadConversations();
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
         console.error("Failed to load messages:", res.status, errorData);
