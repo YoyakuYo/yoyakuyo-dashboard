@@ -79,21 +79,20 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
         if (ownerData) {
           console.log('[OwnerGuard] Owner found in owners table, updating users table role...');
           // Try to update role in users table (non-blocking)
-          await supabase
+          const { error: updateError } = await supabase
             .from('users')
             .update({ role: 'owner' })
-            .eq('id', user.id)
-            .then(() => {
-              console.log('[OwnerGuard] ✅ Updated user role to owner');
-              setIsAuthorized(true);
-              setRoleLoading(false);
-            })
-            .catch((updateError) => {
-              console.warn('[OwnerGuard] Failed to update role (non-blocking):', updateError);
-              // Still grant access if found in owners table
-              setIsAuthorized(true);
-              setRoleLoading(false);
-            });
+            .eq('id', user.id);
+          
+          if (updateError) {
+            console.warn('[OwnerGuard] Failed to update role (non-blocking):', updateError);
+          } else {
+            console.log('[OwnerGuard] ✅ Updated user role to owner');
+          }
+          
+          // Still grant access if found in owners table
+          setIsAuthorized(true);
+          setRoleLoading(false);
           return;
         }
       }
@@ -119,22 +118,23 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
           if (apiUrl) {
             try {
               const { authApi } = await import('@/lib/api');
-              await authApi.syncUser(
+              const syncResult = await authApi.syncUser(
                 user.id,
                 user.email || ownerData.email || '',
                 undefined
-              ).then(() => {
+              );
+              
+              if (syncResult) {
                 // After sync, update role to owner
-                supabase
+                const { error: updateError } = await supabase
                   .from('users')
                   .update({ role: 'owner' })
-                  .eq('id', user.id)
-                  .catch(() => {
-                    console.warn('[OwnerGuard] Failed to update role after sync');
-                  });
-              }).catch((syncError) => {
-                console.warn('[OwnerGuard] Failed to sync user (non-blocking):', syncError);
-              });
+                  .eq('id', user.id);
+                
+                if (updateError) {
+                  console.warn('[OwnerGuard] Failed to update role after sync:', updateError);
+                }
+              }
             } catch (syncError) {
               console.warn('[OwnerGuard] Failed to sync owner (non-blocking):', syncError);
             }
