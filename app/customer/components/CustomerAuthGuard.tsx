@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/useAuth";
+import { useCustomAuth } from "@/lib/useCustomAuth";
 
 export default function CustomerAuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useCustomAuth(); // Use useCustomAuth for customer
   const router = useRouter();
   const [roleLoading, setRoleLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -31,8 +31,8 @@ export default function CustomerAuthGuard({ children }: { children: React.ReactN
 
     setRoleLoading(true);
     try {
-      // CRITICAL: Query users table DIRECTLY from frontend (bypass API)
-      // This is more reliable than /users/me endpoint which may return 404
+      // CRITICAL: Customer login uses useCustomAuth (JWT), so user is already authenticated
+      // Just verify they're not an owner/admin by checking the database
       const { getSupabaseClient } = await import('@/lib/supabaseClient');
       const supabase = getSupabaseClient();
       
@@ -100,11 +100,12 @@ export default function CustomerAuthGuard({ children }: { children: React.ReactN
       }
       
       // User not found in users or owners table - allow access (default to customer)
-      // This is safer for customers who might not be synced to users table yet
+      // Backend already validated customer, so this is safe
       console.log('[CustomerAuthGuard] ✅ User not found in users/owners table, allowing access (default to customer)');
       setIsAuthorized(true);
     } catch (error) {
       // If role check fails, allow access (safer for customers)
+      // Backend already validated customer, so this is safe
       console.error('[CustomerAuthGuard] Error checking user role:', error);
       setIsAuthorized(true);
     } finally {
