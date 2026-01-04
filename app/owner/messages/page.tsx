@@ -15,6 +15,7 @@ interface CustomerThread {
   shop_id: string;
   shop_name?: string;
   customer_email?: string;
+  customer_name?: string;
   lastMessageAt: string;
   unreadCount: number;
 }
@@ -114,7 +115,8 @@ export default function OwnerMessagesPage() {
           session_id: conv.id,
           shop_id: conv.shop_id,
           shop_name: conv.shop?.name,
-          customer_email: conv.customer?.email || `${conv.customer_type} user`,
+          customer_name: conv.customer?.name || conv.customer_email || `${conv.customer_type} user`,
+          customer_email: conv.customer?.email || null,
           lastMessageAt: conv.last_message_at || conv.created_at,
           unreadCount: conv.unread_count || 0,
         }));
@@ -334,11 +336,13 @@ export default function OwnerMessagesPage() {
                     }`}
                   >
                     <p className="font-medium text-sm text-gray-900">
-                      {thread.shop_name || t('messages.shop')}
+                      {thread.customer_name || thread.customer_email || t('messages.customer')}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {thread.customer_email || t('messages.customer')}
-                    </p>
+                    {thread.shop_name && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {thread.shop_name}
+                      </p>
+                    )}
                     {thread.unreadCount > 0 && (
                       <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">
                         {thread.unreadCount}
@@ -360,7 +364,9 @@ export default function OwnerMessagesPage() {
               {/* Header */}
               <div className="p-4 border-b border-gray-200">
                 <h2 className="font-semibold text-gray-900">
-                  {customerThreads.find(t => t.id === selectedThread)?.customer_email || t('messages.customer')}
+                  {customerThreads.find(t => t.id === selectedThread)?.customer_name || 
+                   customerThreads.find(t => t.id === selectedThread)?.customer_email || 
+                   t('messages.customer')}
                 </h2>
               </div>
 
