@@ -41,12 +41,37 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
 
     setRoleLoading(true);
     try {
-      // CRITICAL: Check owners table FIRST (more reliable than users table)
-      // This prevents 404 errors if user doesn't exist in users table yet
+      // CRITICAL: Check users table FIRST for role='owner' (most reliable)
+      // Owner signup creates users with role='owner', not entries in owners table
+      if (apiUrl) {
+        try {
+          const res = await fetch(`${apiUrl}/users/me`, {
+            headers: { 'x-user-id': user.id },
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const role = data.user?.role || data.role;
+
+            // CRITICAL: Check if user has role='owner' in users table
+            if (role === 'owner') {
+              console.log('[OwnerGuard] Owner found in users table with role=owner');
+              setIsAuthorized(true);
+              return;
+            }
+          } else if (res.status === 404) {
+            console.log('[OwnerGuard] User not found in users table (404), checking owners table...');
+          }
+        } catch (fetchError) {
+          console.warn('[OwnerGuard] Failed to fetch from users/me endpoint:', fetchError);
+        }
+      }
+
+      // Fallback: Check owners table (for legacy owners or separate auth)
       const { getSupabaseClient } = await import('@/lib/supabaseClient');
       const supabase = getSupabaseClient();
       
-      // Check owners table - try both id and email matches separately (more reliable)
+      // Check owners table - try both id and email matches separately
       let ownerData = null;
       
       // First try by id
@@ -63,7 +88,7 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
         
         if (ownerById) {
           ownerData = ownerById;
-          console.log('[OwnerGuard] Owner found by id:', ownerById);
+          console.log('[OwnerGuard] Owner found in owners table by id:', ownerById);
         }
       }
       
@@ -81,7 +106,7 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
         
         if (ownerByEmail) {
           ownerData = ownerByEmail;
-          console.log('[OwnerGuard] Owner found by email:', ownerByEmail);
+          console.log('[OwnerGuard] Owner found in owners table by email:', ownerByEmail);
         }
       }
       
@@ -142,28 +167,7 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
         return;
       }
 
-      // If not in owners table, check users table as fallback
-      if (apiUrl) {
-        try {
-          const res = await fetch(`${apiUrl}/users/me`, {
-            headers: { 'x-user-id': user.id },
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-            const role = data.user?.role || data.role;
-
-            // CRITICAL: Check if user has role='owner' in users table
-            if (role === 'owner') {
-              setIsAuthorized(true);
-              return;
-            }
-          }
-        } catch (fetchError) {
-          console.warn('[OwnerGuard] Failed to fetch from users/me endpoint:', fetchError);
-          // Continue to deny access if both checks fail
-        }
-      }
+      // Already checked users table above, so if we reach here, owner was not found
 
       // User is not an owner - redirect to login with error message
       console.error('[OwnerGuard] Access denied: User is not an owner', { 
