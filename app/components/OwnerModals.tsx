@@ -214,17 +214,38 @@ export default function OwnerModals() {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      // NOTE: Role validation is handled by checking owners table after authentication
-      // We don't block login here to avoid breaking the existing flow
-
-      // CRITICAL: Verify owner exists in owners table first
-      const { data: ownerCheck } = await supabase
-        .from('owners')
-        .select('id, email, name')
-        .or(`id.eq.${authData.user.id},email.eq.${email.toLowerCase().trim()}`)
+      // CRITICAL: Check if user is an owner - check users table FIRST (most reliable)
+      // Owner signup via Supabase Auth creates users with role='owner', not entries in owners table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, email, role, full_name')
+        .eq('id', authData.user.id)
         .maybeSingle();
 
-      if (!ownerCheck) {
+      let isOwner = false;
+      let ownerName = null;
+
+      // Check if user has role='owner' in users table
+      if (userData && userData.role === 'owner') {
+        isOwner = true;
+        ownerName = userData.full_name;
+        console.log('[Owner Login] ✅ Owner found in users table with role=owner');
+      } else {
+        // Fallback: Check owners table (for legacy owners or separate auth)
+        const { data: ownerCheck } = await supabase
+          .from('owners')
+          .select('id, email, name')
+          .or(`id.eq.${authData.user.id},email.eq.${email.toLowerCase().trim()}`)
+          .maybeSingle();
+
+        if (ownerCheck) {
+          isOwner = true;
+          ownerName = ownerCheck.name;
+          console.log('[Owner Login] ✅ Owner found in owners table');
+        }
+      }
+
+      if (!isOwner) {
         // Sign out if not an owner
         await supabase.auth.signOut();
         clearSelectedRole();
@@ -239,23 +260,16 @@ export default function OwnerModals() {
 
       // CRITICAL: Ensure owner has role='owner' in users table
       try {
-        // Check users table directly
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('id, email, role')
-          .eq('id', authData.user.id)
-          .maybeSingle();
-
-        // If role is not 'owner', try to sync/update it
+        // If user doesn't exist in users table or role is not 'owner', sync/update it
         if (!userData || userData.role !== 'owner') {
-          console.log('[Owner Login] Owner found but role not set, syncing...');
+          console.log('[Owner Login] Owner verified but role not set in users table, syncing...');
           
           // Try to sync user with owner role
           try {
             await authApi.syncUser(
               authData.user.id,
               authData.user.email || email,
-              authData.user.user_metadata?.name || ownerCheck.name
+              authData.user.user_metadata?.name || ownerName
             );
           } catch (syncError) {
             console.warn('Failed to sync user to users (non-blocking):', syncError);
@@ -268,7 +282,7 @@ export default function OwnerModals() {
               id: authData.user.id,
               email: authData.user.email || email,
               role: 'owner',
-              full_name: authData.user.user_metadata?.name || ownerCheck.name || null,
+              full_name: authData.user.user_metadata?.name || ownerName || null,
             }, {
               onConflict: 'id'
             });
@@ -289,9 +303,9 @@ export default function OwnerModals() {
         router.push('/owner/shop-profile');
         router.refresh();
       } catch (roleError) {
-        // If role check fails but owner exists in owners table, allow access
-        console.error('Error checking user role:', roleError);
-        console.log('[Owner Login] Owner verified in owners table, allowing access despite role check error');
+        // If role check fails but owner was verified, allow access
+        console.error('Error syncing user role:', roleError);
+        console.log('[Owner Login] Owner verified, allowing access despite sync error');
         
         setShowLoginModal(false);
         setLoginLoading(false);
