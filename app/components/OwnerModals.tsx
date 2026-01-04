@@ -201,24 +201,8 @@ export default function OwnerModals() {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      // CRITICAL: Validate role on backend BEFORE proceeding
-      try {
-        const roleCheckResponse = await fetch(`${apiUrl}/auth/validate-role`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, role: 'owner' }),
-        });
-
-        if (!roleCheckResponse.ok) {
-          const errorData = await roleCheckResponse.json();
-          setLoginError(errorData.error || 'This account is not registered as an owner. Please use customer login.');
-          setLoginLoading(false);
-          return;
-        }
-      } catch (roleCheckError) {
-        console.warn('Role validation failed, proceeding with login:', roleCheckError);
-        // Continue with login if role check fails (non-blocking for now)
-      }
+      // NOTE: Role validation is handled by checking owners table after authentication
+      // We don't block login here to avoid breaking the existing flow
 
       // CRITICAL: Verify owner exists in owners table first
       const { data: ownerCheck } = await supabase

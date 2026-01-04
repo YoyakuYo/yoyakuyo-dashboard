@@ -34,25 +34,8 @@ export default function LoginPage() {
       let authData: any = null;
       let authError: any = null;
 
-      // CRITICAL: Validate role on backend BEFORE authentication
-      try {
-        const { apiUrl } = await import('@/lib/apiClient');
-        const roleCheckResponse = await fetch(`${apiUrl}/auth/validate-role`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, role: selectedRole }),
-        });
-
-        if (!roleCheckResponse.ok) {
-          const errorData = await roleCheckResponse.json();
-          setMessage(`Error: ${errorData.error || 'Invalid role for this email'}`);
-          setLoading(false);
-          return;
-        }
-      } catch (roleCheckError) {
-        console.warn('Role validation failed, proceeding with login:', roleCheckError);
-        // Continue with login if role check fails (non-blocking for now)
-      }
+      // NOTE: Role validation is handled by checking role after authentication
+      // We don't block login here to avoid breaking the existing flow
 
       // Try direct Supabase auth first (fastest, works if CORS is configured)
       try {
