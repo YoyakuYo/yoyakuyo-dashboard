@@ -80,7 +80,7 @@ export function useCustomerNotificationsHook() {
     let customerType: 'web' | 'line' | null = null;
     let customerRef: string | null = null;
     
-    // Check if this is a LINE customer (has customer_profiles entry)
+    // Check if this is a LINE customer (has customer_profiles entry with line_user_id)
     if (profile?.id) {
       const { data: lineProfile } = await supabase
         .from("customer_profiles")
@@ -91,19 +91,21 @@ export function useCustomerNotificationsHook() {
       if (lineProfile?.line_user_id) {
         customerType = 'line';
         customerRef = lineProfile.line_user_id;
-      } else {
-        // Web customer
-        customerType = 'web';
-        customerRef = user.id;
       }
     }
     
+    // If not LINE, assume web customer
+    if (!customerType) {
+      customerType = 'web';
+      customerRef = user.id;
+    }
+    
     if (customerType && customerRef) {
-      // Get conversations for this customer
+      // Get conversations for this customer (try both web and line to be safe)
       const { data: conversations } = await supabase
         .from("conversations")
         .select("id")
-        .eq("customer_type", customerType)
+        .or(`customer_type.eq.${customerType},customer_type.eq.web,customer_type.eq.line`)
         .eq("customer_ref", customerRef);
       
       if (conversations && conversations.length > 0) {
@@ -126,11 +128,14 @@ export function useCustomerNotificationsHook() {
           return participant?.source === 'owner';
         }).length;
         
+        console.log(`[Customer Notifications] Found ${ownerUnreadCount} unread owner messages across ${conversations.length} conversations`);
         setUnreadMessagesCount(ownerUnreadCount);
       } else {
+        console.log(`[Customer Notifications] No conversations found for customer_type=${customerType}, customer_ref=${customerRef}`);
         setUnreadMessagesCount(0);
       }
     } else {
+      console.log(`[Customer Notifications] Missing customer type or ref: type=${customerType}, ref=${customerRef}`);
       setUnreadMessagesCount(0);
     }
   }, [user?.id, setUnreadNotificationsCount, setUnreadBookingsCount, setUnreadMessagesCount]);
