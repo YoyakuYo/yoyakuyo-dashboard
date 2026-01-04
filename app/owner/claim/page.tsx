@@ -13,7 +13,7 @@ import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
 import { REGIONS } from '@/lib/regions';
 import { PREFECTURES } from '@/lib/prefectures';
-import OwnerGuard from '@/components/OwnerGuard';
+import OwnerGuard from '@/app/components/OwnerGuard';
 
 interface Shop {
   id: string;

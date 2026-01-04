@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
-import OwnerGuard from '@/components/OwnerGuard';
+import OwnerGuard from '@/app/components/OwnerGuard';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { getSupabaseClient } from '@/lib/supabaseClient';
