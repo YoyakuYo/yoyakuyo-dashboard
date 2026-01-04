@@ -13,6 +13,7 @@ import ShopCalendar from '../components/ShopCalendar';
 import { useBookingNotifications } from '../components/BookingNotificationContext';
 import PushNotificationButton from '../components/PushNotificationButton';
 import { useNotifications } from '@/lib/useNotifications';
+import OwnerGuard from '../components/OwnerGuard';
 
 
 interface Shop {
@@ -2356,5 +2357,12 @@ const MyShopPage = () => {
   );
 };
 
-export default MyShopPage;
+// Wrap with OwnerGuard to ensure only users with role='owner' can access
+export default function ProtectedMyShopPage() {
+  return (
+    <OwnerGuard>
+      <MyShopPage />
+    </OwnerGuard>
+  );
+}
 

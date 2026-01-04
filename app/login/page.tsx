@@ -116,14 +116,55 @@ export default function LoginPage() {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      // Redirect to dashboard
+      // CRITICAL: Check user role and redirect accordingly
+      // Only users with role='owner' should access owner routes
       setMessage("Login successful! Redirecting...");
-      // Small delay to ensure auth state propagates, then redirect
-      setTimeout(() => {
-        router.push("/dashboard");
-        // Force a refresh of server components to pick up new auth state
-        router.refresh();
-      }, 300);
+      try {
+        const { apiUrl } = await import('@/lib/apiClient');
+        const roleResponse = await fetch(`${apiUrl}/users/me`, {
+          headers: { 'x-user-id': authData.user.id },
+        });
+
+        if (roleResponse.ok) {
+          const roleData = await roleResponse.json();
+          const userRole = roleData.user?.role || roleData.role;
+
+          // Redirect based on role
+          if (userRole === 'owner') {
+            // Owner: redirect to owner dashboard
+            setTimeout(() => {
+              router.push("/owner/shop-profile");
+              router.refresh();
+            }, 300);
+          } else if (userRole === 'admin') {
+            // Admin: redirect to admin dashboard
+            setTimeout(() => {
+              router.push("/admin");
+              router.refresh();
+            }, 300);
+          } else {
+            // Customer or no role: redirect to customer dashboard
+            setTimeout(() => {
+              router.push("/customer/home");
+              router.refresh();
+            }, 300);
+          }
+        } else {
+          // If role check fails, default to customer dashboard (safer)
+          console.warn('Failed to check user role, defaulting to customer dashboard');
+          setTimeout(() => {
+            router.push("/customer/home");
+            router.refresh();
+          }, 300);
+        }
+      } catch (roleError) {
+        // If role check fails, default to customer dashboard (safer)
+        console.error('Error checking user role:', roleError);
+        setTimeout(() => {
+          router.push("/customer/home");
+          router.refresh();
+        }, 300);
+      }
     } catch (error: any) {
       setMessage(`Unexpected error: ${error.message}`);
       setLoading(false);
