@@ -84,7 +84,8 @@ SELECT
       CASE 
         WHEN u.id IS NULL THEN '❌ Web customer NOT in users table'
         WHEN u.role = 'owner' THEN '❌ Web customer has owner role in users table'
-        WHEN u.role = 'admin' THEN '❌ Web customer has admin role in users table'
+        WHEN u.role = 'super_admin' THEN '❌ Web customer has super_admin role in users table'
+        WHEN u.role = 'staff' THEN '❌ Web customer has staff role in users table'
         WHEN u.role IS NULL OR u.role = 'customer' THEN '✅ Web customer correctly configured'
         ELSE '⚠️ Web customer has unexpected role: ' || u.role
       END
@@ -121,8 +122,10 @@ SELECT
     WHEN u.role = 'owner' AND o.id IS NULL THEN '❌ Has owner role but NOT in owners table'
     WHEN u.role = 'owner' AND c.id IS NOT NULL THEN '❌ Has owner role but ALSO in customers table'
     WHEN u.role = 'customer' AND o.id IS NOT NULL THEN '❌ Has customer role but ALSO in owners table'
-    WHEN u.role = 'admin' AND o.id IS NOT NULL THEN '❌ Has admin role but ALSO in owners table'
-    WHEN u.role = 'admin' AND c.id IS NOT NULL THEN '❌ Has admin role but ALSO in customers table'
+    WHEN u.role = 'super_admin' AND o.id IS NOT NULL THEN '❌ Has super_admin role but ALSO in owners table'
+    WHEN u.role = 'super_admin' AND c.id IS NOT NULL THEN '❌ Has super_admin role but ALSO in customers table'
+    WHEN u.role = 'staff' AND o.id IS NOT NULL THEN '❌ Has staff role but ALSO in owners table'
+    WHEN u.role = 'staff' AND c.id IS NOT NULL THEN '❌ Has staff role but ALSO in customers table'
     WHEN u.role IS NULL AND o.id IS NOT NULL THEN '⚠️ In owners table but no role in users table'
     WHEN u.role IS NULL AND c.id IS NOT NULL THEN '⚠️ In customers table but no role in users table'
     ELSE '✅ No conflicts'
@@ -134,8 +137,10 @@ WHERE
   (u.role = 'owner' AND o.id IS NULL) OR
   (u.role = 'owner' AND c.id IS NOT NULL) OR
   (u.role = 'customer' AND o.id IS NOT NULL) OR
-  (u.role = 'admin' AND o.id IS NOT NULL) OR
-  (u.role = 'admin' AND c.id IS NOT NULL) OR
+  (u.role = 'super_admin' AND o.id IS NOT NULL) OR
+  (u.role = 'super_admin' AND c.id IS NOT NULL) OR
+  (u.role = 'staff' AND o.id IS NOT NULL) OR
+  (u.role = 'staff' AND c.id IS NOT NULL) OR
   (u.role IS NULL AND (o.id IS NOT NULL OR c.id IS NOT NULL))
 ORDER BY u.email;
 
@@ -150,6 +155,7 @@ SELECT
   (SELECT COUNT(*) FROM customers WHERE role = 'web') as web_customers,
   (SELECT COUNT(*) FROM customers WHERE role = 'line') as line_customers,
   (SELECT COUNT(*) FROM customers WHERE role = 'guest') as guest_customers,
-  (SELECT COUNT(*) FROM users WHERE role = 'admin') as users_with_admin_role,
+  (SELECT COUNT(*) FROM users WHERE role = 'super_admin') as users_with_super_admin_role,
+  (SELECT COUNT(*) FROM users WHERE role = 'staff') as users_with_staff_role,
   (SELECT COUNT(*) FROM users WHERE role IS NULL) as users_without_role;
 
