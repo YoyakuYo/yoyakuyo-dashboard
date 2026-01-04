@@ -46,13 +46,30 @@ export default function CustomerLoginPage() {
       return;
     }
 
-    // Redirect to customer dashboard
-    // Role check is handled by CustomerAuthGuard, so we can redirect immediately
+    // CRITICAL: Persist role immediately after successful Customer login
+    try {
+      const { useAuthRole } = await import('@/lib/AuthRoleContext');
+      // We can't use the hook here, so we'll set it directly
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('yoyaku_selected_auth_role', 'customer');
+      }
+    } catch (error) {
+      console.warn('Failed to persist customer role:', error);
+    }
+
+    // CRITICAL: Force redirect to customer dashboard after successful login
     setMessage("Login successful! Redirecting...");
+    setLoading(false);
+    
+    // Use router.push with replace to ensure redirect happens
+    router.replace("/customer/home");
+    router.refresh();
+    
+    // Also use setTimeout as backup
     setTimeout(() => {
-      router.push("/customer/home");
+      router.replace("/customer/home");
       router.refresh();
-    }, 300);
+    }, 100);
   };
 
   return (
