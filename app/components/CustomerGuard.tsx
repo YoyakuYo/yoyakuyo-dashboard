@@ -5,7 +5,16 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { apiUrl } from "@/lib/apiClient";
 
-export default function CustomerAuthGuard({ children }: { children: React.ReactNode }) {
+interface CustomerGuardProps {
+  children: React.ReactNode;
+}
+
+/**
+ * CustomerGuard - Protects customer routes by verifying user has customer role
+ * Only users with role='customer' or no role (default customer) can access customer routes
+ * Owners and admins are blocked from accessing customer dashboard
+ */
+export default function CustomerGuard({ children }: CustomerGuardProps) {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [roleLoading, setRoleLoading] = useState(true);
@@ -14,13 +23,13 @@ export default function CustomerAuthGuard({ children }: { children: React.ReactN
   useEffect(() => {
     if (authLoading) return;
 
-    // If not authenticated, redirect to customer login
+    // If not authenticated, redirect to login
     if (!user) {
-      router.push("/customer-login");
+      router.push('/login');
       return;
     }
 
-    // Check user role from database
+    // Check user role
     checkCustomerRole();
   }, [user, authLoading, router]);
 
@@ -40,35 +49,32 @@ export default function CustomerAuthGuard({ children }: { children: React.ReactN
         const data = await res.json();
         const role = data.user?.role || data.role;
 
-        // CRITICAL: Block owners and admins from accessing customer routes
-        if (role === 'owner') {
-          // User is an owner - redirect to owner dashboard
-          console.error('[CustomerAuthGuard] Access denied: User is owner', { 
+        // CRITICAL: Only allow customers (role='customer' or null/undefined)
+        // Block owners and admins from accessing customer routes
+        if (role === 'owner' || role === 'admin') {
+          // User is an owner or admin - redirect to their dashboard
+          console.error('[CustomerGuard] Access denied: User is owner/admin', { 
             userId: user.id, 
             role,
             email: user.email 
           });
-          router.push('/login?error=owner_cannot_access_customer_dashboard');
-        } else if (role === 'admin') {
-          // User is an admin - redirect to admin dashboard
-          console.error('[CustomerAuthGuard] Access denied: User is admin', { 
-            userId: user.id, 
-            role,
-            email: user.email 
-          });
-          router.push('/login?error=admin_cannot_access_customer_dashboard');
+          if (role === 'owner') {
+            router.push('/login?error=owner_cannot_access_customer_dashboard');
+          } else {
+            router.push('/login?error=admin_cannot_access_customer_dashboard');
+          }
         } else {
           // Customer or no role (default to customer) - allow access
           setIsAuthorized(true);
         }
       } else {
         // If role check fails, allow access (safer for customers)
-        console.warn('[CustomerAuthGuard] Failed to verify user role, allowing access');
+        console.warn('[CustomerGuard] Failed to verify user role, allowing access');
         setIsAuthorized(true);
       }
     } catch (error) {
       // If role check fails, allow access (safer for customers)
-      console.error('[CustomerAuthGuard] Error checking user role:', error);
+      console.error('[CustomerGuard] Error checking user role:', error);
       setIsAuthorized(true);
     } finally {
       setRoleLoading(false);
