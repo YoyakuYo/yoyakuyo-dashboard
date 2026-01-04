@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
+import { useCustomAuth } from '@/lib/useCustomAuth';
 import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import ReviewCard from '../../components/ReviewCard';
@@ -121,7 +122,9 @@ export default function PublicShopDetailPage() {
   const params = useParams();
   const router = useRouter();
   const shopId = params?.id as string;
-  const { user } = useAuth();
+  const { user: supabaseUser } = useAuth(); // For owners (Supabase Auth)
+  const { user: customUser } = useCustomAuth(); // For web customers (JWT)
+  const user = supabaseUser || customUser; // Use whichever is available
   const browseContext = useBrowseAIContext();
   
   // Safe translation function with fallback
@@ -349,9 +352,14 @@ export default function PublicShopDetailPage() {
         'Content-Type': 'application/json',
       };
       
-      // Add x-user-id header for logged-in web customers
+      // Add x-user-id header for logged-in users (both Supabase and custom auth)
       if (user?.id) {
         headers['x-user-id'] = user.id;
+      }
+      
+      // For web customers using custom auth, also add x-customer-id
+      if (customUser?.id) {
+        headers['x-customer-id'] = customUser.id;
       }
 
       const res = await fetch(`${apiUrl}/reviews`, {
@@ -639,7 +647,8 @@ export default function PublicShopDetailPage() {
                   <div className="mb-6">
                     <ReviewForm
                       shopId={shopId}
-                      isGuest={!user} // PART 1: Show guest name field if not logged in
+                      customerId={user?.id || null} // Pass customer ID for authenticated users
+                      isGuest={!user} // Only show guest name field if not logged in
                       onSubmit={handleReviewSubmit}
                       onCancel={() => setShowReviewForm(false)}
                     />
