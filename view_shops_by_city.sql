@@ -106,13 +106,7 @@ ORDER BY prefecture, normalized_city, name
 LIMIT 300;
 
 -- Step 4: All shops with normalized_city (grouped by city)
-SELECT 
-  'ALL SHOPS BY CITY' AS report_type,
-  normalized_city,
-  prefecture,
-  COUNT(*) AS shop_count,
-  STRING_AGG(DISTINCT name, ', ' ORDER BY name) FILTER (WHERE ROW_NUMBER() OVER (PARTITION BY normalized_city, prefecture ORDER BY name) <= 5) AS sample_shop_names
-FROM (
+WITH ranked_shops AS (
   SELECT 
     normalized_city,
     prefecture,
@@ -122,10 +116,36 @@ FROM (
   WHERE normalized_city IS NOT NULL
     AND normalized_city != ''
     AND prefecture IS NOT NULL
-) AS ranked_shops
-WHERE rn <= 5
-GROUP BY normalized_city, prefecture
-ORDER BY shop_count DESC, prefecture, normalized_city
+),
+top_shops_per_city AS (
+  SELECT 
+    normalized_city,
+    prefecture,
+    name
+  FROM ranked_shops
+  WHERE rn <= 5
+),
+city_totals AS (
+  SELECT 
+    normalized_city,
+    prefecture,
+    COUNT(*) AS shop_count
+  FROM shops
+  WHERE normalized_city IS NOT NULL
+    AND normalized_city != ''
+    AND prefecture IS NOT NULL
+  GROUP BY normalized_city, prefecture
+)
+SELECT 
+  'ALL SHOPS BY CITY' AS report_type,
+  ct.normalized_city,
+  ct.prefecture,
+  ct.shop_count,
+  STRING_AGG(ts.name, ', ' ORDER BY ts.name) AS sample_shop_names
+FROM city_totals ct
+LEFT JOIN top_shops_per_city ts ON ct.normalized_city = ts.normalized_city AND ct.prefecture = ts.prefecture
+GROUP BY ct.normalized_city, ct.prefecture, ct.shop_count
+ORDER BY ct.shop_count DESC, ct.prefecture, ct.normalized_city
 LIMIT 200;
 
 -- Step 5: Detailed list of shops with city names (paged)
