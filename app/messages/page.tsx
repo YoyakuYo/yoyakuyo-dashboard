@@ -15,6 +15,7 @@ interface Thread {
   shopId: string;
   bookingId?: string | null;
   customerEmail?: string | null;
+  customerName?: string | null;
   unreadCount: number;
   lastMessageAt: string;
   lastMessagePreview?: string | null;
@@ -240,7 +241,7 @@ function MessagesPageContent() {
                   <div className="flex items-start justify-between mb-1">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 truncate">
-                        {thread.customerEmail || t('messages.customer') || 'Customer'}
+                        {thread.customerName || thread.customerEmail || t('messages.customer') || 'Customer'}
                       </p>
                       {thread.lastMessagePreview && (
                         <p className="text-sm text-gray-600 truncate mt-1">
@@ -270,7 +271,7 @@ function MessagesPageContent() {
               {/* Header */}
               <div className="p-4 border-b border-gray-200">
                 <h2 className="font-semibold text-gray-900">
-                  {selectedThreadData?.customerEmail || t('messages.customer') || 'Customer'}
+                  {selectedThreadData?.customerName || selectedThreadData?.customerEmail || t('messages.customer') || 'Customer'}
                 </h2>
               </div>
 
