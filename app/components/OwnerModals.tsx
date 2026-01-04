@@ -206,11 +206,51 @@ export default function OwnerModals() {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      setShowLoginModal(false);
-      setTimeout(() => {
-        router.push('/shops');
-        router.refresh();
-      }, 300);
+      // CRITICAL: Check user role and redirect accordingly
+      // Only users with role='owner' should access owner routes
+      try {
+        const roleResponse = await fetch(`${apiUrl}/users/me`, {
+          headers: { 'x-user-id': authData.user.id },
+        });
+
+        if (roleResponse.ok) {
+          const roleData = await roleResponse.json();
+          const userRole = roleData.user?.role || roleData.role;
+
+          // Redirect based on role
+          if (userRole === 'owner') {
+            // Owner: redirect to owner dashboard
+            setShowLoginModal(false);
+            setTimeout(() => {
+              router.push('/owner/shop-profile');
+              router.refresh();
+            }, 300);
+          } else if (userRole === 'admin') {
+            // Admin: redirect to admin dashboard
+            setShowLoginModal(false);
+            setTimeout(() => {
+              router.push('/admin');
+              router.refresh();
+            }, 300);
+          } else {
+            // Customer or no role - not an owner, show error
+            setLoginError('This account is not registered as an owner. Please use customer login.');
+            setLoginLoading(false);
+            return;
+          }
+        } else {
+          // If role check fails, show error (don't allow access)
+          setLoginError('Failed to verify owner status. Please contact support.');
+          setLoginLoading(false);
+          return;
+        }
+      } catch (roleError) {
+        // If role check fails, show error (don't allow access)
+        console.error('Error checking user role:', roleError);
+        setLoginError('Failed to verify owner status. Please try again.');
+        setLoginLoading(false);
+        return;
+      }
     } catch (err) {
       console.error('Login error:', err);
       const authError = err as AuthError;
