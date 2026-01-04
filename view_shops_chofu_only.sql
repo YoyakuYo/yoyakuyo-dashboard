@@ -1,8 +1,9 @@
--- Query to view shops in Chofu (調布) only
--- Chofu is a city in Tokyo prefecture
+-- ============================================
+-- FULL LIST OF SHOPS IN CHOFU (調布)
+-- Run this query to see all 669 shops
+-- ============================================
 
 SELECT 
-  'CHOFU SHOPS' AS report_type,
   id,
   name,
   address,
@@ -25,23 +26,24 @@ WHERE
 ORDER BY 
   normalized_city,
   name;
--- No limit - showing all shops
 
--- Summary count
-SELECT 
-  'CHOFU SUMMARY' AS report_type,
-  COUNT(*) AS total_shops,
-  COUNT(CASE WHEN is_verified = true THEN 1 END) AS verified_shops,
-  COUNT(CASE WHEN is_verified = false OR is_verified IS NULL THEN 1 END) AS unverified_shops
-FROM shops
-WHERE 
-  (
-    normalized_city ILIKE '%調布%'
-    OR normalized_city ILIKE '%chofu%'
-    OR normalized_city ILIKE '%Chofu%'
-    OR address ILIKE '%調布%'
-    OR address ILIKE '%chofu%'
-    OR address ILIKE '%Chofu%'
-  )
-  AND prefecture = 'tokyo';
+-- ============================================
+-- SUMMARY (Run separately if needed)
+-- ============================================
+-- SELECT 
+--   'CHOFU SUMMARY' AS report_type,
+--   COUNT(*) AS total_shops,
+--   COUNT(CASE WHEN is_verified = true THEN 1 END) AS verified_shops,
+--   COUNT(CASE WHEN is_verified = false OR is_verified IS NULL THEN 1 END) AS unverified_shops
+-- FROM shops
+-- WHERE 
+--   (
+--     normalized_city ILIKE '%調布%'
+--     OR normalized_city ILIKE '%chofu%'
+--     OR normalized_city ILIKE '%Chofu%'
+--     OR address ILIKE '%調布%'
+--     OR address ILIKE '%chofu%'
+--     OR address ILIKE '%Chofu%'
+--   )
+--   AND prefecture = 'tokyo';
 
