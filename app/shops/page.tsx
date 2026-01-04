@@ -11,7 +11,6 @@ import ReviewCard from '../components/ReviewCard';
 import ReviewStats from '../components/ReviewStats';
 import ShopCalendar from '../components/ShopCalendar';
 import { useBookingNotifications } from '../components/BookingNotificationContext';
-import NotificationDot from '../components/NotificationDot';
 import PushNotificationButton from '../components/PushNotificationButton';
 import { useNotifications } from '@/lib/useNotifications';
 
@@ -1462,10 +1461,14 @@ const MyShopPage = () => {
             >
               {t(`myShop.${tab}`)}
               {tab === 'bookings' && unreadBookingsCount > 0 && (
-                <NotificationDot className="absolute top-1 right-1" />
+                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  {unreadBookingsCount}
+                </span>
               )}
               {tab === 'reviews' && unreadReviewsCount > 0 && (
-                <NotificationDot className="absolute top-1 right-1" />
+                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  {unreadReviewsCount}
+                </span>
               )}
               {activeTab === tab && (
                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>

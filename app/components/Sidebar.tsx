@@ -9,7 +9,7 @@ import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
 import { useBookingNotifications } from './BookingNotificationContext';
-import NotificationDot from './NotificationDot';
+import { useNotifications } from '@/lib/useNotifications';
 
 const Sidebar = React.memo(() => {
   const pathname = usePathname();
@@ -18,7 +18,13 @@ const Sidebar = React.memo(() => {
   const [unreadCount, setUnreadCount] = useState(0);
   const subscriptionRef = useRef<any>(null);
   const { unreadBookingsCount } = useBookingNotifications();
+  const { notifications: ownerNotifications } = useNotifications('owner', user?.id || '');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  
+  // Count unread support ticket notifications
+  const unreadSupportCount = ownerNotifications.filter(
+    (n) => !n.is_read && (n.type === 'new_support_ticket' || (n.type === 'new_message' && n.data?.conversation_id))
+  ).length;
 
   // Load unread summary on mount
   useEffect(() => {
@@ -108,12 +114,12 @@ const Sidebar = React.memo(() => {
   // Owner navigation: put "My Shop" at the top and remove the legacy Dashboard link
   const navItems = [
     { href: '/owner/shop-profile', labelKey: 'nav.myShop', icon: '🏪' },
-    { href: '/owner/bookings', labelKey: 'nav.bookings', icon: '📅' },
+    { href: '/owner/bookings', labelKey: 'nav.bookings', icon: '📅', badge: unreadBookingsCount > 0 ? unreadBookingsCount : undefined },
     { href: '/owner/calendar', labelKey: 'nav.calendar', icon: '📆' },
     { href: '/analytics', labelKey: 'nav.analytics', icon: '📊' },
     { href: '/owner/messages', labelKey: 'nav.messages', icon: '💬', badge: unreadCount > 0 ? unreadCount : undefined },
     { href: '/owner/ai', labelKey: 'nav.aiAssistant', icon: '🤖' },
-    { href: '/owner/support', labelKey: 'nav.contactSupport', icon: '💬' },
+    { href: '/owner/support', labelKey: 'nav.contactSupport', icon: '💬', badge: unreadSupportCount > 0 ? unreadSupportCount : undefined },
     { href: '/owner/subscription', labelKey: 'nav.subscriptions', icon: '💳' },
     { href: '/owner/settings', labelKey: 'nav.settings', icon: '⚙️' },
   ];
