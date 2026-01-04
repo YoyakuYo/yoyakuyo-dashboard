@@ -84,6 +84,14 @@ export function CustomAuthProvider({ children }: { children: ReactNode }) {
 
       const data = await response.json();
 
+      // Check for 403 errors (owner/admin access denied)
+      if (response.status === 403) {
+        return { 
+          success: false, 
+          error: data.error || 'Access denied. Owners and admins cannot use customer login.' 
+        };
+      }
+
       if (!response.ok || !data.success) {
         return { success: false, error: data.error || 'Login failed' };
       }

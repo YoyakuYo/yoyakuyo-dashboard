@@ -29,6 +29,18 @@ export default function CustomerLoginPage() {
     const result = await signIn(emailFromForm, passwordFromForm, 'customer');
 
     if (!result.success) {
+      // Check if error is owner/admin access denied
+      if (result.error?.includes('Owners cannot use customer login') || 
+          result.error?.includes('Admins cannot use customer login') ||
+          result.error?.includes('OWNER_ACCESS_DENIED') ||
+          result.error?.includes('ADMIN_ACCESS_DENIED')) {
+        setMessage(`Error: ${result.error}`);
+        setLoading(false);
+        setTimeout(() => {
+          router.push('/login?error=owner_cannot_access_customer_dashboard');
+        }, 2000);
+        return;
+      }
       setMessage(`Error: ${result.error || 'Login failed'}`);
       setLoading(false);
       return;
