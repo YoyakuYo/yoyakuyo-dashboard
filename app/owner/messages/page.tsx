@@ -112,7 +112,7 @@ export default function OwnerMessagesPage() {
         // Format conversations for customer messages
         const formattedThreads: CustomerThread[] = conversationsWithShops.map((conv: any) => {
           // Prioritize customer name, but if not available, extract name from email or use type
-          let displayName: string | null = null;
+          let displayName: string;
           
           // First try: use customer name from API
           if (conv.customer?.name) {
@@ -142,8 +142,8 @@ export default function OwnerMessagesPage() {
             session_id: conv.id,
             shop_id: conv.shop_id,
             shop_name: conv.shop?.name,
-            customer_name: displayName, // Always set, never null
-            customer_email: conv.customer?.email || null,
+            customer_name: displayName, // Always a string, never null
+            customer_email: conv.customer?.email || undefined,
             lastMessageAt: conv.last_message_at || conv.created_at,
             unreadCount: conv.unread_count || 0,
           };
