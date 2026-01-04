@@ -88,7 +88,7 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
                 await authApi.syncUser(
                   user.id,
                   user.email || ownerData.email || '',
-                  null
+                  undefined
                 );
               } catch (syncError) {
                 console.warn('[OwnerGuard] Failed to sync user to users table (non-blocking):', syncError);
