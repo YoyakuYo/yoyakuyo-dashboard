@@ -54,6 +54,7 @@ SELECT
     ELSE '✅ Correctly configured'
   END as status
 FROM customers c
+LEFT JOIN users u ON u.id = c.id OR u.id = c.auth_user_id OR u.email = c.email
 WHERE c.role = 'web'
 ORDER BY c.email;
 
