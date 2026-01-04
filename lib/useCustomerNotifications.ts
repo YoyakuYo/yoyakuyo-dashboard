@@ -384,6 +384,7 @@ export function useCustomerNotificationsHook() {
             
             subscriptionRef.current = { notificationsChannel, bookingsChannel, messagesChannel };
           });
+        });
       });
   }, [user?.id, loadCounts, setNewNotification]);
 
