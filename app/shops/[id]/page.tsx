@@ -171,6 +171,29 @@ export default function PublicShopDetailPage() {
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
+  // Check for booking success from URL query parameter (for guest redirects)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const bookingSuccessParam = urlParams.get('booking');
+      
+      if (bookingSuccessParam === 'success' && !user) {
+        // Set booking success state
+        setBookingSuccess(true);
+        
+        // Remove query parameter from URL without reload
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+        
+        // Redirect to landing page after 3 seconds
+        const redirectTimer = setTimeout(() => {
+          router.push('/');
+        }, 3000);
+        
+        return () => clearTimeout(redirectTimer);
+      }
+    }
+  }, [user, router]);
 
   // Reviews state
   const [reviews, setReviews] = useState<any[]>([]);
@@ -676,6 +699,11 @@ export default function PublicShopDetailPage() {
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
               <p className="text-green-700 font-medium">{t('booking.success')}</p>
               <p className="text-green-600 text-sm mt-1">{t('booking.ownerWillConfirm')}</p>
+              {!user && (
+                <p className="text-green-600 text-xs mt-2 italic">
+                  Redirecting to home page in a few seconds...
+                </p>
+              )}
             </div>
           ) : (
             <form onSubmit={handleBookingSubmit} className="space-y-4">

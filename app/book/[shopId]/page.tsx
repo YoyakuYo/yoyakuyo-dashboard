@@ -2,7 +2,7 @@
 
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
@@ -12,6 +12,7 @@ import { useCustomAuth } from '@/lib/useCustomAuth';
 interface Service {
   id: string;
   name: string;
+  price?: number;
 }
 
 interface Staff {
@@ -37,6 +38,7 @@ interface ChatMessage {
 
 export default function PublicBookingPage() {
   const params = useParams();
+  const router = useRouter();
   const shopId = params?.shopId as string;
   const t = useTranslations();
   const { user: supabaseUser, loading: authLoading } = useAuth();
@@ -410,25 +412,20 @@ export default function PublicBookingPage() {
           setGuestId(data.guest_id);
           setGuestIdState(data.guest_id);
         }
-        if (!user?.id && data?.guest_id) {
-          alert(
-            `${t('booking.bookingSuccessful') || 'Booking successful!'}\n\n` +
-              `Guest ID: ${data.guest_id}\n` +
-              `Save this Guest ID. You can use it to come back and continue messages later.`
-          );
+        
+        // For guest users, redirect to shop page with success parameter, then to landing page
+        if (!user?.id) {
+          // Redirect to shop page with booking success
+          router.push(`/shops/${shopId}?booking=success`);
         } else {
+          // For authenticated users, show alert and reset form
           alert(t('booking.bookingSuccessful') || 'Booking successful!');
-        }
-        // Reset form (but keep customer profile data if logged in)
-        setSelectedService(null);
-        setSelectedDate(null);
-        setSelectedTimeslot(null);
-        setTimeslots([]);
-        setAvailabilityChecked(false);
-        if (!user) {
-          // Only clear name/email for guest users
-          setName('');
-          setEmail('');
+          // Reset form (but keep customer profile data if logged in)
+          setSelectedService(null);
+          setSelectedDate(null);
+          setSelectedTimeslot(null);
+          setTimeslots([]);
+          setAvailabilityChecked(false);
         }
       } else {
         const errorData = await res.json().catch(() => ({ error: t('common.unknown') }));
@@ -469,7 +466,7 @@ export default function PublicBookingPage() {
               <option value="">{t('booking.selectService')}</option>
               {services.map((service) => (
                 <option key={service.id} value={service.id}>
-                  {service.name}
+                  {service.name} {service.price ? `(${service.price}¥)` : ''}
                 </option>
               ))}
             </select>
