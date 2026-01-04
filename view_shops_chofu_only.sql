@@ -24,8 +24,8 @@ WHERE
   AND prefecture = 'tokyo'
 ORDER BY 
   normalized_city,
-  name
-LIMIT 500;
+  name;
+-- No limit - showing all shops
 
 -- Summary count
 SELECT 
