@@ -64,7 +64,7 @@ SELECT
   COUNT(DISTINCT msg.id) as message_count
 FROM customers c
 INNER JOIN users u ON u.id = c.id OR u.id = c.auth_user_id
-LEFT JOIN conversations conv ON conv.customer_ref = c.id OR conv.customer_ref = u.id
+LEFT JOIN conversations conv ON conv.customer_ref = c.id::text OR conv.customer_ref = u.id::text
 LEFT JOIN messages msg ON msg.conversation_id = conv.id
 WHERE c.role = 'web'
   AND (u.email LIKE '%@user.local' OR u.email LIKE 'web_%' OR u.email LIKE 'line_%')
@@ -124,7 +124,7 @@ DELETE FROM messages
 WHERE conversation_id IN (
   SELECT id FROM conversations
   WHERE customer_ref IN (
-    SELECT c.id
+    SELECT c.id::text
     FROM customers c
     INNER JOIN users u ON u.id = c.id OR u.id = c.auth_user_id
     WHERE c.role = 'web'
@@ -134,7 +134,7 @@ WHERE conversation_id IN (
 
 DELETE FROM conversations
 WHERE customer_ref IN (
-  SELECT c.id
+  SELECT c.id::text
   FROM customers c
   INNER JOIN users u ON u.id = c.id OR u.id = c.auth_user_id
   WHERE c.role = 'web'
