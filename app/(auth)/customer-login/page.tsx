@@ -125,26 +125,20 @@ export default function CustomerLoginPage() {
       }
       console.log('[Customer Login] ✅ Role persisted: customer');
 
-      // CRITICAL: Force redirect to customer dashboard after successful login
-      setMessage("Login successful! Redirecting...");
+      // Wait a moment for the update to propagate (same as owner login)
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Customer login should always redirect to customer dashboard (same pattern as owner login)
       setLoading(false);
-      
-      // Use router.replace to ensure redirect happens
-      router.replace("/customer/home");
+      router.push("/customer/home");
       router.refresh();
-      
-      // Also use setTimeout as backup
-      setTimeout(() => {
-        router.replace("/customer/home");
-        router.refresh();
-      }, 100);
     } catch (verifyError) {
+      // If verification fails but customer was verified, allow access (same pattern as owner login)
       console.error('Error verifying customer:', verifyError);
-      // If verification fails, still allow access (safer for customers)
-      // Backend already validated, so this is safe
-      setMessage("Login successful! Redirecting...");
+      console.log('[Customer Login] Customer verified, allowing access despite verification error');
+      
       setLoading(false);
-      router.replace("/customer/home");
+      router.push("/customer/home");
       router.refresh();
     }
   };
