@@ -45,13 +45,32 @@ export function useCustomerNotificationsHook() {
     setUnreadNotificationsCount(notifications?.length || 0);
 
     // Load bookings with pending/confirmed status (unread bookings)
-    const { data: bookings } = await supabase
-      .from("bookings")
+    // For web customers: customer_id = user.id (auth.users.id)
+    // Get customer_id from customers table using auth_user_id
+    const { data: customer } = await supabase
+      .from("customers")
       .select("id")
-      .eq("customer_profile_id", profile.id)
-      .in("status", ["pending", "confirmed"]);
+      .eq("auth_user_id", user.id)
+      .eq("role", "web")
+      .maybeSingle();
     
-    setUnreadBookingsCount(bookings?.length || 0);
+    if (customer?.id) {
+      const { data: bookings } = await supabase
+        .from("bookings")
+        .select("id, status")
+        .eq("customer_id", customer.id)
+        .in("status", ["pending", "confirmed"]);
+      
+      const pendingCount = bookings?.length || 0;
+      console.log(`[Customer Notifications] Found ${pendingCount} pending/confirmed bookings for customer_id: ${customer.id}`);
+      if (pendingCount > 0) {
+        console.log(`[Customer Notifications] Bookings:`, bookings?.map((b: any) => ({ id: b.id, status: b.status })));
+      }
+      setUnreadBookingsCount(pendingCount);
+    } else {
+      console.log(`[Customer Notifications] No customer record found for auth_user_id: ${user.id}`);
+      setUnreadBookingsCount(0);
+    }
 
     // Load unread messages count (messages from owner not read by customer)
     const { data: threads } = await supabase
@@ -128,17 +147,80 @@ export function useCustomerNotificationsHook() {
           )
           .subscribe();
 
-        // Subscribe to bookings table for status changes
-        const bookingsChannel = supabase
-          .channel('customer-bookings-realtime')
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'bookings',
-              filter: `customer_profile_id=eq.${profile.id}`,
-            },
+        // Get customer_id for bookings subscription (async)
+        supabase
+          .from("customers")
+          .select("id")
+          .eq("auth_user_id", user.id)
+          .eq("role", "web")
+          .maybeSingle()
+          .then(({ data: customer }) => {
+            if (!customer?.id) {
+              console.log(`[Customer Notifications] No customer record found for bookings subscription`);
+              // Still subscribe to messages
+              const messagesChannel = supabase
+                .channel('customer-messages-realtime')
+                .on(
+                  'postgres_changes',
+                  {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'shop_messages',
+                    filter: `sender_type=eq.owner`,
+                  },
+                  () => {
+                    loadCounts();
+                  }
+                )
+                .on(
+                  'postgres_changes',
+                  {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'shop_messages',
+                    filter: `read_by_customer=eq.true`,
+                  },
+                  () => {
+                    loadCounts();
+                  }
+                )
+                .subscribe();
+
+              subscriptionRef.current = { 
+                notificationsChannel, 
+                bookingsChannel: null,
+                messagesChannel 
+              };
+              return;
+            }
+
+            // Subscribe to bookings table for status changes
+            const bookingsChannel = supabase
+              .channel('customer-bookings-realtime')
+              .on(
+                'postgres_changes',
+                {
+                  event: 'INSERT',
+                  schema: 'public',
+                  table: 'bookings',
+                  filter: `customer_id=eq.${customer.id}`,
+                },
+                async (payload: any) => {
+                  const newBooking = payload.new;
+                  // Check if it's a pending booking
+                  if (newBooking.status === 'pending' || newBooking.status === 'confirmed') {
+                    await loadCounts();
+                  }
+                }
+              )
+              .on(
+                'postgres_changes',
+                {
+                  event: 'UPDATE',
+                  schema: 'public',
+                  table: 'bookings',
+                  filter: `customer_id=eq.${customer.id}`,
+                },
             async (payload: any) => {
               const updatedBooking = payload.new;
               const oldBooking = payload.old;
@@ -204,36 +286,41 @@ export function useCustomerNotificationsHook() {
           )
           .subscribe();
 
-        // Subscribe to messages table for unread message updates
-        const messagesChannel = supabase
-          .channel('customer-messages-realtime')
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'shop_messages',
-              filter: `sender_type=eq.owner`,
-            },
-            () => {
-              loadCounts();
-            }
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'shop_messages',
-              filter: `read_by_customer=eq.true`,
-            },
-            () => {
-              loadCounts();
-            }
-          )
-          .subscribe();
+            // Subscribe to messages table for unread message updates
+            const messagesChannel = supabase
+              .channel('customer-messages-realtime')
+              .on(
+                'postgres_changes',
+                {
+                  event: 'INSERT',
+                  schema: 'public',
+                  table: 'shop_messages',
+                  filter: `sender_type=eq.owner`,
+                },
+                () => {
+                  loadCounts();
+                }
+              )
+              .on(
+                'postgres_changes',
+                {
+                  event: 'UPDATE',
+                  schema: 'public',
+                  table: 'shop_messages',
+                  filter: `read_by_customer=eq.true`,
+                },
+                () => {
+                  loadCounts();
+                }
+              )
+              .subscribe();
 
-        subscriptionRef.current = { notificationsChannel, bookingsChannel, messagesChannel };
+            subscriptionRef.current = { 
+              notificationsChannel, 
+              bookingsChannel, 
+              messagesChannel 
+            };
+          });
       });
   }, [user?.id, loadCounts, setNewNotification]);
 

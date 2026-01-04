@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { useTranslations } from "next-intl";
-import NotificationBell from "@/app/components/NotificationBell";
 
 export default function CustomerHeader() {
   const { user, signOut } = useCustomAuth();
@@ -69,13 +68,8 @@ export default function CustomerHeader() {
           {t('home.title') || 'Yoyaku Yo'}
         </button>
 
-        {/* Right side: Notifications, Profile */}
+        {/* Right side: Profile */}
         <div className="flex items-center gap-4">
-          {/* Notifications */}
-          {profile && (
-            <NotificationBell userType="customer" userId={profile.id} />
-          )}
-
           {/* Profile Dropdown */}
           <div className="relative">
             <button

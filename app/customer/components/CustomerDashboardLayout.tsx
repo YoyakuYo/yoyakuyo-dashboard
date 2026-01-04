@@ -3,7 +3,6 @@
 import { ReactNode } from "react";
 import CustomerHeader from "./CustomerHeader";
 import CustomerSidebar from "./CustomerSidebar";
-import CustomerAIChatBubble from "./CustomerAIChatBubble";
 import { useCustomerNotificationsHook } from "@/lib/useCustomerNotifications";
 import CustomerNotificationBar from "./CustomerNotificationBar";
 import { useCustomerNotifications } from "./CustomerNotificationContext";
@@ -46,7 +45,6 @@ export default function CustomerDashboardLayout({ children }: { children: ReactN
         <main className="lg:ml-64 pt-16 min-h-screen">
           {children}
         </main>
-        <CustomerAIChatBubble />
       </div>
     </CustomerNotificationsWrapper>
   );
