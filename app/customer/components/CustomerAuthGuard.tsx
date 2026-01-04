@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
-import { apiUrl } from "@/lib/apiClient";
 
 export default function CustomerAuthGuard({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
@@ -32,13 +31,25 @@ export default function CustomerAuthGuard({ children }: { children: React.ReactN
 
     setRoleLoading(true);
     try {
-      const res = await fetch(`${apiUrl}/users/me`, {
-        headers: { 'x-user-id': user.id },
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const role = data.user?.role || data.role;
+      // CRITICAL: Query users table DIRECTLY from frontend (bypass API)
+      // This is more reliable than /users/me endpoint which may return 404
+      const { getSupabaseClient } = await import('@/lib/supabaseClient');
+      const supabase = getSupabaseClient();
+      
+      // Check users table directly for role
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, email, role')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (userError) {
+        console.warn('[CustomerAuthGuard] Error checking users table:', userError);
+      }
+      
+      // If user exists in users table, check role
+      if (userData) {
+        const role = userData.role;
 
         // CRITICAL: Block owners and admins from accessing customer routes
         if (role === 'owner') {
@@ -48,24 +59,50 @@ export default function CustomerAuthGuard({ children }: { children: React.ReactN
             role,
             email: user.email 
           });
-          router.push('/login?error=owner_cannot_access_customer_dashboard');
-        } else if (role === 'admin') {
+          router.push('/owner/shop-profile?error=owner_cannot_access_customer_dashboard');
+          setRoleLoading(false);
+          return;
+        } else if (role === 'admin' || role === 'super_admin') {
           // User is an admin - redirect to admin dashboard
           console.error('[CustomerAuthGuard] Access denied: User is admin', { 
             userId: user.id, 
             role,
             email: user.email 
           });
-          router.push('/login?error=admin_cannot_access_customer_dashboard');
+          router.push('/admin?error=admin_cannot_access_customer_dashboard');
+          setRoleLoading(false);
+          return;
         } else {
           // Customer or no role (default to customer) - allow access
+          console.log('[CustomerAuthGuard] ✅ Customer access granted:', { role: role || 'no role (default customer)' });
           setIsAuthorized(true);
+          setRoleLoading(false);
+          return;
         }
-      } else {
-        // If role check fails, allow access (safer for customers)
-        console.warn('[CustomerAuthGuard] Failed to verify user role, allowing access');
-        setIsAuthorized(true);
       }
+      
+      // If user doesn't exist in users table, check owners table to block owners
+      const { data: ownerData } = await supabase
+        .from('owners')
+        .select('id, email')
+        .or(`id.eq.${user.id},email.eq.${user.email?.toLowerCase().trim() || ''}`)
+        .maybeSingle();
+      
+      if (ownerData) {
+        // User is an owner - redirect to owner dashboard
+        console.error('[CustomerAuthGuard] Access denied: User is owner (found in owners table)', { 
+          userId: user.id, 
+          email: user.email 
+        });
+        router.push('/owner/shop-profile?error=owner_cannot_access_customer_dashboard');
+        setRoleLoading(false);
+        return;
+      }
+      
+      // User not found in users or owners table - allow access (default to customer)
+      // This is safer for customers who might not be synced to users table yet
+      console.log('[CustomerAuthGuard] ✅ User not found in users/owners table, allowing access (default to customer)');
+      setIsAuthorized(true);
     } catch (error) {
       // If role check fails, allow access (safer for customers)
       console.error('[CustomerAuthGuard] Error checking user role:', error);

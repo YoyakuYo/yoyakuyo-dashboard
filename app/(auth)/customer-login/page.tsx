@@ -46,62 +46,13 @@ export default function CustomerLoginPage() {
       return;
     }
 
-    // CRITICAL: Check user role and block owners/admins from customer dashboard
-    setMessage("Login successful! Verifying access...");
-    try {
-      const { apiUrl } = await import('@/lib/apiClient');
-      const { useAuth } = await import('@/lib/useAuth');
-      
-      // Wait a moment for auth state to update
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // Get user from auth
-      const supabase = await import('@/lib/supabaseClient').then(m => m.getSupabaseClient());
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user?.id) {
-        const roleResponse = await fetch(`${apiUrl}/users/me`, {
-          headers: { 'x-user-id': user.id },
-        });
-
-        if (roleResponse.ok) {
-          const roleData = await roleResponse.json();
-          const userRole = roleData.user?.role || roleData.role;
-
-          // Block owners and admins from customer dashboard
-          if (userRole === 'owner') {
-            setMessage('Error: Owners cannot access customer dashboard. Please use owner login.');
-            setLoading(false);
-            setTimeout(() => {
-              router.push('/login?error=owner_cannot_access_customer_dashboard');
-            }, 2000);
-            return;
-          } else if (userRole === 'admin') {
-            setMessage('Error: Admins cannot access customer dashboard.');
-            setLoading(false);
-            setTimeout(() => {
-              router.push('/login?error=admin_cannot_access_customer_dashboard');
-            }, 2000);
-            return;
-          }
-        }
-      }
-      
-      // Customer or no role - allow access
-      setMessage("Login successful! Redirecting...");
-      setTimeout(() => {
-        router.push("/customer/home");
-        router.refresh();
-      }, 300);
-    } catch (roleError) {
-      // If role check fails, allow access (safer for customers)
-      console.error('Error checking user role:', roleError);
-      setMessage("Login successful! Redirecting...");
-      setTimeout(() => {
-        router.push("/customer/home");
-        router.refresh();
-      }, 300);
-    }
+    // Redirect to customer dashboard
+    // Role check is handled by CustomerAuthGuard, so we can redirect immediately
+    setMessage("Login successful! Redirecting...");
+    setTimeout(() => {
+      router.push("/customer/home");
+      router.refresh();
+    }, 300);
   };
 
   return (
