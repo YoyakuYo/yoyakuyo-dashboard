@@ -11,6 +11,7 @@ import { messagingFetch } from "@/app/lib/messagingApiClient";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useCustomerNotifications } from "../components/CustomerNotificationContext";
 
 interface Conversation {
   id: string;
@@ -54,6 +55,7 @@ function CustomerMessagesPageContent() {
   const { user } = useCustomAuth();
   const t = useTranslations();
   const searchParams = useSearchParams();
+  const { setUnreadMessagesCount } = useCustomerNotifications();
   const shopIdParam = searchParams.get('shopId');
   const bookingIdParam = searchParams.get('bookingId');
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -224,6 +226,11 @@ function CustomerMessagesPageContent() {
         console.log('[Customer Messages] Loaded conversations:', convs?.length || 0, convs);
         setConversations(convs || []);
         
+        // Update unread messages count in notification context
+        const totalUnread = (convs || []).reduce((sum: number, conv: Conversation) => sum + (conv.unread_count || 0), 0);
+        setUnreadMessagesCount(totalUnread);
+        console.log('[Customer Messages] Updated unread messages count:', totalUnread);
+        
         // After loading conversations, check if we need to select one for shopIdParam
         // Note: Don't create conversation here - let the shopIdParam useEffect handle it
         // This prevents duplicate creation attempts
@@ -297,6 +304,8 @@ function CustomerMessagesPageContent() {
               
               // Refresh conversation list to update unread_count badge
               await loadConversations();
+              
+              // Note: loadConversations() already updates setUnreadMessagesCount, so no need to call it again here
             }
           }
         }
