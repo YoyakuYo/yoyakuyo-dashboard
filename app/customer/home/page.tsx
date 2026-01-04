@@ -5,9 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import HeroCarousel from '@/app/components/landing/HeroCarousel';
 import CategoryGrid from '@/app/components/landing/CategoryGrid';
-import { BrowseAIAssistant } from '@/app/browse/components/BrowseAIAssistant';
-import { BrowseAIProvider } from '@/app/components/BrowseAIContext';
-
 export const dynamic = 'force-dynamic';
 
 export default function CustomerHomePage() {
@@ -25,8 +22,7 @@ export default function CustomerHomePage() {
   };
 
   return (
-    <BrowseAIProvider>
-      <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white">
         {/* Hero Carousel */}
         <HeroCarousel />
 
@@ -56,12 +52,8 @@ export default function CustomerHomePage() {
           </div>
         </section>
 
-        {/* Browse AI Assistant - Hidden but available for context */}
-        <div className="hidden">
-          <BrowseAIAssistant />
-        </div>
+        {/* AI Assistant removed - no longer available for customers */}
       </div>
-    </BrowseAIProvider>
   );
 }
 

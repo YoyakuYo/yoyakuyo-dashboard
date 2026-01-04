@@ -4,16 +4,11 @@
 
 "use client";
 
-import { BrowseAIAssistant } from "../browse/components/BrowseAIAssistant";
-import { BrowseAIProvider, useBrowseAIContext } from "./BrowseAIContext";
-import { useLocale } from "next-intl";
 import PublicNavbar from "./PublicNavbar";
 import PublicFooter from "./PublicFooter";
 import LoginJoinModal from "./LoginJoinModal";
 
 function PublicLayoutContent({ children }: { children: React.ReactNode }) {
-  const locale = useLocale();
-  const browseContext = useBrowseAIContext();
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -31,15 +26,7 @@ function PublicLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Unified Login/Join Modal */}
       <LoginJoinModal />
 
-      {/* Global Public AI Bubble - appears on ALL public pages */}
-      <BrowseAIAssistant
-        shops={browseContext?.shops || []}
-        selectedPrefecture={browseContext?.selectedPrefecture ?? undefined}
-        selectedCity={browseContext?.selectedCity ?? undefined}
-        selectedCategoryId={browseContext?.selectedCategoryId ?? undefined}
-        searchQuery={browseContext?.searchQuery ?? undefined}
-        locale={locale as string}
-      />
+      {/* AI Assistant removed - no longer available for customers */}
     </div>
   );
 }
@@ -49,10 +36,6 @@ export default function PublicLayoutWrapper({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <BrowseAIProvider>
-      <PublicLayoutContent>{children}</PublicLayoutContent>
-    </BrowseAIProvider>
-  );
+  return <PublicLayoutContent>{children}</PublicLayoutContent>;
 }
 

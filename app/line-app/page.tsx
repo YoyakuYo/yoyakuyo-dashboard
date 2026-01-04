@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 import { BrowseAIProvider } from "@/app/components/BrowseAIContext";
 import { useLineAppI18n } from "./i18n";
-import { LineAIAssistantPanel } from "./components/LineAIAssistantPanel";
 
 // LINE LIFF SDK types
 declare global {
@@ -802,17 +801,6 @@ function LineAppPageContent() {
           </div>
         )}
 
-        {activeTab === "ai" && (
-          <LineAIAssistantPanel
-            shops={shops}
-            selectedPrefecture={selectedPrefecture !== "all" ? selectedPrefecture : undefined}
-            selectedCategoryId={selectedCategory !== "all" ? selectedCategory : undefined}
-            searchQuery={searchQuery || undefined}
-            lineUserId={lineUserId}
-            lineCustomerProfileId={lineCustomerProfileId}
-          />
-        )}
-
         {activeTab === "favorites" && (
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -867,13 +855,6 @@ function LineAppPageContent() {
               >
                 <span className="text-2xl">📬</span>
                 <span className="text-xs mt-1">{tx("nav_inbox")}</span>
-              </button>
-              <button
-                onClick={() => navigateToTab("ai")}
-                className={`flex flex-col items-center py-2 ${activeTab === "ai" ? "text-blue-600" : "text-gray-600"}`}
-              >
-                <span className="text-2xl">🤖</span>
-                <span className="text-xs mt-1">{tx("nav_ai")}</span>
               </button>
               <button
                 onClick={() => navigateToTab("favorites")}
