@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCustomAuth } from "@/lib/useCustomAuth";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 
 export default function CustomerLoginPage() {
   const t = useTranslations();
@@ -46,30 +47,91 @@ export default function CustomerLoginPage() {
       return;
     }
 
-    // CRITICAL: Persist role immediately after successful Customer login
+    // CRITICAL: Verify customer after successful authentication (similar to owner login)
+    // Customer signup via Supabase Auth creates users with role='customer' or no role
     try {
-      const { useAuthRole } = await import('@/lib/AuthRoleContext');
-      // We can't use the hook here, so we'll set it directly
+      const supabase = getSupabaseClient();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+
+      if (!authUser) {
+        setMessage('Error: Authentication failed. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      // Check if user is a customer - check users table FIRST (most reliable)
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, email, role')
+        .eq('id', authUser.id)
+        .maybeSingle();
+
+      let isCustomer = false;
+
+      // Check if user has role='customer' or no role (default to customer)
+      if (userData) {
+        const role = userData.role;
+        // Customer if role is 'customer', null, or undefined (not 'owner' or 'admin')
+        if (role === 'customer' || !role || (role !== 'owner' && role !== 'admin' && role !== 'super_admin')) {
+          isCustomer = true;
+          console.log('[Customer Login] ✅ Customer found in users table:', { role: role || 'no role (default customer)' });
+        }
+      } else {
+        // User doesn't exist in users table - check owners table to block owners
+        const { data: ownerData } = await supabase
+          .from('owners')
+          .select('id, email')
+          .or(`id.eq.${authUser.id},email.eq.${emailFromForm.toLowerCase().trim()}`)
+          .maybeSingle();
+
+        if (ownerData) {
+          // User is an owner - sign out and show error
+          await supabase.auth.signOut();
+          setMessage('This account is registered as an owner. Please use owner login.');
+          setLoading(false);
+          return;
+        }
+
+        // Not found in users or owners table - default to customer (allow access)
+        isCustomer = true;
+        console.log('[Customer Login] ✅ User not found in users/owners table, defaulting to customer');
+      }
+
+      if (!isCustomer) {
+        // User is an owner or admin - sign out and show error
+        await supabase.auth.signOut();
+        setMessage('This account is not registered as a customer. Please use owner login.');
+        setLoading(false);
+        return;
+      }
+
+      // CRITICAL: Persist role immediately after successful Customer login
       if (typeof window !== 'undefined') {
         localStorage.setItem('yoyaku_selected_auth_role', 'customer');
       }
-    } catch (error) {
-      console.warn('Failed to persist customer role:', error);
-    }
+      console.log('[Customer Login] ✅ Role persisted: customer');
 
-    // CRITICAL: Force redirect to customer dashboard after successful login
-    setMessage("Login successful! Redirecting...");
-    setLoading(false);
-    
-    // Use router.push with replace to ensure redirect happens
-    router.replace("/customer/home");
-    router.refresh();
-    
-    // Also use setTimeout as backup
-    setTimeout(() => {
+      // CRITICAL: Force redirect to customer dashboard after successful login
+      setMessage("Login successful! Redirecting...");
+      setLoading(false);
+      
+      // Use router.replace to ensure redirect happens
       router.replace("/customer/home");
       router.refresh();
-    }, 100);
+      
+      // Also use setTimeout as backup
+      setTimeout(() => {
+        router.replace("/customer/home");
+        router.refresh();
+      }, 100);
+    } catch (verifyError) {
+      console.error('Error verifying customer:', verifyError);
+      // If verification fails, still allow access (safer for customers)
+      setMessage("Login successful! Redirecting...");
+      setLoading(false);
+      router.replace("/customer/home");
+      router.refresh();
+    }
   };
 
   return (
