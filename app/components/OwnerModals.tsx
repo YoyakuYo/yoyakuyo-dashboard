@@ -199,7 +199,7 @@ export default function OwnerModals() {
       // CRITICAL: Verify owner exists in owners table first
       const { data: ownerCheck } = await supabase
         .from('owners')
-        .select('id, email')
+        .select('id, email, name')
         .or(`id.eq.${authData.user.id},email.eq.${email.toLowerCase().trim()}`)
         .maybeSingle();
 
