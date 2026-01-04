@@ -41,138 +41,117 @@ export default function OwnerGuard({ children }: OwnerGuardProps) {
 
     setRoleLoading(true);
     try {
-      // CRITICAL: Check users table FIRST for role='owner' (most reliable)
-      // Owner signup creates users with role='owner', not entries in owners table
-      if (apiUrl) {
-        try {
-          const res = await fetch(`${apiUrl}/users/me`, {
-            headers: { 'x-user-id': user.id },
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-            const role = data.user?.role || data.role;
-
-            // CRITICAL: Check if user has role='owner' in users table
-            if (role === 'owner') {
-              console.log('[OwnerGuard] Owner found in users table with role=owner');
-              setIsAuthorized(true);
-              return;
-            }
-          } else if (res.status === 404) {
-            console.log('[OwnerGuard] User not found in users table (404), checking owners table...');
-          }
-        } catch (fetchError) {
-          console.warn('[OwnerGuard] Failed to fetch from users/me endpoint:', fetchError);
-        }
-      }
-
-      // Fallback: Check owners table (for legacy owners or separate auth)
+      // CRITICAL: Query users table DIRECTLY from frontend (bypass API)
+      // This is more reliable than /users/me endpoint which may return 404
       const { getSupabaseClient } = await import('@/lib/supabaseClient');
       const supabase = getSupabaseClient();
       
-      // Check owners table - try both id and email matches separately
-      let ownerData = null;
+      // Check users table directly for role='owner'
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, email, role')
+        .eq('id', user.id)
+        .maybeSingle();
       
-      // First try by id
-      if (user.id) {
-        const { data: ownerById, error: errorById } = await supabase
-          .from('owners')
-          .select('id, email')
-          .eq('id', user.id)
-          .maybeSingle();
-        
-        if (errorById) {
-          console.warn('[OwnerGuard] Error checking owners by id:', errorById);
-        }
-        
-        if (ownerById) {
-          ownerData = ownerById;
-          console.log('[OwnerGuard] Owner found in owners table by id:', ownerById);
-        }
+      if (userError) {
+        console.warn('[OwnerGuard] Error checking users table:', userError);
       }
       
-      // If not found by id, try email
-      if (!ownerData && user.email) {
-        const { data: ownerByEmail, error: errorByEmail } = await supabase
-          .from('owners')
-          .select('id, email')
-          .eq('email', user.email.toLowerCase().trim())
-          .maybeSingle();
-        
-        if (errorByEmail) {
-          console.warn('[OwnerGuard] Error checking owners by email:', errorByEmail);
-        }
-        
-        if (ownerByEmail) {
-          ownerData = ownerByEmail;
-          console.log('[OwnerGuard] Owner found in owners table by email:', ownerByEmail);
-        }
-      }
-      
-      console.log('[OwnerGuard] Owner lookup result:', { 
-        userId: user.id, 
-        userEmail: user.email, 
-        ownerFound: !!ownerData 
-      });
-
-      if (ownerData) {
-        // Owner exists in owners table - allow access
-        console.log('[OwnerGuard] Owner found in owners table');
-        
-        // Try to sync owner to users table with role='owner' (non-blocking)
-        if (apiUrl) {
-          try {
-            // First try to get user from users table
-            const res = await fetch(`${apiUrl}/users/me`, {
-              headers: { 'x-user-id': user.id },
-            }).catch(() => null);
-
-            if (res && res.ok) {
-              const data = await res.json();
-              const role = data.user?.role || data.role;
-              
-              // If role is not 'owner', try to update it
-              if (role !== 'owner') {
-                await fetch(`${apiUrl}/users/me`, {
-                  method: 'PUT',
-                  headers: { 
-                    'x-user-id': user.id,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({ role: 'owner' })
-                }).catch(() => {
-                  console.warn('[OwnerGuard] Failed to update role in users table (non-blocking)');
-                });
-              }
-            } else {
-              // User doesn't exist in users table - try to create via sync
-              try {
-                const { authApi } = await import('@/lib/api');
-                await authApi.syncUser(
-                  user.id,
-                  user.email || ownerData.email || '',
-                  undefined
-                );
-              } catch (syncError) {
-                console.warn('[OwnerGuard] Failed to sync user to users table (non-blocking):', syncError);
-              }
-            }
-          } catch (syncError) {
-            console.warn('[OwnerGuard] Failed to sync owner role (non-blocking):', syncError);
-          }
-        }
-        
+      // If user exists in users table with role='owner', grant access immediately
+      if (userData && userData.role === 'owner') {
+        console.log('[OwnerGuard] ✅ Owner found in users table with role=owner:', userData);
         setIsAuthorized(true);
+        setRoleLoading(false);
         return;
       }
+      
+      // If user exists but role is not 'owner', check if we can update it
+      if (userData && userData.role !== 'owner') {
+        console.log('[OwnerGuard] User exists but role is not owner:', userData.role);
+        
+        // Check owners table as fallback
+        const { data: ownerData } = await supabase
+          .from('owners')
+          .select('id, email')
+          .or(`id.eq.${user.id},email.eq.${user.email?.toLowerCase().trim() || ''}`)
+          .maybeSingle();
+        
+        if (ownerData) {
+          console.log('[OwnerGuard] Owner found in owners table, updating users table role...');
+          // Try to update role in users table (non-blocking)
+          await supabase
+            .from('users')
+            .update({ role: 'owner' })
+            .eq('id', user.id)
+            .then(() => {
+              console.log('[OwnerGuard] ✅ Updated user role to owner');
+              setIsAuthorized(true);
+              setRoleLoading(false);
+            })
+            .catch((updateError) => {
+              console.warn('[OwnerGuard] Failed to update role (non-blocking):', updateError);
+              // Still grant access if found in owners table
+              setIsAuthorized(true);
+              setRoleLoading(false);
+            });
+          return;
+        }
+      }
+      
+      // If user doesn't exist in users table, check owners table
+      if (!userData) {
+        console.log('[OwnerGuard] User not found in users table, checking owners table...');
+        
+        const { data: ownerData, error: ownerError } = await supabase
+          .from('owners')
+          .select('id, email')
+          .or(`id.eq.${user.id},email.eq.${user.email?.toLowerCase().trim() || ''}`)
+          .maybeSingle();
+        
+        if (ownerError) {
+          console.warn('[OwnerGuard] Error checking owners table:', ownerError);
+        }
+        
+        if (ownerData) {
+          console.log('[OwnerGuard] ✅ Owner found in owners table:', ownerData);
+          
+          // Try to sync owner to users table with role='owner' (non-blocking)
+          if (apiUrl) {
+            try {
+              const { authApi } = await import('@/lib/api');
+              await authApi.syncUser(
+                user.id,
+                user.email || ownerData.email || '',
+                undefined
+              ).then(() => {
+                // After sync, update role to owner
+                supabase
+                  .from('users')
+                  .update({ role: 'owner' })
+                  .eq('id', user.id)
+                  .catch(() => {
+                    console.warn('[OwnerGuard] Failed to update role after sync');
+                  });
+              }).catch((syncError) => {
+                console.warn('[OwnerGuard] Failed to sync user (non-blocking):', syncError);
+              });
+            } catch (syncError) {
+              console.warn('[OwnerGuard] Failed to sync owner (non-blocking):', syncError);
+            }
+          }
+          
+          // Grant access if found in owners table
+          setIsAuthorized(true);
+          setRoleLoading(false);
+          return;
+        }
+      }
 
-      // Already checked users table above, so if we reach here, owner was not found
-
-      // User is not an owner - redirect to login with error message
-      console.error('[OwnerGuard] Access denied: User is not an owner', { 
+      // If we reach here, user is not an owner
+      console.error('[OwnerGuard] ❌ Access denied: User is not an owner', { 
         userId: user.id, 
-        email: user.email 
+        email: user.email,
+        userData: userData ? { role: userData.role } : 'not found in users table'
       });
       router.push('/login?error=owner_access_required');
     } catch (error) {
