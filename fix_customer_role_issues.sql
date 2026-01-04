@@ -39,6 +39,8 @@ ORDER BY u.email;
 
 -- ============================================
 -- PART 2: Fix guest customers with role='customer'
+-- Guest customers should NOT have role='customer' in users table
+-- They should have role=NULL since they're not authenticated users
 -- ============================================
 -- UNCOMMENT TO EXECUTE:
 /*
@@ -48,6 +50,19 @@ FROM customers c
 WHERE c.email = u.email 
   AND c.role = 'guest'
   AND u.role = 'customer';
+*/
+
+-- Alternative: If guest customers don't have entries in users table,
+-- but some users with role='customer' match guest emails, fix those:
+/*
+UPDATE users u
+SET role = NULL
+WHERE u.role = 'customer'
+  AND EXISTS (
+    SELECT 1 FROM customers c 
+    WHERE c.email = u.email 
+    AND c.role = 'guest'
+  );
 */
 
 -- ============================================
