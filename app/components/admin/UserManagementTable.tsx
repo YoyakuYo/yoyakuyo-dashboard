@@ -126,7 +126,7 @@ export default function UserManagementTable({
       customerRef = user.auth_user_id || user.id;
     } else if (user.user_type === 'customer' && user.role === 'line') {
       customerType = 'line';
-      customerRef = user.auth_user_id || user.id; // Could be line_user_id if available
+      customerRef = user.line_user_id || user.auth_user_id || user.id;
     } else if (user.user_type === 'customer' && user.role === 'guest') {
       customerType = 'guest';
       customerRef = user.email || user.id;
