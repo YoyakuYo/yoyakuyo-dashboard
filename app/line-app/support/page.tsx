@@ -243,6 +243,13 @@ function LineSupportPageContent() {
 
       if (res.ok) {
         const { conversations: convs } = await res.json();
+        console.log('[LINE Support] Loaded conversations:', convs?.length || 0);
+        console.log('[LINE Support] Sample conversation:', convs?.[0]);
+
+        // DEBUG: Check conversation types
+        const conversationTypes = convs?.map(c => c.conversation_type) || [];
+        console.log('[LINE Support] Conversation types:', [...new Set(conversationTypes)]);
+
         setConversations(convs || []);
       }
     } catch (error) {
@@ -323,15 +330,77 @@ function LineSupportPageContent() {
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !selectedConversationId || sending || !lineUserId || !idToken) return;
+    if (!input.trim() || sending || !lineUserId || !idToken) return;
 
     const content = input.trim();
     setInput("");
     setSending(true);
 
+    let conversationIdToUse = selectedConversationId;
+
+    // If no conversation is selected, try to find or create an admin support conversation
+    if (!conversationIdToUse) {
+      console.log('[LINE Support] No conversation selected, checking for existing admin conversation...');
+
+      // Load conversations to check if admin conversation exists
+      await loadConversations();
+
+      // After loading, check if we now have conversations
+      if (conversations.length > 0) {
+        conversationIdToUse = conversations[0].id;
+        setSelectedConversationId(conversationIdToUse);
+        console.log('[LINE Support] Found existing admin conversation:', conversationIdToUse);
+      } else {
+        // No admin conversation exists, create one
+        console.log('[LINE Support] No admin conversation exists, creating one...');
+        try {
+          const createRes = await messagingFetch(
+            `${apiUrl}/api/internal-messaging/customer/support/conversations`,
+            {
+              method: 'POST',
+              lineUserId,
+              idToken,
+              body: {
+                type: 'admin_support',
+                initial_message: content,
+              },
+            }
+          );
+
+          if (createRes.ok) {
+            const { conversation } = await createRes.json();
+            conversationIdToUse = conversation.id;
+            setSelectedConversationId(conversationIdToUse);
+            setConversations([conversation]);
+            console.log('[LINE Support] Created new admin conversation:', conversationIdToUse);
+          } else {
+            const error = await createRes.json().catch(() => ({ error: 'Failed to create support conversation' }));
+            console.error('[LINE Support] Failed to create conversation:', error);
+            alert('Failed to create support conversation. Please try again.');
+            setInput(content);
+            setSending(false);
+            return;
+          }
+        } catch (error) {
+          console.error('[LINE Support] Error creating conversation:', error);
+          alert('Failed to create support conversation. Please try again.');
+          setInput(content);
+          setSending(false);
+          return;
+        }
+      }
+    }
+
+    if (!conversationIdToUse) {
+      alert('Unable to find or create support conversation. Please try again.');
+      setInput(content);
+      setSending(false);
+      return;
+    }
+
     try {
       const res = await messagingFetch(
-        `${apiUrl}/api/internal-messaging/customer/support/conversations/${selectedConversationId}/reply`,
+        `${apiUrl}/api/internal-messaging/customer/support/conversations/${conversationIdToUse}/reply`,
         {
           lineUserId,
           idToken,

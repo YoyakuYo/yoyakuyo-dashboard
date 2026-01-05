@@ -275,6 +275,14 @@ function LineInboxPageContent() {
       }
 
       const data = await res.json();
+      console.log('[LINE Inbox] Loaded conversations:', data.conversations?.length || 0);
+      console.log('[LINE Inbox] Sample conversation:', data.conversations?.[0]);
+
+      // DEBUG: Check conversation types
+      const conversationTypes = data.conversations?.map(c => c.conversation_type) || [];
+      console.log('[LINE Inbox] Conversation types:', [...new Set(conversationTypes)]);
+
+      const data = await res.json();
       console.log("[LINE Inbox] Loaded conversations:", data.conversations?.length || 0);
       
       // CRITICAL: Deduplicate by shop_id - keep only the latest conversation per shop
@@ -487,15 +495,15 @@ function LineInboxPageContent() {
         return;
       }
 
-      // FIRST: Check if conversation already exists in list (by shop_id)
-      let existingConv = conversations.find(c => c.shop_id === shopId);
+      // FIRST: Check if conversation already exists in list (by target_id for shop conversations)
+      let existingConv = conversations.find(c => c.target_id === shopId && c.conversation_type === 'booking_owner');
       
       // SECOND: If not in list, check backend (conversation might exist but not be loaded)
       if (!existingConv) {
         console.log("[LINE Inbox] Not in list, checking backend for existing conversation...");
         try {
           const res = await messagingFetch(
-            `${apiUrl}/api/internal-messaging/conversations`,
+            `${apiUrl}/api/internal-messaging/conversations?conversation_type=booking_owner`,
             {
               lineUserId,
               idToken,
@@ -505,13 +513,13 @@ function LineInboxPageContent() {
           if (res.ok) {
             const data = await res.json();
             const allConversations: Conversation[] = data.conversations || [];
-            existingConv = allConversations.find(c => c.shop_id === shopId);
-            
+            existingConv = allConversations.find(c => c.target_id === shopId && c.conversation_type === 'booking_owner');
+
             if (existingConv) {
               // Update conversations list with backend data (deduplicated)
               const byShop = new Map<string, Conversation>();
               for (const conv of allConversations) {
-                const key = conv.shop_id;
+                const key = conv.target_id;
                 const existing = byShop.get(key);
                 if (!existing) {
                   byShop.set(key, conv);
