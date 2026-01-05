@@ -120,6 +120,7 @@ export default function UserManagementTable({
     // Determine customer_type and customer_ref based on user type and role
     let customerType: 'web' | 'line' | 'guest';
     let customerRef: string;
+    let shopId: string | undefined;
 
     if (user.user_type === 'owner' || (user.user_type === 'customer' && user.role === 'web')) {
       customerType = 'web';
@@ -127,9 +128,56 @@ export default function UserManagementTable({
     } else if (user.user_type === 'customer' && user.role === 'line') {
       customerType = 'line';
       customerRef = user.auth_user_id || user.id; // Could be line_user_id if available
+      // For LINE customers, we need to find a shop they have interacted with
+      // Check if they have any bookings first
+      try {
+        const bookingsResponse = await fetch(`${apiUrl}/bookings?customer_id=${user.id}&limit=1`, {
+          headers: {
+            "x-user-id": currentUserId || "",
+            "Content-Type": "application/json",
+          },
+        });
+        if (bookingsResponse.ok) {
+          const bookingsData = await bookingsResponse.json();
+          if (bookingsData.bookings && bookingsData.bookings.length > 0) {
+            shopId = bookingsData.bookings[0].shop_id;
+          }
+        }
+      } catch (error) {
+        console.warn("Could not find shop for LINE customer from bookings:", error);
+      }
+
+      // If still no shop found for LINE customer, show error
+      if (!shopId) {
+        alert("Cannot contact LINE customer: no associated shop found. The customer must have made a booking first.");
+        return;
+      }
     } else if (user.user_type === 'customer' && user.role === 'guest') {
       customerType = 'guest';
       customerRef = user.email || user.id;
+      // For guest customers, we need to find a shop they have interacted with
+      try {
+        const bookingsResponse = await fetch(`${apiUrl}/bookings?customer_id=${user.id}&limit=1`, {
+          headers: {
+            "x-user-id": currentUserId || "",
+            "Content-Type": "application/json",
+          },
+        });
+        if (bookingsResponse.ok) {
+          const bookingsData = await bookingsResponse.json();
+          if (bookingsData.bookings && bookingsData.bookings.length > 0) {
+            shopId = bookingsData.bookings[0].shop_id;
+          }
+        }
+      } catch (error) {
+        console.warn("Could not find shop for guest customer from bookings:", error);
+      }
+
+      // If still no shop found for guest customer, show error
+      if (!shopId) {
+        alert("Cannot contact guest customer: no associated shop found. The customer must have made a booking first.");
+        return;
+      }
     } else {
       alert("Cannot contact this user type");
       return;
@@ -137,17 +185,24 @@ export default function UserManagementTable({
 
     try {
       setProcessingId(user.id);
+      const requestBody: any = {
+        customer_ref: customerRef,
+        customer_type: customerType,
+        content: message.trim(),
+      };
+
+      // Add shop_id if we found one (required for LINE customers)
+      if (customerType === 'line' && shopId) {
+        requestBody.shop_id = shopId;
+      }
+
       const response = await fetch(`${apiUrl}/admin/support/conversations/create`, {
         method: "POST",
         headers: {
           "x-user-id": currentUserId || "",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          customer_ref: customerRef,
-          customer_type: customerType,
-          content: message.trim(),
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (response.ok) {
