@@ -401,7 +401,42 @@ const BookingsPage = () => {
         }
     };
 
-    const confirmBooking = async (bookingId: string) => {
+    const createBookingConversation = async (bookingId: string, shopId: string) => {
+    try {
+      // Create scoped conversation for this specific booking
+      const res = await fetch(`${apiUrl}/api/internal-messaging/conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId || '',
+        },
+        body: JSON.stringify({
+          conversation_type: 'booking_owner',
+          target_type: 'shop',
+          target_id: shopId,
+          booking_id: bookingId,
+          customer_type: 'web', // Owner initiating conversation
+          customer_ref: userId,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Created booking conversation:', data.conversation_id);
+        // Navigate to messages page - the conversation should now appear
+        router.push('/messages');
+      } else {
+        const error = await res.json().catch(() => ({ error: 'Failed to create conversation' }));
+        console.error('Failed to create booking conversation:', error);
+        alert('Failed to start conversation. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating booking conversation:', error);
+      alert('Failed to start conversation. Please try again.');
+    }
+  };
+
+  const confirmBooking = async (bookingId: string) => {
         if (!user?.id) return;
         setUpdatingStatus(bookingId);
         try {
@@ -829,10 +864,8 @@ const BookingsPage = () => {
                                                         <button
                                                             onClick={() => {
                                                                 setOpenDropdown(null);
-                                                                // Navigate to messages with this customer
-                                                                // For now, we'll navigate to the messages page
-                                                                // In the future, we could pass customer info to start a specific conversation
-                                                                router.push('/messages');
+                                                                // Create scoped conversation for this booking and navigate to messages
+                                                                createBookingConversation(booking.id, booking.shop_id);
                                                             }}
                                                             className="flex-1 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
                                                         >

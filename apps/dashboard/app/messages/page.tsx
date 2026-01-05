@@ -6,7 +6,10 @@ import { apiUrl } from "@/lib/apiClient";
 
 interface Conversation {
   id: string;
-  shop_id: string;
+  conversation_type?: 'booking_owner' | 'support_admin' | 'admin_owner';
+  target_type?: 'shop' | 'admin' | 'owner';
+  target_id?: string;
+  shop_id?: string; // Legacy field
   customer_type: 'line' | 'web' | 'guest';
   customer_ref: string;
   last_message_at: string | null;
@@ -343,8 +346,18 @@ export default function OwnerInboxPage() {
   };
 
   const handleSelectConversation = (conversation: Conversation) => {
+    // Validate conversation scoping
+    if (!conversation.target_id) {
+      console.error('[Owner Inbox] ❌ Conversation missing target_id:', conversation);
+      alert('This conversation is improperly configured. Please contact support.');
+      return;
+    }
+
     console.log('[Owner Inbox] 🖱️ [DIAGNOSTIC] Conversation selected', {
       conversationId: conversation.id,
+      conversationType: conversation.conversation_type,
+      targetType: conversation.target_type,
+      targetId: conversation.target_id,
       shopName: conversation.shop?.name,
       shopId: conversation.shop_id,
       customerType: conversation.customer_type,
