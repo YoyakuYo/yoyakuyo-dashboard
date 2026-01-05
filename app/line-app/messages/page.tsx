@@ -24,7 +24,7 @@ try {
 interface Message {
   id: string;
   conversation_id: string;
-  sender_role?: 'customer' | 'shop' | 'ai';
+  sender_role?: 'customer' | 'shop' | 'admin' | 'ai';
   sender_type: 'customer' | 'shop';
   body: string;
   is_read: boolean;
@@ -295,6 +295,7 @@ export default function MessagesPage() {
           messages.map((message) => {
             const senderRole = message.sender_role || (message.sender_type === 'shop' ? 'shop' : 'customer');
             const isCustomer = senderRole === 'customer';
+            const isAdmin = senderRole === 'admin';
             const isAI = senderRole === 'ai';
             
             return (
@@ -306,6 +307,8 @@ export default function MessagesPage() {
                   className={`max-w-[85%] md:max-w-md px-4 py-2 rounded-lg ${
                     isCustomer
                       ? 'bg-green-600 text-white'
+                      : isAdmin
+                      ? 'bg-blue-600 text-white'
                       : isAI
                       ? 'bg-purple-100 text-purple-900 border border-purple-300'
                       : 'bg-white text-gray-900 border border-gray-200'
@@ -320,10 +323,13 @@ export default function MessagesPage() {
                   {isAI && (
                     <p className="text-xs font-semibold text-purple-700 mb-1">{t("aiTitle")}</p>
                   )}
+                  {isAdmin && (
+                    <p className="text-xs font-semibold text-blue-100 mb-1">Admin Support</p>
+                  )}
                   <p className="text-sm whitespace-pre-wrap break-words">{message.body}</p>
                   <p
                     className={`text-xs mt-1 ${
-                      isCustomer ? 'text-green-100' : isAI ? 'text-purple-600' : 'text-gray-500'
+                      isCustomer ? 'text-green-100' : isAdmin ? 'text-blue-100' : isAI ? 'text-purple-600' : 'text-gray-500'
                     }`}
                   >
                     {new Date(message.created_at).toLocaleTimeString('en-US', {

@@ -38,7 +38,7 @@ interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
-  sender_role: 'customer' | 'owner';
+  sender_role: 'customer' | 'owner' | 'admin';
   content: string;
   created_at: string;
   is_read: boolean;
@@ -468,9 +468,10 @@ function CustomerMessagesPageContent() {
                 ) : (
                   messages.map((message) => {
                     const isCustomer = message.sender_role === 'customer';
-                    const displayName = message.sender?.full_name || 
-                                      message.sender?.email || 
-                                      (isCustomer ? 'You' : 'Shop Owner');
+                    const isAdmin = message.sender_role === 'admin';
+                    const displayName = message.sender?.full_name ||
+                                      message.sender?.email ||
+                                      (isCustomer ? 'You' : isAdmin ? 'Admin Support' : 'Shop Owner');
 
                     return (
                       <div
@@ -481,11 +482,13 @@ function CustomerMessagesPageContent() {
                           className={`max-w-[70%] rounded-lg px-4 py-2 ${
                             isCustomer
                               ? 'bg-blue-600 text-white'
+                              : isAdmin
+                              ? 'bg-green-600 text-white'
                               : 'bg-white text-gray-900 border border-gray-200'
                           }`}
                         >
                           {!isCustomer && (
-                            <p className="text-xs font-semibold mb-1 text-gray-600">{displayName}</p>
+                            <p className={`text-xs font-semibold mb-1 ${isAdmin ? 'text-green-100' : 'text-gray-600'}`}>{displayName}</p>
                           )}
                           <p className="whitespace-pre-wrap text-sm">{message.content}</p>
                           <p className={`text-xs mt-1 ${isCustomer ? 'opacity-70' : 'text-gray-500'}`}>
