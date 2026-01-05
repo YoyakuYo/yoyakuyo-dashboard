@@ -281,6 +281,12 @@ function LineInboxPageContent() {
       );
       console.log("[LINE Inbox] Deduplicated conversations:", deduped.length, "from", rawConversations.length);
       setConversations(deduped);
+
+      // Auto-select the most recent conversation for better UX
+      if (deduped.length > 0 && !selectedConversation) {
+        console.log("[LINE Inbox] Auto-selecting most recent conversation:", deduped[0].id);
+        handleSelectConversation(deduped[0]);
+      }
     } catch (error: any) {
       console.error("[LINE Inbox] Error loading conversations:", error);
       setError(`Failed to load conversations: ${error.message || 'Unknown error'}`);
@@ -1254,11 +1260,11 @@ function LineInboxPageContent() {
 
             {/* Messages View */}
             <div className="flex-1 flex flex-col min-w-0 min-h-0">
-              {selectedConversation ? (
+              {selectedConversation || conversations.length === 0 ? (
                 <>
                   <div className="p-3 border-b border-gray-200 flex-shrink-0">
                     <h2 className="font-semibold text-gray-900 text-sm">
-                      {selectedConversation.shop?.name || 'Shop'}
+                      {selectedConversation ? (selectedConversation.shop?.name || 'Shop') : t("messagesTitle") || 'Messages'}
                     </h2>
                   </div>
                   
@@ -1339,32 +1345,34 @@ function LineInboxPageContent() {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Input Area */}
-                  <div className="border-t border-gray-200 p-3 flex-shrink-0" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-                    <div className="flex gap-2">
-                      <textarea
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            sendMessage();
-                          }
-                        }}
-                        placeholder={t("typeMessage")}
-                        rows={2}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
-                        disabled={sending}
-                      />
-                      <button
-                        onClick={sendMessage}
-                        disabled={sending || !newMessage.trim()}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm whitespace-nowrap"
-                      >
+                  {/* Input Area - Only show when conversation is selected */}
+                  {selectedConversation && (
+                    <div className="border-t border-gray-200 p-3 flex-shrink-0" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+                      <div className="flex gap-2">
+                        <textarea
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              sendMessage();
+                            }
+                          }}
+                          placeholder={t("typeMessage")}
+                          rows={2}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                          disabled={sending}
+                        />
+                        <button
+                          onClick={sendMessage}
+                          disabled={sending || !newMessage.trim()}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm whitespace-nowrap"
+                        >
                         {sending ? t("sending") : t("send")}
                       </button>
                     </div>
                   </div>
+                  )}
                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center">
