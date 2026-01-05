@@ -252,6 +252,21 @@ function LineInboxPageContent() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Failed to load conversations' }));
+
+        let errorMessage = 'Failed to load conversations. Please try again.';
+        if (res.status === 401) {
+          errorMessage = 'Authentication error. Please close and reopen the app.';
+        } else if (res.status === 403) {
+          errorMessage = 'You do not have permission to view conversations.';
+        }
+
+        console.error('[LINE Inbox] Conversation loading failed:', {
+          status: res.status,
+          statusText: res.statusText,
+          error: errorData
+        });
+
+        alert(errorMessage);
         throw new Error(errorData.error || 'Failed to load conversations');
       }
 
@@ -405,6 +420,9 @@ function LineInboxPageContent() {
           setError('Authentication required. Please log in again.');
           // STEP 4: Keep current conversation_id, show error state instead
           return;
+        } else {
+          // Show alert for other errors since user can't see console on mobile
+          alert('Failed to load messages. Please check your connection and try again.');
         }
         throw new Error('Failed to load messages');
       }
@@ -683,22 +701,61 @@ function LineInboxPageContent() {
       });
       
       // ALWAYS inject X-User-Id via unified messaging API client
-      const res = await messagingFetch(
-        `${apiUrl}/api/internal-messaging/messages`,
-        {
-          method: 'POST',
-          lineUserId,
-          idToken,
-          body: {
-            conversation_id: conversationId,
-            content: trimmedContent,
-          },
+      // Add timeout to prevent hanging on mobile networks
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        alert('Request timed out. Please check your connection and try again.');
+      }, 15000); // 15 second timeout for mobile
+
+      let res: Response;
+      try {
+        res = await messagingFetch(
+          `${apiUrl}/api/internal-messaging/messages`,
+          {
+            method: 'POST',
+            lineUserId,
+            idToken,
+            body: {
+              conversation_id: conversationId,
+              content: trimmedContent,
+            },
+          }
+        );
+        clearTimeout(timeoutId);
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out. Please try again.');
         }
-      );
+        throw error;
+      }
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Failed to send message' }));
-        throw new Error(errorData.error || 'Failed to send message');
+
+        // Show user-visible error message for mobile LINE users
+        let errorMessage = 'Failed to send message. Please try again.';
+        if (res.status === 401) {
+          errorMessage = 'Authentication error. Please close and reopen the app.';
+        } else if (res.status === 403) {
+          errorMessage = 'You do not have permission to send messages.';
+        } else if (res.status === 404) {
+          errorMessage = 'Conversation not found. Please refresh.';
+        } else if (res.status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+
+        console.error('[LINE Inbox] Message sending failed:', {
+          status: res.status,
+          statusText: res.statusText,
+          error: errorData,
+          conversationId,
+          contentLength: trimmedContent.length
+        });
+
+        alert(errorMessage);
+        throw new Error(errorData.error || `Failed to send message (${res.status})`);
       }
 
       const data = await res.json();
