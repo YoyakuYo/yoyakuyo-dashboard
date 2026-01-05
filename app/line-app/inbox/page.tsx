@@ -242,8 +242,10 @@ function LineInboxPageContent() {
       
       // ALWAYS inject X-User-Id via unified messaging API client
       // Rely on backend auth context to resolve customer_type/customer_ref
+      // Load ONLY booking_owner conversations for the inbox
+      const inboxUrl = `${apiUrl}/api/internal-messaging/conversations?conversation_type=booking_owner`;
       const res = await messagingFetch(
-        `${apiUrl}/api/internal-messaging/conversations`,
+        inboxUrl,
         {
           lineUserId,
           idToken: token,
@@ -267,7 +269,9 @@ function LineInboxPageContent() {
         });
 
         alert(errorMessage);
-        throw new Error(errorData.error || 'Failed to load conversations');
+        setLoading(false); // Stop loading state
+        setError(errorMessage);
+        return; // Don't throw - prevent infinite loading
       }
 
       const data = await res.json();

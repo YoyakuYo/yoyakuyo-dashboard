@@ -419,3 +419,57 @@ COMMENT ON COLUMN conversations.customer_type IS 'Type of customer: line, web, o
 COMMENT ON COLUMN conversations.customer_ref IS 'Reference to customer: line_user_id (for line), user_id (for web), or guest_token (for guest)';
 COMMENT ON COLUMN messages.sender_type IS 'Type of sender: customer or shop';
 
+-- ============================================
+-- DATA MIGRATION: Split existing conversations
+-- ============================================
+DO $$
+DECLARE
+    conv_record RECORD;
+BEGIN
+    RAISE NOTICE 'Starting conversation data migration...';
+
+    -- Step 1: Migrate booking conversations (those with booking_id)
+    FOR conv_record IN
+        SELECT id, shop_id, booking_id, customer_type, customer_ref
+        FROM conversations
+        WHERE booking_id IS NOT NULL
+        AND (conversation_type IS NULL OR conversation_type = 'booking_owner')
+    LOOP
+        -- Update existing conversation with proper scoping
+        UPDATE conversations SET
+            conversation_type = 'booking_owner',
+            target_type = 'shop',
+            target_id = conv_record.shop_id
+        WHERE id = conv_record.id;
+
+        RAISE NOTICE 'Migrated booking conversation: %', conv_record.id;
+    END LOOP;
+
+    -- Step 2: Migrate support conversations (those with is_support_ticket = true)
+    FOR conv_record IN
+        SELECT id, shop_id, customer_type, customer_ref
+        FROM conversations
+        WHERE is_support_ticket = true
+        AND conversation_type IS NULL
+    LOOP
+        -- Update existing conversation with proper scoping
+        UPDATE conversations SET
+            conversation_type = 'support_admin',
+            target_type = 'admin',
+            target_id = 'system'
+        WHERE id = conv_record.id;
+
+        RAISE NOTICE 'Migrated support conversation: %', conv_record.id;
+    END LOOP;
+
+    -- Step 3: Set defaults for any remaining conversations
+    UPDATE conversations SET
+        conversation_type = 'booking_owner',
+        target_type = 'shop',
+        target_id = shop_id
+    WHERE conversation_type IS NULL
+    AND shop_id IS NOT NULL;
+
+    RAISE NOTICE 'Conversation data migration completed!';
+END $$;
+
