@@ -35,6 +35,8 @@ export default function UserManagementTable({
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [banReason, setBanReason] = useState<Record<string, string>>({});
   const [showBanModal, setShowBanModal] = useState<string | null>(null);
+  const [showContactModal, setShowContactModal] = useState<string | null>(null);
+  const [contactMessage, setContactMessage] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const getUserId = async () => {
@@ -109,6 +111,62 @@ export default function UserManagementTable({
     } catch (error: any) {
       console.error("Error unbanning user:", error);
       alert(error.message || t("admin.unbanFailed"));
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleSendMessage = async (user: any) => {
+    const message = contactMessage[user.id];
+    if (!message || !message.trim()) {
+      alert("Please enter a message");
+      return;
+    }
+
+    // Determine customer_type and customer_ref based on user type and role
+    let customerType: 'web' | 'line' | 'guest';
+    let customerRef: string;
+
+    if (user.user_type === 'owner' || (user.user_type === 'customer' && user.role === 'web')) {
+      customerType = 'web';
+      customerRef = user.auth_user_id || user.id;
+    } else if (user.user_type === 'customer' && user.role === 'line') {
+      customerType = 'line';
+      customerRef = user.auth_user_id || user.id; // Could be line_user_id if available
+    } else if (user.user_type === 'customer' && user.role === 'guest') {
+      customerType = 'guest';
+      customerRef = user.email || user.id;
+    } else {
+      alert("Cannot contact this user type");
+      return;
+    }
+
+    try {
+      setProcessingId(user.id);
+      const response = await fetch(`${apiUrl}/admin/support/conversations/create`, {
+        method: "POST",
+        headers: {
+          "x-user-id": currentUserId || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer_ref: customerRef,
+          customer_type: customerType,
+          content: message.trim(),
+        }),
+      });
+
+      if (response.ok) {
+        alert("Message sent successfully!");
+        setShowContactModal(null);
+        setContactMessage({ ...contactMessage, [user.id]: "" });
+      } else {
+        const error = await response.json();
+        alert(error.error || "Failed to send message");
+      }
+    } catch (error: any) {
+      console.error("Error sending message:", error);
+      alert(error.message || "Failed to send message");
     } finally {
       setProcessingId(null);
     }
@@ -210,28 +268,42 @@ export default function UserManagementTable({
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {new Date(user.created_at).toLocaleDateString()}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                   {user.user_type === 'admin' ? (
                     // Admins cannot be banned/unbanned by other admins
                     <span className="text-gray-400 text-xs">Protected</span>
-                  ) : user.is_banned ? (
-                    <button
-                      onClick={() => handleUnban(user.id)}
-                      disabled={processingId === user.id}
-                      className="text-green-600 hover:text-green-900 disabled:opacity-50"
-                    >
-                      {processingId === user.id
-                        ? (t("common.loading") || "Loading")
-                        : (t("admin.unban") || "Unban")}
-                    </button>
                   ) : (
-                    <button
-                      onClick={() => setShowBanModal(user.id)}
-                      disabled={processingId === user.id}
-                      className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                    >
-                      {t("admin.ban") || "Ban"}
-                    </button>
+                    <>
+                      {/* Contact Button */}
+                      <button
+                        onClick={() => setShowContactModal(user.id)}
+                        disabled={processingId === user.id}
+                        className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
+                      >
+                        Contact
+                      </button>
+
+                      {/* Ban/Unban Button */}
+                      {user.is_banned ? (
+                        <button
+                          onClick={() => handleUnban(user.id)}
+                          disabled={processingId === user.id}
+                          className="text-green-600 hover:text-green-900 disabled:opacity-50"
+                        >
+                          {processingId === user.id
+                            ? (t("common.loading") || "Loading")
+                            : (t("admin.unban") || "Unban")}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setShowBanModal(user.id)}
+                          disabled={processingId === user.id}
+                          className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                        >
+                          {t("admin.ban") || "Ban"}
+                        </button>
+                      )}
+                    </>
                   )}
                 </td>
               </tr>
@@ -277,6 +349,61 @@ export default function UserManagementTable({
                   >
                     {t("admin.ban") || "Ban"}
                   </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contact Modal */}
+      {showContactModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold mb-4">Contact User</h3>
+            {(() => {
+              const user = users.find((u) => u.id === showContactModal);
+              return user ? (
+                <div className="mb-4 p-3 bg-gray-50 rounded">
+                  <p className="text-sm text-gray-600">
+                    <strong>{user.name || "Unknown"}</strong> ({user.user_type})
+                    {user.email && <span> - {user.email}</span>}
+                  </p>
+                </div>
+              ) : null;
+            })()}
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Message
+            </label>
+            <textarea
+              value={contactMessage[showContactModal] || ""}
+              onChange={(e) =>
+                setContactMessage({ ...contactMessage, [showContactModal]: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4"
+              rows={4}
+              placeholder="Type your message to the user..."
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowContactModal(null);
+                  setContactMessage({ ...contactMessage, [showContactModal]: "" });
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                {t("common.cancel") || "Cancel"}
+              </button>
+              <button
+                onClick={() => {
+                  const user = users.find((u) => u.id === showContactModal);
+                  if (user) {
+                    handleSendMessage(user);
+                  }
+                }}
+                disabled={processingId === showContactModal}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {processingId === showContactModal ? "Sending..." : "Send Message"}
+              </button>
             </div>
           </div>
         </div>
