@@ -1175,16 +1175,9 @@ function LineInboxPageContent() {
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-gray-900 truncate">
-                            {conv.shop?.name || (conv.is_support_ticket ? t("admin.support") || "Support" : 'Shop')}
-                          </h3>
-                          {conv.is_support_ticket && (
-                            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-medium">
-                              {t("admin.support") || "Support"}
-                            </span>
-                          )}
-                        </div>
+                        <h3 className="font-semibold text-gray-900 truncate">
+                          {conv.shop?.name || 'Shop'}
+                        </h3>
                         {conv.unread_count && conv.unread_count > 0 && (
                           <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1">
                             {conv.unread_count}
