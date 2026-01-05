@@ -34,33 +34,91 @@ END $$;
 -- ============================================
 -- STEP 3: Create conversations table
 -- ============================================
+-- Create conversation type enums
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'conversation_type_enum') THEN
+        CREATE TYPE conversation_type_enum AS ENUM ('booking_owner', 'support_admin', 'admin_owner');
+        RAISE NOTICE 'Created conversation_type_enum';
+    ELSE
+        RAISE NOTICE 'conversation_type_enum already exists';
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'target_type_enum') THEN
+        CREATE TYPE target_type_enum AS ENUM ('shop', 'admin', 'owner');
+        RAISE NOTICE 'Created target_type_enum';
+    ELSE
+        RAISE NOTICE 'target_type_enum already exists';
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS conversations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    shop_id UUID NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
-    booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
+    conversation_type conversation_type_enum NOT NULL DEFAULT 'booking_owner',
+    target_type target_type_enum NOT NULL DEFAULT 'shop',
+    target_id UUID NOT NULL, -- shop_id, admin_id, or owner_id
+    booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL, -- REQUIRED for booking_owner type
     customer_type customer_type_enum NOT NULL,
     customer_ref TEXT NOT NULL, -- line_user_id OR user_id OR guest_token
     last_message_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    
-    -- Ensure one conversation per shop + customer_ref combination
-    UNIQUE(shop_id, customer_ref)
+
+    -- Ensure proper scoping: one conversation per context
+    UNIQUE(conversation_type, target_type, target_id, customer_ref, booking_id)
 );
 
 -- Add missing columns if table exists without them (for existing tables from partial runs)
 DO $$
 BEGIN
+    -- Add conversation_type if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'conversations'
+        AND column_name = 'conversation_type'
+    ) THEN
+        ALTER TABLE conversations
+        ADD COLUMN conversation_type conversation_type_enum NOT NULL DEFAULT 'booking_owner';
+        RAISE NOTICE 'Added conversation_type column to conversations';
+    END IF;
+
+    -- Add target_type if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'conversations'
+        AND column_name = 'target_type'
+    ) THEN
+        ALTER TABLE conversations
+        ADD COLUMN target_type target_type_enum NOT NULL DEFAULT 'shop';
+        RAISE NOTICE 'Added target_type column to conversations';
+    END IF;
+
+    -- Add target_id if missing (will be populated from shop_id)
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'conversations'
+        AND column_name = 'target_id'
+    ) THEN
+        ALTER TABLE conversations
+        ADD COLUMN target_id UUID;
+        -- Migrate existing shop_id to target_id for booking_owner conversations
+        UPDATE conversations SET target_id = shop_id WHERE conversation_type = 'booking_owner';
+        RAISE NOTICE 'Added target_id column to conversations and migrated shop_id data';
+    END IF;
+
     -- Add booking_id if missing
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'conversations' 
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'conversations'
         AND column_name = 'booking_id'
     ) THEN
-        ALTER TABLE conversations 
+        ALTER TABLE conversations
         ADD COLUMN booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL;
         RAISE NOTICE 'Added booking_id column to conversations';
     END IF;
-    
+
     -- Add customer_type if missing
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns 
