@@ -281,8 +281,6 @@ function LineInboxPageContent() {
       // DEBUG: Check conversation types
       const conversationTypes = data.conversations?.map(c => c.conversation_type) || [];
       console.log('[LINE Inbox] Conversation types:', [...new Set(conversationTypes)]);
-
-      const data = await res.json();
       console.log("[LINE Inbox] Loaded conversations:", data.conversations?.length || 0);
       
       // CRITICAL: Deduplicate by shop_id - keep only the latest conversation per shop
