@@ -96,7 +96,13 @@ export default function MessagesPage() {
 
       if (!convRes.ok) {
         const errorData = await convRes.json().catch(() => ({ error: 'Failed to create conversation' }));
-        throw new Error(errorData.error || 'Failed to create conversation');
+        console.error('[Messages] Conversation creation failed:', {
+          status: convRes.status,
+          statusText: convRes.statusText,
+          error: errorData,
+          headers: Object.fromEntries(convRes.headers.entries())
+        });
+        throw new Error(errorData.error || `Failed to create conversation (${convRes.status})`);
       }
 
       const convData = await convRes.json();
@@ -239,7 +245,14 @@ export default function MessagesPage() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Failed to send message' }));
-        throw new Error(errorData.error || 'Failed to send message');
+        console.error('[Messages] Message sending failed:', {
+          status: res.status,
+          statusText: res.statusText,
+          error: errorData,
+          conversationId,
+          contentLength: trimmedContent.length
+        });
+        throw new Error(errorData.error || `Failed to send message (${res.status})`);
       }
 
       const data = await res.json();
