@@ -250,7 +250,7 @@ function LineSupportPageContent() {
         console.log('[LINE Support] Sample conversation:', convs?.[0]);
 
         // DEBUG: Check conversation types
-        const conversationTypes = convs?.map(c => c.conversation_type) || [];
+        const conversationTypes = convs?.map((c: any) => c.conversation_type) || [];
         console.log('[LINE Support] Conversation types:', [...new Set(conversationTypes)]);
 
         setConversations(convs || []);
