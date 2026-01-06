@@ -247,6 +247,13 @@ function LineInboxPageContent() {
       // Rely on backend auth context to resolve customer_type/customer_ref
       // Load ONLY booking_owner conversations for the inbox
       const inboxUrl = `${apiUrl}/api/internal-messaging/conversations?conversation_type=booking_owner`;
+      console.log('[LINE Inbox] About to call conversations API:', {
+        apiUrl,
+        inboxUrl,
+        lineUserId: lineUserId ? 'present' : 'missing',
+        idToken: idToken ? 'present' : 'missing'
+      });
+
       const res = await messagingFetch(
         inboxUrl,
         {

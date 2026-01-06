@@ -165,7 +165,12 @@ export async function messagingFetch(
     url,
     method,
     hasBody: !!body,
-    headers: Object.keys(headers)
+    headers: Object.keys(headers),
+    fullUrl: url
+  });
+  console.log('[Messaging API Client] Full request details:', {
+    url,
+    options: fetchOptions
   });
 
   return fetch(url, fetchOptions);
