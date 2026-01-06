@@ -349,21 +349,21 @@ function LineInboxPageContent() {
             existingConv = allConversations.find(c => c.shop_id === shopId);
             
             // Update conversations list with backend data (deduplicated)
-            const byShop = new Map<string, Conversation>();
+            const byTarget = new Map<string, Conversation>();
             for (const conv of allConversations) {
-              const key = conv.shop_id;
-              const existing = byShop.get(key);
+              const key = conv.target_id || conv.shop_id || conv.id;
+              const existing = byTarget.get(key);
               if (!existing) {
-                byShop.set(key, conv);
+                byTarget.set(key, conv);
               } else {
                 const existingTime = new Date(existing.last_message_at || existing.created_at).getTime();
                 const newTime = new Date(conv.last_message_at || conv.created_at).getTime();
                 if (newTime > existingTime) {
-                  byShop.set(key, conv);
+                  byTarget.set(key, conv);
                 }
               }
             }
-            const deduped = Array.from(byShop.values()).sort((a, b) =>
+            const deduped = Array.from(byTarget.values()).sort((a, b) =>
               new Date(b.last_message_at || b.created_at).getTime() -
               new Date(a.last_message_at || a.created_at).getTime()
             );
@@ -518,21 +518,21 @@ function LineInboxPageContent() {
 
             if (existingConv) {
               // Update conversations list with backend data (deduplicated)
-              const byShop = new Map<string, Conversation>();
+              const byTarget = new Map<string, Conversation>();
               for (const conv of allConversations) {
-                const key = conv.target_id;
-                const existing = byShop.get(key);
+                const key = conv.target_id || conv.shop_id || conv.id;
+                const existing = byTarget.get(key);
                 if (!existing) {
-                  byShop.set(key, conv);
+                  byTarget.set(key, conv);
                 } else {
                   const existingTime = new Date(existing.last_message_at || existing.created_at).getTime();
                   const newTime = new Date(conv.last_message_at || conv.created_at).getTime();
                   if (newTime > existingTime) {
-                    byShop.set(key, conv);
+                    byTarget.set(key, conv);
                   }
                 }
               }
-              const deduped = Array.from(byShop.values()).sort((a, b) =>
+              const deduped = Array.from(byTarget.values()).sort((a, b) =>
                 new Date(b.last_message_at || b.created_at).getTime() -
                 new Date(a.last_message_at || a.created_at).getTime()
               );
@@ -604,23 +604,24 @@ function LineInboxPageContent() {
             const byShop = new Map<string, Conversation>();
             // Add existing conversations
             for (const conv of prev) {
-              const key = conv.shop_id;
-              const existing = byShop.get(key);
+              const key = conv.target_id || conv.shop_id || conv.id;
+              const existing = byTarget.get(key);
               if (!existing) {
-                byShop.set(key, conv);
+                byTarget.set(key, conv);
               } else {
                 // Keep the one with latest last_message_at
                 const existingTime = new Date(existing.last_message_at || existing.created_at).getTime();
                 const newTime = new Date(conv.last_message_at || conv.created_at).getTime();
                 if (newTime > existingTime) {
-                  byShop.set(key, conv);
+                  byTarget.set(key, conv);
                 }
               }
             }
-            // Add new conversation (will replace if shop_id exists)
-            byShop.set(shopId, conversationToUse!);
-            
-            const deduped = Array.from(byShop.values()).sort((a, b) =>
+            // Add new conversation (will replace if target_id exists)
+            const newKey = conversationToUse!.target_id || conversationToUse!.shop_id || conversationToUse!.id;
+            byTarget.set(newKey, conversationToUse!);
+
+            const deduped = Array.from(byTarget.values()).sort((a, b) =>
               new Date(b.last_message_at || b.created_at).getTime() -
               new Date(a.last_message_at || a.created_at).getTime()
             );
