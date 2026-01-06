@@ -252,8 +252,15 @@ function LineInboxPageContent() {
         inboxUrl,
         lineUserId: lineUserId ? 'present' : 'missing',
         idToken: idToken ? 'present' : 'missing',
-        envApiUrl: process.env.NEXT_PUBLIC_API_URL
+        envApiUrl: process.env.NEXT_PUBLIC_API_URL,
+        apiUrlType: typeof apiUrl,
+        apiUrlValue: apiUrl
       });
+
+      // Check if apiUrl is just a path (starts with /)
+      if (apiUrl && apiUrl.startsWith('/')) {
+        console.warn('[LINE Inbox] apiUrl starts with / - this might be the issue!', { apiUrl });
+      }
 
       const res = await messagingFetch(
         inboxUrl,
