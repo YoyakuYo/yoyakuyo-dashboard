@@ -279,7 +279,7 @@ function LineInboxPageContent() {
       console.log('[LINE Inbox] Sample conversation:', data.conversations?.[0]);
 
       // DEBUG: Check conversation types
-      const conversationTypes = data.conversations?.map(c => c.conversation_type) || [];
+      const conversationTypes = data.conversations?.map((c: any) => c.conversation_type) || [];
       console.log('[LINE Inbox] Conversation types:', [...new Set(conversationTypes)]);
       console.log("[LINE Inbox] Loaded conversations:", data.conversations?.length || 0);
       
