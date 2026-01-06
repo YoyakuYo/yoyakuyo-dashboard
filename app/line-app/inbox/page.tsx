@@ -286,24 +286,24 @@ function LineInboxPageContent() {
       console.log('[LINE Inbox] Conversation types:', [...new Set(conversationTypes)]);
       console.log("[LINE Inbox] Loaded conversations:", data.conversations?.length || 0);
       
-      // CRITICAL: Deduplicate by shop_id - keep only the latest conversation per shop
+      // CRITICAL: Deduplicate by target_id - keep only the latest conversation per target
       const rawConversations: Conversation[] = data.conversations || [];
-      const byShop = new Map<string, Conversation>();
+      const byTarget = new Map<string, Conversation>();
       for (const conv of rawConversations) {
-        const key = conv.shop_id;
-        const existing = byShop.get(key);
+        const key = conv.target_id || conv.shop_id || conv.id;
+        const existing = byTarget.get(key);
         if (!existing) {
-          byShop.set(key, conv);
+          byTarget.set(key, conv);
         } else {
           // Keep the one with latest last_message_at (or created_at if no messages)
           const existingTime = new Date(existing.last_message_at || existing.created_at).getTime();
           const newTime = new Date(conv.last_message_at || conv.created_at).getTime();
           if (newTime > existingTime) {
-            byShop.set(key, conv);
+            byTarget.set(key, conv);
           }
         }
       }
-      const deduped = Array.from(byShop.values()).sort((a, b) =>
+      const deduped = Array.from(byTarget.values()).sort((a, b) =>
         new Date(b.last_message_at || b.created_at).getTime() -
         new Date(a.last_message_at || a.created_at).getTime()
       );
