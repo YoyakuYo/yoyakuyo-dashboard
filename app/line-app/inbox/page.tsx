@@ -600,8 +600,8 @@ function LineInboxPageContent() {
           
           // Add to conversations list with proper deduplication
           setConversations(prev => {
-            // CRITICAL: Deduplicate by shop_id - only one conversation per shop
-            const byShop = new Map<string, Conversation>();
+            // CRITICAL: Deduplicate by target_id - only one conversation per target
+            const byTarget = new Map<string, Conversation>();
             // Add existing conversations
             for (const conv of prev) {
               const key = conv.target_id || conv.shop_id || conv.id;
