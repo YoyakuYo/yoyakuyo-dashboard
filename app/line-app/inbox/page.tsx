@@ -486,18 +486,34 @@ function LineInboxPageContent() {
     let conversationId: string;
     let conversationToUse: Conversation | null = selectedConversation;
 
-    // If no selected conversation, check if one exists in the list for this shop
-    if (!conversationToUse) {
-      // Determine which shop we're messaging
-      const shopId = preselectedShopId || (conversations.length > 0 ? conversations[0].shop_id : null);
-      
-      if (!shopId) {
-        setError('Cannot send message: No shop selected and no conversation exists.');
-        return;
-      }
+      // If no selected conversation, check if one exists in the list for this shop
+      if (!conversationToUse) {
+        // Determine which shop we're messaging
+        const shopId = preselectedShopId || (conversations.length > 0 ? conversations[0].shop_id : null);
+
+        console.log('[LINE Inbox] sendMessage - Shop determination:', {
+          preselectedShopId,
+          conversationsCount: conversations.length,
+          firstConversationShopId: conversations.length > 0 ? conversations[0].shop_id : null,
+          determinedShopId: shopId
+        });
+
+        if (!shopId) {
+          setError('Cannot send message: No shop selected and no conversation exists.');
+          return;
+        }
 
       // FIRST: Check if conversation already exists in list (by target_id for shop conversations)
       let existingConv = conversations.find(c => c.target_id === shopId && c.conversation_type === 'booking_owner');
+
+      console.log('[LINE Inbox] sendMessage - Existing conversation check:', {
+        shopId,
+        conversationType: 'booking_owner',
+        foundInList: !!existingConv,
+        existingConvId: existingConv?.id,
+        conversationsCount: conversations.length,
+        conversationsList: conversations.map(c => ({ id: c.id, target_id: c.target_id, type: c.conversation_type, shop_id: c.shop_id }))
+      });
       
       // SECOND: If not in list, check backend (conversation might exist but not be loaded)
       if (!existingConv) {
@@ -515,6 +531,13 @@ function LineInboxPageContent() {
             const data = await res.json();
             const allConversations: Conversation[] = data.conversations || [];
             existingConv = allConversations.find(c => c.target_id === shopId && c.conversation_type === 'booking_owner');
+
+            console.log('[LINE Inbox] Backend conversation search:', {
+              allConversationsCount: allConversations.length,
+              foundInBackend: !!existingConv,
+              backendConvId: existingConv?.id,
+              allConversations: allConversations.map(c => ({ id: c.id, target_id: c.target_id, type: c.conversation_type, shop_id: c.shop_id }))
+            });
 
             if (existingConv) {
               // Update conversations list with backend data (deduplicated)
@@ -565,6 +588,12 @@ function LineInboxPageContent() {
       } else {
         // NO conversation exists anywhere - create ONLY when sending first message
         console.log("[LINE Inbox] No conversation exists anywhere, creating ONLY because user is sending first message:", shopId);
+        console.log('[LINE Inbox] Creating new conversation with params:', {
+          shop_id: shopId,
+          booking_id: preselectedBookingId,
+          customer_type: 'line',
+          customer_ref: lineUserId
+        });
         
         try {
           const convRes = await messagingFetch(
@@ -578,6 +607,9 @@ function LineInboxPageContent() {
                 booking_id: preselectedBookingId || null,
                 customer_type: 'line',
                 customer_ref: lineUserId,
+                conversation_type: 'booking_owner',
+                target_type: 'shop',
+                target_id: shopId,
               },
             }
           );
@@ -667,6 +699,12 @@ function LineInboxPageContent() {
     }
 
     // CRITICAL: Ensure realtime subscription is ALWAYS active before sending
+    console.log('[LINE Inbox] Realtime subscription check:', {
+      conversationId,
+      hasRealtimeChannel: !!realtimeChannelRef.current,
+      realtimeChannelState: realtimeChannelRef.current?.state
+    });
+
     if (conversationId && !realtimeChannelRef.current) {
       console.log("[LINE Inbox] Realtime subscription missing, setting up now:", conversationId);
       subscribeToMessages(conversationId);
@@ -1128,15 +1166,9 @@ function LineInboxPageContent() {
     if (conversations.length === 1 && !selectedConversation && !preselectedShopId && lineUserId && idToken && !loading) {
       const singleConv = conversations[0];
       console.log("[LINE Inbox] Auto-opening single conversation:", singleConv.id);
-      lockedConversationIdRef.current = singleConv.id;
-      setSelectedConversation(singleConv);
-      // Load messages and subscribe immediately
-      (async () => {
-        await loadMessages(singleConv.id, lineUserId, idToken);
-        subscribeToMessages(singleConv.id);
-      })();
+      handleSelectConversation(singleConv);
     }
-  }, [conversations.length, preselectedShopId, lineUserId, idToken, loading]);
+  }, [conversations.length, selectedConversation, preselectedShopId, lineUserId, idToken, loading]);
 
   // STEP 5: Subscribe to realtime when conversation is selected
   // CRITICAL: Only subscribe when conversation actually changes, don't clean up unnecessarily
@@ -1350,6 +1382,18 @@ function LineInboxPageContent() {
                         <p className="font-semibold">⚠️ {t("error")}</p>
                         <p className="text-sm mt-2">{error}</p>
                       </div>
+                    ) : !selectedConversation && conversations.length > 0 ? (
+                      <div className="text-center text-gray-500 mt-8">
+                        <p className="text-lg mb-2">{t("selectConversation") || "Select a conversation from the list to start messaging"}</p>
+                        {conversations.length === 1 && (
+                          <button
+                            onClick={() => handleSelectConversation(conversations[0])}
+                            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                          >
+                            {t("openConversation") || "Open Conversation"}
+                          </button>
+                        )}
+                      </div>
                     ) : messages.length === 0 ? (
                       <div className="text-center text-gray-500 mt-8">
                         <p>{t("noMessagesYet")}</p>
@@ -1416,7 +1460,7 @@ function LineInboxPageContent() {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Input Area - Only show when conversation is selected */}
+                  {/* Input Area - Show when conversation is selected */}
                   {selectedConversation && (
                     <div className="border-t border-gray-200 p-3 flex-shrink-0" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
                       <div className="flex gap-2">
