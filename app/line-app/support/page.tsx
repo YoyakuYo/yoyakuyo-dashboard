@@ -700,7 +700,21 @@ function LineSupportPageContent() {
               </>
             ) : (
               <div className="flex-1 flex items-center justify-center">
-                <p className="text-gray-500">{tx('title')}</p>
+                <div className="text-center">
+                  <p className="text-gray-500 mb-4">{tx('title')}</p>
+                  {conversations.length > 0 ? (
+                    <p className="text-sm text-gray-400 mb-4">
+                      Select a conversation from the list to start messaging
+                    </p>
+                  ) : (
+                    <button
+                      onClick={() => setSupportType('admin')}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Start New Conversation
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
