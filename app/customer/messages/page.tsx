@@ -15,6 +15,9 @@ import { useCustomerNotifications } from "../components/CustomerNotificationCont
 
 interface Conversation {
   id: string;
+  conversation_type?: string;
+  target_type?: string;
+  target_id?: string;
   type: string;
   shop_id: string | null;
   customer_id: string;

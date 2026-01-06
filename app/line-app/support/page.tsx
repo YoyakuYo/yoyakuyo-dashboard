@@ -15,6 +15,9 @@ declare global {
 
 interface Conversation {
   id: string;
+  conversation_type?: string;
+  target_type?: string;
+  target_id?: string;
   shop_id: string | null;
   booking_id: string | null;
   customer_type: string;

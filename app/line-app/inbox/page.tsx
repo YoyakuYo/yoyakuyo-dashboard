@@ -20,7 +20,10 @@ declare global {
 
 interface Conversation {
   id: string;
-  shop_id: string;
+  conversation_type?: string;
+  target_type?: string;
+  target_id?: string;
+  shop_id?: string;
   shop?: {
     id: string;
     name: string;
