@@ -30,8 +30,7 @@ WITH analysis AS (
         END as actual_type,
 
         CASE
-            WHEN au.id IS NOT NULL AND la.customer_id IS NULL THEN
-                CASE WHEN c.role IN ('web', 'owner') THEN c.role ELSE 'web' END
+            WHEN au.id IS NOT NULL AND la.customer_id IS NULL THEN 'web'
             WHEN au.id IS NULL AND la.customer_id IS NOT NULL THEN 'line'
             WHEN au.id IS NULL AND la.customer_id IS NULL THEN 'guest'
             ELSE 'NEEDS_CLEANUP'
@@ -113,7 +112,7 @@ SELECT
     'POST-CLEANUP VERIFICATION' as report,
     COUNT(*) as total_customers_checked,
     COUNT(CASE WHEN
-        (au.id IS NOT NULL AND la.customer_id IS NULL AND c.role IN ('web', 'owner')) OR
+        (au.id IS NOT NULL AND la.customer_id IS NULL AND c.role = 'web') OR
         (au.id IS NULL AND la.customer_id IS NOT NULL AND c.role = 'line') OR
         (au.id IS NULL AND la.customer_id IS NULL AND c.role = 'guest')
     THEN 1 END) as correctly_typed,

@@ -14,7 +14,7 @@ WITH customer_analysis AS (
 
         -- Determine CORRECT customer type based on data
         CASE
-            WHEN au.id IS NOT NULL AND la.customer_id IS NULL AND c.role IN ('web', 'owner') THEN 'PURE_WEB'
+            WHEN au.id IS NOT NULL AND la.customer_id IS NULL AND c.role = 'web' THEN 'PURE_WEB'
             WHEN au.id IS NULL AND la.customer_id IS NOT NULL AND c.line_user_id IS NOT NULL THEN 'PURE_LINE'
             WHEN au.id IS NULL AND la.customer_id IS NULL AND c.role = 'guest' THEN 'PURE_GUEST'
             WHEN au.id IS NOT NULL AND la.customer_id IS NOT NULL THEN 'HYBRID_WEB_LINE'
@@ -25,7 +25,7 @@ WITH customer_analysis AS (
 
         -- Identify mismatches
         CASE
-            WHEN au.id IS NOT NULL AND la.customer_id IS NULL AND c.role NOT IN ('web', 'owner') THEN 'ROLE_MISMATCH_WEB'
+            WHEN au.id IS NOT NULL AND la.customer_id IS NULL AND c.role != 'web' THEN 'ROLE_MISMATCH_WEB'
             WHEN au.id IS NULL AND la.customer_id IS NOT NULL AND c.role != 'line' THEN 'ROLE_MISMATCH_LINE'
             WHEN au.id IS NULL AND la.customer_id IS NULL AND c.role != 'guest' THEN 'ROLE_MISMATCH_GUEST'
             WHEN au.id IS NOT NULL AND la.customer_id IS NOT NULL THEN 'HYBRID_VIOLATION'
