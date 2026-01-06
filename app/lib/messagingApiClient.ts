@@ -140,7 +140,14 @@ export async function messagingFetch(
     body?: any;
   }
 ): Promise<Response> {
-  const { method = 'GET', body, ...authOptions } = options;
+  let { method = 'GET', body, ...authOptions } = options;
+  
+  // If body is provided but method is GET/HEAD, automatically use POST
+  // GET/HEAD requests cannot have a body
+  if (body && (method === 'GET' || method === 'HEAD')) {
+    console.warn('[Messaging API Client] Body provided with GET/HEAD method, automatically switching to POST');
+    method = 'POST';
+  }
   
   const headers = await getMessagingAuthHeaders(authOptions);
   
