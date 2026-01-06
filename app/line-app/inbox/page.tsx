@@ -251,7 +251,8 @@ function LineInboxPageContent() {
         apiUrl,
         inboxUrl,
         lineUserId: lineUserId ? 'present' : 'missing',
-        idToken: idToken ? 'present' : 'missing'
+        idToken: idToken ? 'present' : 'missing',
+        envApiUrl: process.env.NEXT_PUBLIC_API_URL
       });
 
       const res = await messagingFetch(

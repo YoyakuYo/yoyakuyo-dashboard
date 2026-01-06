@@ -170,8 +170,26 @@ export async function messagingFetch(
   });
   console.log('[Messaging API Client] Full request details:', {
     url,
-    options: fetchOptions
+    method,
+    headers: Object.keys(headers).length,
+    hasBody: !!body,
+    bodySize: body ? JSON.stringify(body).length : 0
   });
+
+  // DEBUG: Actually make the request and log response
+  try {
+    const response = await fetch(url, fetchOptions);
+    console.log('[Messaging API Client] Response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      url: response.url,
+      ok: response.ok
+    });
+    return response;
+  } catch (error) {
+    console.error('[Messaging API Client] Fetch error:', error);
+    throw error;
+  }
 
   return fetch(url, fetchOptions);
 }
