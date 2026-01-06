@@ -246,7 +246,16 @@ function LineInboxPageContent() {
       // ALWAYS inject X-User-Id via unified messaging API client
       // Rely on backend auth context to resolve customer_type/customer_ref
       // Load ONLY booking_owner conversations for the inbox
+      console.log('[LINE Inbox] API URL debug:', {
+        apiUrl,
+        typeofApiUrl: typeof apiUrl,
+        apiUrlValue: apiUrl,
+        isUndefined: apiUrl === undefined,
+        isNull: apiUrl === null,
+        isEmptyString: apiUrl === '',
+      });
       const inboxUrl = `${apiUrl}/api/internal-messaging/conversations?conversation_type=booking_owner`;
+      console.log('[LINE Inbox] Constructed inbox URL:', inboxUrl);
       console.log('[LINE Inbox] About to call conversations API:', {
         apiUrl,
         inboxUrl,
