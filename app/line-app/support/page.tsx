@@ -263,9 +263,13 @@ function LineSupportPageContent() {
   };
 
   const loadMessages = async (conversationId: string) => {
-    if (!lineUserId || !idToken) return;
+    if (!lineUserId || !idToken) {
+      console.error('[LINE Support] Cannot load messages: missing lineUserId or idToken');
+      return;
+    }
 
     try {
+      console.log('[LINE Support] Loading messages for conversation:', conversationId);
       const res = await messagingFetch(
         `${apiUrl}/api/internal-messaging/customer/support/conversations/${conversationId}`,
         {
@@ -276,11 +280,25 @@ function LineSupportPageContent() {
 
       if (res.ok) {
         const { conversation, messages: msgs } = await res.json();
+        console.log('[LINE Support] Loaded messages:', {
+          conversationId,
+          messageCount: msgs?.length || 0,
+          hasShop: !!conversation?.shop_id
+        });
         setMessages(msgs || []);
         setSelectedConversationId(conversationId);
+      } else {
+        const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[LINE Support] Failed to load messages:', {
+          conversationId,
+          status: res.status,
+          error
+        });
+        alert(`Failed to load messages: ${error.error || 'Unknown error'}`);
       }
-    } catch (error) {
-      console.error('Error loading messages:', error);
+    } catch (error: any) {
+      console.error('[LINE Support] Error loading messages:', error);
+      alert(`Error loading messages: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -402,6 +420,13 @@ function LineSupportPageContent() {
     }
 
     try {
+      console.log('[LINE Support] Sending message:', {
+        conversationId: conversationIdToUse,
+        contentLength: content.length,
+        lineUserId,
+        hasIdToken: !!idToken
+      });
+      
       const res = await messagingFetch(
         `${apiUrl}/api/internal-messaging/customer/support/conversations/${conversationIdToUse}/reply`,
         {
@@ -415,17 +440,28 @@ function LineSupportPageContent() {
 
       if (res.ok) {
         const { message } = await res.json();
+        console.log('[LINE Support] Message sent successfully:', message.id);
         setMessages(prev => [...prev, message]);
         await loadConversations();
       } else {
         const error = await res.json().catch(() => ({ error: 'Unknown error' }));
-        console.error("Failed to send message:", res.status, error);
-        alert(error.error || 'Failed to send message');
+        console.error('[LINE Support] Failed to send message:', {
+          conversationId: conversationIdToUse,
+          status: res.status,
+          statusText: res.statusText,
+          error,
+          contentLength: content.length
+        });
+        alert(`Failed to send message: ${error.error || 'Unknown error'}`);
         setInput(content);
       }
-    } catch (error) {
-      console.error("Error sending message:", error);
-      alert('Failed to send message');
+    } catch (error: any) {
+      console.error('[LINE Support] Error sending message:', {
+        conversationId: conversationIdToUse,
+        error: error.message || error,
+        stack: error.stack
+      });
+      alert(`Error sending message: ${error.message || 'Unknown error'}`);
       setInput(content);
     } finally {
       setSending(false);
