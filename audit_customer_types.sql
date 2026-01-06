@@ -87,7 +87,7 @@ UNION ALL
 SELECT
     'DETAILS' as section,
     'PROBLEM CUSTOMER' as report,
-    id as total_customers,
+    id::text as total_customers,
     current_role as pure_web,
     correct_type as pure_line,
     has_web_auth::text as pure_guest,
