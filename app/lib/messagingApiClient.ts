@@ -141,25 +141,33 @@ export async function messagingFetch(
   }
 ): Promise<Response> {
   let { method = 'GET', body, ...authOptions } = options;
-  
+
   // If body is provided but method is GET/HEAD, automatically use POST
   // GET/HEAD requests cannot have a body
   if (body && (method === 'GET' || method === 'HEAD')) {
     console.warn('[Messaging API Client] Body provided with GET/HEAD method, automatically switching to POST');
     method = 'POST';
   }
-  
+
   const headers = await getMessagingAuthHeaders(authOptions);
-  
+
   const fetchOptions: RequestInit = {
     method,
     headers,
   };
-  
+
   if (body) {
     fetchOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
   }
-  
+
+  // DEBUG: Log the actual request being made
+  console.log('[Messaging API Client] Making request:', {
+    url,
+    method,
+    hasBody: !!body,
+    headers: Object.keys(headers)
+  });
+
   return fetch(url, fetchOptions);
 }
 
