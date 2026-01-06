@@ -41,6 +41,7 @@ WITH customer_analysis AS (
 
 -- STEP 2: SUMMARY REPORT
 SELECT
+    'SUMMARY' as section,
     'CUSTOMER TYPE AUDIT SUMMARY' as report,
     COUNT(*) as total_customers,
     COUNT(CASE WHEN correct_type = 'PURE_WEB' THEN 1 END) as pure_web,
@@ -54,9 +55,14 @@ UNION ALL
 
 -- STEP 3: HYBRID VIOLATIONS DETAIL
 SELECT
+    'VIOLATIONS' as section,
     'HYBRID VIOLATIONS FOUND' as report,
-    COUNT(*) as count,
-    STRING_AGG(id::text, ', ') as customer_ids
+    COUNT(*) as total_customers,
+    NULL as pure_web,
+    NULL as pure_line,
+    NULL as pure_guest,
+    COUNT(*) as hybrid_violations,
+    COUNT(*) as total_issues
 FROM customer_analysis
 WHERE correct_type LIKE 'HYBRID%'
 
@@ -64,9 +70,14 @@ UNION ALL
 
 -- STEP 4: ROLE MISMATCHES DETAIL
 SELECT
+    'VIOLATIONS' as section,
     'ROLE MISMATCHES FOUND' as report,
-    COUNT(*) as count,
-    STRING_AGG(id::text || '(' || current_role || '→' || correct_type || ')', ', ') as details
+    COUNT(*) as total_customers,
+    NULL as pure_web,
+    NULL as pure_line,
+    NULL as pure_guest,
+    NULL as hybrid_violations,
+    COUNT(*) as total_issues
 FROM customer_analysis
 WHERE status LIKE 'ROLE_MISMATCH%'
 
@@ -74,13 +85,14 @@ UNION ALL
 
 -- STEP 5: SPECIFIC HYBRID CUSTOMERS
 SELECT
-    'PROBLEM CUSTOMER DETAILS' as report,
-    id,
-    current_role,
-    correct_type,
-    has_web_auth,
-    has_line_account,
-    status
+    'DETAILS' as section,
+    'PROBLEM CUSTOMER' as report,
+    id as total_customers,
+    current_role as pure_web,
+    correct_type as pure_line,
+    has_web_auth::text as pure_guest,
+    has_line_account::text as hybrid_violations,
+    status as total_issues
 FROM customer_analysis
 WHERE correct_type LIKE 'HYBRID%'
-ORDER BY id;
+ORDER BY section, report;
