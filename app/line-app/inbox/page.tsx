@@ -271,6 +271,18 @@ function LineInboxPageContent() {
         console.warn('[LINE Inbox] apiUrl starts with / - this might be the issue!', { apiUrl });
       }
 
+      const debugStartTime = new Date().toISOString();
+      setRtDebug(`🔍 Starting conversation load at ${debugStartTime}`);
+      setRtStatus('Loading conversations...');
+
+      console.log('🔍 [LINE APP DEBUG] Starting conversation load...', {
+        inboxUrl,
+        lineUserId: lineUserId ? 'present' : 'missing',
+        idToken: token ? 'present' : 'missing',
+        apiUrl: apiUrl,
+        timestamp: debugStartTime
+      });
+
       const res = await messagingFetch(
         inboxUrl,
         {
@@ -279,8 +291,30 @@ function LineInboxPageContent() {
         }
       );
 
+      console.log('🔍 [LINE APP DEBUG] Conversation load response received:', {
+        ok: res.ok,
+        status: res.status,
+        statusText: res.statusText,
+        url: res.url,
+        timestamp: new Date().toISOString()
+      });
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Failed to load conversations' }));
+
+        const errorTimestamp = new Date().toISOString();
+        setRtDebug(`❌ FAILED at ${errorTimestamp}: ${res.status} ${res.statusText}`);
+        setRtStatus(`Error: ${errorData.error || 'Unknown error'}`);
+
+        console.error('🔍 [LINE APP DEBUG] CONVERSATION LOAD FAILED:', {
+          status: res.status,
+          statusText: res.statusText,
+          error: errorData,
+          errorMessage: errorData.error,
+          requestId: errorData.request_id,
+          inboxUrl,
+          timestamp: errorTimestamp
+        });
 
         let errorMessage = 'Failed to load conversations. Please try again.';
         if (res.status === 401) {
@@ -289,17 +323,24 @@ function LineInboxPageContent() {
           errorMessage = 'You do not have permission to view conversations.';
         }
 
-        console.error('[LINE Inbox] Conversation loading failed:', {
-          status: res.status,
-          statusText: res.statusText,
-          error: errorData
-        });
+        // Show detailed error in alert for debugging
+        const debugInfo = `🔍 DEBUG INFO (Check browser console too):
+• Status: ${res.status} ${res.statusText}
+• Error: ${errorData.error || 'Unknown'}
+• Request ID: ${errorData.request_id || 'None'}
+• URL: ${inboxUrl}
+• Timestamp: ${new Date().toISOString()}`;
 
-        alert(errorMessage);
+        alert(`${errorMessage}\n\n${debugInfo}`);
         setLoading(false); // Stop loading state
         setError(errorMessage);
         return; // Don't throw - prevent infinite loading
       }
+
+      setRtDebug(`✅ Conversation load successful at ${new Date().toISOString()}`);
+      setRtStatus('Parsing response...');
+
+      console.log('🔍 [LINE APP DEBUG] Conversation load successful, parsing response...');
 
       const data = await res.json();
       console.log('[LINE Inbox] Loaded conversations:', data.conversations?.length || 0);
@@ -541,43 +582,66 @@ function LineInboxPageContent() {
       
       // SECOND: If not in list, check backend (conversation might exist but not be loaded)
       if (!existingConv) {
-        console.log("[LINE Inbox] Not in list, checking backend for existing conversation...");
-        console.log("[LINE Inbox] Backend conversation check - authentication context:", {
+        console.log("🔍 [LINE APP DEBUG] Not in list, checking backend for existing conversation...");
+        console.log("🔍 [LINE APP DEBUG] Backend conversation check - authentication context:", {
           lineUserId: lineUserId ? 'present' : 'missing',
           idToken: idToken ? 'present' : 'missing',
-          apiUrl
+          apiUrl,
+          shopId,
+          timestamp: new Date().toISOString()
         });
+
         try {
+          const backendCheckUrl = `${apiUrl}/api/internal-messaging/conversations?conversation_type=booking_owner`;
+          console.log("🔍 [LINE APP DEBUG] Making backend conversation check request:", backendCheckUrl);
+
           const res = await messagingFetch(
-            `${apiUrl}/api/internal-messaging/conversations?conversation_type=booking_owner`,
+            backendCheckUrl,
             {
               lineUserId,
               idToken,
             }
           );
 
-          console.log("[LINE Inbox] Backend conversation check response:", {
+          console.log("🔍 [LINE APP DEBUG] Backend conversation check response:", {
             ok: res.ok,
             status: res.status,
-            statusText: res.statusText
+            statusText: res.statusText,
+            url: backendCheckUrl,
+            timestamp: new Date().toISOString()
           });
           
           if (res.ok) {
             const data = await res.json();
-            console.log("[LINE Inbox] Backend conversation check successful, response data:", {
+            console.log("🔍 [LINE APP DEBUG] Backend conversation check successful:", {
               hasConversations: !!data.conversations,
               conversationsCount: data.conversations?.length || 0,
-              request_id: data.request_id
+              request_id: data.request_id,
+              timestamp: new Date().toISOString()
             });
 
             const allConversations: Conversation[] = data.conversations || [];
             existingConv = allConversations.find(c => c.target_id === shopId && c.conversation_type === 'booking_owner');
 
-            console.log('[LINE Inbox] Backend conversation search:', {
+            console.log("🔍 [LINE APP DEBUG] Backend conversation search results:", {
               allConversationsCount: allConversations.length,
               foundInBackend: !!existingConv,
               backendConvId: existingConv?.id,
-              allConversations: allConversations.map(c => ({ id: c.id, target_id: c.target_id, type: c.conversation_type, shop_id: c.shop_id }))
+              lookingForShopId: shopId,
+              lookingForType: 'booking_owner',
+              foundConversation: existingConv ? {
+                id: existingConv.id,
+                target_id: existingConv.target_id,
+                conversation_type: existingConv.conversation_type,
+                shop_id: existingConv.shop_id
+              } : null,
+              allConversationsSummary: allConversations.map(c => ({
+                id: c.id,
+                target_id: c.target_id,
+                type: c.conversation_type,
+                shop_id: c.shop_id
+              })),
+              timestamp: new Date().toISOString()
             });
 
             if (existingConv) {
@@ -607,11 +671,26 @@ function LineInboxPageContent() {
             }
           } else {
             // Backend request failed!
-            console.error("[LINE Inbox] Backend conversation check FAILED:", {
+            const errorData = await res.json().catch(() => ({ error: 'Failed to parse error response' }));
+
+            console.error("🔍 [LINE APP DEBUG] BACKEND CONVERSATION CHECK CRITICAL FAILURE:", {
               status: res.status,
               statusText: res.statusText,
-              url: `${apiUrl}/api/internal-messaging/conversations?conversation_type=booking_owner`
+              error: errorData,
+              errorMessage: errorData.error,
+              requestId: errorData.request_id,
+              url: `${apiUrl}/api/internal-messaging/conversations?conversation_type=booking_owner`,
+              timestamp: new Date().toISOString()
             });
+
+            const debugInfo = `🔍 BACKEND CHECK FAILED:
+• Status: ${res.status} ${res.statusText}
+• Error: ${errorData.error || 'Unknown'}
+• Request ID: ${errorData.request_id || 'None'}
+• This is why "failed to load messages" appears!
+• Check browser console for full details.`;
+
+            alert(`Failed to check for existing conversations. Please try again.\n\n${debugInfo}`);
             setError('Failed to check for existing conversations. Please try again.');
             return;
           }
@@ -1313,6 +1392,18 @@ function LineInboxPageContent() {
           <div className="px-4 py-2 flex-shrink-0">
             <div className="bg-red-50 border border-red-200 rounded-lg p-3">
               <p className="text-red-800 text-sm">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* DEBUG DISPLAY - VISIBLE ON PHONE */}
+        {(rtDebug || rtStatus) && (
+          <div className="px-4 py-2 flex-shrink-0">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-yellow-800 text-xs font-mono">
+                🔍 DEBUG: {rtDebug}
+                {rtStatus && <span className="block mt-1">📊 Status: {rtStatus}</span>}
+              </p>
             </div>
           </div>
         )}
