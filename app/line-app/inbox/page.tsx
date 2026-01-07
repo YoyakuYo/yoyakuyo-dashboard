@@ -542,6 +542,11 @@ function LineInboxPageContent() {
       // SECOND: If not in list, check backend (conversation might exist but not be loaded)
       if (!existingConv) {
         console.log("[LINE Inbox] Not in list, checking backend for existing conversation...");
+        console.log("[LINE Inbox] Backend conversation check - authentication context:", {
+          lineUserId: lineUserId ? 'present' : 'missing',
+          idToken: idToken ? 'present' : 'missing',
+          apiUrl
+        });
         try {
           const res = await messagingFetch(
             `${apiUrl}/api/internal-messaging/conversations?conversation_type=booking_owner`,
@@ -550,9 +555,21 @@ function LineInboxPageContent() {
               idToken,
             }
           );
+
+          console.log("[LINE Inbox] Backend conversation check response:", {
+            ok: res.ok,
+            status: res.status,
+            statusText: res.statusText
+          });
           
           if (res.ok) {
             const data = await res.json();
+            console.log("[LINE Inbox] Backend conversation check successful, response data:", {
+              hasConversations: !!data.conversations,
+              conversationsCount: data.conversations?.length || 0,
+              request_id: data.request_id
+            });
+
             const allConversations: Conversation[] = data.conversations || [];
             existingConv = allConversations.find(c => c.target_id === shopId && c.conversation_type === 'booking_owner');
 
@@ -584,13 +601,24 @@ function LineInboxPageContent() {
                 new Date(a.last_message_at || a.created_at).getTime()
               );
               setConversations(deduped);
-              
+
               // Re-check after updating list
               existingConv = deduped.find(c => c.shop_id === shopId);
             }
+          } else {
+            // Backend request failed!
+            console.error("[LINE Inbox] Backend conversation check FAILED:", {
+              status: res.status,
+              statusText: res.statusText,
+              url: `${apiUrl}/api/internal-messaging/conversations?conversation_type=booking_owner`
+            });
+            setError('Failed to check for existing conversations. Please try again.');
+            return;
           }
         } catch (fetchError) {
           console.error("[LINE Inbox] Error checking backend for conversation:", fetchError);
+          setError('Failed to connect to server. Please check your connection and try again.');
+          return;
         }
       }
       
