@@ -83,7 +83,7 @@ export default function OwnerMessagesPage() {
       console.log('[Owner Messages] 🔍 [DIAGNOSTIC] Loading conversations for owner:', user.id);
       // Use the new internal messaging endpoint for owner conversations
       const res = await fetch(`${apiUrl}/api/internal-messaging/owner/conversations`, {
-        headers: { 'x-user-id': user.id },
+        headers: { 'x-owner-user-id': user.id },
       });
       
       console.log('[Owner Messages] 📥 [DIAGNOSTIC] Response status:', res.status, res.statusText);
@@ -185,7 +185,7 @@ export default function OwnerMessagesPage() {
       const res = await fetch(`${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`, {
         method: 'GET',
         headers: {
-          'x-user-id': user.id,
+          'x-owner-user-id': user.id,
           'Content-Type': 'application/json',
         },
       });
@@ -278,7 +278,7 @@ export default function OwnerMessagesPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user.id,
+          'x-owner-user-id': user.id,
         },
         body: JSON.stringify({
           conversation_id: selectedThread,
