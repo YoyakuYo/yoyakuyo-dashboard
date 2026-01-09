@@ -52,7 +52,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
       const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-      const windowsRes = await fetch(`${apiUrl}/availability/${shopId}?startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`, {
+      const windowsRes = await fetch(`${apiUrl}/api/availability/${shopId}?startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`, {
         headers: { 'x-user-id': userId },
       });
 
@@ -62,7 +62,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
       }
 
       // Load weekly template
-      const weeklyRes = await fetch(`${apiUrl}/availability/${shopId}/weekly`, {
+      const weeklyRes = await fetch(`${apiUrl}/api/availability/${shopId}/weekly`, {
         headers: { 'x-user-id': userId },
       });
 
@@ -135,7 +135,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
       let response;
       if (editingWindow) {
         // Update existing window
-        response = await fetch(`${apiUrl}/availability/${shopId}/${editingWindow.id}`, {
+        response = await fetch(`${apiUrl}/api/availability/${shopId}/${editingWindow.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -145,7 +145,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
         });
       } else {
         // Create new window
-        response = await fetch(`${apiUrl}/availability/${shopId}`, {
+        response = await fetch(`${apiUrl}/api/availability/${shopId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -175,7 +175,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
   const handleWindowDelete = async (windowId: string) => {
     try {
       setSaving(true);
-      const response = await fetch(`${apiUrl}/availability/${shopId}/${windowId}`, {
+      const response = await fetch(`${apiUrl}/api/availability/${shopId}/${windowId}`, {
         method: 'DELETE',
         headers: { 'x-user-id': userId },
       });
@@ -200,7 +200,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
   const handleWeeklySave = async (weeklyData: Partial<WeeklyHours>[]) => {
     try {
       setSaving(true);
-      const response = await fetch(`${apiUrl}/availability/${shopId}/weekly`, {
+      const response = await fetch(`${apiUrl}/api/availability/${shopId}/weekly`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -229,7 +229,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
   const handleGenerateFromTemplate = async (startDate: string, endDate: string) => {
     try {
       setSaving(true);
-      const response = await fetch(`${apiUrl}/availability/${shopId}/generate`, {
+      const response = await fetch(`${apiUrl}/api/availability/${shopId}/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
