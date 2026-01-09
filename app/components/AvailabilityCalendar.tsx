@@ -38,6 +38,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
   const [showWeeklyModal, setShowWeeklyModal] = useState(false);
   const [editingWindow, setEditingWindow] = useState<AvailabilityWindow | null>(null);
   const [saving, setSaving] = useState(false);
+  const [unavailableMode, setUnavailableMode] = useState(false);
 
   // Load availability data
   useEffect(() => {
@@ -86,7 +87,13 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
 
   // Check if date has availability
   const hasAvailability = (date: Date): boolean => {
-    return getWindowsForDate(date).some(window => window.status === 'available');
+    const windows = getWindowsForDate(date);
+    return windows.length > 0; // Any windows means the date has some availability status
+  };
+
+  // Check if date is unavailable (blocked)
+  const isUnavailable = (date: Date): boolean => {
+    return getWindowsForDate(date).some(window => window.status === 'blocked');
   };
 
   // Generate calendar days
@@ -114,7 +121,87 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
     setEditingWindow(null);
-    setShowWindowModal(true);
+
+    if (unavailableMode) {
+      // Mark date as unavailable
+      handleMarkUnavailable(date);
+    } else {
+      // Open modal to add availability windows
+      setShowWindowModal(true);
+    }
+  };
+
+  // Mark date as unavailable (blocked) or clear unavailability
+  const handleMarkUnavailable = async (date: Date) => {
+    try {
+      setSaving(true);
+
+      const existingWindows = getWindowsForDate(date);
+      const isCurrentlyUnavailable = isUnavailable(date);
+
+      if (isCurrentlyUnavailable) {
+        // Clear unavailability - delete all blocked windows
+        for (const window of existingWindows) {
+          if (window.status === 'blocked') {
+            await fetch(`${apiUrl}/api/availability/${shopId}/${window.id}`, {
+              method: 'DELETE',
+              headers: { 'x-user-id': userId },
+            });
+          }
+        }
+        onMessage('success', 'Date availability cleared');
+      } else {
+        // Mark as unavailable
+        const dateStr = date.toISOString().split('T')[0];
+        const payload = {
+          date: dateStr,
+          start_time: '00:00',
+          end_time: '23:59',
+          status: 'blocked',
+          source: 'manual',
+        };
+
+        // Check if date already has availability windows
+        if (existingWindows.length > 0) {
+          // If there are existing windows, ask for confirmation or just block the entire day
+          if (!confirm(`This date already has availability windows. Marking as unavailable will block the entire day. Continue?`)) {
+            return;
+          }
+          // Delete existing windows first
+          for (const window of existingWindows) {
+            await fetch(`${apiUrl}/api/availability/${shopId}/${window.id}`, {
+              method: 'DELETE',
+              headers: { 'x-user-id': userId },
+            });
+          }
+        }
+
+        // Create blocked window for entire day
+        const response = await fetch(`${apiUrl}/api/availability/${shopId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': userId,
+          },
+          body: JSON.stringify({ windows: [payload] }),
+        });
+
+        if (response.ok) {
+          onMessage('success', 'Date marked as unavailable');
+        } else {
+          const errorData = await response.json();
+          onMessage('error', errorData.error || 'Failed to mark date as unavailable');
+          return;
+        }
+      }
+
+      await loadAvailabilityData();
+    } catch (error) {
+      console.error('Error updating date availability:', error);
+      onMessage('error', 'Failed to update date availability');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Handle window creation/editing
@@ -289,6 +376,17 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
             Edit Weekly Template
           </button>
           <button
+            onClick={() => setUnavailableMode(!unavailableMode)}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              unavailableMode
+                ? 'bg-red-600 text-white hover:bg-red-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+            title={unavailableMode ? 'Click dates to mark as unavailable or clear existing unavailability' : 'Click dates to add specific available time slots'}
+          >
+            {unavailableMode ? '🚫 Manage Unavailability' : '✓ Add Available Times'}
+          </button>
+          <button
             onClick={() => {
               const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
               const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -322,14 +420,19 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
             const isCurrentMonth = date.getMonth() === currentDate.getMonth();
             const isToday = date.toDateString() === new Date().toDateString();
             const hasAvail = hasAvailability(date);
+            const unavailable = isUnavailable(date);
             const windows = getWindowsForDate(date);
 
             return (
               <div
                 key={index}
-                className={`min-h-[120px] p-2 border-r border-b cursor-pointer hover:bg-gray-50 ${
+                className={`min-h-[120px] p-2 border-r border-b cursor-pointer ${
                   !isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''
-                } ${isToday ? 'bg-blue-50' : ''}`}
+                } ${isToday ? 'bg-blue-50' : ''} ${
+                  unavailable ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'
+                } ${
+                  unavailableMode && isCurrentMonth ? 'ring-2 ring-red-300 ring-opacity-50' : ''
+                }`}
                 onClick={() => isCurrentMonth && handleDateClick(date)}
               >
                 <div className="text-sm font-medium mb-1">
@@ -338,21 +441,34 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
 
                 {/* Availability indicators */}
                 <div className="space-y-1">
-                  {windows.slice(0, 2).map((window, idx) => (
-                    <div
-                      key={window.id}
-                      className={`text-xs px-1 py-0.5 rounded text-white ${
-                        window.status === 'available' ? 'bg-green-500' :
-                        window.status === 'booked' ? 'bg-red-500' : 'bg-gray-500'
-                      }`}
-                    >
-                      {window.start_time}-{window.end_time}
+                  {unavailable ? (
+                    <div className="text-xs px-1 py-0.5 rounded bg-red-500 text-white font-medium">
+                      UNAVAILABLE
                     </div>
-                  ))}
-                  {windows.length > 2 && (
-                    <div className="text-xs text-gray-500">
-                      +{windows.length - 2} more
-                    </div>
+                  ) : (
+                    <>
+                      {windows.slice(0, 2).map((window, idx) => (
+                        <div
+                          key={window.id}
+                          className={`text-xs px-1 py-0.5 rounded text-white ${
+                            window.status === 'available' ? 'bg-green-500' :
+                            window.status === 'booked' ? 'bg-red-500' : 'bg-gray-500'
+                          }`}
+                        >
+                          {window.start_time}-{window.end_time}
+                        </div>
+                      ))}
+                      {windows.length > 2 && (
+                        <div className="text-xs text-gray-500">
+                          +{windows.length - 2} more
+                        </div>
+                      )}
+                      {windows.length === 0 && (
+                        <div className="text-xs text-gray-400 italic">
+                          No availability
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
