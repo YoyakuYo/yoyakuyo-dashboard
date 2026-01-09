@@ -106,6 +106,15 @@ DECLARE
     v_date DATE;
     v_weekday INTEGER;
 BEGIN
+    -- First, clear existing manually created availability windows in the date range
+    -- (Keep booked windows and blocked windows)
+    DELETE FROM availability_windows
+    WHERE shop_id = p_shop_id
+    AND date >= p_start_date
+    AND date <= p_end_date
+    AND source = 'owner'
+    AND status IN ('available'); -- Only clear available slots, keep booked/blocked
+
     -- Generate availability for each date in range
     v_date := p_start_date;
     WHILE v_date <= p_end_date LOOP
@@ -162,7 +171,7 @@ BEGIN
             (start_time >= NEW.start_time AND end_time <= NEW.end_time)
         )
     ) THEN
-        RAISE EXCEPTION 'Availability window overlaps with existing window for shop % on %',
+        RAISE EXCEPTION 'Cannot create availability window that overlaps with existing windows. Please check existing availability for shop % on date %.',
             NEW.shop_id, NEW.date;
     END IF;
 
