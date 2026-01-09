@@ -159,6 +159,7 @@ SECURITY DEFINER
 AS $$
 BEGIN
     -- Check if the new/updated window overlaps with existing available/booked windows
+    -- Only prevent actual time overlaps, not multiple windows on the same day
     IF EXISTS (
         SELECT 1 FROM availability_windows
         WHERE shop_id = NEW.shop_id
@@ -166,12 +167,15 @@ BEGIN
         AND status IN ('available', 'booked')
         AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::UUID)
         AND (
-            (start_time <= NEW.start_time AND end_time > NEW.start_time) OR
-            (start_time < NEW.end_time AND end_time >= NEW.end_time) OR
-            (start_time >= NEW.start_time AND end_time <= NEW.end_time)
+            -- NEW window starts during existing window
+            (NEW.start_time >= start_time AND NEW.start_time < end_time) OR
+            -- NEW window ends during existing window
+            (NEW.end_time > start_time AND NEW.end_time <= end_time) OR
+            -- NEW window completely contains existing window
+            (NEW.start_time <= start_time AND NEW.end_time >= end_time)
         )
     ) THEN
-        RAISE EXCEPTION 'Cannot create availability window that overlaps with existing windows. Please check existing availability for shop % on date %.',
+        RAISE EXCEPTION 'Cannot create availability window that overlaps with existing time slots. Please choose different times or delete conflicting availability for shop % on date %.',
             NEW.shop_id, NEW.date;
     END IF;
 

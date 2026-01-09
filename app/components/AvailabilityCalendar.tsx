@@ -122,11 +122,18 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
     setSelectedDate(date);
     setEditingWindow(null);
 
+    const existingWindows = getWindowsForDate(date);
+
     if (unavailableMode) {
       // Mark date as unavailable
       handleMarkUnavailable(date);
+    } else if (existingWindows.length > 0 && !isUnavailable(date)) {
+      // If date has availability windows and is not unavailable, show edit modal
+      // For now, just edit the first window - TODO: allow selecting which window to edit
+      setEditingWindow(existingWindows[0]);
+      setShowWindowModal(true);
     } else {
-      // Open modal to add availability windows
+      // Open modal to add new availability windows
       setShowWindowModal(true);
     }
   };
@@ -260,6 +267,10 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
 
   // Handle window deletion
   const handleWindowDelete = async (windowId: string) => {
+    if (!confirm('Are you sure you want to delete this availability window?')) {
+      return;
+    }
+
     try {
       setSaving(true);
       const response = await fetch(`${apiUrl}/api/availability/${shopId}/${windowId}`, {
