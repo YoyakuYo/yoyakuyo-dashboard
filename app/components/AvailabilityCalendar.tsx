@@ -123,22 +123,52 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
     setEditingWindow(null);
 
     const existingWindows = getWindowsForDate(date);
+    const currentlyUnavailable = isUnavailable(date);
 
     if (unavailableMode) {
-      // Mark date as unavailable
+      // Mark date as unavailable or clear unavailability
       handleMarkUnavailable(date);
-    } else if (existingWindows.length > 0 && !isUnavailable(date)) {
-      // If date has availability windows and is not unavailable, show edit modal
-      // For now, just edit the first window - TODO: allow selecting which window to edit
+    } else if (currentlyUnavailable) {
+      // Date is blocked - clicking should clear unavailability and allow creating availability
+      // Don't open modal, just clear the blocks and let user click again to create availability
+      handleClearUnavailability(date);
+    } else if (existingWindows.length > 0) {
+      // Date has available windows - edit the first one
       setEditingWindow(existingWindows[0]);
       setShowWindowModal(true);
     } else {
-      // Open modal to add new availability windows
+      // Date has no windows - create new availability
       setShowWindowModal(true);
     }
   };
 
-  // Mark date as unavailable (blocked) or clear unavailability
+  // Clear unavailability for a date (remove blocked windows)
+  const handleClearUnavailability = async (date: Date) => {
+    try {
+      setSaving(true);
+      const existingWindows = getWindowsForDate(date);
+
+      // Delete all blocked windows for this date
+      for (const window of existingWindows) {
+        if (window.status === 'blocked') {
+          await fetch(`${apiUrl}/api/availability/${shopId}/${window.id}`, {
+            method: 'DELETE',
+            headers: { 'x-user-id': userId },
+          });
+        }
+      }
+
+      onMessage('success', 'Date availability cleared - you can now add available time slots');
+      await loadAvailabilityData();
+    } catch (error) {
+      console.error('Error clearing unavailability:', error);
+      onMessage('error', 'Failed to clear date availability');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Mark date as unavailable (blocked)
   const handleMarkUnavailable = async (date: Date) => {
     try {
       setSaving(true);
@@ -147,16 +177,9 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
       const isCurrentlyUnavailable = isUnavailable(date);
 
       if (isCurrentlyUnavailable) {
-        // Clear unavailability - delete all blocked windows
-        for (const window of existingWindows) {
-          if (window.status === 'blocked') {
-            await fetch(`${apiUrl}/api/availability/${shopId}/${window.id}`, {
-              method: 'DELETE',
-              headers: { 'x-user-id': userId },
-            });
-          }
-        }
-        onMessage('success', 'Date availability cleared');
+        // Already unavailable - maybe show message
+        onMessage('info', 'Date is already marked as unavailable');
+        return;
       } else {
         // Mark as unavailable
         const dateStr = date.toISOString().split('T')[0];
