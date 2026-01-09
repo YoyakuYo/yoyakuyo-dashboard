@@ -64,12 +64,15 @@ BEGIN
         SELECT 1 FROM information_schema.tables
         WHERE table_schema = 'public'
         AND table_name = 'ai_knowledge'
-    ) AND EXISTS (
-        SELECT 1 FROM ai_knowledge
-        WHERE content ILIKE '%opening_hours%'
-           OR content ILIKE '%opening hours%'
     ) THEN
-        RAISE NOTICE 'Some AI knowledge still references opening hours - manual cleanup may be needed';
+        -- Only check content if table exists
+        IF EXISTS (
+            SELECT 1 FROM ai_knowledge
+            WHERE content ILIKE '%opening_hours%'
+               OR content ILIKE '%opening hours%'
+        ) THEN
+            RAISE NOTICE 'Some AI knowledge still references opening hours - manual cleanup may be needed';
+        END IF;
     END IF;
 
     RAISE NOTICE 'Old opening hours system successfully removed';
