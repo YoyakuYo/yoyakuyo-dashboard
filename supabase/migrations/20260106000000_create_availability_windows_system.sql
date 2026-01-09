@@ -158,26 +158,34 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-    -- Check if the new/updated window overlaps with existing available/booked windows
-    -- Only prevent actual time overlaps, not multiple windows on the same day
-    IF EXISTS (
-        SELECT 1 FROM availability_windows
-        WHERE shop_id = NEW.shop_id
-        AND date = NEW.date
-        AND status IN ('available', 'booked')
-        AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::UUID)
-        AND (
-            -- NEW window starts during existing window
-            (NEW.start_time >= start_time AND NEW.start_time < end_time) OR
-            -- NEW window ends during existing window
-            (NEW.end_time > start_time AND NEW.end_time <= end_time) OR
-            -- NEW window completely contains existing window
-            (NEW.start_time <= start_time AND NEW.end_time >= end_time)
-        )
-    ) THEN
-        RAISE EXCEPTION 'Cannot create availability window that overlaps with existing time slots. Please choose different times or delete conflicting availability for shop % on date %.',
-            NEW.shop_id, NEW.date;
+    -- Allow full calendar control: owners can create/edit/delete any availability
+    -- Only prevent overlaps between active availability slots (available/booked)
+    -- Blocked windows can be overlapped/replaced by available windows
+
+    -- If creating/updating an available window, check for conflicts with other available/booked windows
+    IF NEW.status IN ('available', 'booked') THEN
+        IF EXISTS (
+            SELECT 1 FROM availability_windows
+            WHERE shop_id = NEW.shop_id
+            AND date = NEW.date
+            AND status IN ('available', 'booked')
+            AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::UUID)
+            AND (
+                -- NEW window starts during existing window
+                (NEW.start_time >= start_time AND NEW.start_time < end_time) OR
+                -- NEW window ends during existing window
+                (NEW.end_time > start_time AND NEW.end_time <= end_time) OR
+                -- NEW window completely contains existing window
+                (NEW.start_time <= start_time AND NEW.end_time >= end_time)
+            )
+        ) THEN
+            RAISE EXCEPTION 'Cannot create availability window that overlaps with existing available time slots. Please choose different times or edit/delete conflicting availability for shop % on date %.',
+                NEW.shop_id, NEW.date;
+        END IF;
     END IF;
+
+    -- If creating/updating a blocked window, allow it (blocks can overlap anything)
+    -- This allows marking entire days as unavailable even if they have availability
 
     RETURN NEW;
 END;
