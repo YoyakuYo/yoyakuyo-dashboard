@@ -31,12 +31,8 @@ CREATE TABLE IF NOT EXISTS availability_windows (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    -- Ensure no overlapping windows for the same shop on the same day
-    CONSTRAINT no_overlapping_windows EXCLUDE (
-        shop_id WITH =,
-        date WITH =,
-        TSRANGE(start_time, end_time) WITH &&
-    ) WHERE (status IN ('available', 'booked')),
+    -- Note: Overlapping windows prevention is handled by application logic
+    -- and the split_availability_on_booking function
 
     -- Ensure start_time < end_time
     CONSTRAINT valid_time_range CHECK (start_time < end_time)
@@ -146,6 +142,34 @@ BEGIN
 END;
 $$;
 
+-- Function to check for overlapping availability windows
+CREATE OR REPLACE FUNCTION check_availability_overlap()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    -- Check if the new/updated window overlaps with existing available/booked windows
+    IF EXISTS (
+        SELECT 1 FROM availability_windows
+        WHERE shop_id = NEW.shop_id
+        AND date = NEW.date
+        AND status IN ('available', 'booked')
+        AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::UUID)
+        AND (
+            (start_time <= NEW.start_time AND end_time > NEW.start_time) OR
+            (start_time < NEW.end_time AND end_time >= NEW.end_time) OR
+            (start_time >= NEW.start_time AND end_time <= NEW.end_time)
+        )
+    ) THEN
+        RAISE EXCEPTION 'Availability window overlaps with existing window for shop % on %',
+            NEW.shop_id, NEW.date;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
 -- Function to split availability window when partially booked
 CREATE OR REPLACE FUNCTION split_availability_on_booking()
 RETURNS TRIGGER
@@ -179,6 +203,13 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+
+-- Trigger to check for overlaps before insert/update
+DROP TRIGGER IF EXISTS trg_check_availability_overlap ON availability_windows;
+CREATE TRIGGER trg_check_availability_overlap
+    BEFORE INSERT OR UPDATE ON availability_windows
+    FOR EACH ROW
+    EXECUTE FUNCTION check_availability_overlap();
 
 -- Trigger to split availability windows when booked
 DROP TRIGGER IF EXISTS trg_split_availability_on_booking ON availability_windows;
