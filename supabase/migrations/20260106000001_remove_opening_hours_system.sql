@@ -21,10 +21,20 @@ DROP FUNCTION IF EXISTS validate_opening_hours(JSONB);
 -- ============================================
 
 -- Remove any AI knowledge entries that reference opening hours
-DELETE FROM ai_knowledge
-WHERE content ILIKE '%opening_hours%'
-   OR content ILIKE '%opening hours%'
-   OR metadata->>'type' = 'opening_hours';
+-- Only attempt if the table exists
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public'
+        AND table_name = 'ai_knowledge'
+    ) THEN
+        DELETE FROM ai_knowledge
+        WHERE content ILIKE '%opening_hours%'
+           OR content ILIKE '%opening hours%'
+           OR metadata->>'type' = 'opening_hours';
+    END IF;
+END $$;
 
 -- ============================================
 -- PART 4: UPDATE API RESPONSES
@@ -49,8 +59,12 @@ BEGIN
         RAISE EXCEPTION 'opening_hours column still exists on shops table';
     END IF;
 
-    -- Check if any AI knowledge references opening hours
+    -- Check if any AI knowledge references opening hours (only if table exists)
     IF EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public'
+        AND table_name = 'ai_knowledge'
+    ) AND EXISTS (
         SELECT 1 FROM ai_knowledge
         WHERE content ILIKE '%opening_hours%'
            OR content ILIKE '%opening hours%'
