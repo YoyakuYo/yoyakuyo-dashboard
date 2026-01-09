@@ -121,6 +121,8 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
   const handleWindowSave = async (windowData: Partial<AvailabilityWindow>) => {
     if (!selectedDate) return;
 
+    console.log('handleWindowSave called with:', windowData);
+
     try {
       setSaving(true);
 
@@ -132,9 +134,12 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
         source: 'manual',
       };
 
+      console.log('API payload:', payload);
+
       let response;
       if (editingWindow) {
         // Update existing window
+        console.log('Making PUT request to update window');
         response = await fetch(`${apiUrl}/availability/${shopId}/${editingWindow.id}`, {
           method: 'PUT',
           headers: {
@@ -145,15 +150,18 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
         });
       } else {
         // Create new window
+        console.log('Making POST request to create window, payload:', { windows: [payload] });
         response = await fetch(`${apiUrl}/availability/${shopId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'x-user-id': userId,
           },
-          body: JSON.stringify([payload]),
+          body: JSON.stringify({ windows: [payload] }),
         });
       }
+
+      console.log('API response status:', response.status);
 
       if (response.ok) {
         onMessage('success', editingWindow ? 'Availability window updated' : 'Availability window created');
@@ -535,6 +543,7 @@ function AvailabilityWindowForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted with:', { start_time: startTime, end_time: endTime, status });
     onSave({ start_time: startTime, end_time: endTime, status });
   };
 
