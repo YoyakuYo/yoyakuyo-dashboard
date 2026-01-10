@@ -36,6 +36,7 @@ interface Service {
   id: string;
   name: string;
   duration: number;
+  duration_minutes?: number;
   price?: number;
 }
 
@@ -143,8 +144,49 @@ function LineBookingPageContent() {
     }
   };
 
+  // Generate individual time slots from availability ranges based on service duration
+  const generateTimeSlots = (availabilityRanges: Array<{ start_time: string; end_time: string }>, serviceDuration: number) => {
+    const slots: TimeSlot[] = [];
+
+    availabilityRanges.forEach((range, rangeIndex) => {
+      // Parse start and end times
+      const [startHour, startMinute] = range.start_time.split(':').map(Number);
+      const [endHour, endMinute] = range.end_time.split(':').map(Number);
+
+      const startMinutes = startHour * 60 + startMinute;
+      const endMinutes = endHour * 60 + endMinute;
+
+      // Generate slots every serviceDuration minutes
+      for (let currentMinutes = startMinutes; currentMinutes + serviceDuration <= endMinutes; currentMinutes += serviceDuration) {
+        const startHours = Math.floor(currentMinutes / 60);
+        const startMins = currentMinutes % 60;
+        const startTimeString = `${startHours.toString().padStart(2, '0')}:${startMins.toString().padStart(2, '0')}:00`;
+
+        // Calculate end time
+        const endTotalMinutes = currentMinutes + serviceDuration;
+        const endHours = Math.floor(endTotalMinutes / 60);
+        const endMins = endTotalMinutes % 60;
+        const endTimeString = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}:00`;
+
+        slots.push({
+          id: `${rangeIndex}-${currentMinutes}`,
+          start_time: startTimeString,
+          end_time: endTimeString
+        });
+      }
+    });
+
+    return slots;
+  };
+
   const fetchTimeSlots = async () => {
     if (!selectedDate) {
+      setTimeSlots([]);
+      return;
+    }
+
+    if (!service) {
+      console.warn("No service selected - cannot generate time slots without duration");
       setTimeSlots([]);
       return;
     }
@@ -154,28 +196,32 @@ function LineBookingPageContent() {
       // Use the same endpoint as the main app
       const url = `${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`;
       console.log("Fetching availability from:", url);
-      
+
       const res = await fetch(url);
       console.log("Availability response status:", res.status);
-      
+
       if (res.ok) {
         const data = await res.json();
         console.log("Availability response data:", data);
-        
-        // Map the response to match the expected format
-        const slots = Array.isArray(data) ? data : [];
-        setTimeSlots(slots);
-        
+
+        // Generate individual time slots from availability ranges
+        const availabilityRanges = Array.isArray(data) ? data : [];
+        const serviceDuration = service.duration_minutes || service.duration;
+        const generatedSlots = generateTimeSlots(availabilityRanges, serviceDuration);
+
+        console.log(`Generated ${generatedSlots.length} time slots from ${availabilityRanges.length} availability ranges`);
+        setTimeSlots(generatedSlots);
+
         // Log for debugging
-        if (slots.length === 0) {
-          console.warn("No timeslots returned for date:", selectedDate, "shopId:", shopId);
+        if (generatedSlots.length === 0) {
+          console.warn("No timeslots generated for date:", selectedDate, "shopId:", shopId);
           console.warn("This might mean:");
           console.warn("1. Shop is closed on this date (holiday)");
-          console.warn("2. Shop has no services");
-          console.warn("3. Shop has services but no timeslots generated");
+          console.warn("2. No availability ranges returned");
+          console.warn("3. Service duration too long for available time ranges");
           console.warn("4. All timeslots are already booked");
         } else {
-          console.log(`✅ Found ${slots.length} timeslots for date:`, selectedDate);
+          console.log(`✅ Generated ${generatedSlots.length} timeslots for date:`, selectedDate);
         }
       } else {
         const errorData = await res.json().catch(() => ({ error: "Failed to fetch availability" }));

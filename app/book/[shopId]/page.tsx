@@ -13,6 +13,7 @@ interface Service {
   id: string;
   name: string;
   price?: number;
+  duration_minutes?: number;
 }
 
 interface Staff {
@@ -217,9 +218,56 @@ export default function PublicBookingPage() {
     setSelectedDate(e.target.value);
   };
 
+  // Generate individual time slots from availability ranges based on service duration
+  const generateTimeSlots = (availabilityRanges: Array<{ start_time: string; end_time: string }>, serviceDuration: number) => {
+    const slots: Array<{ id: string; start_time: string; end_time: string }> = [];
+
+    availabilityRanges.forEach((range, rangeIndex) => {
+      // Parse start and end times
+      const [startHour, startMinute] = range.start_time.split(':').map(Number);
+      const [endHour, endMinute] = range.end_time.split(':').map(Number);
+
+      const startMinutes = startHour * 60 + startMinute;
+      const endMinutes = endHour * 60 + endMinute;
+
+      // Generate slots every serviceDuration minutes
+      for (let currentMinutes = startMinutes; currentMinutes + serviceDuration <= endMinutes; currentMinutes += serviceDuration) {
+        const startHours = Math.floor(currentMinutes / 60);
+        const startMins = currentMinutes % 60;
+        const startTimeString = `${startHours.toString().padStart(2, '0')}:${startMins.toString().padStart(2, '0')}:00`;
+
+        // Calculate end time
+        const endTotalMinutes = currentMinutes + serviceDuration;
+        const endHours = Math.floor(endTotalMinutes / 60);
+        const endMins = endTotalMinutes % 60;
+        const endTimeString = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}:00`;
+
+        slots.push({
+          id: `${rangeIndex}-${currentMinutes}`,
+          start_time: startTimeString,
+          end_time: endTimeString
+        });
+      }
+    });
+
+    return slots;
+  };
+
   const fetchAvailability = async () => {
     if (!selectedDate) {
       alert(t('booking.selectDate') || 'Please select a date first');
+      return;
+    }
+
+    if (!selectedService) {
+      alert('Please select a service first');
+      return;
+    }
+
+    // Get service duration
+    const serviceDuration = services.find(s => s.id === selectedService)?.duration_minutes;
+    if (!serviceDuration) {
+      alert('Service duration not found');
       return;
     }
 
@@ -234,10 +282,11 @@ export default function PublicBookingPage() {
       const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-        const availableSlots = Array.isArray(data) ? data : [];
-        setTimeslots(availableSlots);
+        const availabilityRanges = Array.isArray(data) ? data : [];
+        const generatedSlots = generateTimeSlots(availabilityRanges, serviceDuration);
+        setTimeslots(generatedSlots);
         setAvailabilityChecked(true);
-        if (availableSlots.length === 0) {
+        if (generatedSlots.length === 0) {
           alert(t('booking.noAvailability') || 'No available timeslots for this date');
         }
         } else {
