@@ -286,6 +286,21 @@ function LineInboxPageContent() {
         timestamp: debugStartTime
       });
 
+      // CRITICAL: Validate lineUserId is present before making request
+      if (!lineUserId) {
+        console.error('[LINE Inbox] ❌ CRITICAL: lineUserId is missing!', {
+          lineUserId,
+          token: token ? 'present' : 'missing',
+          stateLineUserId: lineUserId
+        });
+        throw new Error('LINE user ID is required to load conversations');
+      }
+      
+      console.log('[LINE Inbox] ✅ Validated lineUserId before request:', {
+        lineUserId: lineUserId.substring(0, 10) + '...',
+        hasIdToken: !!token
+      });
+      
       const res = await messagingFetch(
         inboxUrl,
         {
