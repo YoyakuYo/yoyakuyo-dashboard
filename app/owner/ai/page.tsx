@@ -90,7 +90,8 @@ export default function OwnerAIPage() {
 
     // If still no shop, show error and return
     if (!currentShop || !currentShop.id) {
-      setError("🤖 AI Assistant: I need your shop ID to help you. Please make sure you're logged in and have a shop set up.");
+      const errorMsg = "🤖 AI Assistant: I need your shop ID to help you. Please make sure you're logged in and have a shop set up.";
+      await addMessage('assistant', errorMsg);
       setLoading(false);
       return;
     }
