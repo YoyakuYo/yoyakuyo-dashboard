@@ -16,6 +16,7 @@ interface CustomerThread {
   shop_name?: string;
   customer_email?: string;
   customer_name?: string;
+  customer_role?: string;
   lastMessageAt: string;
   unreadCount: number;
 }
@@ -144,6 +145,7 @@ export default function OwnerMessagesPage() {
             shop_name: conv.shop?.name,
             customer_name: displayName, // Always a string, never null
             customer_email: conv.customer?.email || undefined,
+            customer_role: conv.customer?.role || conv.customer_type || undefined,
             lastMessageAt: conv.last_message_at || conv.created_at,
             unreadCount: conv.unread_count || 0,
           };
@@ -367,10 +369,16 @@ export default function OwnerMessagesPage() {
                     <p className="font-medium text-sm text-gray-900">
                       {thread.customer_name || t('messages.customer')}
                     </p>
-                    {thread.shop_name && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {thread.shop_name}
-                      </p>
+                    {thread.customer_role && (
+                      <span className={`inline-block mt-1 px-2 py-0.5 text-xs rounded-full ${
+                        thread.customer_role === 'web' ? 'bg-purple-100 text-purple-700' :
+                        thread.customer_role === 'line' ? 'bg-blue-100 text-blue-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {thread.customer_role === 'web' ? 'Web' :
+                         thread.customer_role === 'line' ? 'LINE' :
+                         thread.customer_role === 'guest' ? 'Guest' : thread.customer_role}
+                      </span>
                     )}
                     {thread.unreadCount > 0 && (
                       <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">
