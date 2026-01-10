@@ -262,7 +262,7 @@ function CustomerMessagesPageContent() {
     try {
       // Use internal messaging API (same as LINE customers) for consistency
       const res = await messagingFetch(
-        `${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`,
+        `${apiUrl}/api/internal-messaging/${conversationId}/messages`,
         {
           userId: user.id,
         }

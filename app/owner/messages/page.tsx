@@ -178,11 +178,11 @@ export default function OwnerMessagesPage() {
       console.log('[Owner Messages] 🔍 [DIAGNOSTIC] Loading messages', {
         conversationId,
         userId: user.id,
-        endpoint: `${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`,
+        endpoint: `${apiUrl}/api/internal-messaging/${conversationId}/messages`,
       });
       
       // Use the new internal messaging endpoint
-      const res = await fetch(`${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`, {
+      const res = await fetch(`${apiUrl}/api/internal-messaging/${conversationId}/messages`, {
         method: 'GET',
         headers: {
           'x-user-id': user.id,

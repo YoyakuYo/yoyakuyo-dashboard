@@ -481,7 +481,7 @@ function LineInboxPageContent() {
       
       // ALWAYS inject X-User-Id via unified messaging API client
       const res = await messagingFetch(
-        `${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`,
+        `${apiUrl}/api/internal-messaging/${conversationId}/messages`,
         {
           lineUserId,
           idToken: token,

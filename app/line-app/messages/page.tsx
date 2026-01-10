@@ -124,7 +124,7 @@ export default function MessagesPage() {
 
   const loadMessages = async (convId: string, lineUserId: string, token: string) => {
     try {
-      const res = await fetch(`${apiUrl}/api/internal-messaging/conversations/${convId}/messages`, {
+      const res = await fetch(`${apiUrl}/api/internal-messaging/${convId}/messages`, {
         headers: {
           'x-line-user-id': lineUserId,
           'x-id-token': token,
