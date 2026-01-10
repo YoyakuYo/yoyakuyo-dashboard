@@ -14,8 +14,14 @@ DECLARE
 BEGIN
     -- Slot-based system: Multiple slots per day are allowed
     -- Only prevent overlaps between active slots (available/booked)
-    -- Blocked slots can overlap anything (for manual blocking)
+    -- Blocked slots can overlap anything (for manual blocking/unavailability)
 
+    -- If creating/updating a blocked slot, allow it regardless of overlaps
+    IF NEW.status = 'blocked' THEN
+        RETURN NEW;
+    END IF;
+
+    -- Only check overlaps for available/booked slots
     IF NEW.status IN ('available', 'booked') THEN
         -- Check for overlapping slots
         SELECT aw.* INTO conflicting_slot
@@ -35,13 +41,13 @@ BEGIN
             (aw.start_time <= NEW.start_time AND aw.end_time >= NEW.end_time)
         )
         LIMIT 1;
-        
+
         IF FOUND THEN
             -- Provide detailed error message with conflicting slot info
             RAISE EXCEPTION 'Cannot create availability slot that overlaps with existing slot. Shop: %, Date: %, New slot: %-%, Conflicting slot: %-% (ID: %, Status: %)',
-                NEW.shop_id, 
-                NEW.date, 
-                NEW.start_time, 
+                NEW.shop_id,
+                NEW.date,
+                NEW.start_time,
                 NEW.end_time,
                 conflicting_slot.start_time,
                 conflicting_slot.end_time,
@@ -49,8 +55,6 @@ BEGIN
                 conflicting_slot.status;
         END IF;
     END IF;
-
-    -- Blocked slots can overlap anything (for manual blocking/unavailability)
 
     RETURN NEW;
 END;

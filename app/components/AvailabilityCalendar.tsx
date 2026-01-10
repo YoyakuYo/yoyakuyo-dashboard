@@ -93,9 +93,17 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
     return windows.length > 0; // Any windows means the date has some availability status
   };
 
-  // Check if date is unavailable (blocked)
-  const isUnavailable = (date: Date): boolean => {
-    return getWindowsForDate(date).some(window => window.status === 'blocked');
+  // Get the overall status for date background color
+  const getDateStatus = (date: Date): 'available' | 'booked' | 'blocked' | 'none' => {
+    const windows = getWindowsForDate(date);
+    if (windows.length === 0) return 'none';
+
+    // Priority: blocked > booked > available
+    if (windows.some(w => w.status === 'blocked')) return 'blocked';
+    if (windows.some(w => w.status === 'booked')) return 'booked';
+    if (windows.some(w => w.status === 'available')) return 'available';
+
+    return 'none';
   };
 
   // Generate calendar days
@@ -159,20 +167,23 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
     }
   };
 
-  // Mark date as unavailable (blocked)
+  // Mark date as unavailable (blocked) or clear unavailability
   const handleMarkUnavailable = async (date: Date) => {
     try {
       setSaving(true);
 
       const existingWindows = getWindowsForDate(date);
-      const isCurrentlyUnavailable = isUnavailable(date);
+      const currentStatus = getDateStatus(date);
+      const isCurrentlyBlocked = currentStatus === 'blocked';
 
-      if (isCurrentlyUnavailable) {
-        // Already unavailable - maybe show message
-        onMessage('success', 'Date is already marked as unavailable');
+      if (isCurrentlyBlocked) {
+        // Already blocked - offer to clear unavailability
+        if (confirm('This date is currently marked as unavailable. Would you like to clear the unavailability and restore any available slots?')) {
+          await handleClearUnavailability(date);
+        }
         return;
       } else {
-        // Mark as unavailable
+        // Mark as unavailable - create blocked slot that overlaps with existing slots
         const dateStr = date.toISOString().split('T')[0];
         const payload = {
           date: dateStr,
@@ -182,22 +193,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
           source: 'manual',
         };
 
-        // Check if date already has availability windows
-        if (existingWindows.length > 0) {
-          // If there are existing windows, ask for confirmation or just block the entire day
-          if (!confirm(`This date already has availability windows. Marking as unavailable will block the entire day. Continue?`)) {
-            return;
-          }
-          // Delete existing windows first
-          for (const window of existingWindows) {
-            await fetch(`${apiUrl}/api/availability/${shopId}/${window.id}`, {
-              method: 'DELETE',
-              headers: { 'x-user-id': userId },
-            });
-          }
-        }
-
-        // Create blocked window for entire day
+        // Create blocked window for entire day (will overlap with existing slots)
         const response = await fetch(`${apiUrl}/api/availability/${shopId}`, {
           method: 'POST',
           headers: {
@@ -208,7 +204,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
         });
 
         if (response.ok) {
-          onMessage('success', 'Date marked as unavailable');
+          onMessage('success', 'Date marked as unavailable (blocked)');
         } else {
           const errorData = await response.json();
           onMessage('error', errorData.error || 'Failed to mark date as unavailable');
@@ -458,17 +454,26 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
             const isCurrentMonth = date.getMonth() === currentDate.getMonth();
             const isToday = date.toDateString() === new Date().toDateString();
             const hasAvail = hasAvailability(date);
-            const unavailable = isUnavailable(date);
+            const dateStatus = getDateStatus(date);
             const windows = getWindowsForDate(date);
+
+            // Get background color based on date status
+            const getBackgroundColor = () => {
+              if (!isCurrentMonth) return 'bg-gray-50';
+              if (isToday) return 'bg-blue-50';
+
+              switch (dateStatus) {
+                case 'blocked': return 'bg-gray-100 hover:bg-gray-200';
+                case 'booked': return 'bg-red-50 hover:bg-red-100';
+                case 'available': return 'bg-green-50 hover:bg-green-100';
+                default: return 'hover:bg-gray-50';
+              }
+            };
 
             return (
               <div
                 key={index}
-                className={`min-h-[120px] p-2 border-r border-b cursor-pointer ${
-                  !isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''
-                } ${isToday ? 'bg-blue-50' : ''} ${
-                  unavailable ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'
-                } ${
+                className={`min-h-[120px] p-2 border-r border-b cursor-pointer ${getBackgroundColor()} ${
                   unavailableMode && isCurrentMonth ? 'ring-2 ring-red-300 ring-opacity-50' : ''
                 }`}
                 onClick={() => isCurrentMonth && handleDateClick(date)}
@@ -479,18 +484,30 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
 
                 {/* Availability indicators */}
                 <div className="space-y-1">
-                  {unavailable ? (
-                    <div className="text-xs px-1 py-0.5 rounded bg-red-500 text-white font-medium">
-                      UNAVAILABLE
+                  {windows.length === 0 ? (
+                    <div className="text-xs text-gray-400 italic">
+                      No availability set
                     </div>
                   ) : (
                     <>
+                      {/* Show status summary for the date */}
+                      <div className={`text-xs px-1 py-0.5 rounded text-white font-medium ${
+                        dateStatus === 'blocked' ? 'bg-gray-500' :
+                        dateStatus === 'booked' ? 'bg-red-500' :
+                        dateStatus === 'available' ? 'bg-green-500' : 'bg-gray-400'
+                      }`}>
+                        {dateStatus === 'blocked' ? 'CLOSED' :
+                         dateStatus === 'booked' ? 'BOOKED' :
+                         dateStatus === 'available' ? 'AVAILABLE' : 'NO SLOTS'}
+                      </div>
+
+                      {/* Show up to 2 time slots */}
                       {windows.slice(0, 2).map((window, idx) => (
                         <div
                           key={window.id}
                           className={`text-xs px-1 py-0.5 rounded text-white ${
-                            window.status === 'available' ? 'bg-green-500' :
-                            window.status === 'booked' ? 'bg-red-500' : 'bg-gray-500'
+                            window.status === 'available' ? 'bg-green-600' :
+                            window.status === 'booked' ? 'bg-red-600' : 'bg-gray-600'
                           }`}
                         >
                           {window.start_time}-{window.end_time}
@@ -499,11 +516,6 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                       {windows.length > 2 && (
                         <div className="text-xs text-gray-500">
                           +{windows.length - 2} more
-                        </div>
-                      )}
-                      {windows.length === 0 && (
-                        <div className="text-xs text-gray-400 italic">
-                          No availability
                         </div>
                       )}
                     </>
