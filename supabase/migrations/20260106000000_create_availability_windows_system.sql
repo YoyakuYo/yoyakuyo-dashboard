@@ -165,18 +165,20 @@ BEGIN
     -- If creating/updating an available window, check for conflicts with other available/booked windows
     IF NEW.status IN ('available', 'booked') THEN
         IF EXISTS (
-            SELECT 1 FROM availability_windows
-            WHERE shop_id = NEW.shop_id
-            AND date = NEW.date
-            AND status IN ('available', 'booked')
-            AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::UUID)
+            SELECT 1 FROM availability_windows aw
+            WHERE aw.shop_id = NEW.shop_id
+            AND aw.date = NEW.date
+            AND aw.status IN ('available', 'booked')
+            AND aw.id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::UUID)
             AND (
                 -- NEW window starts during existing window
-                (NEW.start_time >= start_time AND NEW.start_time < end_time) OR
+                (NEW.start_time >= aw.start_time AND NEW.start_time < aw.end_time) OR
                 -- NEW window ends during existing window
-                (NEW.end_time > start_time AND NEW.end_time <= end_time) OR
+                (NEW.end_time > aw.start_time AND NEW.end_time <= aw.end_time) OR
                 -- NEW window completely contains existing window
-                (NEW.start_time <= start_time AND NEW.end_time >= end_time)
+                (NEW.start_time <= aw.start_time AND NEW.end_time >= aw.end_time) OR
+                -- Existing window completely contains NEW window
+                (aw.start_time <= NEW.start_time AND aw.end_time >= NEW.end_time)
             )
         ) THEN
             RAISE EXCEPTION 'Cannot create availability window that overlaps with existing available time slots. Please choose different times or edit/delete conflicting availability for shop % on date %.',
