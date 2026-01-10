@@ -356,6 +356,16 @@ function LineInboxPageContent() {
       
       // CRITICAL: Deduplicate by target_id - keep only the latest conversation per target
       const rawConversations: Conversation[] = data.conversations || [];
+      console.log('[LINE Inbox] Raw conversations before deduplication:', rawConversations.length);
+      console.log('[LINE Inbox] Raw conversation details:', rawConversations.map(c => ({
+        id: c.id,
+        target_id: c.target_id,
+        shop_id: c.shop_id,
+        conversation_type: c.conversation_type,
+        last_message_at: c.last_message_at,
+        created_at: c.created_at
+      })));
+      
       const byTarget = new Map<string, Conversation>();
       for (const conv of rawConversations) {
         const key = conv.target_id || conv.shop_id || conv.id;
@@ -364,17 +374,45 @@ function LineInboxPageContent() {
           byTarget.set(key, conv);
         } else {
           // Keep the one with latest last_message_at (or created_at if no messages)
-          const existingTime = new Date(existing.last_message_at || existing.created_at).getTime();
-          const newTime = new Date(conv.last_message_at || conv.created_at).getTime();
-          if (newTime > existingTime) {
+          // Validate dates before parsing to avoid NaN
+          const existingDateStr = existing.last_message_at || existing.created_at;
+          const newDateStr = conv.last_message_at || conv.created_at;
+          
+          if (existingDateStr && newDateStr) {
+            const existingTime = new Date(existingDateStr).getTime();
+            const newTime = new Date(newDateStr).getTime();
+            if (!isNaN(existingTime) && !isNaN(newTime) && newTime > existingTime) {
+              byTarget.set(key, conv);
+            } else if (isNaN(existingTime) && !isNaN(newTime)) {
+              // If existing has invalid date but new has valid, use new
+              byTarget.set(key, conv);
+            }
+            // If both are invalid or existing is newer, keep existing
+          } else if (newDateStr && !existingDateStr) {
+            // New has date but existing doesn't, use new
             byTarget.set(key, conv);
           }
+          // If both missing dates or existing has date, keep existing
         }
       }
-      const deduped = Array.from(byTarget.values()).sort((a, b) =>
-        new Date(b.last_message_at || b.created_at).getTime() -
-        new Date(a.last_message_at || a.created_at).getTime()
-      );
+      
+      const deduped = Array.from(byTarget.values()).sort((a, b) => {
+        const aDateStr = a.last_message_at || a.created_at;
+        const bDateStr = b.last_message_at || b.created_at;
+        
+        if (!aDateStr && !bDateStr) return 0;
+        if (!aDateStr) return 1; // a goes to end
+        if (!bDateStr) return -1; // b goes to end
+        
+        const aTime = new Date(aDateStr).getTime();
+        const bTime = new Date(bDateStr).getTime();
+        
+        if (isNaN(aTime) && isNaN(bTime)) return 0;
+        if (isNaN(aTime)) return 1; // a goes to end
+        if (isNaN(bTime)) return -1; // b goes to end
+        
+        return bTime - aTime; // Most recent first
+      });
       console.log("[LINE Inbox] Deduplicated conversations:", deduped.length, "from", rawConversations.length);
       setConversations(deduped);
 
@@ -1413,8 +1451,8 @@ function LineInboxPageContent() {
 
         <div className="flex-1 flex flex-col min-h-0 px-2 md:px-4 py-2">
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
-            {/* Mobile Conversations List (full-width) - Only show if 2+ conversations */}
-            {conversations.length >= 2 && (
+            {/* Mobile Conversations List (full-width) - Show if 1+ conversations */}
+            {conversations.length >= 1 && (
               <div className="md:hidden border-b border-gray-200">
                 <div className="p-3 flex-shrink-0">
                   <h2 className="font-semibold text-gray-900 text-sm">
@@ -1462,8 +1500,8 @@ function LineInboxPageContent() {
             )}
 
             <div className="flex flex-1 min-h-0" style={{ height: '100%' }}>
-              {/* Desktop Conversations List - Only show if 2+ conversations */}
-              {conversations.length >= 2 && (
+              {/* Desktop Conversations List - Show if 1+ conversations */}
+              {conversations.length >= 1 && (
                 <div className="w-1/3 border-r border-gray-200 flex flex-col min-w-0 hidden md:flex">
                 <div className="p-3 border-b border-gray-200 flex-shrink-0">
                   <h2 className="font-semibold text-gray-900 text-sm">{t("conversationsTitle")}</h2>
