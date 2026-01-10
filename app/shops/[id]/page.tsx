@@ -10,7 +10,6 @@ import dynamic from 'next/dynamic';
 import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
 import { useCustomAuth } from '@/lib/useCustomAuth';
-import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import ReviewCard from '../../components/ReviewCard';
 import ReviewStats from '../../components/ReviewStats';
@@ -125,7 +124,6 @@ export default function PublicShopDetailPage() {
   const { user: supabaseUser } = useAuth(); // For owners (Supabase Auth)
   const { user: customUser } = useCustomAuth(); // For web customers (JWT)
   const user = supabaseUser || customUser; // Use whichever is available
-  const browseContext = useBrowseAIContext();
   
   // Safe translation function with fallback
   let t: ReturnType<typeof useTranslations>;

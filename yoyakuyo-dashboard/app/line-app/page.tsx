@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 import { BrowseAIProvider } from "@/app/components/BrowseAIContext";
 import { useLineAppI18n } from "./i18n";
-import { LineAIAssistantPanel } from "./components/LineAIAssistantPanel";
 
 // LINE LIFF SDK types
 declare global {
@@ -771,14 +770,13 @@ function LineAppPageContent() {
         )}
 
         {activeTab === "ai" && (
-          <LineAIAssistantPanel
-            shops={shops}
-            selectedPrefecture={selectedPrefecture !== "all" ? selectedPrefecture : undefined}
-            selectedCategoryId={selectedCategory !== "all" ? selectedCategory : undefined}
-            searchQuery={searchQuery || undefined}
-            lineUserId={lineUserId}
-            lineCustomerProfileId={lineCustomerProfileId}
-          />
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">{tx("aiTitle")}</h2>
+              <p className="text-gray-600">{tx("aiSubtitle")}</p>
+              <p className="mt-4 text-gray-500">AI Assistant is no longer available.</p>
+            </div>
+          </div>
         )}
 
         {activeTab === "favorites" && (

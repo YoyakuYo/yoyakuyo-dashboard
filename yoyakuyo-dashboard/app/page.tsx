@@ -8,13 +8,7 @@ import RoleSelectionModal from './components/landing/RoleSelectionModal';
 import LineQRCodeSection from './components/landing/LineQRCodeSection';
 import OwnerModals from './components/OwnerModals';
 import CustomerModals from './components/CustomerModals';
-import { BrowseAIAssistant } from './browse/components/BrowseAIAssistant';
-import { BrowseAIProvider } from './components/BrowseAIContext';
-import { useLocale } from 'next-intl';
-
 function LandingPageContent() {
-  const locale = useLocale();
-
   return (
     <div className="w-full min-h-screen bg-white">
       {/* Minimal Navbar - Fixed at top, always visible */}
@@ -43,24 +37,10 @@ function LandingPageContent() {
         {/* Customer Modals for Login/Join */}
         <CustomerModals />
       </div>
-
-      {/* AI Assistant - Global floating chat bubble */}
-      <BrowseAIAssistant
-        shops={[]}
-        selectedPrefecture={undefined}
-        selectedCity={undefined}
-        selectedCategoryId={undefined}
-        searchQuery={undefined}
-        locale={locale as string}
-      />
     </div>
   );
 }
 
 export default function HomePage() {
-  return (
-    <BrowseAIProvider>
-      <LandingPageContent />
-    </BrowseAIProvider>
-  );
+  return <LandingPageContent />;
 }

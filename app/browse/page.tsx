@@ -17,40 +17,10 @@ import {
 import { CATEGORIES } from '@/lib/categories';
 import { CategoryNavigation } from './components/CategoryNavigation';
 import { ShopCard } from './components/ShopCard';
-import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
 
-// Component to update browse context
-function UpdateBrowseContext({
-  shops,
-  selectedPrefectures,
-  selectedCities,
-  selectedCategoryId,
-  searchQuery,
-  setBrowseContext,
-}: {
-  shops: Shop[];
-  selectedPrefectures: string[];
-  selectedCities: string[];
-  selectedCategoryId: string | null;
-  searchQuery: string;
-  setBrowseContext: (context: any) => void;
-}) {
-  useEffect(() => {
-    setBrowseContext({
-      shops,
-      selectedPrefecture: null,
-      selectedCity: null,
-      selectedPrefectures: [],
-      selectedCities: [],
-      selectedCategoryId,
-      searchQuery,
-    });
-  }, [shops, selectedPrefectures, selectedCities, selectedCategoryId, searchQuery, setBrowseContext]);
-  return null;
-}
 
 interface Category {
   id: string;
@@ -63,7 +33,6 @@ function BrowsePageContent() {
   const router = useRouter();
   const t = useTranslations();
   const locale = useLocale();
-  const browseContext = useBrowseAIContext(); // Get context to share with global AI bubble
   const [shops, setShops] = useState<Shop[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -495,17 +464,6 @@ function BrowsePageContent() {
         )}
       </div>
 
-      {/* Update global AI bubble context with browse page state */}
-      {browseContext && (
-        <UpdateBrowseContext
-          shops={displayShops}
-          selectedPrefectures={[]}
-          selectedCities={[]}
-          selectedCategoryId={selectedCategoryId}
-          searchQuery={debouncedSearch}
-          setBrowseContext={browseContext.setBrowseContext}
-        />
-      )}
     </div>
   );
 }

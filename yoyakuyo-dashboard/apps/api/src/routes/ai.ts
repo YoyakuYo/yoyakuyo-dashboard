@@ -1,24 +1,37 @@
 import { Router, Request, Response } from "express";
 import { supabase, supabaseAdmin } from "../lib/supabase";
-import { handleShopDiscoveryOnly } from "../ai/ai";
 
 const router = Router();
 const dbClient = supabaseAdmin || supabase;
 
 // =====================================================
-// SHOP_DISCOVERY_ONLY (SINGLE MODE)
-// - Stateless: each message processed independently
-// - Read-only: shops/categories only
-// - No booking, no identity, no DB writes, no error exposure
+// OWNER AI ONLY - Customer AI has been removed
 // =====================================================
 router.post("/chat", async (req: Request, res: Response) => {
   try {
-    const { messages, message } = req.body || {};
+    const { messages, message, role } = req.body || {};
+
+    // Only owner role is supported
+    if (role !== "owner") {
+      return res.status(403).json({ 
+        error: "Only owner AI assistant is available. Customer AI has been removed.",
+        mode: "ERROR",
+        intent: "UNKNOWN",
+        response: "Only owner AI assistant is available. Customer AI has been removed.",
+        shop_cards: null,
+        language_code: "en",
+      });
+    }
 
     let text = "";
+    let conversationHistory: Array<{ role: string; content: string }> | undefined = undefined;
+    
     if (Array.isArray(messages) && messages.length > 0) {
       const lastUser = [...messages].reverse().find((m: any) => m?.role === "user" && typeof m?.content === "string");
       text = (lastUser?.content || "").trim();
+      conversationHistory = messages
+        .filter((m: any) => (m.role === "user" || m.role === "assistant") && typeof m?.content === "string")
+        .slice(0, -1);
     } else if (typeof message === "string") {
       text = message.trim();
     }
@@ -27,31 +40,45 @@ router.post("/chat", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "message_required" });
     }
 
-    try {
-      const out = await handleShopDiscoveryOnly(text, dbClient as any);
+    // ==========================================================
+    // OWNER MODE - Business management assistant
+    // ==========================================================
+    const isNewConversation = !conversationHistory || conversationHistory.length === 0;
+    const isGreeting = /^(hi|hello|hey|good morning|good afternoon|good evening|こんにちは|こんばんは|おはよう|やあ)[!！。.\s]*$/i.test(text.trim());
+    
+    if (isGreeting && !isNewConversation) {
       return res.json({
-        mode: out.mode,
-        intent: out.intent,
-        response: out.response,
-        shop_cards: out.shop_cards,
-        language_code: "en",
-      });
-    } catch (e: any) {
-      console.error("[SHOP_DISCOVERY_ONLY] error:", e?.message || e);
-      return res.json({
-        mode: "SHOP_DISCOVERY_ONLY",
-        intent: "UNKNOWN",
-        response: "Sorry, I couldn’t load shops right now. Please try again.",
+        mode: "OWNER_AI",
+        intent: "GREETING",
+        response: "🤖 AI Assistant: Hi! How can I help you manage your shop today?",
         shop_cards: null,
         language_code: "en",
       });
     }
-  } catch (e: any) {
-    console.error("[SHOP_DISCOVERY_ONLY] unexpected:", e?.message || e);
+    
+    if (isGreeting && isNewConversation) {
+      return res.json({
+        mode: "OWNER_AI",
+        intent: "GREETING",
+        response: "🤖 AI Assistant: Hello! I'm your business management assistant. How can I help you manage your shop today?",
+        shop_cards: null,
+        language_code: "en",
+      });
+    }
+
     return res.json({
-      mode: "SHOP_DISCOVERY_ONLY",
+      mode: "OWNER_AI",
       intent: "UNKNOWN",
-      response: "Sorry, I couldn’t load shops right now. Please try again.",
+      response: "🤖 AI Assistant: I'm here to help you manage your shop. You can ask me about bookings, availability, or calendar management.",
+      shop_cards: null,
+      language_code: "en",
+    });
+  } catch (e: any) {
+    console.error("[OWNER_AI] unexpected:", e?.message || e);
+    return res.json({
+      mode: "OWNER_AI",
+      intent: "UNKNOWN",
+      response: "Sorry, I encountered an error. Please try again.",
       shop_cards: null,
       language_code: "en",
     });
