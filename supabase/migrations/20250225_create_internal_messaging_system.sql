@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS conversations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     conversation_type conversation_type_enum NOT NULL DEFAULT 'booking_owner',
     target_type target_type_enum NOT NULL DEFAULT 'shop',
-    target_id UUID NOT NULL, -- shop_id, admin_id, or owner_id
+    target_id TEXT NOT NULL, -- shop_id (UUID), admin_id, or owner_id, or 'system' for admin support
     booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL, -- REQUIRED for booking_owner type
     customer_type customer_type_enum NOT NULL,
     customer_ref TEXT NOT NULL, -- line_user_id OR user_id OR guest_token
@@ -102,9 +102,9 @@ BEGIN
         AND column_name = 'target_id'
     ) THEN
         ALTER TABLE conversations
-        ADD COLUMN target_id UUID;
+        ADD COLUMN target_id TEXT;
         -- Migrate existing shop_id to target_id for booking_owner conversations
-        UPDATE conversations SET target_id = shop_id WHERE conversation_type = 'booking_owner';
+        UPDATE conversations SET target_id = shop_id::text WHERE conversation_type = 'booking_owner' AND shop_id IS NOT NULL;
         RAISE NOTICE 'Added target_id column to conversations and migrated shop_id data';
     END IF;
 
@@ -439,7 +439,7 @@ BEGIN
         UPDATE conversations SET
             conversation_type = 'booking_owner',
             target_type = 'shop',
-            target_id = conv_record.shop_id
+            target_id = conv_record.shop_id::text
         WHERE id = conv_record.id;
 
         RAISE NOTICE 'Migrated booking conversation: %', conv_record.id;
@@ -466,9 +466,51 @@ BEGIN
     UPDATE conversations SET
         conversation_type = 'booking_owner',
         target_type = 'shop',
-        target_id = shop_id
+        target_id = shop_id::text
     WHERE conversation_type IS NULL
     AND shop_id IS NOT NULL;
+
+    -- Step 4: Fix NULL target_id issues (CRITICAL)
+    UPDATE conversations SET
+        target_id = shop_id::text
+    WHERE target_id IS NULL
+    AND conversation_type = 'booking_owner'
+    AND shop_id IS NOT NULL;
+
+    UPDATE conversations SET
+        target_id = 'system'
+    WHERE target_id IS NULL
+    AND conversation_type = 'support_admin';
+
+    -- Log any remaining NULL target_id issues
+    RAISE NOTICE 'Remaining conversations with NULL target_id: %',
+        (SELECT COUNT(*) FROM conversations WHERE target_id IS NULL);
+
+    -- Step 5: Consolidate duplicate conversations
+    -- Find conversations with identical scoping that should be merged
+    CREATE TEMP TABLE duplicate_conversations AS
+    SELECT
+        conversation_type,
+        target_type,
+        target_id,
+        customer_type,
+        customer_ref,
+        booking_id,
+        ARRAY_AGG(id ORDER BY created_at) as conversation_ids,
+        ARRAY_AGG(created_at ORDER BY created_at) as created_dates,
+        COUNT(*) as duplicate_count
+    FROM conversations
+    WHERE conversation_type IS NOT NULL
+    AND target_type IS NOT NULL
+    AND target_id IS NOT NULL
+    GROUP BY conversation_type, target_type, target_id, customer_type, customer_ref, booking_id
+    HAVING COUNT(*) > 1;
+
+    -- For each set of duplicates, keep the oldest and delete the rest
+    -- Note: This is a complex operation that would require message migration
+    -- For now, we'll just log the duplicates for manual review
+    RAISE NOTICE 'Found % duplicate conversation groups to review manually',
+        (SELECT COUNT(*) FROM duplicate_conversations);
 
     RAISE NOTICE 'Conversation data migration completed!';
 END $$;
