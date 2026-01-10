@@ -236,22 +236,50 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
       let currentShopId = shopId;
       if (!currentShopId && user?.id) {
         try {
-          // Try the owner shops endpoint first (correct endpoint)
-          let shopsRes = await fetch(`${apiUrl}/shops/owner`, {
-            headers: { 'x-user-id': user.id },
-          });
+          // Try the owner shops endpoint first (correct endpoint) with timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
           
-          // If that fails, try the alternative endpoint
-          if (!shopsRes.ok) {
-            shopsRes = await fetch(`${apiUrl}/shops?my_shops=true&page=1&limit=1`, {
+          let shopsRes;
+          try {
+            shopsRes = await fetch(`${apiUrl}/shops/owner`, {
               headers: { 'x-user-id': user.id },
+              signal: controller.signal,
             });
+            clearTimeout(timeoutId);
+          } catch (fetchError: any) {
+            clearTimeout(timeoutId);
+            if (fetchError.name === 'AbortError') {
+              console.warn('[OwnerAIChat] Shop loading timed out, trying alternative endpoint');
+            } else {
+              throw fetchError;
+            }
           }
           
-          if (shopsRes.ok) {
+          // If that fails or timed out, try the alternative endpoint
+          if (!shopsRes || !shopsRes.ok) {
+            const altController = new AbortController();
+            const altTimeoutId = setTimeout(() => altController.abort(), 5000); // 5 second timeout for fallback
+            try {
+              shopsRes = await fetch(`${apiUrl}/shops?my_shops=true&page=1&limit=1`, {
+                headers: { 'x-user-id': user.id },
+                signal: altController.signal,
+              });
+              clearTimeout(altTimeoutId);
+            } catch (altError: any) {
+              clearTimeout(altTimeoutId);
+              if (altError.name === 'AbortError') {
+                console.error('[OwnerAIChat] Alternative shop loading also timed out');
+              } else {
+                throw altError;
+              }
+            }
+          }
+          
+          if (shopsRes && shopsRes.ok) {
             const shopsData = await shopsRes.json();
             const shops = shopsData.shops || shopsData.data || (Array.isArray(shopsData) ? shopsData : []);
-            if (Array.isArray(shops) && shops.length > 0) {
+            if (Array.isArray(shops) && shops.length > 0 && shops[0]?.id) {
               currentShopId = shops[0].id;
               setShopId(currentShopId);
               console.log('[OwnerAIChat] Loaded shopId:', currentShopId);
@@ -259,16 +287,16 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
               console.warn('[OwnerAIChat] No shops found for user');
             }
           } else {
-            console.error('[OwnerAIChat] Failed to load shops:', shopsRes.status, shopsRes.statusText);
+            console.error('[OwnerAIChat] Failed to load shops:', shopsRes?.status || 'timeout', shopsRes?.statusText || 'request failed');
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error('[OwnerAIChat] Error loading shop:', err);
         }
       }
 
-      // Check if we have shopId before proceeding
-      if (!currentShopId) {
-        const errorMsg = "🤖 AI Assistant: I need your shop ID to help you. Please make sure you're logged in and have a shop set up.";
+      // Check if we have shopId before proceeding - STRICT CHECK
+      if (!currentShopId || typeof currentShopId !== 'string' || currentShopId.trim() === '') {
+        const errorMsg = "🤖 AI Assistant: I need your shop ID to help you. Please make sure you're logged in and have a shop set up. If you just created a shop, please refresh the page.";
         setError(errorMsg);
         const errorMessage: Message = {
           id: `error-${Date.now()}`,
@@ -289,6 +317,11 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
         })),
         { role: 'user' as const, content: messageContent },
       ];
+
+      // Final safety check before sending request
+      if (!currentShopId || typeof currentShopId !== 'string' || currentShopId.trim() === '') {
+        throw new Error('Shop ID is required but not available');
+      }
 
       console.log('[OwnerAIChat] Sending request with shopId:', currentShopId);
 
