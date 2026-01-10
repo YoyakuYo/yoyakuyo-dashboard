@@ -134,7 +134,7 @@ function MessagesPageContent() {
     if (!user?.id) return;
 
     try {
-      const res = await fetch(`${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`, {
+      const res = await fetch(`${apiUrl}/api/internal-messaging/${conversationId}/messages`, {
         headers: { 'x-user-id': user.id },
       });
 
