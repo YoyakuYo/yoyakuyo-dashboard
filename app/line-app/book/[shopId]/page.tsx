@@ -148,13 +148,22 @@ function LineBookingPageContent() {
   const generateTimeSlots = (availabilityRanges: Array<{ start_time: string; end_time: string }>, serviceDuration: number) => {
     const slots: TimeSlot[] = [];
 
+    console.log(`[generateTimeSlots] Generating slots from ${availabilityRanges.length} ranges with duration ${serviceDuration} minutes`);
+
     availabilityRanges.forEach((range, rangeIndex) => {
-      // Parse start and end times
-      const [startHour, startMinute] = range.start_time.split(':').map(Number);
-      const [endHour, endMinute] = range.end_time.split(':').map(Number);
+      // Parse start and end times - handle both HH:MM and HH:MM:SS formats
+      const startParts = range.start_time.split(':');
+      const endParts = range.end_time.split(':');
+      
+      const startHour = parseInt(startParts[0], 10);
+      const startMinute = parseInt(startParts[1] || '0', 10);
+      const endHour = parseInt(endParts[0], 10);
+      const endMinute = parseInt(endParts[1] || '0', 10);
 
       const startMinutes = startHour * 60 + startMinute;
       const endMinutes = endHour * 60 + endMinute;
+
+      console.log(`[generateTimeSlots] Range ${rangeIndex}: ${range.start_time} (${startMinutes} min) to ${range.end_time} (${endMinutes} min)`);
 
       // Generate slots every serviceDuration minutes
       for (let currentMinutes = startMinutes; currentMinutes + serviceDuration <= endMinutes; currentMinutes += serviceDuration) {
@@ -176,6 +185,7 @@ function LineBookingPageContent() {
       }
     });
 
+    console.log(`[generateTimeSlots] Generated ${slots.length} time slots`);
     return slots;
   };
 
@@ -206,7 +216,22 @@ function LineBookingPageContent() {
 
         // Generate individual time slots from availability ranges
         const availabilityRanges = Array.isArray(data) ? data : [];
-        const serviceDuration = service.duration_minutes || service.duration;
+        console.log(`[fetchTimeSlots] Received ${availabilityRanges.length} availability ranges:`, availabilityRanges);
+        
+        // Get service duration - prefer duration_minutes, fallback to duration (which might be in hours)
+        let serviceDuration = service.duration_minutes;
+        if (!serviceDuration && service.duration) {
+          // If duration is provided but not duration_minutes, assume it's in minutes
+          // But if it's a small number (< 60), it might already be in minutes
+          serviceDuration = service.duration < 60 ? service.duration : service.duration * 60;
+        }
+        // Default to 60 minutes if no duration specified
+        if (!serviceDuration || serviceDuration <= 0) {
+          console.warn(`[fetchTimeSlots] No valid service duration found, defaulting to 60 minutes`);
+          serviceDuration = 60;
+        }
+        
+        console.log(`[fetchTimeSlots] Using service duration: ${serviceDuration} minutes`);
         const generatedSlots = generateTimeSlots(availabilityRanges, serviceDuration);
 
         console.log(`Generated ${generatedSlots.length} time slots from ${availabilityRanges.length} availability ranges`);
