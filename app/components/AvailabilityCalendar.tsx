@@ -119,27 +119,16 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
     return days;
   };
 
-  // Handle date click
+  // Handle date click - show slot management modal
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
     setEditingWindow(null);
 
-    const existingWindows = getWindowsForDate(date);
-    const currentlyUnavailable = isUnavailable(date);
-
     if (unavailableMode) {
       // Mark date as unavailable or clear unavailability
       handleMarkUnavailable(date);
-    } else if (currentlyUnavailable) {
-      // Date is blocked - clicking should clear unavailability and allow creating availability
-      // Don't open modal, just clear the blocks and let user click again to create availability
-      handleClearUnavailability(date);
-    } else if (existingWindows.length > 0) {
-      // Date has available windows - edit the first one
-      setEditingWindow(existingWindows[0]);
-      setShowWindowModal(true);
     } else {
-      // Date has no windows - create new availability
+      // Always show slot management modal for the selected date
       setShowWindowModal(true);
     }
   };
@@ -519,19 +508,33 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
         </div>
       </div>
 
-      {/* Availability Window Modal */}
+      {/* Slot Management Modal - Shows all slots for selected date */}
       {showWindowModal && selectedDate && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">
-              {editingWindow ? 'Edit' : 'Add'} Availability for {selectedDate.toLocaleDateString()}
+              Manage Time Slots for {selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </h3>
 
-            <AvailabilityWindowForm
-              window={editingWindow}
-              onSave={handleWindowSave}
-              onDelete={editingWindow ? handleWindowDelete : undefined}
-              onCancel={() => setShowWindowModal(false)}
+            <SlotManagementView
+              date={selectedDate}
+              slots={getWindowsForDate(selectedDate)}
+              onAddSlot={(slotData) => {
+                const dateStr = selectedDate.toISOString().split('T')[0];
+                handleWindowSave({ ...slotData, date: dateStr });
+              }}
+              onEditSlot={(slotId, slotData) => {
+                const slot = availabilityWindows.find(w => w.id === slotId);
+                if (slot) {
+                  setEditingWindow(slot);
+                  handleWindowSave(slotData);
+                }
+              }}
+              onDeleteSlot={handleWindowDelete}
+              onCancel={() => {
+                setShowWindowModal(false);
+                setEditingWindow(null);
+              }}
               saving={saving}
             />
           </div>
@@ -717,7 +720,297 @@ function WeeklyTemplateForm({
   );
 }
 
-// Availability Window Form Component
+// Slot Management View Component - Shows timeline of slots for a date
+function SlotManagementView({
+  date,
+  slots,
+  onAddSlot,
+  onEditSlot,
+  onDeleteSlot,
+  onCancel,
+  saving
+}: {
+  date: Date;
+  slots: AvailabilityWindow[];
+  onAddSlot: (data: Partial<AvailabilityWindow>) => void;
+  onEditSlot: (slotId: string, data: Partial<AvailabilityWindow>) => void;
+  onDeleteSlot: (slotId: string) => void;
+  onCancel: () => void;
+  saving: boolean;
+}) {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
+  const [newSlot, setNewSlot] = useState({ start_time: '09:00', end_time: '10:00', status: 'available' as const });
+
+  // Sort slots by start time
+  const sortedSlots = [...slots].sort((a, b) => {
+    const aTime = a.start_time;
+    const bTime = b.start_time;
+    return aTime.localeCompare(bTime);
+  });
+
+  const handleAddSlot = (e: React.FormEvent) => {
+    e.preventDefault();
+    onAddSlot(newSlot);
+    setNewSlot({ start_time: '09:00', end_time: '10:00', status: 'available' });
+    setShowAddForm(false);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'available': return 'bg-green-100 border-green-500 text-green-800';
+      case 'booked': return 'bg-red-100 border-red-500 text-red-800';
+      case 'blocked': return 'bg-gray-100 border-gray-500 text-gray-800';
+      default: return 'bg-gray-100 border-gray-300 text-gray-700';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'available': return 'Available';
+      case 'booked': return 'Booked';
+      case 'blocked': return 'Blocked';
+      default: return status;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Slots Timeline */}
+      <div className="space-y-2">
+        <h4 className="font-medium text-gray-700">Time Slots</h4>
+        {sortedSlots.length === 0 ? (
+          <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+            <p>No time slots for this date</p>
+            <p className="text-sm mt-1">Click "Add Slot" to create availability</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {sortedSlots.map((slot) => (
+              <div
+                key={slot.id}
+                className={`p-4 border-2 rounded-lg ${getStatusColor(slot.status)} flex items-center justify-between`}
+              >
+                <div className="flex-1">
+                  <div className="font-medium">
+                    {slot.start_time} - {slot.end_time}
+                  </div>
+                  <div className="text-sm opacity-75">
+                    {getStatusLabel(slot.status)}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {slot.status !== 'booked' && (
+                    <>
+                      <button
+                        onClick={() => setEditingSlotId(slot.id)}
+                        disabled={saving}
+                        className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-sm"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => onDeleteSlot(slot.id)}
+                        disabled={saving}
+                        className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 text-sm"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                  {slot.status === 'booked' && (
+                    <span className="px-3 py-1 bg-gray-400 text-white rounded text-sm">
+                      Booked
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Add Slot Form */}
+      {showAddForm && (
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+          <h5 className="font-medium mb-3">Add New Slot</h5>
+          <form onSubmit={handleAddSlot} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">Start Time</label>
+                <input
+                  type="time"
+                  value={newSlot.start_time}
+                  onChange={(e) => setNewSlot({ ...newSlot, start_time: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">End Time</label>
+                <input
+                  type="time"
+                  value={newSlot.end_time}
+                  onChange={(e) => setNewSlot({ ...newSlot, end_time: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Status</label>
+              <select
+                value={newSlot.status}
+                onChange={(e) => setNewSlot({ ...newSlot, status: e.target.value as 'available' | 'blocked' })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="available">Available</option>
+                <option value="blocked">Blocked</option>
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                Add Slot
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddForm(false);
+                  setNewSlot({ start_time: '09:00', end_time: '10:00', status: 'available' });
+                }}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Edit Slot Form */}
+      {editingSlotId && (() => {
+        const slot = slots.find(s => s.id === editingSlotId);
+        if (!slot) return null;
+        
+        return (
+          <SlotEditForm
+            slot={slot}
+            onSave={(data) => {
+              onEditSlot(editingSlotId, data);
+              setEditingSlotId(null);
+            }}
+            onCancel={() => setEditingSlotId(null)}
+            saving={saving}
+          />
+        );
+      })()}
+
+      {/* Actions */}
+      <div className="flex justify-between pt-4 border-t">
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          disabled={saving || editingSlotId !== null}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+        >
+          {showAddForm ? 'Cancel Add' : '+ Add Slot'}
+        </button>
+        <button
+          onClick={onCancel}
+          className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Slot Edit Form Component
+function SlotEditForm({
+  slot,
+  onSave,
+  onCancel,
+  saving
+}: {
+  slot: AvailabilityWindow;
+  onSave: (data: Partial<AvailabilityWindow>) => void;
+  onCancel: () => void;
+  saving: boolean;
+}) {
+  const [startTime, setStartTime] = useState(slot.start_time);
+  const [endTime, setEndTime] = useState(slot.end_time);
+  const [status, setStatus] = useState(slot.status);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({ start_time: startTime, end_time: endTime, status });
+  };
+
+  return (
+    <div className="border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
+      <h5 className="font-medium mb-3">Edit Slot</h5>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium mb-1">Start Time</label>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">End Time</label>
+            <input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              required
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Status</label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as 'available' | 'booked' | 'blocked')}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            disabled={status === 'booked'}
+          >
+            <option value="available">Available</option>
+            <option value="blocked">Blocked</option>
+            {status === 'booked' && <option value="booked">Booked</option>}
+          </select>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            Save Changes
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// Availability Window Form Component (kept for backward compatibility)
 function AvailabilityWindowForm({
   window,
   onSave,
