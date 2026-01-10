@@ -152,19 +152,34 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
 
   // Load shop ID
   useEffect(() => {
-    if (user?.id) {
-      fetch(`${apiUrl}/shops`, {
+    if (user?.id && !shopId) {
+      // Try the owner shops endpoint first (correct endpoint)
+      fetch(`${apiUrl}/shops/owner`, {
         headers: { 'x-user-id': user.id },
       })
-        .then(res => res.ok ? res.json() : null)
-        .then(shops => {
-          if (shops && Array.isArray(shops) && shops.length > 0) {
-            setShopId(shops[0].id);
+        .then(res => {
+          if (res.ok) {
+            return res.json();
+          }
+          // Fallback to alternative endpoint
+          return fetch(`${apiUrl}/shops?my_shops=true&page=1&limit=1`, {
+            headers: { 'x-user-id': user.id },
+          }).then(res2 => res2.ok ? res2.json() : null);
+        })
+        .then(shopsData => {
+          if (shopsData) {
+            const shops = shopsData.shops || shopsData.data || (Array.isArray(shopsData) ? shopsData : []);
+            if (Array.isArray(shops) && shops.length > 0) {
+              setShopId(shops[0].id);
+              console.log('[OwnerAIChat] Loaded shopId on mount:', shops[0].id);
+            }
           }
         })
-        .catch(() => {});
+        .catch(err => {
+          console.error('[OwnerAIChat] Error loading shop on mount:', err);
+        });
     }
-  }, [user]);
+  }, [user, shopId]);
 
   // Reload conversation history when chat opens to ensure we have the latest messages
   useEffect(() => {
@@ -221,21 +236,49 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
       let currentShopId = shopId;
       if (!currentShopId && user?.id) {
         try {
-          const shopsRes = await fetch(`${apiUrl}/shops?my_shops=true&page=1&limit=1`, {
+          // Try the owner shops endpoint first (correct endpoint)
+          let shopsRes = await fetch(`${apiUrl}/shops/owner`, {
             headers: { 'x-user-id': user.id },
           });
+          
+          // If that fails, try the alternative endpoint
+          if (!shopsRes.ok) {
+            shopsRes = await fetch(`${apiUrl}/shops?my_shops=true&page=1&limit=1`, {
+              headers: { 'x-user-id': user.id },
+            });
+          }
+          
           if (shopsRes.ok) {
             const shopsData = await shopsRes.json();
-            const shops = shopsData.shops || shopsData.data || [];
-            if (shops.length > 0) {
+            const shops = shopsData.shops || shopsData.data || (Array.isArray(shopsData) ? shopsData : []);
+            if (Array.isArray(shops) && shops.length > 0) {
               currentShopId = shops[0].id;
               setShopId(currentShopId);
+              console.log('[OwnerAIChat] Loaded shopId:', currentShopId);
+            } else {
+              console.warn('[OwnerAIChat] No shops found for user');
             }
+          } else {
+            console.error('[OwnerAIChat] Failed to load shops:', shopsRes.status, shopsRes.statusText);
           }
         } catch (err) {
-          console.error('Error loading shop:', err);
-          // Continue anyway - some commands might work without shopId
+          console.error('[OwnerAIChat] Error loading shop:', err);
         }
+      }
+
+      // Check if we have shopId before proceeding
+      if (!currentShopId) {
+        const errorMsg = "🤖 AI Assistant: I need your shop ID to help you. Please make sure you're logged in and have a shop set up.";
+        setError(errorMsg);
+        const errorMessage: Message = {
+          id: `error-${Date.now()}`,
+          role: 'assistant',
+          content: errorMsg,
+          timestamp: new Date(),
+        };
+        addMessage(errorMessage);
+        setLoading(false);
+        return;
       }
 
       // Build messages array for unified endpoint
@@ -247,6 +290,8 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
         { role: 'user' as const, content: messageContent },
       ];
 
+      console.log('[OwnerAIChat] Sending request with shopId:', currentShopId);
+
       const response = await fetch(`${apiUrl}/ai/chat`, {
         method: 'POST',
         headers: {
@@ -257,34 +302,53 @@ export function OwnerAIChat({ fullPage = false, onClose }: OwnerAIChatProps) {
           role: 'owner',
           messages: messagesForAPI,
           userId: user?.id,
-          shopContext: currentShopId ? { shopId: currentShopId } : undefined,
+          shopContext: { shopId: currentShopId },
           locale: 'auto', // Backend will auto-detect from shop data
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to get AI response');
+        const errorMsg = errorData.error || errorData.response || `HTTP ${response.status}: Failed to get AI response`;
+        console.error('[OwnerAIChat] API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
       
+      if (!data.response) {
+        console.error('[OwnerAIChat] Missing response in data:', data);
+        throw new Error('No response from AI');
+      }
+      
       const aiMessage: Message = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: data.response || 'Sorry, I could not generate a response.',
+        content: data.response,
         timestamp: new Date(),
       };
 
       addMessage(aiMessage);
     } catch (err: any) {
-      console.error('Error sending message to AI:', err);
+      console.error('[OwnerAIChat] Error sending message to AI:', err);
+      console.error('[OwnerAIChat] Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+      });
       setError(err.message || 'Failed to send message. Please try again.');
       
+      // Show the actual error message if available, otherwise show generic message
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: err.message?.includes('shop ID') || err.message?.includes('shopId')
+          ? err.message
+          : `🤖 AI Assistant: ${err.message || 'Sorry, I encountered an error. Please try again.'}`,
         timestamp: new Date(),
       };
       addMessage(errorMessage);
