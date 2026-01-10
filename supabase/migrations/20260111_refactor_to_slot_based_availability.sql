@@ -42,21 +42,22 @@ DECLARE
     slot_record RECORD;
 BEGIN
     -- For each booking, try to find matching availability window and link it
+    -- Note: bookings table only has date and start_time (no end_time column)
     FOR booking_record IN 
-        SELECT id, shop_id, date, start_time, end_time
+        SELECT id, shop_id, date, start_time
         FROM bookings
         WHERE date IS NOT NULL
         AND start_time IS NOT NULL
-        AND booking_id IS NULL -- Only process slots not already linked
     LOOP
-        -- Try to find a matching availability window
+        -- Try to find a matching availability window (slot) that is already marked as booked
+        -- Match by shop_id, date, and start_time
         SELECT id INTO slot_record
         FROM availability_windows
         WHERE shop_id = booking_record.shop_id
         AND date = booking_record.date
         AND start_time::TIME = booking_record.start_time::TIME
         AND status = 'booked'
-        AND booking_id IS NULL
+        AND booking_id IS NULL -- Only link slots that aren't already linked
         LIMIT 1;
         
         -- If found, link it
