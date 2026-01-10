@@ -71,12 +71,23 @@ export default function BookingCalendar({ bookings, onDateClick, selectedDate, s
   }, [shopId]);
 
   // Group bookings by date
+  // CRITICAL: Use booking.date (DATE), not start_time (TIME)
   const bookingsByDate = useMemo(() => {
     const grouped: Record<string, Booking[]> = {};
     bookings.forEach(booking => {
-      if (booking.start_time) {
-        const date = new Date(booking.start_time);
-        const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      // Use date field if available, otherwise construct from date + start_time
+      let dateKey: string | null = null;
+      if (booking.date) {
+        dateKey = booking.date; // DATE is already in YYYY-MM-DD format
+      } else if (booking.date && booking.start_time) {
+        // Fallback: combine date and time
+        const date = new Date(`${booking.date}T${booking.start_time}`);
+        if (!isNaN(date.getTime())) {
+          dateKey = date.toISOString().split('T')[0];
+        }
+      }
+      
+      if (dateKey) {
         if (!grouped[dateKey]) {
           grouped[dateKey] = [];
         }

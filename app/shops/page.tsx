@@ -1813,19 +1813,24 @@ const MyShopPage = () => {
                     };
 
                     // Format date and time
+                    // CRITICAL: Use booking.date (DATE) + booking.start_time (TIME), not start_at
                     const formatDateTime = (booking: any) => {
                       if (booking.date && booking.start_time) {
+                        // Combine DATE and TIME to create proper datetime
                         const date = new Date(`${booking.date}T${booking.start_time}`);
-                        return {
-                          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                          time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-                        };
+                        if (!isNaN(date.getTime())) {
+                          return {
+                            date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                            time: booking.start_time.substring(0, 5) // Format HH:MM from TIME
+                          };
+                        }
                       }
-                      if (booking.start_time) {
-                        const date = new Date(booking.start_time);
+                      if (booking.date) {
+                        // Fallback: just show date if time is missing
+                        const date = new Date(booking.date + 'T00:00:00');
                         return {
                           date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                          time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+                          time: 'N/A'
                         };
                       }
                       return { date: 'N/A', time: '' };

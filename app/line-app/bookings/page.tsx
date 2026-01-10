@@ -406,23 +406,23 @@ function LineBookingsPageContent() {
     const serviceData = Array.isArray(booking.services) ? booking.services[0] : booking.services;
     
     // Show booking details in alert/modal (simple implementation)
+    // CRITICAL: Use booking.date (DATE) + booking.start_time (TIME), not start_at (doesn't exist)
+    const bookingDate = booking.date ? new Date(booking.date + 'T00:00:00') : null;
+    const dateStr = bookingDate ? bookingDate.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }) : 'N/A';
+    const timeStr = booking.start_time ? booking.start_time.substring(0, 5) : 'N/A';
+    const endTimeStr = booking.end_time ? booking.end_time.substring(0, 5) : '';
+    
     const details = `
 ${t("bookingDetailsTitle")}:
 - ${t("bookingDetailsShop")}: ${shopData?.name || t("unknown")}
 - ${t("bookingDetailsService")}: ${serviceData?.name || t("unknown")}
-- ${t("dateLabel")}: ${new Date(booking.start_time).toLocaleDateString('en-US', { 
-  weekday: 'long', 
-  year: 'numeric', 
-  month: 'long', 
-  day: 'numeric' 
-})}
-- ${t("timeLabel")}: ${new Date(booking.start_time).toLocaleTimeString('en-US', { 
-  hour: '2-digit', 
-  minute: '2-digit' 
-})} - ${new Date(booking.end_time).toLocaleTimeString('en-US', { 
-  hour: '2-digit', 
-  minute: '2-digit' 
-})}
+- ${t("dateLabel")}: ${dateStr}
+- ${t("timeLabel")}: ${timeStr}${endTimeStr ? ` - ${endTimeStr}` : ''}
 - ${t("bookingDetailsStatus")}: ${booking.status}
 - ${t("bookingIdLabel")}: ${booking.id}
     `.trim();
@@ -659,19 +659,20 @@ ${t("bookingDetailsTitle")}:
                   </p>
                   <p className="text-sm text-gray-600">
                     <span className="font-medium">{t("dateLabel")}:</span>{" "}
-                    {new Date(booking.start_time).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {booking.date 
+                      ? new Date(booking.date + 'T00:00:00').toLocaleDateString("en-US", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })
+                      : 'N/A'}
                   </p>
                   <p className="text-sm text-gray-600">
                     <span className="font-medium">{t("timeLabel")}:</span>{" "}
-                    {new Date(booking.start_time).toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {booking.start_time 
+                      ? booking.start_time.substring(0, 5) // Format HH:MM from TIME
+                      : 'N/A'}
                   </p>
                 </div>
 
