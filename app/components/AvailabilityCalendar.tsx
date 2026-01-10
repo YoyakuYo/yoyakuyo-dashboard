@@ -740,7 +740,11 @@ function SlotManagementView({
 }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
-  const [newSlot, setNewSlot] = useState({ start_time: '09:00', end_time: '10:00', status: 'available' as const });
+  const [newSlot, setNewSlot] = useState<{ start_time: string; end_time: string; status: 'available' | 'blocked' }>({ 
+    start_time: '09:00', 
+    end_time: '10:00', 
+    status: 'available' 
+  });
 
   // Sort slots by start time
   const sortedSlots = [...slots].sort((a, b) => {
