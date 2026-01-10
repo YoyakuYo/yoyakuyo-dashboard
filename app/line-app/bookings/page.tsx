@@ -224,8 +224,9 @@ interface Booking {
   source?: string;
   booking_type?: string; // Legacy field for backward compatibility
   line_user_id?: string; // Legacy field
-  start_time: string;
-  end_time: string;
+  start_time: string; // TIME type (HH:MM:SS) or full timestamp
+  end_time?: string; // Optional TIME type
+  date?: string; // DATE type (YYYY-MM-DD format) - required for proper date display
   booked_for?: string; // New canonical field
   status: string;
   shop_id?: string;
