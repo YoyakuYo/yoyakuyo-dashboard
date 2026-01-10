@@ -39,7 +39,7 @@ export default function OwnerCustomersPage() {
     setLoading(true);
     try {
       // Get owner's shop
-      const shopsRes = await fetch(`${apiUrl}/api/owner/shops`, {
+      const shopsRes = await fetch(`${apiUrl}/shops/owner`, {
         headers: { 'x-user-id': user.id },
       });
       if (!shopsRes.ok) {

@@ -49,7 +49,7 @@ export default function OwnerAIPage() {
   const loadShop = async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`${apiUrl}/api/owner/shops`, {
+      const res = await fetch(`${apiUrl}/shops/owner`, {
         headers: { 'x-user-id': user.id },
       });
       if (res.ok) {

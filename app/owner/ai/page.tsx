@@ -49,7 +49,7 @@ export default function OwnerAIPage() {
   const loadShop = async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`${apiUrl}/api/owner/shops`, {
+      const res = await fetch(`${apiUrl}/shops/owner`, {
         headers: { 'x-user-id': user.id },
       });
       if (res.ok) {
@@ -67,6 +67,33 @@ export default function OwnerAIPage() {
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !user || loading || saving) return;
+
+    // Check if shop is loaded, if not try to load it first
+    let currentShop = shop;
+    if (!currentShop && user?.id) {
+      try {
+        const res = await fetch(`${apiUrl}/shops/owner`, {
+          headers: { 'x-user-id': user.id },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const shops = data.shops || [];
+          if (shops.length > 0) {
+            currentShop = shops[0];
+            setShop(currentShop);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading shop:', error);
+      }
+    }
+
+    // If still no shop, show error and return
+    if (!currentShop || !currentShop.id) {
+      setError("🤖 AI Assistant: I need your shop ID to help you. Please make sure you're logged in and have a shop set up.");
+      setLoading(false);
+      return;
+    }
 
     const userMessage = input.trim();
     setInput("");
@@ -101,12 +128,12 @@ export default function OwnerAIPage() {
             },
           ],
           userId: user.id,
-          shopId: shop?.id,
-          shopContext: shop ? {
-            shopId: shop.id,
-            shopName: shop.name,
-            shopAddress: shop.address,
-          } : null,
+          shopId: currentShop.id,
+          shopContext: {
+            shopId: currentShop.id,
+            shopName: currentShop.name,
+            shopAddress: currentShop.address,
+          },
         }),
       });
 
