@@ -36,7 +36,9 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showWindowModal, setShowWindowModal] = useState(false);
   const [showWeeklyModal, setShowWeeklyModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingWindow, setEditingWindow] = useState<AvailabilityWindow | null>(null);
+  const [windowToDelete, setWindowToDelete] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [unavailableMode, setUnavailableMode] = useState(false);
 
@@ -288,15 +290,19 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
     }
   };
 
-  // Handle window deletion
-  const handleWindowDelete = async (windowId: string) => {
-    if (!confirm('Are you sure you want to delete this availability window?')) {
-      return;
-    }
+  // Handle window deletion (show modal)
+  const handleWindowDelete = (windowId: string) => {
+    setWindowToDelete(windowId);
+    setShowDeleteModal(true);
+  };
+
+  // Confirm and execute window deletion
+  const confirmDeleteWindow = async () => {
+    if (!windowToDelete) return;
 
     try {
       setSaving(true);
-      const response = await fetch(`${apiUrl}/api/availability/${shopId}/${windowId}`, {
+      const response = await fetch(`${apiUrl}/api/availability/${shopId}/${windowToDelete}`, {
         method: 'DELETE',
         headers: { 'x-user-id': userId },
       });
@@ -304,6 +310,8 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
       if (response.ok) {
         onMessage('success', 'Availability window deleted');
         setShowWindowModal(false);
+        setShowDeleteModal(false);
+        setWindowToDelete(null);
         await loadAvailabilityData();
       } else {
         const errorData = await response.json();
@@ -542,6 +550,50 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
               onCancel={() => setShowWeeklyModal(false)}
               saving={saving}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-semibold text-gray-900">Delete Availability Window</h3>
+                <p className="text-sm text-gray-500">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-700">
+                Are you sure you want to delete this availability window? This will permanently remove the time slot and cannot be undone.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setWindowToDelete(null);
+                }}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteWindow}
+                disabled={saving}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {saving ? 'Deleting...' : 'Delete Window'}
+              </button>
+            </div>
           </div>
         </div>
       )}
