@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { apiUrl } from '@/lib/apiClient';
 import { useTranslations } from 'next-intl';
 import { AvailabilityCalendar } from '../../components/AvailabilityCalendar';
+import OwnerGuard from '@/app/components/OwnerGuard';
 
 interface Shop {
   id: string;
@@ -88,27 +89,29 @@ export default function OwnerCalendarPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('nav.calendar')}</h1>
-        <p className="text-gray-600">{t('myShop.calendarManagement') || 'Manage your shop\'s availability and calendar'}</p>
-      </div>
-
-      <AvailabilityCalendar
-        shopId={shop.id}
-        userId={user?.id || ''}
-        onMessage={(type, text) => setMessage({ type, text })}
-      />
-
-      {message && (
-        <div className={`mt-6 p-4 rounded-lg text-sm ${
-          message.type === 'success'
-            ? 'bg-green-50 text-green-700 border border-green-200'
-            : 'bg-red-50 text-red-700 border border-red-200'
-        }`}>
-          {message.text}
+    <OwnerGuard>
+      <div className="p-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('nav.calendar')}</h1>
+          <p className="text-gray-600">{t('myShop.calendarManagement') || 'Manage your shop\'s availability and calendar'}</p>
         </div>
-      )}
-    </div>
+
+        <AvailabilityCalendar
+          shopId={shop.id}
+          userId={user?.id || ''}
+          onMessage={(type, text) => setMessage({ type, text })}
+        />
+
+        {message && (
+          <div className={`mt-6 p-4 rounded-lg text-sm ${
+            message.type === 'success'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            {message.text}
+          </div>
+        )}
+      </div>
+    </OwnerGuard>
   );
 }
