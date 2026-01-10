@@ -463,7 +463,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
               if (isToday) return 'bg-blue-50';
 
               switch (dateStatus) {
-                case 'blocked': return 'bg-gray-100 hover:bg-gray-200';
+                case 'blocked': return 'bg-red-100 hover:bg-red-200';
                 case 'booked': return 'bg-red-50 hover:bg-red-100';
                 case 'available': return 'bg-green-50 hover:bg-green-100';
                 default: return 'hover:bg-gray-50';
@@ -492,7 +492,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                     <>
                       {/* Show status summary for the date */}
                       <div className={`text-xs px-1 py-0.5 rounded text-white font-medium ${
-                        dateStatus === 'blocked' ? 'bg-gray-500' :
+                        dateStatus === 'blocked' ? 'bg-red-600' :
                         dateStatus === 'booked' ? 'bg-red-500' :
                         dateStatus === 'available' ? 'bg-green-500' : 'bg-gray-400'
                       }`}>
@@ -507,7 +507,8 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                           key={window.id}
                           className={`text-xs px-1 py-0.5 rounded text-white ${
                             window.status === 'available' ? 'bg-green-600' :
-                            window.status === 'booked' ? 'bg-red-600' : 'bg-gray-600'
+                            window.status === 'booked' ? 'bg-red-600' :
+                            window.status === 'blocked' ? 'bg-gray-600' : 'bg-gray-600'
                           }`}
                         >
                           {window.start_time}-{window.end_time}
