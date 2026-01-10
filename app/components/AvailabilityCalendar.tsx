@@ -266,10 +266,17 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
       if (response.ok) {
         onMessage('success', editingWindow ? 'Availability window updated' : 'Availability window created');
         setShowWindowModal(false);
+        setEditingWindow(null); // Clear editing state
         await loadAvailabilityData();
       } else {
         const errorData = await response.json();
-        onMessage('error', errorData.error || 'Failed to save availability window');
+        const errorMessage = errorData.error || 'Failed to save availability window';
+        // Provide more helpful error message for overlap errors
+        if (errorMessage.includes('overlaps with existing slot')) {
+          onMessage('error', `This time slot overlaps with an existing slot. Please choose a different time or delete the conflicting slot first.`);
+        } else {
+          onMessage('error', errorMessage);
+        }
       }
     } catch (error) {
       console.error('Error saving availability window:', error);
@@ -526,8 +533,12 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
               onEditSlot={(slotId, slotData) => {
                 const slot = availabilityWindows.find(w => w.id === slotId);
                 if (slot) {
+                  // Set editing window first, then save (with the slot ID for update)
                   setEditingWindow(slot);
-                  handleWindowSave(slotData);
+                  // Use setTimeout to ensure state is updated before save
+                  setTimeout(() => {
+                    handleWindowSave(slotData);
+                  }, 0);
                 }
               }}
               onDeleteSlot={handleWindowDelete}
