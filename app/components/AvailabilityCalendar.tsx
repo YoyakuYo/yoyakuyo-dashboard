@@ -178,7 +178,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
 
       if (isCurrentlyUnavailable) {
         // Already unavailable - maybe show message
-        onMessage('info', 'Date is already marked as unavailable');
+        onMessage('success', 'Date is already marked as unavailable');
         return;
       } else {
         // Mark as unavailable
