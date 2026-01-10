@@ -9,7 +9,6 @@ import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
-import { useBrowseAIContext } from '@/app/components/BrowseAIContext';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import ReviewCard from '../../components/ReviewCard';
 import ReviewStats from '../../components/ReviewStats';
@@ -122,7 +121,6 @@ export default function PublicShopDetailPage() {
   const router = useRouter();
   const shopId = params?.id as string;
   const { user } = useAuth();
-  const browseContext = useBrowseAIContext();
   
   // Safe translation function with fallback
   let t: ReturnType<typeof useTranslations>;
@@ -198,20 +196,6 @@ export default function PublicShopDetailPage() {
         const shopData = await shopRes.json();
         setShop(shopData);
 
-        // Update AI context with shop information
-        if (browseContext) {
-          browseContext.setBrowseContext({
-            shopContext: {
-              shopId: shopData.id,
-              shopName: shopData.name,
-              category: shopData.categories?.name || null,
-              prefecture: shopData.prefecture || null,
-              address: shopData.address || null,
-              ownerId: shopData.owner_id || null,
-            },
-          });
-        }
-
         // Fetch services (only active)
         const servicesRes = await fetch(`${apiUrl}/shops/${shopId}/services`);
         if (servicesRes.ok) {
@@ -220,25 +204,6 @@ export default function PublicShopDetailPage() {
             ? servicesData.filter((s: Service) => s.is_active !== false)
             : [];
           setServices(activeServices);
-          
-          // Update AI context with services
-          if (browseContext) {
-            browseContext.setBrowseContext({
-              shopContext: {
-                shopId: shopData.id,
-                shopName: shopData.name,
-                category: shopData.categories?.name || null,
-                prefecture: shopData.prefecture || null,
-                address: shopData.address || null,
-                ownerId: shopData.owner_id || null,
-                services: activeServices.map((s: Service) => ({
-                  id: s.id,
-                  name: s.name,
-                  price: s.price,
-                })),
-              },
-            });
-          }
         }
 
         // Fetch staff

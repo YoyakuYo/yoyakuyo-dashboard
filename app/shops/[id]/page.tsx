@@ -222,20 +222,6 @@ export default function PublicShopDetailPage() {
         const shopData = await shopRes.json();
         setShop(shopData);
 
-        // Update AI context with shop information
-        if (browseContext) {
-          browseContext.setBrowseContext({
-            shopContext: {
-              shopId: shopData.id,
-              shopName: shopData.name,
-              category: shopData.categories?.name || null,
-              prefecture: shopData.prefecture || null,
-              address: shopData.address || null,
-              ownerId: shopData.owner_id || null,
-            },
-          });
-        }
-
         // Fetch services (only active)
         const servicesRes = await fetch(`${apiUrl}/shops/${shopId}/services`);
         if (servicesRes.ok) {
@@ -244,25 +230,6 @@ export default function PublicShopDetailPage() {
             ? servicesData.filter((s: Service) => s.is_active !== false)
             : [];
           setServices(activeServices);
-          
-          // Update AI context with services
-          if (browseContext) {
-            browseContext.setBrowseContext({
-              shopContext: {
-                shopId: shopData.id,
-                shopName: shopData.name,
-                category: shopData.categories?.name || null,
-                prefecture: shopData.prefecture || null,
-                address: shopData.address || null,
-                ownerId: shopData.owner_id || null,
-                services: activeServices.map((s: Service) => ({
-                  id: s.id,
-                  name: s.name,
-                  price: s.price,
-                })),
-              },
-            });
-          }
         }
 
         // Fetch staff

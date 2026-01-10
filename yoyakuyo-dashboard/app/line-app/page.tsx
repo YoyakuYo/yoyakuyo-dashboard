@@ -3,7 +3,6 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
-import { BrowseAIProvider } from "@/app/components/BrowseAIContext";
 import { useLineAppI18n } from "./i18n";
 
 // LINE LIFF SDK types
@@ -617,8 +616,7 @@ function LineAppPageContent() {
   }
 
   return (
-    <BrowseAIProvider>
-      <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 pb-20">
         {/* Header */}
         <header className="bg-white border-b border-gray-200 sticky top-14 z-10">
           <div className="max-w-7xl mx-auto px-4 py-4">
@@ -839,7 +837,6 @@ function LineAppPageContent() {
           </div>
         </nav>
       </div>
-    </BrowseAIProvider>
   );
 }
 
