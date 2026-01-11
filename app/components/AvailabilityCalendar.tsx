@@ -38,6 +38,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
   const t = useTranslations();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [availabilityWindows, setAvailabilityWindows] = useState<AvailabilityWindow[]>([]);
+  const [closedDays, setClosedDays] = useState<string[]>([]);
   const [weeklyHours, setWeeklyHours] = useState<WeeklyHours[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
       if (windowsRes.ok) {
         const windowsData = await windowsRes.json();
         setAvailabilityWindows(windowsData.windows || []);
+        setClosedDays(windowsData.closedDays || []);
       }
 
       // Load weekly template
@@ -121,6 +123,12 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
     return holidays.find(holiday => holiday.holiday_date === dateStr) || null;
   };
 
+  // Check if date is a closed day (server-authoritative)
+  const isClosedDay = (date: Date): boolean => {
+    const dateStr = formatDateLocal(date);
+    return closedDays.includes(dateStr);
+  };
+
   // Check if date has availability
   const hasAvailability = (date: Date): boolean => {
     const windows = getWindowsForDate(date);
@@ -128,9 +136,12 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
   };
 
   // Get the overall status for date background color
-  const getDateStatus = (date: Date): 'available' | 'booked' | 'blocked' | 'holiday' | 'none' => {
+  const getDateStatus = (date: Date): 'available' | 'booked' | 'blocked' | 'holiday' | 'closed' | 'none' => {
     // Check for holiday first - holidays override all other availability
     if (isHoliday(date)) return 'holiday';
+
+    // Closed day must override availability_windows
+    if (isClosedDay(date)) return 'closed';
 
     const windows = getWindowsForDate(date);
     if (windows.length === 0) return 'none';
@@ -502,6 +513,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
 
               switch (dateStatus) {
                 case 'holiday': return 'bg-orange-200 hover:bg-orange-300';
+                case 'closed': return 'bg-red-200 hover:bg-red-300';
                 case 'blocked': return 'bg-red-200 hover:bg-red-300';
                 case 'booked': return 'bg-red-50 hover:bg-red-100';
                 case 'available': return 'bg-green-50 hover:bg-green-100';
@@ -537,6 +549,32 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                         </div>
                       )}
                     </>
+                  ) : isClosedDay(date) ? (
+                    <>
+                      {windows.length > 0 && (
+                        <>
+                          {(() => {
+                            console.error(
+                              `[AVAILABILITY] ERROR: availability_windows present for CLOSED day in calendar payload. shopId=${shopId} date=${formatDateLocal(
+                                date
+                              )} windows=${windows.length}`
+                            );
+                            return null;
+                          })()}
+                        </>
+                      )}
+                      <div className="text-xs px-1 py-0.5 rounded text-white font-medium bg-red-600">
+                        CLOSED
+                      </div>
+                      <div className="text-xs text-red-900">
+                        Closed day
+                      </div>
+                      {windows.length > 0 && (
+                        <div className="text-[11px] text-red-900 opacity-80">
+                          ({windows.length} slot{windows.length === 1 ? '' : 's'} returned but ignored while closed)
+                        </div>
+                      )}
+                    </>
                   ) : windows.length === 0 ? (
                     <div className="text-xs text-gray-400 italic">
                       No availability set
@@ -546,11 +584,13 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                       {/* Show status summary for the date */}
                       <div className={`text-xs px-1 py-0.5 rounded text-white font-medium ${
                         dateStatus === 'holiday' ? 'bg-orange-500' :
+                        dateStatus === 'closed' ? 'bg-red-600' :
                         dateStatus === 'blocked' ? 'bg-gray-500' :
                         dateStatus === 'booked' ? 'bg-red-500' :
                         dateStatus === 'available' ? 'bg-green-500' : 'bg-gray-400'
                       }`}>
                         {dateStatus === 'holiday' ? 'HOLIDAY' :
+                         dateStatus === 'closed' ? 'CLOSED' :
                          dateStatus === 'blocked' ? 'CLOSED' :
                          dateStatus === 'booked' ? 'BOOKED' :
                          dateStatus === 'available' ? 'AVAILABLE' : 'NO SLOTS'}
