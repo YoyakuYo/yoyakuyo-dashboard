@@ -20,6 +20,13 @@ interface CustomerBookingCalendarProps {
   onMessage?: (type: 'success' | 'error', text: string) => void;
 }
 
+interface Holiday {
+  id: string;
+  shop_id: string;
+  holiday_date: string;
+  reason: string | null;
+}
+
 export function CustomerBookingCalendar({
   shopId,
   serviceId,
@@ -29,6 +36,7 @@ export function CustomerBookingCalendar({
 }: CustomerBookingCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [availabilityWindows, setAvailabilityWindows] = useState<AvailabilityWindow[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -48,24 +56,73 @@ export function CustomerBookingCalendar({
 
       console.log('[CustomerBookingCalendar] Loading availability for:', shopId);
 
-      // Simplified fetch for LINE app compatibility
-      const response = await fetch(`${apiUrl}/api/availability/${shopId}?startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`, {
+      // Use same API as LINE booking page - get availability ranges for the month
+      // We'll generate time slots dynamically based on service duration
+      const slotsPromises = [];
+      const current = new Date(startDate);
+
+      // Get availability for each day in the month
+      while (current <= endDate) {
+        const dateStr = current.toISOString().split('T')[0];
+        const dateResponse = fetch(`${apiUrl}/shops/${shopId}/availability?date=${dateStr}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        slotsPromises.push(dateResponse.then(async (res) => {
+          if (res.ok) {
+            const ranges = await res.json();
+            return { date: dateStr, ranges: Array.isArray(ranges) ? ranges : [] };
+          } else {
+            console.warn(`[CustomerBookingCalendar] Failed to get availability for ${dateStr}:`, res.status);
+            return { date: dateStr, ranges: [] };
+          }
+        }));
+        current.setDate(current.getDate() + 1);
+      }
+
+      try {
+        const dateResults = await Promise.all(slotsPromises);
+        console.log('[CustomerBookingCalendar] Received date availability:', dateResults);
+
+        // Generate availability windows from ranges based on service duration
+        // and filter out slots that overlap with existing bookings
+        const generatedWindows: AvailabilityWindow[] = [];
+
+        dateResults.forEach(({ date, ranges }) => {
+          if (ranges.length > 0) {
+            // Generate time slots from availability ranges
+            const serviceDuration = 60; // Default 60 minutes, could be fetched from service data
+            const slots = generateTimeSlotsFromRanges(ranges, serviceDuration, date);
+
+            // Filter out slots that are already booked or blocked
+            // (The shop-availability API already filters this, so all returned ranges are available)
+            generatedWindows.push(...slots);
+          }
+        });
+
+        setAvailabilityWindows(generatedWindows);
+      } catch (error) {
+        console.error('[CustomerBookingCalendar] Error loading availability:', error);
+        setError('Failed to load availability data');
+      }
+
+      // Load holidays
+      const holidaysResponse = await fetch(`${apiUrl}/api/holidays?shop_id=${shopId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
       });
 
-      console.log('[CustomerBookingCalendar] Response status:', response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('[CustomerBookingCalendar] Received data:', data);
-        setAvailabilityWindows(data.windows || []);
+      if (holidaysResponse.ok) {
+        const holidaysData = await holidaysResponse.json();
+        console.log('[CustomerBookingCalendar] Received holidays:', holidaysData);
+        setHolidays(holidaysData || []);
       } else {
-        const errorText = await response.text().catch(() => 'Unknown error');
-        console.error('[CustomerBookingCalendar] API error:', response.status, errorText);
-        setError(`Failed to load availability (${response.status})`);
+        console.warn('[CustomerBookingCalendar] Could not load holidays:', holidaysResponse.status);
+        // Don't set error for holidays - availability is more important
       }
 
     } catch (err) {
@@ -82,6 +139,59 @@ export function CustomerBookingCalendar({
     return availabilityWindows.filter(window => window.date === dateStr);
   };
 
+  // Check if date is a holiday
+  const isHoliday = (date: Date): Holiday | null => {
+    const dateStr = date.toISOString().split('T')[0];
+    return holidays.find(holiday => holiday.holiday_date === dateStr) || null;
+  };
+
+  // Generate individual time slots from availability ranges
+  const generateTimeSlotsFromRanges = (
+    ranges: Array<{ start_time: string; end_time: string }>,
+    serviceDuration: number,
+    dateStr: string
+  ): AvailabilityWindow[] => {
+    const slots: AvailabilityWindow[] = [];
+
+    ranges.forEach((range, rangeIndex) => {
+      // Parse start and end times - handle both HH:MM and HH:MM:SS formats
+      const startParts = range.start_time.split(':');
+      const endParts = range.end_time.split(':');
+
+      const startHour = parseInt(startParts[0], 10);
+      const startMinute = parseInt(startParts[1] || '0', 10);
+      const endHour = parseInt(endParts[0], 10);
+      const endMinute = parseInt(endParts[1] || '0', 10);
+
+      const startMinutes = startHour * 60 + startMinute;
+      const endMinutes = endHour * 60 + endMinute;
+
+      // Generate slots every serviceDuration minutes
+      for (let currentMinutes = startMinutes; currentMinutes + serviceDuration <= endMinutes; currentMinutes += serviceDuration) {
+        const startHours = Math.floor(currentMinutes / 60);
+        const startMins = currentMinutes % 60;
+        const startTimeString = `${startHours.toString().padStart(2, '0')}:${startMins.toString().padStart(2, '0')}:00`;
+
+        // Calculate end time
+        const endTotalMinutes = currentMinutes + serviceDuration;
+        const endHours = Math.floor(endTotalMinutes / 60);
+        const endMins = endTotalMinutes % 60;
+        const endTimeString = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}:00`;
+
+        slots.push({
+          id: `${dateStr}-${rangeIndex}-${currentMinutes}`,
+          date: dateStr,
+          start_time: startTimeString,
+          end_time: endTimeString,
+          status: 'available',
+          source: 'generated'
+        });
+      }
+    });
+
+    return slots;
+  };
+
   // Check if date has availability
   const hasAvailability = (date: Date): boolean => {
     const windows = getWindowsForDate(date);
@@ -89,7 +199,10 @@ export function CustomerBookingCalendar({
   };
 
   // Get the overall status for date background color
-  const getDateStatus = (date: Date): 'available' | 'booked' | 'blocked' | 'none' => {
+  const getDateStatus = (date: Date): 'available' | 'booked' | 'blocked' | 'holiday' | 'none' => {
+    // Check for holiday first - holidays override all other availability
+    if (isHoliday(date)) return 'holiday';
+
     const windows = getWindowsForDate(date);
     if (windows.length === 0) return 'none';
 
@@ -124,6 +237,13 @@ export function CustomerBookingCalendar({
 
   // Handle date click - show available slots for that date
   const handleDateClick = (date: Date) => {
+    // Don't allow clicking on holidays
+    if (isHoliday(date)) {
+      const holiday = isHoliday(date);
+      onMessage?.('error', `This date is closed: ${holiday?.reason || 'Holiday'}`);
+      return;
+    }
+
     const windows = getWindowsForDate(date);
     const availableSlots = windows.filter(w => w.status === 'available');
 
@@ -259,6 +379,7 @@ export function CustomerBookingCalendar({
               if (isToday) return 'bg-blue-50';
 
               switch (dateStatus) {
+                case 'holiday': return 'bg-orange-200 hover:bg-orange-300';
                 case 'blocked': return 'bg-red-200 hover:bg-red-300';
                 case 'booked': return 'bg-red-50 hover:bg-red-100';
                 case 'available': return 'bg-green-50 hover:bg-green-100';
@@ -284,7 +405,8 @@ export function CustomerBookingCalendar({
                       dateStatus === 'booked' ? 'bg-red-500' :
                       dateStatus === 'available' ? 'bg-green-500' : 'bg-gray-400'
                     }`}>
-                      {dateStatus === 'blocked' ? 'CLOSED' :
+                      {dateStatus === 'holiday' ? 'HOLIDAY' :
+                       dateStatus === 'blocked' ? 'CLOSED' :
                        dateStatus === 'booked' ? `${bookedSlots.length} Booked` :
                        dateStatus === 'available' ? `${availableSlots.length} Available` : 'NO SLOTS'}
                     </div>
