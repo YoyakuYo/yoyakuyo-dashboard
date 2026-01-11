@@ -420,11 +420,7 @@ export default function PublicBookingPage() {
 
     // Use the selected availability window
     const startDateTime = new Date(`${selectedAvailabilityWindow.date}T${selectedAvailabilityWindow.start_time}`);
-    const endDateTime = new Date(`${selectedAvailabilityWindow.date}T${selectedAvailabilityWindow.end_time}`); else {
-      alert(t('booking.selectTimeslot') || 'Please select a timeslot');
-      setBookingLoading(false);
-      return;
-    }
+    const endDateTime = new Date(`${selectedAvailabilityWindow.date}T${selectedAvailabilityWindow.end_time}`);
 
     try {
       // For authenticated users, don't send name/email - API will fetch from database

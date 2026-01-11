@@ -281,7 +281,7 @@ export function CustomerBookingCalendar({
           date={selectedDate}
           windows={getWindowsForDate(selectedDate)}
           serviceId={serviceId}
-          selectedSlot={selectedSlot}
+          selectedSlot={selectedSlot || null}
           onSlotSelect={handleSlotSelect}
           onClose={() => setSelectedDate(null)}
         />
