@@ -90,20 +90,71 @@ function MessagesPageContent() {
     if (!user?.id) return;
 
     try {
-      // Find conversation by booking_id
-      const res = await fetch(`${apiUrl}/api/internal-messaging/conversations?booking_id=${bookingId}`, {
+      // First, fetch the booking details to get customer and shop info
+      const bookingRes = await fetch(`${apiUrl}/bookings/${bookingId}`, {
         headers: { 'x-user-id': user.id },
       });
 
-      if (res.ok) {
-        const data = await res.json();
+      if (!bookingRes.ok) {
+        console.error("Error fetching booking details:", bookingRes.status);
+        return;
+      }
+
+      const booking = await bookingRes.json();
+      console.log("Fetched booking for messaging:", booking);
+
+      // Try to find existing conversation by booking_id
+      const existingConvRes = await fetch(`${apiUrl}/api/internal-messaging/conversations?booking_id=${bookingId}&conversation_type=booking_owner`, {
+        headers: { 'x-user-id': user.id },
+      });
+
+      if (existingConvRes.ok) {
+        const data = await existingConvRes.json();
         if (data && data.length > 0) {
+          console.log("Found existing conversation:", data[0]);
           setSelectedConversationId(data[0].id);
           await loadConversations(); // Refresh conversation list
+          return;
         }
       }
+
+      // No existing conversation found, create a new one
+      console.log("Creating new conversation for booking:", bookingId);
+
+      // For now, assume guest customer type - this can be enhanced later to properly detect LINE/web customers
+      const customerType: 'line' | 'web' | 'guest' = 'guest';
+      const customerRef = booking.customer_email || booking.customer_name || `booking-${bookingId}`;
+
+      const createConvRes = await fetch(`${apiUrl}/api/internal-messaging/conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user.id,
+        },
+        body: JSON.stringify({
+          shop_id: booking.shop_id,
+          booking_id: bookingId,
+          conversation_type: 'booking_owner',
+          target_type: 'shop',
+          target_id: booking.shop_id,
+          customer_type: customerType,
+          customer_ref: customerRef,
+        }),
+      });
+
+      if (createConvRes.ok) {
+        const newConversation = await createConvRes.json();
+        console.log("Created new conversation:", newConversation);
+        setSelectedConversationId(newConversation.id);
+        await loadConversations(); // Refresh conversation list
+      } else {
+        const error = await createConvRes.json();
+        console.error("Error creating conversation:", error);
+        alert(`Failed to create conversation: ${error.error || 'Unknown error'}`);
+      }
     } catch (error) {
-      console.error("Error loading conversation for booking:", error);
+      console.error("Error loading/creating conversation for booking:", error);
+      alert("Failed to start conversation. Please try again.");
     }
   };
 
