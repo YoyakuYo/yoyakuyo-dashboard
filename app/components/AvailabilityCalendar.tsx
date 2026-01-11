@@ -118,7 +118,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
     // Since we removed separate holiday loading, treat closed dates as holidays for backward compatibility
     const dateStr = formatDateLocal(date);
     if (closedDays.includes(dateStr)) {
-      return { id: `closed-${dateStr}`, holiday_date: dateStr, reason: 'Closed', shop_id: '', created_at: '', updated_at: '' };
+      return { id: `closed-${dateStr}`, shop_id: '', holiday_date: dateStr, reason: 'Closed' };
     }
     return null;
   };
