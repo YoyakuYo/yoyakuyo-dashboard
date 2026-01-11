@@ -8,7 +8,6 @@ import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
 import { useCustomAuth } from '@/lib/useCustomAuth';
-import { CustomerBookingCalendar } from '../../components/CustomerBookingCalendar';
 
 interface Service {
   id: string;
@@ -79,6 +78,8 @@ export default function PublicBookingPage() {
   const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [availabilityChecked, setAvailabilityChecked] = useState(false);
+  const [availableDates, setAvailableDates] = useState<Array<{ date: string; status: 'available' | 'closed' }>>([]);
+  const [loadingDates, setLoadingDates] = useState(false);
 
   
   // Anonymous session ID for public visitors
@@ -245,7 +246,34 @@ export default function PublicBookingPage() {
     fetchServices();
   }, [shopId, apiUrl]);
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Fetch available dates when service is selected
+  useEffect(() => {
+    if (selectedService) {
+      fetchAvailableDates();
+    } else {
+      setAvailableDates([]);
+    }
+  }, [selectedService]);
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedDate(e.target.value);
+    setSelectedTimeslot(null);
+    setSelectedAvailabilityWindow(null);
+    setTimeslots([]);
+    setAvailabilityChecked(false);
+  };
+
+  // Handle slot selection from calendar
+  const handleSlotSelect = (slot: AvailabilityWindow) => {
+    setSelectedAvailabilityWindow(slot);
+    setSelectedDate(slot.date);
+    // Create a timeslot object for backward compatibility
+    setSelectedTimeslot({
+      id: slot.id,
+      start_time: slot.start_time,
+      end_time: slot.end_time
+    });
+  };
     setSelectedDate(e.target.value);
   };
 
@@ -347,6 +375,30 @@ export default function PublicBookingPage() {
       setAvailabilityChecked(true);
     } finally {
       setLoadingAvailability(false);
+    }
+  };
+
+  const fetchAvailableDates = async () => {
+    if (!selectedService) return;
+
+    setLoadingDates(true);
+    try {
+      const startDate = new Date().toISOString().split('T')[0];
+      const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 30 days ahead
+
+      const response = await fetch(`${apiUrl}/shops/${shopId}/availability/dates?startDate=${startDate}&endDate=${endDate}`);
+      if (response.ok) {
+        const dates = await response.json();
+        setAvailableDates(dates);
+      } else {
+        console.error('Failed to fetch available dates');
+        setAvailableDates([]);
+      }
+    } catch (error) {
+      console.error('Error fetching available dates:', error);
+      setAvailableDates([]);
+    } finally {
+      setLoadingDates(false);
     }
   };
 
@@ -622,20 +674,80 @@ export default function PublicBookingPage() {
               )}
             </div>
           ) : (
-            // Full calendar for regular browsers
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-4">{t('booking.selectDateAndTime') || 'Select Date and Time'}</h2>
-              <CustomerBookingCalendar
-                shopId={shopId}
-                serviceId={selectedService || undefined}
-                serviceDurationMinutes={selectedService ? (services.find(s => s.id === selectedService)?.duration_minutes || undefined) : undefined}
-                onSlotSelect={handleSlotSelect}
-                selectedSlot={selectedAvailabilityWindow}
-                onMessage={(type, text) => {
-                  // Handle messages from calendar
-                  console.log(`${type}: ${text}`);
-                }}
-              />
+            // Simple date dropdown for regular browsers
+            <div className="space-y-6">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold mb-2">{t('booking.chooseDate')}</h2>
+                <select
+                  value={selectedDate || ''}
+                  onChange={handleDateChange}
+                  required
+                  disabled={loadingDates || availableDates.length === 0}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                >
+                  <option value="">
+                    {loadingDates
+                      ? (t('booking.loadingDates') || 'Loading dates...')
+                      : availableDates.length === 0
+                        ? (t('booking.noDatesAvailable') || 'No dates available')
+                        : (t('booking.chooseDate') || 'Choose a date')}
+                  </option>
+                  {availableDates.map((dateOption) => (
+                    <option
+                      key={dateOption.date}
+                      value={dateOption.date}
+                      disabled={dateOption.status === 'closed'}
+                    >
+                      {new Date(dateOption.date).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                      {dateOption.status === 'closed' ? ' - CLOSED' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedDate && (
+                <div className="mb-6">
+                  <button
+                    onClick={fetchAvailability}
+                    disabled={!selectedDate || loadingAvailability}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loadingAvailability ? (t('booking.checking') || 'Checking...') : (t('booking.checkAvailability') || 'Check Availability')}
+                  </button>
+                </div>
+              )}
+
+              {availabilityChecked && timeslots.length > 0 && (
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold mb-2">{t('booking.chooseTimeslot') || 'Choose Timeslot'}</h2>
+                  <div className="space-y-2">
+                    {timeslots.map((timeslot) => (
+                      <button
+                        key={timeslot.id}
+                        onClick={() => setSelectedTimeslot(timeslot)}
+                        className={`w-full px-4 py-3 border rounded-lg hover:bg-gray-50 transition-colors text-left ${
+                          selectedTimeslot?.id === timeslot.id
+                            ? 'border-blue-600 bg-blue-50 text-blue-700'
+                            : 'border-gray-300'
+                        }`}
+                      >
+                        {timeslot.start_time} - {timeslot.end_time}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {availabilityChecked && timeslots.length === 0 && (
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-yellow-700">{t('booking.noAvailability') || 'No available timeslots for this date. Please try another date.'}</p>
+                </div>
+              )}
             </div>
           )}
 

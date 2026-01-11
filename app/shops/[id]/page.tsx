@@ -14,7 +14,6 @@ import { getSupabaseClient } from '@/lib/supabaseClient';
 import ReviewCard from '../../components/ReviewCard';
 import ReviewStats from '../../components/ReviewStats';
 import ReviewForm from '../../components/ReviewForm';
-import { CustomerBookingCalendar } from '../../components/CustomerBookingCalendar';
 
 // Dynamically import map component to avoid SSR issues
 const ShopMap = dynamic(() => import('../../components/ShopMap'), {
@@ -182,7 +181,11 @@ export default function PublicShopDetailPage() {
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
-  // Calendar state
+  // Date dropdown state
+  const [availableDates, setAvailableDates] = useState<Array<{ date: string; status: 'available' | 'closed' }>>([]);
+  const [loadingDates, setLoadingDates] = useState(false);
+
+  // Calendar state (for backward compatibility)
   const [selectedAvailabilityWindow, setSelectedAvailabilityWindow] = useState<AvailabilityWindow | null>(null);
 
   // Check for booking success from URL query parameter (for guest redirects)
@@ -324,6 +327,19 @@ export default function PublicShopDetailPage() {
     }
   };
 
+  // Fetch available dates when shop is loaded
+  useEffect(() => {
+    if (shopId && services.length > 0) {
+      fetchAvailableDates();
+    }
+  }, [shopId, services.length]);
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setBookingDate(e.target.value);
+    setBookingTime('');
+    setSelectedAvailabilityWindow(null);
+  };
+
   // Handle slot selection from calendar
   const handleSlotSelect = (slot: AvailabilityWindow) => {
     setSelectedAvailabilityWindow(slot);
@@ -372,6 +388,30 @@ export default function PublicShopDetailPage() {
     } catch (error) {
       console.error('Error submitting review:', error);
       throw error;
+    }
+  };
+
+  const fetchAvailableDates = async () => {
+    if (!shopId) return;
+
+    setLoadingDates(true);
+    try {
+      const startDate = new Date().toISOString().split('T')[0];
+      const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 30 days ahead
+
+      const response = await fetch(`${apiUrl}/shops/${shopId}/availability/dates?startDate=${startDate}&endDate=${endDate}`);
+      if (response.ok) {
+        const dates = await response.json();
+        setAvailableDates(dates);
+      } else {
+        console.error('Failed to fetch available dates');
+        setAvailableDates([]);
+      }
+    } catch (error) {
+      console.error('Error fetching available dates:', error);
+      setAvailableDates([]);
+    } finally {
+      setLoadingDates(false);
     }
   };
 
@@ -668,19 +708,40 @@ export default function PublicShopDetailPage() {
 
       {/* Right Sidebar */}
       <div className="space-y-6">
-        {/* Availability Calendar */}
+        {/* Date Selection */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('booking.availabilityCalendar') || 'Availability Calendar'}</h3>
-          <CustomerBookingCalendar
-            shopId={shopId}
-            onSlotSelect={handleSlotSelect}
-            selectedSlot={selectedAvailabilityWindow}
-            onMessage={(type, text) => {
-              if (type === 'error') {
-                setBookingError(text);
-              }
-            }}
-          />
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('booking.selectDate') || 'Select Date'}</h3>
+          <div className="space-y-4">
+            <select
+              value={bookingDate}
+              onChange={handleDateChange}
+              disabled={loadingDates || availableDates.length === 0}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+            >
+              <option value="">
+                {loadingDates
+                  ? (t('booking.loadingDates') || 'Loading dates...')
+                  : availableDates.length === 0
+                    ? (t('booking.noDatesAvailable') || 'No dates available')
+                    : (t('booking.chooseDate') || 'Choose a date')}
+              </option>
+              {availableDates.map((dateOption) => (
+                <option
+                  key={dateOption.date}
+                  value={dateOption.date}
+                  disabled={dateOption.status === 'closed'}
+                >
+                  {new Date(dateOption.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                  {dateOption.status === 'closed' ? ' - CLOSED' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Selected Slot Info */}
@@ -790,8 +851,11 @@ export default function PublicShopDetailPage() {
                   onChange={(e) => setBookingDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  disabled={true}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 cursor-not-allowed"
+                  title="Select a date from the dropdown above"
                 />
+                <p className="text-xs text-gray-500 mt-1">Select a date from the dropdown above</p>
               </div>
 
               <div>
