@@ -21,6 +21,13 @@ interface WeeklyHours {
   is_closed: boolean;
 }
 
+interface Holiday {
+  id: string;
+  shop_id: string;
+  holiday_date: string;
+  reason: string | null;
+}
+
 interface AvailabilityCalendarProps {
   shopId: string;
   userId: string;
@@ -32,6 +39,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
   const [currentDate, setCurrentDate] = useState(new Date());
   const [availabilityWindows, setAvailabilityWindows] = useState<AvailabilityWindow[]>([]);
   const [weeklyHours, setWeeklyHours] = useState<WeeklyHours[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showWindowModal, setShowWindowModal] = useState(false);
@@ -73,6 +81,16 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
         const weeklyData = await weeklyRes.json();
         setWeeklyHours(weeklyData.weekly || []);
       }
+
+      // Load holidays
+      const holidaysRes = await fetch(`${apiUrl}/api/holidays?shop_id=${shopId}`, {
+        headers: { 'x-user-id': userId },
+      });
+
+      if (holidaysRes.ok) {
+        const holidaysData = await holidaysRes.json();
+        setHolidays(holidaysData || []);
+      }
     } catch (error) {
       console.error('Error loading availability data:', error);
       onMessage('error', 'Failed to load availability data');
@@ -87,6 +105,12 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
     return availabilityWindows.filter(window => window.date === dateStr);
   };
 
+  // Check if date is a holiday
+  const isHoliday = (date: Date): Holiday | null => {
+    const dateStr = date.toISOString().split('T')[0];
+    return holidays.find(holiday => holiday.holiday_date === dateStr) || null;
+  };
+
   // Check if date has availability
   const hasAvailability = (date: Date): boolean => {
     const windows = getWindowsForDate(date);
@@ -94,7 +118,10 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
   };
 
   // Get the overall status for date background color
-  const getDateStatus = (date: Date): 'available' | 'booked' | 'blocked' | 'none' => {
+  const getDateStatus = (date: Date): 'available' | 'booked' | 'blocked' | 'holiday' | 'none' => {
+    // Check for holiday first - holidays override all other availability
+    if (isHoliday(date)) return 'holiday';
+
     const windows = getWindowsForDate(date);
     if (windows.length === 0) return 'none';
 
@@ -463,6 +490,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
               if (isToday) return 'bg-blue-50';
 
               switch (dateStatus) {
+                case 'holiday': return 'bg-orange-200 hover:bg-orange-300';
                 case 'blocked': return 'bg-red-200 hover:bg-red-300';
                 case 'booked': return 'bg-red-50 hover:bg-red-100';
                 case 'available': return 'bg-green-50 hover:bg-green-100';
@@ -492,11 +520,13 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                     <>
                       {/* Show status summary for the date */}
                       <div className={`text-xs px-1 py-0.5 rounded text-white font-medium ${
+                        dateStatus === 'holiday' ? 'bg-orange-500' :
                         dateStatus === 'blocked' ? 'bg-gray-500' :
                         dateStatus === 'booked' ? 'bg-red-500' :
                         dateStatus === 'available' ? 'bg-green-500' : 'bg-gray-400'
                       }`}>
-                        {dateStatus === 'blocked' ? 'CLOSED' :
+                        {dateStatus === 'holiday' ? 'HOLIDAY' :
+                         dateStatus === 'blocked' ? 'CLOSED' :
                          dateStatus === 'booked' ? 'BOOKED' :
                          dateStatus === 'available' ? 'AVAILABLE' : 'NO SLOTS'}
                       </div>
