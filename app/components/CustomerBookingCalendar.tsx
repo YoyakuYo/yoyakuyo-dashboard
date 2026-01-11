@@ -184,7 +184,7 @@ export function CustomerBookingCalendar({
           start_time: startTimeString,
           end_time: endTimeString,
           status: 'available',
-          source: 'generated'
+          source: 'manual'
         });
       }
     });
