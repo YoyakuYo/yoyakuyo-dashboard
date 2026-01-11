@@ -80,6 +80,10 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
 
       if (windowsRes.ok) {
         const windowsData = await windowsRes.json();
+        console.log('[CALENDAR] DEBUG: Received data:', {
+          windows: windowsData.windows?.length || 0,
+          closedDays: windowsData.closedDays
+        });
         setAvailabilityWindows(windowsData.windows || []);
         setClosedDays(windowsData.closedDays || []);
       }
