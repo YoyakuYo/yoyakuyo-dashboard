@@ -8,6 +8,7 @@ import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
 import { useCustomAuth } from '@/lib/useCustomAuth';
+import { CustomerBookingCalendar } from '../../components/CustomerBookingCalendar';
 
 interface Service {
   id: string;
@@ -20,6 +21,15 @@ interface Staff {
   id: string;
   first_name: string;
   last_name: string;
+}
+
+interface AvailabilityWindow {
+  id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  status: 'available' | 'booked' | 'blocked';
+  source: 'manual' | 'booking' | 'template';
 }
 
 interface Timeslot {
@@ -53,6 +63,7 @@ export default function PublicBookingPage() {
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTimeslot, setSelectedTimeslot] = useState<Timeslot | null>(null);
+  const [selectedAvailabilityWindow, setSelectedAvailabilityWindow] = useState<AvailabilityWindow | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [customerProfile, setCustomerProfile] = useState<{ name: string; email: string } | null>(null);
@@ -102,6 +113,18 @@ export default function PublicBookingPage() {
       // Guest UUID for persistence across bookings + messaging
       const gid = getOrCreateGuestId();
       setGuestIdState(gid);
+    }
+  }, []);
+
+  // Handle URL parameters for pre-selected slots
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const slotId = urlParams.get('slot');
+      if (slotId) {
+        // For now, we'll just log this - the calendar component will handle the actual selection
+        console.log('Pre-selecting slot from URL:', slotId);
+      }
     }
   }, []);
 
@@ -216,6 +239,18 @@ export default function PublicBookingPage() {
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedDate(e.target.value);
+  };
+
+  // Handle slot selection from calendar
+  const handleSlotSelect = (slot: AvailabilityWindow) => {
+    setSelectedAvailabilityWindow(slot);
+    setSelectedDate(slot.date);
+    // Create a timeslot object for backward compatibility
+    setSelectedTimeslot({
+      id: slot.id,
+      start_time: slot.start_time,
+      end_time: slot.end_time
+    });
   };
 
   // Generate individual time slots from availability ranges based on service duration
@@ -374,30 +409,18 @@ export default function PublicBookingPage() {
       setBookingLoading(false);
       return;
     }
-    
-    if (!selectedDate) {
-      alert(t('booking.selectDate') || 'Please select a date');
-      setBookingLoading(false);
-      return;
-    }
-    
-    const timeslotToUse = selectedTimeslot || (timeslots.length > 0 ? timeslots[0] : null);
-    if (!timeslotToUse) {
-      alert(t('booking.selectTimeslot') || 'Please select a timeslot');
+
+    if (!selectedAvailabilityWindow) {
+      alert(t('booking.selectTimeslot') || 'Please select a date and time from the calendar');
       setBookingLoading(false);
       return;
     }
 
     setBookingLoading(true);
 
-    // Calculate start_time and end_time from date and selected timeslot
-    let startDateTime: Date;
-    let endDateTime: Date;
-    
-    if (timeslotToUse && selectedDate) {
-      startDateTime = new Date(`${selectedDate}T${timeslotToUse.start_time}`);
-      endDateTime = new Date(`${selectedDate}T${timeslotToUse.end_time}`);
-    } else {
+    // Use the selected availability window
+    const startDateTime = new Date(`${selectedAvailabilityWindow.date}T${selectedAvailabilityWindow.start_time}`);
+    const endDateTime = new Date(`${selectedAvailabilityWindow.date}T${selectedAvailabilityWindow.end_time}`); else {
       alert(t('booking.selectTimeslot') || 'Please select a timeslot');
       setBookingLoading(false);
       return;
@@ -473,6 +496,7 @@ export default function PublicBookingPage() {
           setSelectedService(null);
           setSelectedDate(null);
           setSelectedTimeslot(null);
+          setSelectedAvailabilityWindow(null);
           setTimeslots([]);
           setAvailabilityChecked(false);
         }
@@ -521,52 +545,41 @@ export default function PublicBookingPage() {
             </select>
           </div>
 
+          {/* Calendar for selecting availability */}
           <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">{t('booking.chooseDate')}</h2>
-            <input
-              type="date"
-              value={selectedDate || ''}
-              onChange={handleDateChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+            <h2 className="text-xl font-semibold mb-4">{t('booking.selectDateAndTime') || 'Select Date and Time'}</h2>
+            <CustomerBookingCalendar
+              shopId={shopId}
+              serviceId={selectedService || undefined}
+              onSlotSelect={handleSlotSelect}
+              selectedSlot={selectedAvailabilityWindow}
+              onMessage={(type, text) => {
+                // Handle messages from calendar
+                console.log(`${type}: ${text}`);
+              }}
             />
           </div>
 
-          <div className="mb-6">
-            <button
-              onClick={fetchAvailability}
-              disabled={!selectedDate || loadingAvailability}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loadingAvailability ? (t('booking.checking') || 'Checking...') : (t('booking.checkAvailability') || 'Check Availability')}
-            </button>
-          </div>
-
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">{t('booking.chooseTimeslot') || 'Choose Timeslot'}</h2>
-            {loadingAvailability ? (
-              <p className="text-gray-500 text-sm">{t('booking.checking') || 'Checking availability...'}</p>
-            ) : availabilityChecked && timeslots.length === 0 ? (
-              <p className="text-gray-500 text-sm">{t('booking.noAvailability') || 'No available timeslots for this date. Please try another date.'}</p>
-            ) : !availabilityChecked ? (
-              <p className="text-gray-500 text-sm">{t('booking.clickCheckAvailability') || 'Click "Check Availability" to see available timeslots'}</p>
-            ) : (
-              <div className="space-y-2">
-              {timeslots.map((timeslot) => (
-                <button
-                  key={timeslot.id}
-                    onClick={() => setSelectedTimeslot(timeslot)}
-                    className={`w-full px-4 py-3 border rounded-lg hover:bg-gray-50 transition-colors text-left ${
-                      selectedTimeslot?.id === timeslot.id
-                        ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
-                        : 'border-gray-300'
-                    }`}
-                >
-                  {timeslot.start_time} - {timeslot.end_time}
-                </button>
-              ))}
+          {/* Show selected slot info */}
+          {selectedAvailabilityWindow && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <h3 className="font-medium text-green-800 mb-2">Selected Time Slot</h3>
+              <div className="flex items-center gap-2 text-green-700">
+                <span className="font-medium">
+                  {new Date(selectedAvailabilityWindow.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </span>
+                <span>at</span>
+                <span className="font-medium">
+                  {selectedAvailabilityWindow.start_time.substring(0, 5)} - {selectedAvailabilityWindow.end_time.substring(0, 5)}
+                </span>
+              </div>
             </div>
-            )}
-          </div>
+          )}
 
           {/* Show customer information section */}
           <div className="mb-6">
@@ -646,7 +659,7 @@ export default function PublicBookingPage() {
 
                   <button
             onClick={bookAppointment}
-            disabled={authLoading}
+            disabled={authLoading || !selectedAvailabilityWindow}
             className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {authLoading ? t('common.loading') : t('booking.bookNow')}

@@ -14,6 +14,7 @@ import { getSupabaseClient } from '@/lib/supabaseClient';
 import ReviewCard from '../../components/ReviewCard';
 import ReviewStats from '../../components/ReviewStats';
 import ReviewForm from '../../components/ReviewForm';
+import { CustomerBookingCalendar } from '../../components/CustomerBookingCalendar';
 
 // Dynamically import map component to avoid SSR issues
 const ShopMap = dynamic(() => import('../../components/ShopMap'), {
@@ -89,6 +90,15 @@ interface Photo {
   url: string;
   created_at: string;
   updated_at: string;
+}
+
+interface AvailabilityWindow {
+  id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  status: 'available' | 'booked' | 'blocked';
+  source: 'manual' | 'booking' | 'template';
 }
 
 function formatOpeningHours(openingHours: any): string {
@@ -171,6 +181,9 @@ export default function PublicShopDetailPage() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+
+  // Calendar state
+  const [selectedAvailabilityWindow, setSelectedAvailabilityWindow] = useState<AvailabilityWindow | null>(null);
 
   // Check for booking success from URL query parameter (for guest redirects)
   useEffect(() => {
@@ -311,17 +324,24 @@ export default function PublicShopDetailPage() {
     }
   };
 
+  // Handle slot selection from calendar
+  const handleSlotSelect = (slot: AvailabilityWindow) => {
+    setSelectedAvailabilityWindow(slot);
+    setBookingDate(slot.date);
+    setBookingTime(slot.start_time);
+  };
+
   const handleReviewSubmit = async (reviewData: any) => {
     try {
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
       };
-      
+
       // Add x-user-id header for logged-in users (both Supabase and custom auth)
       if (user?.id) {
         headers['x-user-id'] = user.id;
       }
-      
+
       // For web customers using custom auth, also add x-customer-id
       if (customUser?.id) {
         headers['x-customer-id'] = customUser.id;
@@ -648,6 +668,46 @@ export default function PublicShopDetailPage() {
 
       {/* Right Sidebar */}
       <div className="space-y-6">
+        {/* Availability Calendar */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('booking.availabilityCalendar') || 'Availability Calendar'}</h3>
+          <CustomerBookingCalendar
+            shopId={shopId}
+            onSlotSelect={handleSlotSelect}
+            selectedSlot={selectedAvailabilityWindow}
+            onMessage={(type, text) => {
+              if (type === 'error') {
+                setBookingError(text);
+              }
+            }}
+          />
+        </div>
+
+        {/* Selected Slot Info */}
+        {selectedAvailabilityWindow && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <h4 className="font-medium text-green-800 mb-2">Selected Time</h4>
+            <div className="text-green-700">
+              <div className="font-medium">
+                {new Date(selectedAvailabilityWindow.date).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </div>
+              <div>
+                {selectedAvailabilityWindow.start_time.substring(0, 5)} - {selectedAvailabilityWindow.end_time.substring(0, 5)}
+              </div>
+            </div>
+            <Link
+              href={`/book/${shopId}?slot=${selectedAvailabilityWindow.id}`}
+              className="mt-3 inline-block w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg text-center transition-colors"
+            >
+              Book This Time →
+            </Link>
+          </div>
+        )}
+
         {/* Book Appointment Button */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <Link
