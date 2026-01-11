@@ -182,12 +182,13 @@ export default function LineShopDetailPage() {
   // Load favorite status for this shop when customerId is available
   useEffect(() => {
     const loadFavoriteStatus = async () => {
-      if (!customerId || !apiUrl || !shopId) return;
+      if (!customerId || !lineUserId || !apiUrl || !shopId) return;
 
       try {
         const res = await fetch(`${apiUrl}/customers/favorites`, {
           headers: {
-            "x-user-id": customerId,
+            "x-line-user-id": lineUserId, // PRIMARY: Use LINE identity for resolution
+            "x-customer-id": customerId, // BACKUP: In case middleware needs fallback
           },
         });
 

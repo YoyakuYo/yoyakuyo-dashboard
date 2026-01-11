@@ -474,15 +474,19 @@ ${t("bookingDetailsTitle")}:
         }
       }
 
-      // PART 5: Cancel booking - send both customer_id and ID token for LINE users
+      // PART 5: Cancel booking - send LINE headers for proper identity resolution
       const cancelHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      
-      if (customerId) {
-        cancelHeaders['x-user-id'] = customerId;
+
+      if (currentLineUserId) {
+        cancelHeaders['x-line-user-id'] = currentLineUserId; // PRIMARY: Use LINE identity
       }
-      
+
+      if (customerId) {
+        cancelHeaders['x-customer-id'] = customerId; // BACKUP: In case middleware needs fallback
+      }
+
       if (idToken) {
         cancelHeaders['x-id-token'] = idToken;
       }
