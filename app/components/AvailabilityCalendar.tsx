@@ -492,6 +492,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
             const isToday = date.toDateString() === new Date().toDateString();
             const hasAvail = hasAvailability(date);
             const dateStatus = getDateStatus(date);
+            const holiday = isHoliday(date);
             const windows = getWindowsForDate(date);
 
             // Get background color based on date status
@@ -522,7 +523,21 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
 
                 {/* Availability indicators */}
                 <div className="space-y-1">
-                  {windows.length === 0 ? (
+                  {holiday ? (
+                    <>
+                      <div className="text-xs px-1 py-0.5 rounded text-white font-medium bg-orange-500">
+                        HOLIDAY
+                      </div>
+                      <div className="text-xs text-orange-900">
+                        {holiday.reason || 'Closed'}
+                      </div>
+                      {windows.length > 0 && (
+                        <div className="text-[11px] text-orange-900 opacity-80">
+                          ({windows.length} slot{windows.length === 1 ? '' : 's'} saved but ignored while closed)
+                        </div>
+                      )}
+                    </>
+                  ) : windows.length === 0 ? (
                     <div className="text-xs text-gray-400 italic">
                       No availability set
                     </div>
@@ -578,6 +593,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
             <SlotManagementView
               date={selectedDate}
               slots={getWindowsForDate(selectedDate)}
+              holiday={isHoliday(selectedDate)}
               onAddSlot={(slotData) => {
                 const dateStr = formatDateLocal(selectedDate);
                 handleWindowSave({ ...slotData, date: dateStr });
@@ -787,6 +803,7 @@ function WeeklyTemplateForm({
 function SlotManagementView({
   date,
   slots,
+  holiday,
   onAddSlot,
   onEditSlot,
   onDeleteSlot,
@@ -795,6 +812,7 @@ function SlotManagementView({
 }: {
   date: Date;
   slots: AvailabilityWindow[];
+  holiday?: Holiday | null;
   onAddSlot: (data: Partial<AvailabilityWindow>) => void;
   onEditSlot: (slotId: string, data: Partial<AvailabilityWindow>) => void;
   onDeleteSlot: (slotId: string) => void;
@@ -818,6 +836,7 @@ function SlotManagementView({
 
   const handleAddSlot = (e: React.FormEvent) => {
     e.preventDefault();
+    if (holiday) return;
     onAddSlot(newSlot);
     setNewSlot({ start_time: '09:00', end_time: '10:00', status: 'available' });
     setShowAddForm(false);
@@ -843,13 +862,29 @@ function SlotManagementView({
 
   return (
     <div className="space-y-4">
+      {holiday && (
+        <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">
+          <div className="font-medium">This date is closed.</div>
+          <div className="opacity-90">
+            Reason: {holiday.reason || 'Closed'}. Customers cannot book on this date.
+          </div>
+          {slots.length > 0 && (
+            <div className="mt-1 opacity-90">
+              Note: {slots.length} saved slot{slots.length === 1 ? '' : 's'} will be ignored while the date is closed (you can delete them if you want).
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Slots Timeline */}
       <div className="space-y-2">
         <h4 className="font-medium text-gray-700">Time Slots</h4>
         {sortedSlots.length === 0 ? (
           <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
             <p>No time slots for this date</p>
-            <p className="text-sm mt-1">Click "Add Slot" to create availability</p>
+            <p className="text-sm mt-1">
+              {holiday ? 'This date is closed. Open it first to add availability.' : 'Click "Add Slot" to create availability'}
+            </p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -898,7 +933,7 @@ function SlotManagementView({
       </div>
 
       {/* Add Slot Form */}
-      {showAddForm && (
+      {showAddForm && !holiday && (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
           <h5 className="font-medium mb-3">Add New Slot</h5>
           <form onSubmit={handleAddSlot} className="space-y-3">
@@ -980,10 +1015,10 @@ function SlotManagementView({
       <div className="flex justify-between pt-4 border-t">
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          disabled={saving || editingSlotId !== null}
+          disabled={saving || editingSlotId !== null || !!holiday}
           className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
         >
-          {showAddForm ? 'Cancel Add' : '+ Add Slot'}
+          {holiday ? 'Closed (Add disabled)' : (showAddForm ? 'Cancel Add' : '+ Add Slot')}
         </button>
         <button
           onClick={onCancel}
