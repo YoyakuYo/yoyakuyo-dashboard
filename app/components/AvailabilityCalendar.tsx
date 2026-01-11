@@ -582,14 +582,12 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                     <>
                       {/* Show status summary for the date */}
                       <div className={`text-xs px-1 py-0.5 rounded text-white font-medium ${
-                        dateStatus === 'holiday' ? 'bg-orange-500' :
                         dateStatus === 'closed' ? 'bg-red-600' :
                         dateStatus === 'blocked' ? 'bg-gray-500' :
                         dateStatus === 'booked' ? 'bg-red-500' :
                         dateStatus === 'available' ? 'bg-green-500' : 'bg-gray-400'
                       }`}>
-                        {dateStatus === 'holiday' ? 'HOLIDAY' :
-                         dateStatus === 'closed' ? 'CLOSED' :
+                        {dateStatus === 'closed' ? 'CLOSED' :
                          dateStatus === 'blocked' ? 'CLOSED' :
                          dateStatus === 'booked' ? 'BOOKED' :
                          dateStatus === 'available' ? 'AVAILABLE' : 'NO SLOTS'}
