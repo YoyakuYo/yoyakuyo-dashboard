@@ -53,6 +53,11 @@ interface AvailabilityWindow {
   source?: 'manual' | 'booking' | 'template';
 }
 
+type DateStatusOption = {
+  date: string; // YYYY-MM-DD
+  status: "available" | "closed";
+};
+
 interface Review {
   id: string;
   rating: number;
@@ -79,6 +84,7 @@ export default function LineShopDetailPage() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [dateOptions, setDateOptions] = useState<DateStatusOption[]>([]);
   const [selectedAvailabilityWindow, setSelectedAvailabilityWindow] = useState<AvailabilityWindow | null>(null);
   const [useCalendarPicker, setUseCalendarPicker] = useState(true);
   const [loadingTimeSlots, setLoadingTimeSlots] = useState(false);
@@ -456,6 +462,52 @@ export default function LineShopDetailPage() {
     return `${y}-${m}-${d}`;
   };
 
+  const parseISODateLocal = (dateStr: string): Date => {
+    const [y, m, d] = dateStr.split("-").map((n) => parseInt(n, 10));
+    return new Date(y, (m || 1) - 1, d || 1);
+  };
+
+  // Load customer date dropdown options from backend (owner calendar is source of truth)
+  useEffect(() => {
+    if (!shopId) return;
+
+    const loadDateOptions = async () => {
+      try {
+        const start = new Date();
+        const startDate = formatDateLocal(start);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 29);
+        const endDate = formatDateLocal(end);
+
+        const res = await fetch(
+          `${apiUrl}/shops/${shopId}/availability/dates?startDate=${startDate}&endDate=${endDate}`
+        );
+
+        if (!res.ok) {
+          setDateOptions([]);
+          return;
+        }
+
+        const data = await res.json().catch(() => []);
+        const options: DateStatusOption[] = Array.isArray(data) ? data : [];
+        setDateOptions(options);
+
+        // If previously selected date is now closed or missing, clear selection
+        setSelectedDate((prev) => {
+          if (!prev) return prev;
+          const match = options.find((o) => o.date === prev);
+          if (!match) return "";
+          if (match.status === "closed") return "";
+          return prev;
+        });
+      } catch (e) {
+        setDateOptions([]);
+      }
+    };
+
+    loadDateOptions();
+  }, [shopId]);
+
   const fetchTimeSlots = async () => {
     if (!selectedDate || !selectedServiceId) {
       setTimeSlots([]);
@@ -609,18 +661,6 @@ export default function LineShopDetailPage() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  // Get available dates (next 30 days)
-  const getAvailableDates = () => {
-    const dates = [];
-    const today = new Date();
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      dates.push(formatDateLocal(date));
-    }
-    return dates;
   };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
@@ -901,14 +941,15 @@ export default function LineShopDetailPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">{t("chooseDate")}</option>
-                    {getAvailableDates().map((date) => (
-                      <option key={date} value={date}>
-                        {new Date(date).toLocaleDateString("en-US", {
+                    {dateOptions.map((opt) => (
+                      <option key={opt.date} value={opt.date} disabled={opt.status === "closed"}>
+                        {parseISODateLocal(opt.date).toLocaleDateString("en-US", {
                           weekday: "long",
                           year: "numeric",
                           month: "long",
                           day: "numeric",
                         })}
+                        {opt.status === "closed" ? " - CLOSED" : ""}
                       </option>
                     ))}
                   </select>
