@@ -900,7 +900,7 @@ function SlotManagementView({
   return (
     <div className="space-y-4">
       {holiday && (
-        <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
           <div className="font-medium">This date is closed.</div>
           <div className="opacity-90">
             Reason: {holiday.reason || 'Closed'}. Customers cannot book on this date.
