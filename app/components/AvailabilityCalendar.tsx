@@ -137,6 +137,14 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
 
   // Get the overall status for date background color
   const getDateStatus = (date: Date): 'available' | 'booked' | 'blocked' | 'closed' | 'none' => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day
+    const dateOnly = new Date(date);
+    dateOnly.setHours(0, 0, 0, 0);
+
+    // Past dates should not be available
+    if (dateOnly < today) return 'none';
+
     const windows = getWindowsForDate(date);
 
     // Priority: blocked > booked > available > closed
