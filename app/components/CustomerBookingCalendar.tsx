@@ -45,13 +45,19 @@ export function CustomerBookingCalendar({
       const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-      const windowsRes = await fetch(`${apiUrl}/shops/${shopId}/availability?startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`);
+      console.log('[CustomerBookingCalendar] Loading availability for shop:', shopId, 'from', startDate.toISOString().split('T')[0], 'to', endDate.toISOString().split('T')[0]);
+
+      const windowsRes = await fetch(`${apiUrl}/api/availability/${shopId}?startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`);
+
+      console.log('[CustomerBookingCalendar] API response status:', windowsRes.status);
 
       if (windowsRes.ok) {
         const windowsData = await windowsRes.json();
+        console.log('[CustomerBookingCalendar] Received availability data:', windowsData);
         setAvailabilityWindows(windowsData.windows || []);
       } else {
-        console.error('Failed to load availability data');
+        const errorText = await windowsRes.text();
+        console.error('Failed to load availability data:', windowsRes.status, errorText);
         onMessage?.('error', 'Failed to load availability data');
       }
     } catch (error) {
