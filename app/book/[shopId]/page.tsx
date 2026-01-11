@@ -628,6 +628,7 @@ export default function PublicBookingPage() {
               <CustomerBookingCalendar
                 shopId={shopId}
                 serviceId={selectedService || undefined}
+                serviceDurationMinutes={selectedService ? (services.find(s => s.id === selectedService)?.duration_minutes || undefined) : undefined}
                 onSlotSelect={handleSlotSelect}
                 selectedSlot={selectedAvailabilityWindow}
                 onMessage={(type, text) => {

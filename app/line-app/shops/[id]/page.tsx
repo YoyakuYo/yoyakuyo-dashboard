@@ -44,6 +44,15 @@ interface TimeSlot {
   end_time: string;
 }
 
+interface AvailabilityWindow {
+  id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  status?: 'available' | 'booked' | 'blocked';
+  source?: 'manual' | 'booking' | 'template';
+}
+
 interface Review {
   id: string;
   rating: number;
@@ -70,6 +79,8 @@ export default function LineShopDetailPage() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [selectedAvailabilityWindow, setSelectedAvailabilityWindow] = useState<AvailabilityWindow | null>(null);
+  const [useCalendarPicker, setUseCalendarPicker] = useState(true);
   const [loadingTimeSlots, setLoadingTimeSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
@@ -387,6 +398,64 @@ export default function LineShopDetailPage() {
     }
   }, [selectedDate, selectedServiceId]);
 
+  const normalizeTimeToHHMMSS = (t: string): string => {
+    const s = String(t || '').trim();
+    if (!s) return '00:00:00';
+    if (/^\d{2}:\d{2}$/.test(s)) return `${s}:00`;
+    if (/^\d{2}:\d{2}:\d{2}$/.test(s)) return s;
+    return s.length >= 8 ? s.slice(0, 8) : '00:00:00';
+  };
+
+  const timeToMinutes = (t: string): number => {
+    const [hh, mm] = t.split(':').map((x) => parseInt(x || '0', 10) || 0);
+    return hh * 60 + mm;
+  };
+
+  // Convert API availability ranges into discrete start times customers can choose.
+  // IMPORTANT: We step in 15-minute increments (not serviceDuration) to allow more choices,
+  // but only include start times where the service fits fully inside the available range.
+  const generateTimeSlotsFromRanges = (
+    ranges: Array<{ start_time: string; end_time: string }>,
+    serviceDurationMinutes: number,
+    stepMinutes: number = 15
+  ): TimeSlot[] => {
+    const duration = Math.max(1, serviceDurationMinutes || 60);
+    const step = Math.max(1, stepMinutes || 15);
+    const out: TimeSlot[] = [];
+
+    ranges.forEach((r, rangeIndex) => {
+      const start = timeToMinutes(normalizeTimeToHHMMSS(r.start_time));
+      const end = timeToMinutes(normalizeTimeToHHMMSS(r.end_time));
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return;
+
+      for (let cur = start; cur + duration <= end; cur += step) {
+        const sh = Math.floor(cur / 60);
+        const sm = cur % 60;
+        const ehTotal = cur + duration;
+        const eh = Math.floor(ehTotal / 60);
+        const em = ehTotal % 60;
+
+        const startStr = `${String(sh).padStart(2, '0')}:${String(sm).padStart(2, '0')}:00`;
+        const endStr = `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}:00`;
+
+        out.push({
+          id: `${rangeIndex}-${cur}`,
+          start_time: startStr,
+          end_time: endStr,
+        });
+      }
+    });
+
+    return out;
+  };
+
+  const formatDateLocal = (date: Date): string => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   const fetchTimeSlots = async () => {
     if (!selectedDate || !selectedServiceId) {
       setTimeSlots([]);
@@ -400,8 +469,13 @@ export default function LineShopDetailPage() {
       
       if (res.ok) {
         const data = await res.json();
-        const slots = Array.isArray(data) ? data : [];
-        setTimeSlots(slots);
+        const ranges = Array.isArray(data) ? data : [];
+
+        const service = services.find(s => s.id === selectedServiceId);
+        const serviceDuration = service?.duration || 60;
+
+        const generated = generateTimeSlotsFromRanges(ranges, serviceDuration, 15);
+        setTimeSlots(generated);
       } else {
         setTimeSlots([]);
       }
@@ -443,11 +517,17 @@ export default function LineShopDetailPage() {
         console.warn("[LINE Booking] ⚠️ LIFF not available - LINE notifications may not work");
       }
 
-      // Find the selected timeslot
-      const selectedSlot = timeSlots.find(slot => {
-        const time = slot.start_time.split(':').slice(0, 2).join(':');
-        return time === selectedTime;
-      });
+      const slotFromCalendar = selectedAvailabilityWindow && selectedAvailabilityWindow.date === selectedDate
+        ? selectedAvailabilityWindow
+        : null;
+
+      // Find the selected timeslot (fallback for quick picker mode)
+      const selectedSlot = slotFromCalendar
+        ? slotFromCalendar
+        : timeSlots.find(slot => {
+            const time = slot.start_time.split(':').slice(0, 2).join(':');
+            return time === selectedTime;
+          });
 
       if (!selectedSlot) {
         setBookingError("Please select a valid time slot.");
@@ -538,7 +618,7 @@ export default function LineShopDetailPage() {
     for (let i = 0; i < 30; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-      dates.push(date.toISOString().split("T")[0]);
+      dates.push(formatDateLocal(date));
     }
     return dates;
   };

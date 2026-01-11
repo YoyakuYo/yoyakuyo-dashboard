@@ -15,6 +15,7 @@ interface AvailabilityWindow {
 interface CustomerBookingCalendarProps {
   shopId: string;
   serviceId?: string; // Optional - if provided, will show service duration
+  serviceDurationMinutes?: number; // If provided, used to generate bookable slots from ranges
   onSlotSelect?: (slot: AvailabilityWindow) => void; // Callback when customer selects a slot
   selectedSlot?: AvailabilityWindow | null; // Currently selected slot
   onMessage?: (type: 'success' | 'error', text: string) => void;
@@ -30,6 +31,7 @@ interface Holiday {
 export function CustomerBookingCalendar({
   shopId,
   serviceId,
+  serviceDurationMinutes,
   onSlotSelect,
   selectedSlot,
   onMessage
@@ -45,6 +47,13 @@ export function CustomerBookingCalendar({
   useEffect(() => {
     loadAvailabilityData();
   }, [shopId, currentDate]);
+
+  const formatDateLocal = (date: Date): string => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
 
   const loadAvailabilityData = async () => {
     try {
@@ -63,7 +72,7 @@ export function CustomerBookingCalendar({
 
       // Get availability for each day in the month
       while (current <= endDate) {
-        const dateStr = current.toISOString().split('T')[0];
+        const dateStr = formatDateLocal(current);
         const dateResponse = fetch(`${apiUrl}/shops/${shopId}/availability?date=${dateStr}`, {
           method: 'GET',
           headers: {
@@ -93,7 +102,7 @@ export function CustomerBookingCalendar({
         dateResults.forEach(({ date, ranges }) => {
           if (ranges.length > 0) {
             // Generate time slots from availability ranges
-            const serviceDuration = 60; // Default 60 minutes, could be fetched from service data
+            const serviceDuration = Math.max(1, serviceDurationMinutes || 60);
             const slots = generateTimeSlotsFromRanges(ranges, serviceDuration, date);
 
             // Filter out slots that are already booked or blocked
@@ -135,13 +144,13 @@ export function CustomerBookingCalendar({
 
   // Get availability windows for a specific date
   const getWindowsForDate = (date: Date): AvailabilityWindow[] => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatDateLocal(date);
     return availabilityWindows.filter(window => window.date === dateStr);
   };
 
   // Check if date is a holiday
   const isHoliday = (date: Date): Holiday | null => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatDateLocal(date);
     return holidays.find(holiday => holiday.holiday_date === dateStr) || null;
   };
 
