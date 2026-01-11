@@ -98,15 +98,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
         setWeeklyHours(weeklyData.weekly || []);
       }
 
-      // Load holidays
-      const holidaysRes = await fetch(`${apiUrl}/api/holidays?shop_id=${shopId}`, {
-        headers: { 'x-user-id': userId },
-      });
-
-      if (holidaysRes.ok) {
-        const holidaysData = await holidaysRes.json();
-        setHolidays(holidaysData || []);
-      }
+      // No longer loading separate holidays - using closedDays from availability API
     } catch (error) {
       console.error('Error loading availability data:', error);
       onMessage('error', 'Failed to load availability data');
@@ -121,10 +113,14 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
     return availabilityWindows.filter(window => window.date === dateStr);
   };
 
-  // Check if date is a holiday
+  // Check if date is a holiday (now uses closedDays instead of separate holidays array)
   const isHoliday = (date: Date): Holiday | null => {
+    // Since we removed separate holiday loading, treat closed dates as holidays for backward compatibility
     const dateStr = formatDateLocal(date);
-    return holidays.find(holiday => holiday.holiday_date === dateStr) || null;
+    if (closedDays.includes(dateStr)) {
+      return { id: `closed-${dateStr}`, holiday_date: dateStr, reason: 'Closed', shop_id: '', created_at: '', updated_at: '' };
+    }
+    return null;
   };
 
   // Check if date is a closed day (server-authoritative)
@@ -148,8 +144,8 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
     if (windows.some(w => w.status === 'booked')) return 'booked';
     if (windows.some(w => w.status === 'available')) return 'available';
 
-    // If no availability windows, check for closed status (from either source)
-    if (isClosedDay(date) || isHoliday(date)) return 'closed';
+    // Check for closed status
+    if (isClosedDay(date)) return 'closed';
 
     return 'none';
   };
