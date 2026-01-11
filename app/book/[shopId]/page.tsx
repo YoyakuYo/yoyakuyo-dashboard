@@ -428,7 +428,7 @@ export default function PublicBookingPage() {
       const isAuthenticated = user && (user.id || (user as any).email) && !authLoading;
       
       // Ensure all required fields are present
-      if (!shopId || !selectedService || !selectedDate || !timeslotToUse) {
+      if (!shopId || !selectedService || !selectedAvailabilityWindow) {
         alert(t('booking.fillRequiredFields') || 'Please fill in all required fields');
         setBookingLoading(false);
         return;
@@ -437,8 +437,8 @@ export default function PublicBookingPage() {
       const bookingPayload: any = {
         shop_id: shopId,
         service_id: selectedService,
-        date: selectedDate,
-        time_slot: `${timeslotToUse.start_time}-${timeslotToUse.end_time}`,
+        date: selectedAvailabilityWindow.date,
+        time_slot: `${selectedAvailabilityWindow.start_time}-${selectedAvailabilityWindow.end_time}`,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
       };

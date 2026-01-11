@@ -490,14 +490,24 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                     </div>
                   ) : (
                     <>
-                      {/* Show individual time slots */}
+                      {/* Show status summary for the date */}
+                      <div className={`text-xs px-1 py-0.5 rounded text-white font-medium ${
+                        dateStatus === 'blocked' ? 'bg-gray-500' :
+                        dateStatus === 'booked' ? 'bg-red-500' :
+                        dateStatus === 'available' ? 'bg-green-500' : 'bg-gray-400'
+                      }`}>
+                        {dateStatus === 'blocked' ? 'CLOSED' :
+                         dateStatus === 'booked' ? 'BOOKED' :
+                         dateStatus === 'available' ? 'AVAILABLE' : 'NO SLOTS'}
+                      </div>
+
+                      {/* Show up to 2 time slots */}
                       {windows.slice(0, 2).map((window, idx) => (
                         <div
                           key={window.id}
                           className={`text-xs px-1 py-0.5 rounded text-white ${
                             window.status === 'available' ? 'bg-green-600' :
-                            window.status === 'booked' ? 'bg-red-600' :
-                            window.status === 'blocked' ? 'bg-red-600' : 'bg-gray-600'
+                            window.status === 'booked' ? 'bg-red-600' : 'bg-gray-600'
                           }`}
                         >
                           {window.start_time}-{window.end_time}
