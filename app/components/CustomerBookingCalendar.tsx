@@ -31,6 +31,7 @@ export function CustomerBookingCalendar({
   const [availabilityWindows, setAvailabilityWindows] = useState<AvailabilityWindow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Load availability data for the current month
   useEffect(() => {
@@ -40,29 +41,36 @@ export function CustomerBookingCalendar({
   const loadAvailabilityData = async () => {
     try {
       setLoading(true);
+      setError(null);
 
-      // Load availability windows for current month
       const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-      console.log('[CustomerBookingCalendar] Loading availability for shop:', shopId, 'from', startDate.toISOString().split('T')[0], 'to', endDate.toISOString().split('T')[0]);
+      console.log('[CustomerBookingCalendar] Loading availability for:', shopId);
 
-      const windowsRes = await fetch(`${apiUrl}/api/availability/${shopId}?startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`);
+      // Simplified fetch for LINE app compatibility
+      const response = await fetch(`${apiUrl}/api/availability/${shopId}?startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      console.log('[CustomerBookingCalendar] API response status:', windowsRes.status);
+      console.log('[CustomerBookingCalendar] Response status:', response.status);
 
-      if (windowsRes.ok) {
-        const windowsData = await windowsRes.json();
-        console.log('[CustomerBookingCalendar] Received availability data:', windowsData);
-        setAvailabilityWindows(windowsData.windows || []);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[CustomerBookingCalendar] Received data:', data);
+        setAvailabilityWindows(data.windows || []);
       } else {
-        const errorText = await windowsRes.text();
-        console.error('Failed to load availability data:', windowsRes.status, errorText);
-        onMessage?.('error', 'Failed to load availability data');
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error('[CustomerBookingCalendar] API error:', response.status, errorText);
+        setError(`Failed to load availability (${response.status})`);
       }
-    } catch (error) {
-      console.error('Error loading availability data:', error);
-      onMessage?.('error', 'Failed to load availability data');
+
+    } catch (err) {
+      console.error('[CustomerBookingCalendar] Network error:', err);
+      setError('Unable to connect to server');
     } finally {
       setLoading(false);
     }
@@ -120,18 +128,15 @@ export function CustomerBookingCalendar({
     const availableSlots = windows.filter(w => w.status === 'available');
 
     if (availableSlots.length === 0) {
-      // No available slots for this date
       onMessage?.('error', 'No available time slots for this date');
       return;
     }
 
-    // If there's only one available slot and no service selected, auto-select it
-    if (availableSlots.length === 1 && !serviceId) {
+    if (availableSlots.length === 1) {
       onSlotSelect?.(availableSlots[0]);
       return;
     }
 
-    // Show the date details (will show slot selection)
     setSelectedDate(date);
   };
 
@@ -153,6 +158,36 @@ export function CustomerBookingCalendar({
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <p className="mt-2 text-gray-600">Loading calendar...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center p-8 bg-red-50 rounded-lg border border-red-200">
+        <div className="text-4xl mb-2">⚠️</div>
+        <p className="text-red-600 font-medium mb-2">Calendar Unavailable</p>
+        <p className="text-sm text-red-500 mb-4">{error}</p>
+        <button
+          onClick={() => loadAvailabilityData()}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  if (availabilityWindows.length === 0) {
+    return (
+      <div className="text-center p-8 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="text-4xl mb-2">📅</div>
+        <p className="text-blue-600 font-medium mb-2">No Availability Set</p>
+        <p className="text-sm text-blue-500">
+          This shop hasn't scheduled any available times yet.
+          <br />
+          Please contact them directly to arrange booking.
+        </p>
       </div>
     );
   }
