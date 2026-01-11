@@ -540,14 +540,14 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                 <div className="space-y-1">
                   {holiday ? (
                     <>
-                      <div className="text-xs px-1 py-0.5 rounded text-white font-medium bg-orange-500">
-                        HOLIDAY
+                      <div className="text-xs px-1 py-0.5 rounded text-white font-medium bg-red-600">
+                        CLOSED
                       </div>
-                      <div className="text-xs text-orange-900">
+                      <div className="text-xs text-red-900">
                         {holiday.reason || 'Closed'}
                       </div>
                       {windows.length > 0 && (
-                        <div className="text-[11px] text-orange-900 opacity-80">
+                        <div className="text-[11px] text-red-900 opacity-80">
                           ({windows.length} slot{windows.length === 1 ? '' : 's'} saved but ignored while closed)
                         </div>
                       )}
