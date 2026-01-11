@@ -50,6 +50,16 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
   const [saving, setSaving] = useState(false);
   const [unavailableMode, setUnavailableMode] = useState(false);
 
+  // IMPORTANT: Never use toISOString().split('T')[0] for calendar dates.
+  // It converts to UTC and can shift the day depending on timezone (e.g. JST),
+  // which breaks comparisons against DB date strings like 'YYYY-MM-DD'.
+  const formatDateLocal = (date: Date): string => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   // Load availability data
   useEffect(() => {
     loadAvailabilityData();
@@ -63,7 +73,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
       const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-      const windowsRes = await fetch(`${apiUrl}/api/availability/${shopId}?startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`, {
+      const windowsRes = await fetch(`${apiUrl}/api/availability/${shopId}?startDate=${formatDateLocal(startDate)}&endDate=${formatDateLocal(endDate)}`, {
         headers: { 'x-user-id': userId },
       });
 
@@ -101,13 +111,13 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
 
   // Get availability windows for a specific date
   const getWindowsForDate = (date: Date): AvailabilityWindow[] => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatDateLocal(date);
     return availabilityWindows.filter(window => window.date === dateStr);
   };
 
   // Check if date is a holiday
   const isHoliday = (date: Date): Holiday | null => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatDateLocal(date);
     return holidays.find(holiday => holiday.holiday_date === dateStr) || null;
   };
 
@@ -211,7 +221,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
         return;
       } else {
         // Mark as unavailable - create blocked slot that overlaps with existing slots
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = formatDateLocal(date);
         const payload = {
           date: dateStr,
           start_time: '00:00',
@@ -255,7 +265,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
     try {
       setSaving(true);
 
-      const dateStr = selectedDate.toISOString().split('T')[0];
+      const dateStr = formatDateLocal(selectedDate);
       const payload = {
         ...windowData,
         date: dateStr,
@@ -452,8 +462,8 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
               const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
               const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
               handleGenerateFromTemplate(
-                startDate.toISOString().split('T')[0],
-                endDate.toISOString().split('T')[0]
+                formatDateLocal(startDate),
+                formatDateLocal(endDate)
               );
             }}
             disabled={saving}
@@ -569,7 +579,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
               date={selectedDate}
               slots={getWindowsForDate(selectedDate)}
               onAddSlot={(slotData) => {
-                const dateStr = selectedDate.toISOString().split('T')[0];
+                const dateStr = formatDateLocal(selectedDate);
                 handleWindowSave({ ...slotData, date: dateStr });
               }}
               onEditSlot={(slotId, slotData) => {
