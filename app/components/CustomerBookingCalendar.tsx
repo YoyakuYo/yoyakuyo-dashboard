@@ -421,7 +421,7 @@ export function CustomerBookingCalendar({
                       dateStatus === 'booked' ? 'bg-red-500' :
                       dateStatus === 'available' ? 'bg-green-500' : 'bg-gray-400'
                     }`}>
-                      {dateStatus === 'holiday' ? 'HOLIDAY' :
+                      {dateStatus === 'closed' ? 'CLOSED' :
                        dateStatus === 'blocked' ? 'CLOSED' :
                        dateStatus === 'booked' ? `${bookedSlots.length} Booked` :
                        dateStatus === 'available' ? `${availableSlots.length} Available` : 'NO SLOTS'}
