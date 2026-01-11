@@ -140,20 +140,16 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
   };
 
   // Get the overall status for date background color
-  const getDateStatus = (date: Date): 'available' | 'booked' | 'blocked' | 'holiday' | 'closed' | 'none' => {
-    // Check for holiday first - holidays override all other availability
-    if (isHoliday(date)) return 'holiday';
-
-    // Closed day must override availability_windows
-    if (isClosedDay(date)) return 'closed';
-
+  const getDateStatus = (date: Date): 'available' | 'booked' | 'blocked' | 'closed' | 'none' => {
     const windows = getWindowsForDate(date);
-    if (windows.length === 0) return 'none';
 
-    // Priority: blocked > booked > available
+    // Priority: blocked > booked > available > closed
     if (windows.some(w => w.status === 'blocked')) return 'blocked';
     if (windows.some(w => w.status === 'booked')) return 'booked';
     if (windows.some(w => w.status === 'available')) return 'available';
+
+    // If no availability windows, check for closed status (from either source)
+    if (isClosedDay(date) || isHoliday(date)) return 'closed';
 
     return 'none';
   };
@@ -516,7 +512,6 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
               if (isToday) return 'bg-blue-50';
 
               switch (dateStatus) {
-                case 'holiday': return 'bg-orange-200 hover:bg-orange-300';
                 case 'closed': return 'bg-red-200 hover:bg-red-300';
                 case 'blocked': return 'bg-red-200 hover:bg-red-300';
                 case 'booked': return 'bg-red-50 hover:bg-red-100';
