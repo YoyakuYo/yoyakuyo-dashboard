@@ -40,7 +40,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
   const [availabilityWindows, setAvailabilityWindows] = useState<AvailabilityWindow[]>([]);
   const [closedDays, setClosedDays] = useState<string[]>([]);
   const [weeklyHours, setWeeklyHours] = useState<WeeklyHours[]>([]);
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]); // No longer used - kept for backward compatibility
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showWindowModal, setShowWindowModal] = useState(false);
@@ -113,9 +113,9 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
     return availabilityWindows.filter(window => window.date === dateStr);
   };
 
-  // Check if date is a holiday (now uses closedDays instead of separate holidays array)
+  // Check if date is closed (no longer using separate holiday system)
   const isHoliday = (date: Date): Holiday | null => {
-    // Since we removed separate holiday loading, treat closed dates as holidays for backward compatibility
+    // For backward compatibility, return a holiday object for closed dates
     const dateStr = formatDateLocal(date);
     if (closedDays.includes(dateStr)) {
       return { id: `closed-${dateStr}`, shop_id: '', holiday_date: dateStr, reason: 'Closed' };
