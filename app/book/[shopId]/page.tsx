@@ -47,6 +47,14 @@ interface ChatMessage {
   readByCustomer: boolean;
 }
 
+// Detect if user is in LINE app
+const isLineApp = () => {
+  if (typeof window === 'undefined') return false;
+  return /line/i.test(navigator.userAgent) ||
+         window.location.hostname.includes('liff') ||
+         window.location.search.includes('liff');
+};
+
 export default function PublicBookingPage() {
   const params = useParams();
   const router = useRouter();
@@ -410,17 +418,35 @@ export default function PublicBookingPage() {
       return;
     }
 
-    if (!selectedAvailabilityWindow) {
-      alert(t('booking.selectTimeslot') || 'Please select a date and time from the calendar');
+    // Check if we have a selected slot (either from calendar or LINE app selection)
+    const hasSelectedSlot = selectedAvailabilityWindow || selectedTimeslot;
+    if (!hasSelectedSlot) {
+      alert(t('booking.selectTimeslot') || 'Please select a date and time');
       setBookingLoading(false);
       return;
     }
 
     setBookingLoading(true);
 
-    // Use the selected availability window
-    const startDateTime = new Date(`${selectedAvailabilityWindow.date}T${selectedAvailabilityWindow.start_time}`);
-    const endDateTime = new Date(`${selectedAvailabilityWindow.date}T${selectedAvailabilityWindow.end_time}`);
+    let startDateTime: Date;
+    let endDateTime: Date;
+    let bookingDate: string;
+
+    if (selectedAvailabilityWindow) {
+      // From calendar selection
+      startDateTime = new Date(`${selectedAvailabilityWindow.date}T${selectedAvailabilityWindow.start_time}`);
+      endDateTime = new Date(`${selectedAvailabilityWindow.date}T${selectedAvailabilityWindow.end_time}`);
+      bookingDate = selectedAvailabilityWindow.date;
+    } else if (selectedTimeslot && selectedDate) {
+      // From LINE app selection
+      startDateTime = new Date(`${selectedDate}T${selectedTimeslot.start_time}`);
+      endDateTime = new Date(`${selectedDate}T${selectedTimeslot.end_time}`);
+      bookingDate = selectedDate;
+    } else {
+      alert('Invalid selection');
+      setBookingLoading(false);
+      return;
+    }
 
     try {
       // For authenticated users, don't send name/email - API will fetch from database
@@ -437,8 +463,10 @@ export default function PublicBookingPage() {
       const bookingPayload: any = {
         shop_id: shopId,
         service_id: selectedService,
-        date: selectedAvailabilityWindow.date,
-        time_slot: `${selectedAvailabilityWindow.start_time}-${selectedAvailabilityWindow.end_time}`,
+        date: bookingDate,
+        time_slot: selectedAvailabilityWindow
+          ? `${selectedAvailabilityWindow.start_time}-${selectedAvailabilityWindow.end_time}`
+          : `${selectedTimeslot!.start_time}-${selectedTimeslot!.end_time}`,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
       };
@@ -541,37 +569,106 @@ export default function PublicBookingPage() {
             </select>
           </div>
 
-          {/* Calendar for selecting availability */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-4">{t('booking.selectDateAndTime') || 'Select Date and Time'}</h2>
-            <CustomerBookingCalendar
-              shopId={shopId}
-              serviceId={selectedService || undefined}
-              onSlotSelect={handleSlotSelect}
-              selectedSlot={selectedAvailabilityWindow}
-              onMessage={(type, text) => {
-                // Handle messages from calendar
-                console.log(`${type}: ${text}`);
-              }}
-            />
-          </div>
+          {/* Date and Time Selection */}
+          {isLineApp() ? (
+            // Simplified UI for LINE app
+            <div className="space-y-6">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold mb-2">{t('booking.chooseDate')}</h2>
+                <input
+                  type="date"
+                  value={selectedDate || ''}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="mb-6">
+                <button
+                  onClick={fetchAvailability}
+                  disabled={!selectedDate || loadingAvailability}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingAvailability ? (t('booking.checking') || 'Checking...') : (t('booking.checkAvailability') || 'Check Availability')}
+                </button>
+              </div>
+
+              {availabilityChecked && timeslots.length > 0 && (
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold mb-2">{t('booking.chooseTimeslot') || 'Choose Timeslot'}</h2>
+                  <div className="space-y-2">
+                    {timeslots.map((timeslot) => (
+                      <button
+                        key={timeslot.id}
+                        onClick={() => setSelectedTimeslot(timeslot)}
+                        className={`w-full px-4 py-3 border rounded-lg hover:bg-gray-50 transition-colors text-left ${
+                          selectedTimeslot?.id === timeslot.id
+                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
+                            : 'border-gray-300'
+                        }`}
+                      >
+                        {timeslot.start_time} - {timeslot.end_time}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {availabilityChecked && timeslots.length === 0 && (
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-yellow-700">{t('booking.noAvailability') || 'No available timeslots for this date. Please try another date.'}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            // Full calendar for regular browsers
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-4">{t('booking.selectDateAndTime') || 'Select Date and Time'}</h2>
+              <CustomerBookingCalendar
+                shopId={shopId}
+                serviceId={selectedService || undefined}
+                onSlotSelect={handleSlotSelect}
+                selectedSlot={selectedAvailabilityWindow}
+                onMessage={(type, text) => {
+                  // Handle messages from calendar
+                  console.log(`${type}: ${text}`);
+                }}
+              />
+            </div>
+          )}
 
           {/* Show selected slot info */}
-          {selectedAvailabilityWindow && (
+          {(selectedAvailabilityWindow || selectedTimeslot) && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
               <h3 className="font-medium text-green-800 mb-2">Selected Time Slot</h3>
               <div className="flex items-center gap-2 text-green-700">
                 <span className="font-medium">
-                  {new Date(selectedAvailabilityWindow.date).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
+                  {selectedAvailabilityWindow
+                    ? new Date(selectedAvailabilityWindow.date).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })
+                    : selectedDate
+                      ? new Date(selectedDate).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })
+                      : 'Unknown date'
+                  }
                 </span>
                 <span>at</span>
                 <span className="font-medium">
-                  {selectedAvailabilityWindow.start_time.substring(0, 5)} - {selectedAvailabilityWindow.end_time.substring(0, 5)}
+                  {selectedAvailabilityWindow
+                    ? `${selectedAvailabilityWindow.start_time.substring(0, 5)} - ${selectedAvailabilityWindow.end_time.substring(0, 5)}`
+                    : selectedTimeslot
+                      ? `${selectedTimeslot.start_time} - ${selectedTimeslot.end_time}`
+                      : 'Unknown time'
+                  }
                 </span>
               </div>
             </div>
@@ -655,7 +752,7 @@ export default function PublicBookingPage() {
 
                   <button
             onClick={bookAppointment}
-            disabled={authLoading || !selectedAvailabilityWindow}
+            disabled={authLoading || (!selectedAvailabilityWindow && !selectedTimeslot)}
             className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {authLoading ? t('common.loading') : t('booking.bookNow')}
