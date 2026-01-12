@@ -30,7 +30,7 @@ export default function PublicBookingPage() {
         const endDate = new Date(today.getFullYear(), today.getMonth() + 2, 0).toISOString().split('T')[0]; // Next 2 months
 
         const url = `${apiUrl}/shops/${shopId}/availability/dates?startDate=${startDate}&endDate=${endDate}`;
-        const res = await fetch(url);
+      const res = await fetch(url);
         if (res.ok) {
           const data: DateStatus[] = await res.json();
           setAvailableDates(data);
@@ -41,7 +41,7 @@ export default function PublicBookingPage() {
       } catch (error) {
         console.error("Error fetching available dates:", error);
         setAvailableDates([]);
-      } finally {
+    } finally {
         setLoadingDates(false);
       }
     };
@@ -87,27 +87,27 @@ export default function PublicBookingPage() {
           </div>
 
           {selectedDate && (
-            <div className="mb-6">
-              <button
+              <div className="mb-6">
+                <button
                 onClick={() => router.push(`/book/${shopId}/timeslot?date=${selectedDate}`)}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
+                >
                 {t('booking.selectTime') || 'Select Time'}
-              </button>
+                      </button>
             </div>
           )}
         </div>
 
         {/* Right Column: Placeholder */}
         <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">
               {t('booking.shopInfo') || 'Shop Information'}
             </h3>
-            <p className="text-gray-600">
+              <p className="text-gray-600">
               {t('booking.selectDateTime') || 'Please select a date and time to continue with your booking.'}
-            </p>
-          </div>
+              </p>
+              </div>
         </div>
       </div>
     </div>
