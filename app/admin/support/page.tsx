@@ -79,6 +79,13 @@ export default function AdminSupportPage() {
   const [showDocumentRequestModal, setShowDocumentRequestModal] = useState(false);
   const [documentRequestText, setDocumentRequestText] = useState("");
   const [sendingDocumentRequest, setSendingDocumentRequest] = useState(false);
+  const [showConvertToDisputeModal, setShowConvertToDisputeModal] = useState(false);
+  const [disputeForm, setDisputeForm] = useState({
+    dispute_type: 'other',
+    title: '',
+    description: ''
+  });
+  const [convertingToDispute, setConvertingToDispute] = useState(false);
 
   // Get user from Supabase Auth
   useEffect(() => {
@@ -304,6 +311,45 @@ export default function AdminSupportPage() {
     }
   };
 
+  const handleConvertToDispute = async () => {
+    if (!selectedConversation || !disputeForm.title.trim() || !disputeForm.description.trim()) {
+      return;
+    }
+
+    try {
+      setConvertingToDispute(true);
+      const response = await fetch(`${apiUrl}/admin/support/conversations/${selectedConversation.id}/convert-to-dispute`, {
+        method: "POST",
+        headers: {
+          "x-user-id": userId || "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          dispute_type: disputeForm.dispute_type,
+          title: disputeForm.title,
+          description: disputeForm.description,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setShowConvertToDisputeModal(false);
+        setDisputeForm({ dispute_type: 'other', title: '', description: '' });
+        fetchSupportConversations();
+        fetchConversationDetails(selectedConversation.id);
+        alert(t("admin.disputeCreated") || "Support ticket has been converted to a dispute");
+      } else {
+        const error = await response.json();
+        alert(error.error || (t("admin.convertFailed") || "Failed to convert to dispute"));
+      }
+    } catch (error: any) {
+      console.error("Error converting to dispute:", error);
+      alert(error.message || (t("admin.convertFailed") || "Failed to convert to dispute"));
+    } finally {
+      setConvertingToDispute(false);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -512,6 +558,24 @@ export default function AdminSupportPage() {
                 </div>
               </div>
 
+              {/* Action Buttons */}
+              <div className="border-t border-gray-200 pt-4 mb-4">
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => setShowConvertToDisputeModal(true)}
+                    className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                  >
+                    ⚖️ {t("admin.convertToDispute") || "Convert to Dispute"}
+                  </button>
+                  <button
+                    onClick={() => setShowDocumentRequestModal(true)}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  >
+                    📎 {t("admin.requestDocument") || "Request Document"}
+                  </button>
+                </div>
+              </div>
+
               {/* Reply Form */}
               <div className="border-t border-gray-200 pt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -671,6 +735,95 @@ export default function AdminSupportPage() {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Convert to Dispute Modal */}
+      {showConvertToDisputeModal && selectedConversation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900">
+                  {t("admin.convertToDispute") || "Convert to Dispute"}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowConvertToDisputeModal(false);
+                    setDisputeForm({ dispute_type: 'other', title: '', description: '' });
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t("admin.disputeType") || "Dispute Type"}
+                  </label>
+                  <select
+                    value={disputeForm.dispute_type}
+                    onChange={(e) => setDisputeForm({ ...disputeForm, dispute_type: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    <option value="booking_issue">{t("admin.bookingIssue") || "Booking Issue"}</option>
+                    <option value="payment_issue">{t("admin.paymentIssue") || "Payment Issue"}</option>
+                    <option value="service_quality">{t("admin.serviceQuality") || "Service Quality"}</option>
+                    <option value="shop_claim">{t("admin.shopClaim") || "Shop Claim"}</option>
+                    <option value="account_issue">{t("admin.accountIssue") || "Account Issue"}</option>
+                    <option value="other">{t("admin.other") || "Other"}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t("admin.title") || "Title"}
+                  </label>
+                  <input
+                    type="text"
+                    value={disputeForm.title}
+                    onChange={(e) => setDisputeForm({ ...disputeForm, title: e.target.value })}
+                    placeholder={t("admin.disputeTitlePlaceholder") || "Brief dispute title"}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t("admin.description") || "Description"}
+                  </label>
+                  <textarea
+                    value={disputeForm.description}
+                    onChange={(e) => setDisputeForm({ ...disputeForm, description: e.target.value })}
+                    placeholder={t("admin.disputeDescriptionPlaceholder") || "Detailed description of the dispute"}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={handleConvertToDispute}
+                  disabled={!disputeForm.title.trim() || !disputeForm.description.trim() || convertingToDispute}
+                  className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {convertingToDispute ? (t("common.loading") || "Converting...") : (t("admin.convertToDispute") || "Convert to Dispute")}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowConvertToDisputeModal(false);
+                    setDisputeForm({ dispute_type: 'other', title: '', description: '' });
+                  }}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                >
+                  {t("common.cancel") || "Cancel"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
