@@ -960,7 +960,10 @@
     "returnedButIgnored": "devuelto pero ignorado mientras cerrado",
     "more": "más",
     "manageTimeSlots": "Gestionar Franjas Horarias",
-    "for": "para"
+    "for": "para",
+    "failedToLoadAvailability": "Error al cargar datos de disponibilidad",
+    "dateMarkedUnavailable": "Fecha marcada como no disponible (bloqueada)",
+    "failedToMarkUnavailable": "Error al marcar fecha como no disponible"
   },
   "landing": {
     "heroTagline": "Una experiencia de reserva simple y multilingüe para todos.",

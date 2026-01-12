@@ -89,7 +89,10 @@
     "returnedButIgnored": "반환되었지만 휴무 중 무시됨",
     "more": "더보기",
     "manageTimeSlots": "시간 슬롯 관리",
-    "for": "에 대한"
+    "for": "에 대한",
+    "failedToLoadAvailability": "사용 가능성 데이터를 로드하지 못했습니다",
+    "dateMarkedUnavailable": "날짜가 사용 불가로 표시되었습니다 (차단됨)",
+    "failedToMarkUnavailable": "날짜를 사용 불가로 표시하지 못했습니다"
   },
   "landing": {
     "navCategories": "카테고리",

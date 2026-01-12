@@ -960,7 +960,10 @@
     "returnedButIgnored": "retornado mas ignorado enquanto fechado",
     "more": "mais",
     "manageTimeSlots": "Gerenciar Horários",
-    "for": "para"
+    "for": "para",
+    "failedToLoadAvailability": "Falha ao carregar dados de disponibilidade",
+    "dateMarkedUnavailable": "Data marcada como indisponível (bloqueada)",
+    "failedToMarkUnavailable": "Falha ao marcar data como indisponível"
   },
   "landing": {
     "heroTagline": "Uma experiência de reserva simples e multilíngue para todos.",

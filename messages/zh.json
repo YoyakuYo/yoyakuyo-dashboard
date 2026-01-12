@@ -960,7 +960,10 @@
     "returnedButIgnored": "已返回但关闭时被忽略",
     "more": "更多",
     "manageTimeSlots": "管理时间段",
-    "for": "为"
+    "for": "为",
+    "failedToLoadAvailability": "加载可用性数据失败",
+    "dateMarkedUnavailable": "日期标记为不可用（已阻止）",
+    "failedToMarkUnavailable": "将日期标记为不可用失败"
   },
   "landing": {
     "heroTagline": "为每个人提供简单、多语言的预订体验。",

@@ -101,7 +101,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
       // No longer loading separate holidays - using closedDays from availability API
     } catch (error) {
       console.error('Error loading availability data:', error);
-      onMessage('error', 'Failed to load availability data');
+      onMessage('error', t('calendar.failedToLoadAvailability') || 'Failed to load availability data');
     } finally {
       setLoading(false);
     }
@@ -201,11 +201,11 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
         }
       }
 
-      onMessage('success', 'Date availability cleared - you can now add available time slots');
+      onMessage('success', t('calendar.availabilityCleared') || 'Date availability cleared - you can now add available time slots');
       await loadAvailabilityData();
     } catch (error) {
       console.error('Error clearing unavailability:', error);
-      onMessage('error', 'Failed to clear date availability');
+      onMessage('error', t('calendar.clearAvailabilityError') || 'Failed to clear date availability');
     } finally {
       setSaving(false);
     }
@@ -248,10 +248,10 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
         });
 
         if (response.ok) {
-          onMessage('success', 'Date marked as unavailable (blocked)');
+          onMessage('success', t('calendar.dateMarkedUnavailable') || 'Date marked as unavailable (blocked)');
         } else {
           const errorData = await response.json();
-          onMessage('error', errorData.error || 'Failed to mark date as unavailable');
+          onMessage('error', errorData.error || (t('calendar.failedToMarkUnavailable') || 'Failed to mark date as unavailable'));
           return;
         }
       }
@@ -451,7 +451,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
             onClick={() => setShowWeeklyModal(true)}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
           >
-            Edit Weekly Template
+            {t('calendar.editWeeklyTemplate') || 'Edit Weekly Template'}
           </button>
           <button
             onClick={() => setUnavailableMode(!unavailableMode)}
@@ -657,7 +657,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
       {showWeeklyModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">Edit Weekly Template</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('calendar.editWeeklyTemplate') || 'Edit Weekly Template'}</h3>
 
             <WeeklyTemplateForm
               weeklyHours={weeklyHours}

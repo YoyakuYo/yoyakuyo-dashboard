@@ -1206,7 +1206,10 @@
     "returnedButIgnored": "ibinalik ngunit hindi pinansin habang sarado",
     "more": "higit pa",
     "manageTimeSlots": "Pamahalaan ang Time Slots",
-    "for": "para sa"
+    "for": "para sa",
+    "failedToLoadAvailability": "Nabigo sa pag-load ng availability data",
+    "dateMarkedUnavailable": "Ang petsa ay minarkahan bilang hindi available (hinaharangan)",
+    "failedToMarkUnavailable": "Nabigo sa pag-mark ng petsa bilang hindi available"
   },
   "landing": {
     "heroTagline": "A simple, multilingual booking experience for everyone.",

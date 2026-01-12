@@ -1185,7 +1185,10 @@
     "returnedButIgnored": "返却されていますが休業中は無視されます",
     "more": "もっと",
     "manageTimeSlots": "時間枠を管理",
-    "for": "の"
+    "for": "の",
+    "failedToLoadAvailability": "利用可能データの読み込みに失敗しました",
+    "dateMarkedUnavailable": "日付が利用不可としてマークされました（ブロック）",
+    "failedToMarkUnavailable": "日付を利用不可としてマークできませんでした"
   },
   "landing": {
     "heroTitle": "完璧なサービスを予約",

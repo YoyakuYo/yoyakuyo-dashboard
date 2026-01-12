@@ -1258,7 +1258,10 @@
     "returnedButIgnored": "returned but ignored while closed",
     "more": "more",
     "manageTimeSlots": "Manage Time Slots",
-    "for": "for"
+    "for": "for",
+    "failedToLoadAvailability": "Failed to load availability data",
+    "dateMarkedUnavailable": "Date marked as unavailable (blocked)",
+    "failedToMarkUnavailable": "Failed to mark date as unavailable"
   },
   "landing": {
     "heroTagline": "A simple, multilingual booking experience for everyone.",
