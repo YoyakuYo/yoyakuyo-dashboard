@@ -1,602 +1,52 @@
-// apps/dashboard/app/book/[shopId]/page.tsx
-
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
-import { useAuth } from '@/lib/useAuth';
-import { useCustomAuth } from '@/lib/useCustomAuth';
 
-interface Service {
-  id: string;
-  name: string;
-  price?: number;
-  duration_minutes?: number;
-}
-
-interface Staff {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface AvailabilityWindow {
-  id: string;
+interface DateStatus {
   date: string;
-  start_time: string;
-  end_time: string;
-  status: 'available' | 'booked' | 'blocked';
-  source: 'manual' | 'booking' | 'template';
+  status: 'available' | 'closed';
 }
-
-interface Timeslot {
-  id: string;
-  start_time: string;
-  end_time: string;
-}
-
-interface ChatMessage {
-  id: string;
-  senderType: 'customer' | 'owner' | 'ai';
-  content: string;
-  createdAt: string;
-  readByOwner: boolean;
-  readByCustomer: boolean;
-}
-
-// Detect if user is in LINE app
-const isLineApp = () => {
-  if (typeof window === 'undefined') return false;
-  return /line/i.test(navigator.userAgent) ||
-         window.location.hostname.includes('liff') ||
-         window.location.search.includes('liff');
-};
 
 export default function PublicBookingPage() {
   const params = useParams();
   const router = useRouter();
   const shopId = params?.shopId as string;
   const t = useTranslations();
-  const { user: supabaseUser, loading: authLoading } = useAuth();
-  const { user: customUser } = useCustomAuth();
-  // Use custom auth user if available, otherwise fall back to Supabase auth
-  const user = customUser || supabaseUser;
-  const [services, setServices] = useState<Service[]>([]);
-  const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
-  const [timeslots, setTimeslots] = useState<Timeslot[]>([]);
-  const [selectedService, setSelectedService] = useState<string | null>(null);
-  const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedTimeslot, setSelectedTimeslot] = useState<Timeslot | null>(null);
-  const [selectedAvailabilityWindow, setSelectedAvailabilityWindow] = useState<AvailabilityWindow | null>(null);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [customerProfile, setCustomerProfile] = useState<{ name: string; email: string } | null>(null);
-  const [shopName, setShopName] = useState<string>('');
-  const [loadingAvailability, setLoadingAvailability] = useState(false);
-  const [bookingLoading, setBookingLoading] = useState(false);
-  const [availabilityChecked, setAvailabilityChecked] = useState(false);
-  const [availableDates, setAvailableDates] = useState<Array<{ date: string; status: 'available' | 'closed' }>>([]);
+
+  const [availableDates, setAvailableDates] = useState<DateStatus[]>([]);
   const [loadingDates, setLoadingDates] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>('');
 
-  
-  // Anonymous session ID for public visitors
-  const [anonymousSessionId, setAnonymousSessionId] = useState<string | null>(null);
-  const [guestId, setGuestIdState] = useState<string | null>(null);
-
-  // Helper functions for guest ID management
-  const getOrCreateGuestId = (): string => {
-    if (typeof window === 'undefined') return '';
-    let gid = localStorage.getItem('yoyaku_yo_guest_id');
-    if (!gid) {
-      gid = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem('yoyaku_yo_guest_id', gid);
-    }
-    return gid;
-  };
-
-  const setGuestId = (id: string): void => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('yoyaku_yo_guest_id', id);
-    }
-    setGuestIdState(id);
-  };
-  
-  // LINE QR code state
-  const [lineQrUrl, setLineQrUrl] = useState<string | null>(null);
-  const [lineDeeplinkUrl, setLineDeeplinkUrl] = useState<string | null>(null);
-
-
-  // Initialize anonymous session ID on mount
+  // Fetch available dates for the dropdown
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      let sessionId = localStorage.getItem('yoyaku_yo_anonymous_session');
-      if (!sessionId) {
-        sessionId = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        localStorage.setItem('yoyaku_yo_anonymous_session', sessionId);
-      }
-      setAnonymousSessionId(sessionId);
-
-      // Guest UUID for persistence across bookings + messaging
-      const gid = getOrCreateGuestId();
-      setGuestIdState(gid);
-    }
-  }, []);
-
-  // Handle URL parameters for pre-selected slots
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const slotId = urlParams.get('slot');
-      if (slotId) {
-        // For now, we'll just log this - the calendar component will handle the actual selection
-        console.log('Pre-selecting slot from URL:', slotId);
-      }
-    }
-  }, []);
-
-  // Load customer profile if user is logged in
-  useEffect(() => {
-    const userId = user?.id || (user as any)?.id;
-    const userEmail = user?.email || (user as any)?.email;
-    const userName = (user as any)?.name || (user as any)?.user_metadata?.name;
-    
-    if (userId || userEmail) {
-      const loadCustomerProfile = async () => {
-        // If using custom auth, use the user data directly
-        if (customUser && !supabaseUser) {
-          const profileName = userName || userEmail?.split('@')[0] || '';
-          const profileEmail = userEmail || '';
-          setCustomerProfile({ name: profileName, email: profileEmail });
-          setName(profileName);
-          setEmail(profileEmail);
-          return;
-        }
-
-        // For Supabase auth, fetch from database
-        if (userId && supabaseUser) {
-          const supabase = getSupabaseClient();
-          
-          // First try to get from users table (for WEB customers)
-          const { data: userData } = await supabase
-            .from("users")
-            .select("full_name, email")
-            .eq("id", userId)
-            .maybeSingle();
-
-          if (userData) {
-            const profileName = userData.full_name || userName || (user as any)?.user_metadata?.name || userEmail?.split('@')[0] || '';
-            const profileEmail = userData.email || userEmail || '';
-            setCustomerProfile({ name: profileName, email: profileEmail });
-            setName(profileName);
-            setEmail(profileEmail);
-            return;
-          }
-
-          // Fallback: try customer_profiles (for LINE customers)
-          const { data: profile } = await supabase
-            .from("customer_profiles")
-            .select("name, email, full_name, line_display_name")
-            .eq("customer_auth_id", userId)
-            .maybeSingle();
-
-          if (profile) {
-            const profileName = profile.line_display_name || profile.full_name || profile.name || userName || (user as any)?.user_metadata?.name || userEmail?.split('@')[0] || '';
-            const profileEmail = profile.email || userEmail || '';
-            setCustomerProfile({ name: profileName, email: profileEmail });
-            setName(profileName);
-            setEmail(profileEmail);
-          } else {
-            // Final fallback to user metadata
-            const finalUserName = userName || (user as any)?.user_metadata?.full_name || userEmail?.split('@')[0] || '';
-            const finalUserEmail = userEmail || '';
-            setCustomerProfile({ name: finalUserName, email: finalUserEmail });
-            setName(finalUserName);
-            setEmail(finalUserEmail);
-          }
-        }
-      };
-      loadCustomerProfile();
-    } else {
-      // Clear customer profile when user logs out
-      setCustomerProfile(null);
-      setName('');
-      setEmail('');
-    }
-  }, [user, customUser, supabaseUser]);
-
-  // LINE QR code feature removed - staff features were removed
-  // Keeping state for potential future implementation
-
-  useEffect(() => {
-    const fetchShopInfo = async () => {
-        try {
-        const res = await fetch(`${apiUrl}/shops/${shopId}`);
-          if (res.ok) {
-            const data = await res.json();
-          setShopName(data.name || '');
-          }
-        } catch (error) {
-          // Silently handle errors
-      }
-    };
-
-    const fetchServices = async () => {
+    const fetchAvailableDates = async () => {
+      if (!shopId) return;
+      setLoadingDates(true);
       try {
-        const res = await fetch(`${apiUrl}/shops/${shopId}/services`);
+        const today = new Date();
+        const startDate = today.toISOString().split('T')[0];
+        const endDate = new Date(today.getFullYear(), today.getMonth() + 2, 0).toISOString().split('T')[0]; // Next 2 months
+
+        const url = `${apiUrl}/shops/${shopId}/availability/dates?startDate=${startDate}&endDate=${endDate}`;
+        const res = await fetch(url);
         if (res.ok) {
-          const data = await res.json();
-          setServices(Array.isArray(data) ? data : []);
+          const data: DateStatus[] = await res.json();
+          setAvailableDates(data);
         } else {
-          console.error("Failed to fetch services:", res.status, res.statusText);
-          setServices([]);
+          console.error("Failed to fetch available dates:", res.status);
+          setAvailableDates([]);
         }
-      } catch (error: any) {
-        // Silently handle connection errors (API server not running)
-        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-          console.error("Error fetching services:", error);
-        }
-        setServices([]);
-      }
-    };
-
-    fetchShopInfo();
-    fetchServices();
-  }, [shopId, apiUrl]);
-
-  // Fetch available dates when service is selected
-  useEffect(() => {
-    if (selectedService) {
-      fetchAvailableDates();
-    } else {
-      setAvailableDates([]);
-    }
-  }, [selectedService]);
-
-  const handleDateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedDate(e.target.value);
-    setSelectedTimeslot(null);
-    setSelectedAvailabilityWindow(null);
-    setTimeslots([]);
-    setAvailabilityChecked(false);
-  };
-
-  // Handle slot selection from calendar
-  const handleSlotSelect = (slot: AvailabilityWindow) => {
-    setSelectedAvailabilityWindow(slot);
-    setSelectedDate(slot.date);
-    // Create a timeslot object for backward compatibility
-    setSelectedTimeslot({
-      id: slot.id,
-      start_time: slot.start_time,
-      end_time: slot.end_time
-    });
-  };
-    setSelectedDate(e.target.value);
-  };
-
-  // Handle slot selection from calendar
-  const handleSlotSelect = (slot: AvailabilityWindow) => {
-    setSelectedAvailabilityWindow(slot);
-    setSelectedDate(slot.date);
-    // Create a timeslot object for backward compatibility
-    setSelectedTimeslot({
-      id: slot.id,
-      start_time: slot.start_time,
-      end_time: slot.end_time
-    });
-  };
-
-  // Generate individual time slots from availability ranges based on service duration
-  const generateTimeSlots = (availabilityRanges: Array<{ start_time: string; end_time: string }>, serviceDuration: number) => {
-    const slots: Array<{ id: string; start_time: string; end_time: string }> = [];
-
-    availabilityRanges.forEach((range, rangeIndex) => {
-      // Parse start and end times
-      const [startHour, startMinute] = range.start_time.split(':').map(Number);
-      const [endHour, endMinute] = range.end_time.split(':').map(Number);
-
-      const startMinutes = startHour * 60 + startMinute;
-      const endMinutes = endHour * 60 + endMinute;
-
-      // Generate slots every serviceDuration minutes
-      for (let currentMinutes = startMinutes; currentMinutes + serviceDuration <= endMinutes; currentMinutes += serviceDuration) {
-        const startHours = Math.floor(currentMinutes / 60);
-        const startMins = currentMinutes % 60;
-        const startTimeString = `${startHours.toString().padStart(2, '0')}:${startMins.toString().padStart(2, '0')}:00`;
-
-        // Calculate end time
-        const endTotalMinutes = currentMinutes + serviceDuration;
-        const endHours = Math.floor(endTotalMinutes / 60);
-        const endMins = endTotalMinutes % 60;
-        const endTimeString = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}:00`;
-
-        slots.push({
-          id: `${rangeIndex}-${currentMinutes}`,
-          start_time: startTimeString,
-          end_time: endTimeString
-        });
-      }
-    });
-
-    return slots;
-  };
-
-  const fetchAvailability = async () => {
-    if (!selectedDate) {
-      alert(t('booking.selectDate') || 'Please select a date first');
-      return;
-    }
-
-    if (!selectedService) {
-      alert('Please select a service first');
-      return;
-    }
-
-    // Get service duration
-    const serviceDuration = services.find(s => s.id === selectedService)?.duration_minutes;
-    if (!serviceDuration) {
-      alert('Service duration not found');
-      return;
-    }
-
-    setLoadingAvailability(true);
-    setSelectedTimeslot(null);
-    setTimeslots([]);
-    setAvailabilityChecked(false);
-
-    try {
-      const url = `${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`;
-
-      const res = await fetch(url);
-        if (res.ok) {
-          const data = await res.json();
-        const availabilityRanges = Array.isArray(data) ? data : [];
-        const generatedSlots = generateTimeSlots(availabilityRanges, serviceDuration);
-        setTimeslots(generatedSlots);
-        setAvailabilityChecked(true);
-        if (generatedSlots.length === 0) {
-          alert(t('booking.noAvailability') || 'No available timeslots for this date');
-        }
-        } else {
-        const errorData = await res.json().catch(() => ({ error: 'Failed to fetch availability' }));
-        alert(errorData.error || t('booking.availabilityError') || 'Failed to check availability');
-          setTimeslots([]);
-        setAvailabilityChecked(true);
-        }
-      } catch (error: any) {
-        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-          console.error("Error fetching availability:", error);
-        alert(t('booking.availabilityError') || 'Failed to check availability');
-        }
-        setTimeslots([]);
-      setAvailabilityChecked(true);
-    } finally {
-      setLoadingAvailability(false);
-    }
-  };
-
-  const fetchAvailableDates = async () => {
-    if (!selectedService) return;
-
-    setLoadingDates(true);
-    try {
-      const startDate = new Date().toISOString().split('T')[0];
-      const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 30 days ahead
-
-      const response = await fetch(`${apiUrl}/shops/${shopId}/availability/dates?startDate=${startDate}&endDate=${endDate}`);
-      if (response.ok) {
-        const dates = await response.json();
-        setAvailableDates(dates);
-      } else {
-        console.error('Failed to fetch available dates');
+      } catch (error) {
+        console.error("Error fetching available dates:", error);
         setAvailableDates([]);
+      } finally {
+        setLoadingDates(false);
       }
-    } catch (error) {
-      console.error('Error fetching available dates:', error);
-      setAvailableDates([]);
-    } finally {
-      setLoadingDates(false);
-    }
-  };
-
-  const bookAppointment = async () => {
-    // For authenticated users, name/email are not required (come from account)
-    // For guests, name is required
-    const isAuthenticated = user && !authLoading;
-    const requiresName = !isAuthenticated;
-
-    if (selectedService && selectedStaff && selectedDate && (!requiresName || name)) {
-      const bookingData: any = {
-        shop_id: shopId,
-        service_id: selectedService,
-        staff_id: selectedStaff,
-        start_time: selectedDate,
-        end_time: selectedDate,
-      };
-
-      // Only include name/email for guest users
-      if (!isAuthenticated) {
-      const nameParts = name.trim().split(/\s+/);
-        bookingData.first_name = nameParts[0] || name;
-        bookingData.last_name = nameParts.slice(1).join(' ') || null;
-        bookingData.email = email;
-        bookingData.notes = `Booking for ${name}`;
-      }
-
-      try {
-        const res = await fetch(`${apiUrl}/bookings`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(bookingData),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          alert(t('booking.bookingSuccessful'));
-        } else {
-          const errorData = await res.json().catch(() => ({ error: t('common.unknown') }));
-          alert(`${t('booking.bookingFailed')}: ${errorData.error || t('common.tryAgain')}`);
-        }
-      } catch (error: any) {
-        // Silently handle connection errors (API server not running)
-        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-          console.error('Error creating booking:', error);
-          alert(t('booking.bookingFailed'));
-        }
-  };
-    } else {
-      // For logged-in users, use customer profile data (handle possible null user safely)
-      const finalName =
-        customerProfile?.name ||
-        name ||
-        (user as any)?.user_metadata?.name ||
-        (user as any)?.name ||
-        user?.email?.split('@')[0] ||
-        'Customer';
-      const finalEmail = customerProfile?.email || email || user?.email || (user as any)?.email || '';
-      setName(finalName);
-      setEmail(finalEmail);
-    }
-
-    // Validate required fields before proceeding
-    if (!selectedService) {
-      alert(t('booking.selectService') || 'Please select a service');
-      setBookingLoading(false);
-      return;
-    }
-
-    // Check if we have a selected slot (either from calendar or LINE app selection)
-    const hasSelectedSlot = selectedAvailabilityWindow || selectedTimeslot;
-    if (!hasSelectedSlot) {
-      alert(t('booking.selectTimeslot') || 'Please select a date and time');
-      setBookingLoading(false);
-      return;
-    }
-
-    setBookingLoading(true);
-
-    let startDateTime: Date;
-    let endDateTime: Date;
-    let bookingDate: string;
-
-    if (selectedAvailabilityWindow) {
-      // From calendar selection
-      startDateTime = new Date(`${selectedAvailabilityWindow.date}T${selectedAvailabilityWindow.start_time}`);
-      endDateTime = new Date(`${selectedAvailabilityWindow.date}T${selectedAvailabilityWindow.end_time}`);
-      bookingDate = selectedAvailabilityWindow.date;
-    } else if (selectedTimeslot && selectedDate) {
-      // From LINE app selection
-      startDateTime = new Date(`${selectedDate}T${selectedTimeslot.start_time}`);
-      endDateTime = new Date(`${selectedDate}T${selectedTimeslot.end_time}`);
-      bookingDate = selectedDate;
-    } else {
-      alert('Invalid selection');
-      setBookingLoading(false);
-      return;
-    }
-
-    try {
-      // For authenticated users, don't send name/email - API will fetch from database
-      // For guest users, send name/email from form
-      const isAuthenticated = user && (user.id || (user as any).email) && !authLoading;
-      
-      // Ensure all required fields are present
-      if (!shopId || !selectedService || !selectedAvailabilityWindow) {
-        alert(t('booking.fillRequiredFields') || 'Please fill in all required fields');
-        setBookingLoading(false);
-        return;
-      }
-      
-      const bookingPayload: any = {
-        shop_id: shopId,
-        service_id: selectedService,
-        date: bookingDate,
-        time_slot: selectedAvailabilityWindow
-          ? `${selectedAvailabilityWindow.start_time}-${selectedAvailabilityWindow.end_time}`
-          : `${selectedTimeslot!.start_time}-${selectedTimeslot!.end_time}`,
-        start_time: startDateTime.toISOString(),
-        end_time: endDateTime.toISOString(),
-      };
-
-      // Only include name/email for guest users
-      if (!isAuthenticated) {
-        if (!name.trim()) {
-          alert(t('booking.enterName') || 'Please enter your name');
-          setBookingLoading(false);
-          return;
-        }
-        if (!email.trim()) {
-          alert(t('booking.enterEmail') || 'Please enter your email');
-          setBookingLoading(false);
-          return;
-        }
-        bookingPayload.customer_name = name.trim();
-        bookingPayload.customer_email = email.trim();
-        bookingPayload.notes = `Booking for ${name.trim()}`;
-      } else {
-        // For authenticated users, API will fetch name/email from database
-        bookingPayload.notes = `Booking for authenticated user`;
-      }
-
-      const res = await fetch(`${apiUrl}/bookings`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(isAuthenticated && (user.id || (user as any).id) && { 'x-user-id': user.id || (user as any).id }), // Include user ID if logged in
-          ...(!isAuthenticated && guestId ? { 'x-guest-id': guestId } : {}), // Guest identity for persistence
-        },
-        body: JSON.stringify(bookingPayload),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        // If backend issued a new guest_id, persist it for future booking/messages.
-        if (!user?.id && data?.guest_id && typeof data.guest_id === 'string') {
-          setGuestId(data.guest_id);
-          setGuestIdState(data.guest_id);
-        }
-        
-        // For guest users, redirect to shop page with success parameter, then to landing page
-        if (!user?.id) {
-          // Redirect to shop page with booking success
-          router.push(`/shops/${shopId}?booking=success`);
-        } else {
-          // For authenticated users, show alert and reset form
-          alert(t('booking.bookingSuccessful') || 'Booking successful!');
-          // Reset form (but keep customer profile data if logged in)
-          setSelectedService(null);
-          setSelectedDate(null);
-          setSelectedTimeslot(null);
-          setSelectedAvailabilityWindow(null);
-          setTimeslots([]);
-          setAvailabilityChecked(false);
-        }
-      } else {
-        const errorData = await res.json().catch(() => ({ error: t('common.unknown') }));
-        alert(`${t('booking.bookingFailed') || 'Booking failed'}: ${errorData.error || t('common.tryAgain') || 'Please try again'}`);
-      }
-    } catch (error: any) {
-      if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-        console.error('Error creating booking:', error);
-        alert(t('booking.bookingFailed') || 'Failed to create booking');
-      }
-    } finally {
-      setBookingLoading(false);
-    }
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(date);
-  };
+    };
+    fetchAvailableDates();
+  }, [shopId]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -606,285 +56,59 @@ export default function PublicBookingPage() {
         {/* Booking Form */}
         <div className="space-y-6">
           <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">{t('booking.chooseService')}</h2>
+            <h2 className="text-xl font-semibold mb-2">{t('booking.chooseDate')}</h2>
             <select
-              value={selectedService || ''}
-              onChange={(e) => setSelectedService(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              disabled={loadingDates}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">{t('booking.selectService')}</option>
-              {services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name} {service.price ? `(${service.price}¥)` : ''}
+              <option value="">
+                {loadingDates
+                  ? (t('common.loading') || 'Loading...')
+                  : (t('booking.chooseDate') || 'Choose a date')}
+              </option>
+              {availableDates.map((dateStatus) => (
+                <option
+                  key={dateStatus.date}
+                  value={dateStatus.date}
+                  disabled={dateStatus.status === 'closed'}
+                >
+                  {new Date(dateStatus.date).toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                  {dateStatus.status === 'closed' && ` - ${t("closed") || "CLOSED"}`}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Date and Time Selection */}
-          {isLineApp() ? (
-            // Simplified UI for LINE app
-            <div className="space-y-6">
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-2">{t('booking.chooseDate')}</h2>
-                <input
-                  type="date"
-                  value={selectedDate || ''}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div className="mb-6">
-                <button
-                  onClick={fetchAvailability}
-                  disabled={!selectedDate || loadingAvailability}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loadingAvailability ? (t('booking.checking') || 'Checking...') : (t('booking.checkAvailability') || 'Check Availability')}
-                </button>
-              </div>
-
-              {availabilityChecked && timeslots.length > 0 && (
-                <div className="mb-6">
-                  <h2 className="text-xl font-semibold mb-2">{t('booking.chooseTimeslot') || 'Choose Timeslot'}</h2>
-                  <div className="space-y-2">
-                    {timeslots.map((timeslot) => (
-                      <button
-                        key={timeslot.id}
-                        onClick={() => setSelectedTimeslot(timeslot)}
-                        className={`w-full px-4 py-3 border rounded-lg hover:bg-gray-50 transition-colors text-left ${
-                          selectedTimeslot?.id === timeslot.id
-                            ? 'border-blue-600 bg-blue-50 text-blue-700 font-semibold'
-                            : 'border-gray-300'
-                        }`}
-                      >
-                        {timeslot.start_time} - {timeslot.end_time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {availabilityChecked && timeslots.length === 0 && (
-                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-yellow-700">{t('booking.noAvailability') || 'No available timeslots for this date. Please try another date.'}</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            // Simple date dropdown for regular browsers
-            <div className="space-y-6">
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-2">{t('booking.chooseDate')}</h2>
-                <select
-                  value={selectedDate || ''}
-                  onChange={handleDateChange}
-                  required
-                  disabled={loadingDates || availableDates.length === 0}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                >
-                  <option value="">
-                    {loadingDates
-                      ? (t('booking.loadingDates') || 'Loading dates...')
-                      : availableDates.length === 0
-                        ? (t('booking.noDatesAvailable') || 'No dates available')
-                        : (t('booking.chooseDate') || 'Choose a date')}
-                  </option>
-                  {availableDates.map((dateOption) => (
-                    <option
-                      key={dateOption.date}
-                      value={dateOption.date}
-                      disabled={dateOption.status === 'closed'}
-                    >
-                      {new Date(dateOption.date).toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                      {dateOption.status === 'closed' ? ' - CLOSED' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedDate && (
-                <div className="mb-6">
-                  <button
-                    onClick={fetchAvailability}
-                    disabled={!selectedDate || loadingAvailability}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loadingAvailability ? (t('booking.checking') || 'Checking...') : (t('booking.checkAvailability') || 'Check Availability')}
-                  </button>
-                </div>
-              )}
-
-              {availabilityChecked && timeslots.length > 0 && (
-                <div className="mb-6">
-                  <h2 className="text-xl font-semibold mb-2">{t('booking.chooseTimeslot') || 'Choose Timeslot'}</h2>
-                  <div className="space-y-2">
-                    {timeslots.map((timeslot) => (
-                      <button
-                        key={timeslot.id}
-                        onClick={() => setSelectedTimeslot(timeslot)}
-                        className={`w-full px-4 py-3 border rounded-lg hover:bg-gray-50 transition-colors text-left ${
-                          selectedTimeslot?.id === timeslot.id
-                            ? 'border-blue-600 bg-blue-50 text-blue-700'
-                            : 'border-gray-300'
-                        }`}
-                      >
-                        {timeslot.start_time} - {timeslot.end_time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {availabilityChecked && timeslots.length === 0 && (
-                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-yellow-700">{t('booking.noAvailability') || 'No available timeslots for this date. Please try another date.'}</p>
-                </div>
-              )}
+          {selectedDate && (
+            <div className="mb-6">
+              <button
+                onClick={() => router.push(`/book/${shopId}/timeslot?date=${selectedDate}`)}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                {t('booking.selectTime') || 'Select Time'}
+              </button>
             </div>
           )}
-
-          {/* Show selected slot info */}
-          {(selectedAvailabilityWindow || selectedTimeslot) && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <h3 className="font-medium text-green-800 mb-2">Selected Time Slot</h3>
-              <div className="flex items-center gap-2 text-green-700">
-                <span className="font-medium">
-                  {selectedAvailabilityWindow
-                    ? new Date(selectedAvailabilityWindow.date).toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })
-                    : selectedDate
-                      ? new Date(selectedDate).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })
-                      : 'Unknown date'
-                  }
-                </span>
-                <span>at</span>
-                <span className="font-medium">
-                  {selectedAvailabilityWindow
-                    ? `${selectedAvailabilityWindow.start_time.substring(0, 5)} - ${selectedAvailabilityWindow.end_time.substring(0, 5)}`
-                    : selectedTimeslot
-                      ? `${selectedTimeslot.start_time} - ${selectedTimeslot.end_time}`
-                      : 'Unknown time'
-                  }
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Show customer information section */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-2">{t('booking.yourInformation')}</h2>
-            
-            {/* Debug info - remove in production */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
-                <p>Debug: authLoading={String(authLoading)}, user={user ? `exists (id: ${user.id})` : 'null'}, customerProfile={customerProfile ? 'exists' : 'null'}</p>
-              </div>
-            )}
-            
-            {authLoading ? (
-              // Show loading state while checking auth
-              <div className="space-y-3">
-                <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-500">
-                  {t('common.loading') || 'Loading...'}
-                </div>
-              </div>
-            ) : (user && (user.id || (user as any).email)) ? (
-              // Show customer info for authenticated users (read-only)
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('booking.yourName')}
-                  </label>
-                  <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
-                    {customerProfile?.name || (user as any).name || (user as any).user_metadata?.name || (user as any).user_metadata?.full_name || user.email?.split('@')[0] || 'N/A'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('common.email')}
-                  </label>
-                  <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
-                    {customerProfile?.email || user.email || (user as any).email || 'N/A'}
-                  </div>
-                </div>
-                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-green-800 text-sm">
-                    ✅ {t('booking.loggedInAs') || 'Logged in as'} {user.email || (user as any).email}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              // Show input fields for guest users only
-              <>
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('booking.yourName')} <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder={t('booking.yourName')}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('common.email')} <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    placeholder={t('booking.yourEmail') || t('common.email')}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-                  <button
-            onClick={bookAppointment}
-            disabled={authLoading || (!selectedAvailabilityWindow && !selectedTimeslot)}
-            className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {authLoading ? t('common.loading') : t('booking.bookNow')}
-                  </button>
         </div>
 
-        {/* Right Column: AI Assistant */}
+        {/* Right Column: Placeholder */}
         <div className="space-y-6">
-          {/* AI Assistant Placeholder */}
-          {shopId && (
-            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">AI Assistant</h3>
-              <p className="text-gray-600">
-                Chat with our AI assistant for help with booking and shop information.
-              </p>
-              </div>
-          )}
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              {t('booking.shopInfo') || 'Shop Information'}
+            </h3>
+            <p className="text-gray-600">
+              {t('booking.selectDateTime') || 'Please select a date and time to continue with your booking.'}
+            </p>
+          </div>
         </div>
-
       </div>
     </div>
   );
