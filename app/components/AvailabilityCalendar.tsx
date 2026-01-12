@@ -209,11 +209,11 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
         }
       }
 
-      onMessage('success', 'Date availability cleared - you can now add available time slots');
+      onMessage('success', t('calendar.availabilityCleared') || 'Date availability cleared - you can now add available time slots');
       await loadAvailabilityData();
     } catch (error) {
       console.error('Error clearing unavailability:', error);
-      onMessage('error', 'Failed to clear date availability');
+      onMessage('error', t('calendar.clearAvailabilityError') || 'Failed to clear date availability');
     } finally {
       setSaving(false);
     }
@@ -230,7 +230,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
 
       if (isCurrentlyBlocked) {
         // Already blocked - offer to clear unavailability
-        if (confirm('This date is currently marked as unavailable. Would you like to clear the unavailability and restore any available slots?')) {
+        if (confirm(t('calendar.confirmClearUnavailable') || 'This date is currently marked as unavailable. Would you like to clear the unavailability and restore any available slots?')) {
           await handleClearUnavailability(date);
         }
         return;
@@ -468,7 +468,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                 ? 'bg-red-600 text-white hover:bg-red-700'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
-            title={unavailableMode ? 'Click dates to mark as unavailable or clear existing unavailability' : 'Click dates to add specific available time slots'}
+            title={unavailableMode ? (t('calendar.clickUnavailable') || 'Click dates to mark as unavailable or clear existing unavailability') : (t('calendar.clickAvailable') || 'Click dates to add specific available time slots')}
           >
             {unavailableMode ? '🚫 Manage Unavailability' : '✓ Add Available Times'}
           </button>
@@ -665,7 +665,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
       {showWeeklyModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">Edit Weekly Template</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('calendar.editWeeklyTemplate') || 'Edit Weekly Template'}</h3>
 
             <WeeklyTemplateForm
               weeklyHours={weeklyHours}
@@ -688,8 +688,8 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                 </svg>
               </div>
               <div className="ml-4">
-                <h3 className="text-lg font-semibold text-gray-900">Delete Availability Window</h3>
-                <p className="text-sm text-gray-500">This action cannot be undone</p>
+                <h3 className="text-lg font-semibold text-gray-900">{t('calendar.deleteAvailabilityWindow') || 'Delete Availability Window'}</h3>
+                <p className="text-sm text-gray-500">{t('calendar.deleteWarning') || 'This action cannot be undone'}</p>
               </div>
             </div>
 
@@ -707,7 +707,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                 }}
                 className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
               >
-                Cancel
+{t('common.cancel') || 'Cancel'}
               </button>
               <button
                 onClick={confirmDeleteWindow}
@@ -736,6 +736,7 @@ function WeeklyTemplateForm({
   onCancel: () => void;
   saving: boolean;
 }) {
+  const t = useTranslations();
   const [hours, setHours] = useState<Partial<WeeklyHours>[]>(() => {
     // Initialize with existing data or defaults
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -797,7 +798,7 @@ function WeeklyTemplateForm({
           {!day.is_closed && (
             <>
               <div className="flex items-center gap-2">
-                <label className="text-sm">Open:</label>
+                <label className="text-sm">{t('calendar.open') || 'Open:'}</label>
                 <input
                   type="time"
                   value={day.open_time || '09:00'}
@@ -807,7 +808,7 @@ function WeeklyTemplateForm({
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm">Close:</label>
+                <label className="text-sm">{t('calendar.close') || 'Close:'}</label>
                 <input
                   type="time"
                   value={day.close_time || '18:00'}
@@ -860,6 +861,7 @@ function SlotManagementView({
   onCancel: () => void;
   saving: boolean;
 }) {
+  const t = useTranslations();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
   const [newSlot, setNewSlot] = useState<{ start_time: string; end_time: string; status: 'available' | 'blocked' }>({ 
@@ -905,7 +907,7 @@ function SlotManagementView({
     <div className="space-y-4">
       {holiday && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
-          <div className="font-medium">This date is closed.</div>
+          <div className="font-medium">{t('calendar.dateClosed') || 'This date is closed.'}</div>
           <div className="opacity-90">
             Reason: {holiday.reason || 'Closed'}. Customers cannot book on this date.
           </div>
@@ -919,10 +921,10 @@ function SlotManagementView({
 
       {/* Slots Timeline */}
       <div className="space-y-2">
-        <h4 className="font-medium text-gray-700">Time Slots</h4>
+        <h4 className="font-medium text-gray-700">{t('calendar.timeSlots') || 'Time Slots'}</h4>
         {sortedSlots.length === 0 ? (
           <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-            <p>No time slots for this date</p>
+            <p>{t('calendar.noTimeSlots') || 'No time slots for this date'}</p>
             <p className="text-sm mt-1">
               {holiday ? 'This date is closed. Open it first to add availability.' : 'Click "Add Slot" to create availability'}
             </p>
@@ -976,11 +978,11 @@ function SlotManagementView({
       {/* Add Slot Form */}
       {showAddForm && !holiday && (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-          <h5 className="font-medium mb-3">Add New Slot</h5>
+          <h5 className="font-medium mb-3">{t('calendar.addNewSlot') || 'Add New Slot'}</h5>
           <form onSubmit={handleAddSlot} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1">Start Time</label>
+                <label className="block text-sm font-medium mb-1">{t('calendar.startTime') || 'Start Time'}</label>
                 <input
                   type="time"
                   value={newSlot.start_time}
@@ -990,7 +992,7 @@ function SlotManagementView({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">End Time</label>
+                <label className="block text-sm font-medium mb-1">{t('calendar.endTime') || 'End Time'}</label>
                 <input
                   type="time"
                   value={newSlot.end_time}
@@ -1001,14 +1003,14 @@ function SlotManagementView({
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Status</label>
+              <label className="block text-sm font-medium mb-1">{t('calendar.status') || 'Status'}</label>
               <select
                 value={newSlot.status}
                 onChange={(e) => setNewSlot({ ...newSlot, status: e.target.value as 'available' | 'blocked' })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
-                <option value="available">Available</option>
-                <option value="blocked">Blocked</option>
+                <option value="available">{t('calendar.available') || 'Available'}</option>
+                <option value="blocked">{t('calendar.blocked') || 'Blocked'}</option>
               </select>
             </div>
             <div className="flex gap-2">
@@ -1017,7 +1019,7 @@ function SlotManagementView({
                 disabled={saving}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
-                Add Slot
+{t('calendar.addSlot') || 'Add Slot'}
               </button>
               <button
                 type="button"
@@ -1027,7 +1029,7 @@ function SlotManagementView({
                 }}
                 className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
               >
-                Cancel
+{t('common.cancel') || 'Cancel'}
               </button>
             </div>
           </form>
@@ -1059,13 +1061,13 @@ function SlotManagementView({
           disabled={saving || editingSlotId !== null || !!holiday}
           className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
         >
-          {holiday ? 'Closed (Add disabled)' : (showAddForm ? 'Cancel Add' : '+ Add Slot')}
+          {holiday ? (t('calendar.closedAddDisabled') || 'Closed (Add disabled)') : (showAddForm ? (t('calendar.cancelAdd') || 'Cancel Add') : (t('calendar.addSlot') || '+ Add Slot'))}
         </button>
         <button
           onClick={onCancel}
           className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
         >
-          Close
+          {t('common.close') || 'Close'}
         </button>
       </div>
     </div>
@@ -1084,6 +1086,7 @@ function SlotEditForm({
   onCancel: () => void;
   saving: boolean;
 }) {
+  const t = useTranslations();
   const [startTime, setStartTime] = useState(slot.start_time);
   const [endTime, setEndTime] = useState(slot.end_time);
   const [status, setStatus] = useState(slot.status);
@@ -1095,7 +1098,7 @@ function SlotEditForm({
 
   return (
     <div className="border-2 border-blue-300 rounded-lg p-4 bg-blue-50">
-      <h5 className="font-medium mb-3">Edit Slot</h5>
+      <h5 className="font-medium mb-3">{t('calendar.editSlot') || 'Edit Slot'}</h5>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -1138,7 +1141,7 @@ function SlotEditForm({
             disabled={saving}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
-            Save Changes
+{t('calendar.saveChanges') || 'Save Changes'}
           </button>
           <button
             type="button"
@@ -1167,6 +1170,7 @@ function AvailabilityWindowForm({
   onCancel: () => void;
   saving: boolean;
 }) {
+  const t = useTranslations();
   const [startTime, setStartTime] = useState(window?.start_time || '09:00');
   const [endTime, setEndTime] = useState(window?.end_time || '18:00');
   const [status, setStatus] = useState(window?.status || 'available');
@@ -1220,7 +1224,7 @@ function AvailabilityWindowForm({
             disabled={saving}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
-            {saving ? 'Saving...' : (window ? 'Update' : 'Create')}
+            {saving ? (t('common.saving') || 'Saving...') : (window ? (t('common.update') || 'Update') : (t('common.create') || 'Create'))}
           </button>
           <button
             type="button"
@@ -1238,7 +1242,7 @@ function AvailabilityWindowForm({
             disabled={saving}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
           >
-            Delete
+            {t('common.delete') || 'Delete'}
           </button>
         )}
       </div>
