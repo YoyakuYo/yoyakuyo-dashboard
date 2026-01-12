@@ -462,7 +462,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
             }`}
             title={unavailableMode ? 'Click dates to mark as unavailable or clear existing unavailability' : 'Click dates to add specific available time slots'}
           >
-            {unavailableMode ? '🚫 Manage Unavailability' : '✓ Add Available Times'}
+            {unavailableMode ? (t('calendar.manageUnavailability') || '🚫 Manage Unavailability') : (t('calendar.addAvailableTimes') || '✓ Add Available Times')}
           </button>
           <button
             onClick={() => {
@@ -476,7 +476,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
             disabled={saving}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
           >
-            Generate from Template
+{t('calendar.generateFromTemplate') || 'Generate from Template'}
           </button>
         </div>
       </div>
@@ -533,14 +533,14 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                   {holiday ? (
                     <>
                       <div className="text-xs px-1 py-0.5 rounded text-white font-medium bg-orange-500">
-                        HOLIDAY
+                        {t('calendar.holiday') || 'HOLIDAY'}
                       </div>
                       <div className="text-xs text-orange-900">
-                        {holiday.reason || 'Closed'}
+                        {holiday.reason || (t('calendar.closed') || 'Closed')}
                       </div>
                       {windows.length > 0 && (
                         <div className="text-[11px] text-orange-900 opacity-80">
-                          ({windows.length} slot{windows.length === 1 ? '' : 's'} saved but ignored while closed)
+                          ({windows.length} {t('calendar.slot') || 'slot'}{windows.length === 1 ? '' : 's'} {t('calendar.savedButIgnored') || 'saved but ignored while closed'})
                         </div>
                       )}
                     </>
@@ -559,20 +559,20 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                         </>
                       )}
                       <div className="text-xs px-1 py-0.5 rounded text-white font-medium bg-red-600">
-                        CLOSED
+                        {t('calendar.closed') || 'CLOSED'}
                       </div>
                       <div className="text-xs text-red-900">
-                        Closed day
+                        {t('calendar.closedDay') || 'Closed day'}
                       </div>
                       {windows.length > 0 && (
                         <div className="text-[11px] text-red-900 opacity-80">
-                          ({windows.length} slot{windows.length === 1 ? '' : 's'} returned but ignored while closed)
+                          ({windows.length} {t('calendar.slot') || 'slot'}{windows.length === 1 ? '' : 's'} {t('calendar.returnedButIgnored') || 'returned but ignored while closed'})
                         </div>
                       )}
                     </>
                   ) : windows.length === 0 ? (
                     <div className="text-xs text-gray-400 italic">
-                      No availability set
+{t('calendar.noAvailabilitySet') || 'No availability set'}
                     </div>
                   ) : (
                     <>
@@ -583,10 +583,10 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                         dateStatus === 'booked' ? 'bg-red-500' :
                         dateStatus === 'available' ? 'bg-green-500' : 'bg-gray-400'
                       }`}>
-                        {dateStatus === 'closed' ? 'CLOSED' :
-                         dateStatus === 'blocked' ? 'CLOSED' :
-                         dateStatus === 'booked' ? 'BOOKED' :
-                         dateStatus === 'available' ? 'AVAILABLE' : 'NO SLOTS'}
+                        {dateStatus === 'closed' ? (t('calendar.closed') || 'CLOSED') :
+                         dateStatus === 'blocked' ? (t('calendar.closed') || 'CLOSED') :
+                         dateStatus === 'booked' ? (t('calendar.booked') || 'BOOKED') :
+                         dateStatus === 'available' ? (t('calendar.available') || 'AVAILABLE') : (t('calendar.noSlots') || 'NO SLOTS')}
                       </div>
 
                       {/* Show up to 2 time slots */}
@@ -603,7 +603,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
                       ))}
                       {windows.length > 2 && (
                         <div className="text-xs text-gray-500">
-                          +{windows.length - 2} more
+                          +{windows.length - 2} {t('calendar.more') || 'more'}
                         </div>
                       )}
                     </>
@@ -620,7 +620,7 @@ export function AvailabilityCalendar({ shopId, userId, onMessage }: Availability
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">
-              Manage Time Slots for {selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {t('calendar.manageTimeSlots') || 'Manage Time Slots'} {t('calendar.for') || 'for'} {selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </h3>
 
             <SlotManagementView
