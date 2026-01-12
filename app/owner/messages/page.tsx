@@ -7,6 +7,7 @@ import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/lib/useAuth";
 import { apiUrl } from "@/lib/apiClient";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from 'next-intl';
 
 interface CustomerThread {
@@ -32,6 +33,7 @@ interface Message {
 export default function OwnerMessagesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations();
   const [customerThreads, setCustomerThreads] = useState<CustomerThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
@@ -51,6 +53,19 @@ export default function OwnerMessagesPage() {
       loadData();
     }
   }, [user, authLoading, router]);
+
+  // Handle conversation deep link (e.g., from notifications)
+  useEffect(() => {
+    const conversationId =
+      searchParams.get('conversation') ||
+      searchParams.get('conversationId') ||
+      // Back-compat: older notifications used "session"
+      searchParams.get('session');
+
+    if (conversationId && conversationId !== selectedThread) {
+      setSelectedThread(conversationId);
+    }
+  }, [searchParams, selectedThread]);
 
   useEffect(() => {
     if (selectedThread) {

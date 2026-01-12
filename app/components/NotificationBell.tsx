@@ -50,14 +50,15 @@ export default function NotificationBell({ userType, userId }: NotificationBellP
         router.push(userType === 'admin' ? '/admin/bookings' : '/bookings');
       }
     } else if (notification.type === 'new_message') {
-      const sessionId = notification.data?.session_id;
-      if (sessionId) {
+      // Unified messaging uses conversation_id; older flows used session_id.
+      const conversationId = notification.data?.conversation_id || notification.data?.session_id;
+      if (conversationId) {
         if (userType === 'admin') {
-          router.push(`/admin/support?conversation=${sessionId}`);
+          router.push(`/admin/support?conversation=${conversationId}`);
         } else if (userType === 'owner') {
-          router.push(`/owner/messages?session=${sessionId}`);
+          router.push(`/owner/messages?conversation=${conversationId}`);
         } else {
-          router.push(`/customer/messages?session=${sessionId}`);
+          router.push(`/customer/messages?conversation=${conversationId}`);
         }
       } else {
         if (userType === 'admin') {

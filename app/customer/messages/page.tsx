@@ -61,6 +61,11 @@ function CustomerMessagesPageContent() {
   const { setUnreadMessagesCount } = useCustomerNotifications();
   const shopIdParam = searchParams.get('shopId');
   const bookingIdParam = searchParams.get('bookingId');
+  const conversationParam =
+    searchParams.get('conversation') ||
+    searchParams.get('conversationId') ||
+    // Back-compat: older notifications used "session"
+    searchParams.get('session');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -93,6 +98,14 @@ function CustomerMessagesPageContent() {
       }
     }
   }, [shopIdParam, user, conversations, loading]);
+
+  // Handle direct conversation deep link (e.g., from notifications)
+  useEffect(() => {
+    if (conversationParam && user && !loading) {
+      console.log('[Customer Messages] conversationParam deep link:', { conversationParam });
+      setSelectedConversationId(conversationParam);
+    }
+  }, [conversationParam, user, loading]);
 
   // Handle bookingId parameter - find conversation created by booking trigger
   useEffect(() => {
