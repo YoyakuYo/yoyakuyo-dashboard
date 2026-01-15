@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS pending_bookings (
   customer_phone TEXT,
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT pending_channel_equals_source CHECK (channel = source)
+  CONSTRAINT pending_channel_equals_source CHECK (channel::text = source::text)
 );
 
 -- Indexes for performance
