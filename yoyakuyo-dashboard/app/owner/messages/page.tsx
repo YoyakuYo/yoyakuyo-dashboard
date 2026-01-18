@@ -418,6 +418,7 @@ function OwnerMessagesPageContent() {
         }
 
         // Refresh conversation list to update unread counts
+        console.log('[Owner Messages] 🔄 [DIAGNOSTIC] Refreshing conversation list after marking messages as read');
         await loadCustomerThreads();
       } else {
         const errorText = await res.text();
