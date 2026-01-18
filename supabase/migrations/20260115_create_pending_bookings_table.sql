@@ -97,9 +97,6 @@ BEGIN
     status,
     date,
     start_time,
-    customer_name,
-    customer_email,
-    customer_phone,
     notes,
     created_at,
     updated_at
@@ -113,9 +110,6 @@ BEGIN
     'confirmed',
     pending_record.date,
     pending_record.start_time,
-    pending_record.customer_name,
-    pending_record.customer_email,
-    pending_record.customer_phone,
     pending_record.notes,
     pending_record.created_at,
     now()
@@ -167,7 +161,7 @@ BEGIN
   WHERE c.id = pending_record.customer_id
   AND c.role IN ('web', 'line'); -- Only for registered customers
 
-  -- Return the confirmed booking data
+  -- Return the confirmed booking data (with customer info from customers table)
   SELECT jsonb_build_object(
     'id', b.id,
     'shop_id', b.shop_id,
@@ -178,14 +172,15 @@ BEGIN
     'status', b.status,
     'date', b.date,
     'start_time', b.start_time,
-    'customer_name', b.customer_name,
-    'customer_email', b.customer_email,
-    'customer_phone', b.customer_phone,
+    'customer_name', COALESCE(c.name, pending_record.customer_name, 'Unknown'),
+    'customer_email', c.email,
+    'customer_phone', c.phone,
     'notes', b.notes,
     'created_at', b.created_at,
     'updated_at', b.updated_at
   ) INTO result
   FROM bookings b
+  LEFT JOIN customers c ON b.customer_id = c.id
   WHERE b.id = confirmed_booking_id;
 
   RETURN result;
