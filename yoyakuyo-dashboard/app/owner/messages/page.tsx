@@ -9,6 +9,7 @@ import { apiUrl } from "@/lib/apiClient";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from 'next-intl';
+import { useNotifications } from '@/lib/useNotifications';
 
 interface CustomerThread {
   id: string;
@@ -35,6 +36,7 @@ function OwnerMessagesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations();
+  const { notifications: ownerNotifications, markAsRead } = useNotifications('owner', user?.id || '');
   const [customerThreads, setCustomerThreads] = useState<CustomerThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<string | null>(() => {
     // Try to restore selected conversation from localStorage or URL params
@@ -380,6 +382,23 @@ function OwnerMessagesPageContent() {
 
       if (res.ok) {
         console.log('[Owner Messages] ✅ [DIAGNOSTIC] Messages marked as read successfully');
+
+        // Mark corresponding notifications as read
+        const relatedNotifications = ownerNotifications.filter(
+          (n) => n.type === 'new_message' && n.data?.conversation_id === conversationId && !n.is_read
+        );
+
+        console.log('[Owner Messages] 📧 [DIAGNOSTIC] Found related notifications to mark as read:', relatedNotifications.length);
+
+        // Mark each notification as read
+        for (const notification of relatedNotifications) {
+          try {
+            await markAsRead(notification.id);
+            console.log('[Owner Messages] ✅ [DIAGNOSTIC] Marked notification as read:', notification.id);
+          } catch (error) {
+            console.error('[Owner Messages] ❌ [DIAGNOSTIC] Failed to mark notification as read:', notification.id, error);
+          }
+        }
 
         // Refresh conversation list to update unread counts
         await loadCustomerThreads();
