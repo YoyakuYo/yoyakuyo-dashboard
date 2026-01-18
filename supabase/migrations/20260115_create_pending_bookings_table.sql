@@ -127,6 +127,46 @@ BEGIN
   SET notes = COALESCE(notes, '') || ' [CONFIRMED:' || confirmed_booking_id || ']'
   WHERE id = pending_booking_id;
 
+  -- Create notifications for the confirmed booking
+  -- Owner notification
+  INSERT INTO notifications (
+    recipient_type,
+    recipient_id,
+    type,
+    title,
+    body,
+    metadata
+  )
+  SELECT
+    'owner',
+    s.owner_user_id,
+    'booking_confirmed',
+    'Booking Confirmed',
+    'A booking request has been confirmed for ' || pending_record.customer_name || ' on ' || pending_record.date || ' at ' || pending_record.start_time,
+    jsonb_build_object('booking_id', confirmed_booking_id, 'customer_name', pending_record.customer_name)
+  FROM shops s
+  WHERE s.id = pending_record.shop_id;
+
+  -- Customer notification (if they have an account)
+  INSERT INTO notifications (
+    recipient_type,
+    recipient_id,
+    type,
+    title,
+    body,
+    metadata
+  )
+  SELECT
+    CASE WHEN c.role IN ('web', 'line') THEN 'customer' ELSE 'guest' END,
+    CASE WHEN c.role IN ('web', 'line') THEN c.id ELSE NULL END,
+    'booking_confirmed',
+    'Booking Confirmed!',
+    'Great news! Your booking for ' || pending_record.date || ' at ' || pending_record.start_time || ' has been confirmed.',
+    jsonb_build_object('booking_id', confirmed_booking_id)
+  FROM customers c
+  WHERE c.id = pending_record.customer_id
+  AND c.role IN ('web', 'line'); -- Only for registered customers
+
   -- Return the confirmed booking data
   SELECT jsonb_build_object(
     'id', b.id,
