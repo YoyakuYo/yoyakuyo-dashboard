@@ -11,20 +11,25 @@ import { messagingFetch } from "@/app/lib/messagingApiClient";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useCustomerNotifications } from "../components/CustomerNotificationContext";
 
 interface Conversation {
   id: string;
+  conversation_type?: string;
+  target_type?: string;
+  target_id?: string;
   type: string;
-  shop_id: string;
+  shop_id: string | null;
   customer_id: string;
   owner_id: string;
   created_at: string;
   updated_at: string;
   unread_count: number;
+  is_support_ticket?: boolean;
   shop?: {
     id: string;
     name: string;
-  };
+  } | null;
   owner?: {
     id: string;
     email: string;
@@ -36,7 +41,7 @@ interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
-  sender_role: 'customer' | 'owner';
+  sender_role: 'customer' | 'owner' | 'admin';
   content: string;
   created_at: string;
   is_read: boolean;
@@ -53,8 +58,14 @@ function CustomerMessagesPageContent() {
   const { user } = useCustomAuth();
   const t = useTranslations();
   const searchParams = useSearchParams();
+  const { setUnreadMessagesCount } = useCustomerNotifications();
   const shopIdParam = searchParams.get('shopId');
   const bookingIdParam = searchParams.get('bookingId');
+  const conversationParam =
+    searchParams.get('conversation') ||
+    searchParams.get('conversationId') ||
+    // Back-compat: older notifications used "session"
+    searchParams.get('session');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -87,6 +98,14 @@ function CustomerMessagesPageContent() {
       }
     }
   }, [shopIdParam, user, conversations, loading]);
+
+  // Handle direct conversation deep link (e.g., from notifications)
+  useEffect(() => {
+    if (conversationParam && user && !loading) {
+      console.log('[Customer Messages] conversationParam deep link:', { conversationParam });
+      setSelectedConversationId(conversationParam);
+    }
+  }, [conversationParam, user, loading]);
 
   // Handle bookingId parameter - find conversation created by booking trigger
   useEffect(() => {
@@ -223,6 +242,11 @@ function CustomerMessagesPageContent() {
         console.log('[Customer Messages] Loaded conversations:', convs?.length || 0, convs);
         setConversations(convs || []);
         
+        // Update unread messages count in notification context
+        const totalUnread = (convs || []).reduce((sum: number, conv: Conversation) => sum + (conv.unread_count || 0), 0);
+        setUnreadMessagesCount(totalUnread);
+        console.log('[Customer Messages] Updated unread messages count:', totalUnread);
+        
         // After loading conversations, check if we need to select one for shopIdParam
         // Note: Don't create conversation here - let the shopIdParam useEffect handle it
         // This prevents duplicate creation attempts
@@ -251,7 +275,7 @@ function CustomerMessagesPageContent() {
     try {
       // Use internal messaging API (same as LINE customers) for consistency
       const res = await messagingFetch(
-        `${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`,
+        `${apiUrl}/api/internal-messaging/${conversationId}/messages`,
         {
           userId: user.id,
         }
@@ -260,6 +284,10 @@ function CustomerMessagesPageContent() {
       if (res.ok) {
         const { messages: msgs } = await res.json();
         setMessages(msgs || []);
+        
+        // API endpoint automatically marks owner/admin/ai messages as read when customer views conversation
+        // Refresh conversation list to update unread_count badge
+        await loadConversations();
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
         console.error("Failed to load messages:", res.status, errorData);
@@ -399,7 +427,9 @@ function CustomerMessagesPageContent() {
                     <div className="flex items-start justify-between mb-1">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 truncate">
-                          {conv.shop?.name || 'Shop'}
+                          {conv.is_support_ticket && !conv.shop_id
+                            ? (t('customer.support.adminSupport') || 'Admin Support')
+                            : conv.shop?.name || 'Shop'}
                         </p>
                         {lastMessage && (
                           <p className="text-sm text-gray-600 truncate mt-1">
@@ -415,7 +445,12 @@ function CustomerMessagesPageContent() {
                       )}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      {new Date(conv.updated_at).toLocaleDateString()}
+                      {(() => {
+                        const dateStr = conv.updated_at || conv.created_at;
+                        if (!dateStr) return '';
+                        const date = new Date(dateStr);
+                        return isNaN(date.getTime()) ? '' : date.toLocaleDateString();
+                      })()}
                     </p>
                   </button>
                 );
@@ -430,7 +465,9 @@ function CustomerMessagesPageContent() {
             <>
               <div className="p-4 border-b border-gray-200">
                 <h2 className="font-semibold text-gray-900">
-                  {selectedConversation?.shop?.name || t('messages.shop') || 'Shop'}
+                  {selectedConversation?.is_support_ticket && !selectedConversation?.shop_id
+                    ? (t('customer.support.adminSupport') || 'Admin Support')
+                    : selectedConversation?.shop?.name || t('messages.shop') || 'Shop'}
                 </h2>
                 {selectedConversation?.owner && (
                   <p className="text-sm text-gray-600">
@@ -447,9 +484,10 @@ function CustomerMessagesPageContent() {
                 ) : (
                   messages.map((message) => {
                     const isCustomer = message.sender_role === 'customer';
-                    const displayName = message.sender?.full_name || 
-                                      message.sender?.email || 
-                                      (isCustomer ? 'You' : 'Shop Owner');
+                    const isAdmin = message.sender_role === 'admin';
+                    const displayName = message.sender?.full_name ||
+                                      message.sender?.email ||
+                                      (isCustomer ? 'You' : isAdmin ? 'Admin Support' : 'Shop Owner');
 
                     return (
                       <div
@@ -460,11 +498,13 @@ function CustomerMessagesPageContent() {
                           className={`max-w-[70%] rounded-lg px-4 py-2 ${
                             isCustomer
                               ? 'bg-blue-600 text-white'
+                              : isAdmin
+                              ? 'bg-green-600 text-white'
                               : 'bg-white text-gray-900 border border-gray-200'
                           }`}
                         >
                           {!isCustomer && (
-                            <p className="text-xs font-semibold mb-1 text-gray-600">{displayName}</p>
+                            <p className={`text-xs font-semibold mb-1 ${isAdmin ? 'text-green-100' : 'text-gray-600'}`}>{displayName}</p>
                           )}
                           <p className="whitespace-pre-wrap text-sm">{message.content}</p>
                           <p className={`text-xs mt-1 ${isCustomer ? 'opacity-70' : 'text-gray-500'}`}>

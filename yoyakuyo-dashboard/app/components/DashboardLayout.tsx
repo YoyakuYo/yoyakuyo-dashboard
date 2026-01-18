@@ -108,11 +108,15 @@ export default function DashboardLayout({
   return (
     <AuthGuard>
       <BookingNotificationsWrapper>
-        <Header />
-        <Sidebar />
-        <main className="lg:ml-64 pt-16 min-h-screen bg-gray-50">
-          {children}
-        </main>
+        <div className="flex min-h-screen bg-gray-50">
+          <Sidebar />
+          <div className="flex-1 lg:ml-0 flex flex-col">
+            <Header />
+            <main className="flex-1 overflow-auto">
+              <div className="p-6 lg:p-8">{children}</div>
+            </main>
+          </div>
+        </div>
       </BookingNotificationsWrapper>
     </AuthGuard>
   );

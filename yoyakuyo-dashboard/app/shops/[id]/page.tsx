@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
+import { useCustomAuth } from '@/lib/useCustomAuth';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import ReviewCard from '../../components/ReviewCard';
 import ReviewStats from '../../components/ReviewStats';
@@ -90,6 +91,15 @@ interface Photo {
   updated_at: string;
 }
 
+interface AvailabilityWindow {
+  id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  status: 'available' | 'booked' | 'blocked';
+  source: 'manual' | 'booking' | 'template';
+}
+
 function formatOpeningHours(openingHours: any): string {
   if (!openingHours || typeof openingHours !== 'object') {
     return 'Not specified';
@@ -120,7 +130,9 @@ export default function PublicShopDetailPage() {
   const params = useParams();
   const router = useRouter();
   const shopId = params?.id as string;
-  const { user } = useAuth();
+  const { user: supabaseUser } = useAuth(); // For owners (Supabase Auth)
+  const { user: customUser } = useCustomAuth(); // For web customers (JWT)
+  const user = supabaseUser || customUser; // Use whichever is available
   
   // Safe translation function with fallback
   let t: ReturnType<typeof useTranslations>;
@@ -169,6 +181,36 @@ export default function PublicShopDetailPage() {
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
+  // Date dropdown state
+  const [availableDates, setAvailableDates] = useState<Array<{ date: string; status: 'available' | 'closed' }>>([]);
+  const [loadingDates, setLoadingDates] = useState(false);
+
+  // Calendar state (for backward compatibility)
+  const [selectedAvailabilityWindow, setSelectedAvailabilityWindow] = useState<AvailabilityWindow | null>(null);
+
+  // Check for booking success from URL query parameter (for guest redirects)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const bookingSuccessParam = urlParams.get('booking');
+      
+      if (bookingSuccessParam === 'success' && !user) {
+        // Set booking success state
+        setBookingSuccess(true);
+        
+        // Remove query parameter from URL without reload
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+        
+        // Redirect to landing page after 3 seconds
+        const redirectTimer = setTimeout(() => {
+          router.push('/');
+        }, 3000);
+        
+        return () => clearTimeout(redirectTimer);
+      }
+    }
+  }, [user, router]);
 
   // Reviews state
   const [reviews, setReviews] = useState<any[]>([]);
@@ -285,15 +327,40 @@ export default function PublicShopDetailPage() {
     }
   };
 
+  // Fetch available dates when shop is loaded
+  useEffect(() => {
+    if (shopId && services.length > 0) {
+      fetchAvailableDates();
+    }
+  }, [shopId, services.length]);
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setBookingDate(e.target.value);
+    setBookingTime('');
+    setSelectedAvailabilityWindow(null);
+  };
+
+  // Handle slot selection from calendar
+  const handleSlotSelect = (slot: AvailabilityWindow) => {
+    setSelectedAvailabilityWindow(slot);
+    setBookingDate(slot.date);
+    setBookingTime(slot.start_time);
+  };
+
   const handleReviewSubmit = async (reviewData: any) => {
     try {
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
       };
-      
-      // Add x-user-id header for logged-in web customers
+
+      // Add x-user-id header for logged-in users (both Supabase and custom auth)
       if (user?.id) {
         headers['x-user-id'] = user.id;
+      }
+
+      // For web customers using custom auth, also add x-customer-id
+      if (customUser?.id) {
+        headers['x-customer-id'] = customUser.id;
       }
 
       const res = await fetch(`${apiUrl}/reviews`, {
@@ -321,6 +388,30 @@ export default function PublicShopDetailPage() {
     } catch (error) {
       console.error('Error submitting review:', error);
       throw error;
+    }
+  };
+
+  const fetchAvailableDates = async () => {
+    if (!shopId) return;
+
+    setLoadingDates(true);
+    try {
+      const startDate = new Date().toISOString().split('T')[0];
+      const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 30 days ahead
+
+      const response = await fetch(`${apiUrl}/shops/${shopId}/availability/dates?startDate=${startDate}&endDate=${endDate}`);
+      if (response.ok) {
+        const dates = await response.json();
+        setAvailableDates(dates);
+      } else {
+        console.error('Failed to fetch available dates');
+        setAvailableDates([]);
+      }
+    } catch (error) {
+      console.error('Error fetching available dates:', error);
+      setAvailableDates([]);
+    } finally {
+      setLoadingDates(false);
     }
   };
 
@@ -581,7 +672,8 @@ export default function PublicShopDetailPage() {
                   <div className="mb-6">
                     <ReviewForm
                       shopId={shopId}
-                      isGuest={!user} // PART 1: Show guest name field if not logged in
+                      customerId={user?.id || null} // Pass customer ID for authenticated users
+                      isGuest={!user} // Only show guest name field if not logged in
                       onSubmit={handleReviewSubmit}
                       onCancel={() => setShowReviewForm(false)}
                     />
@@ -616,6 +708,67 @@ export default function PublicShopDetailPage() {
 
       {/* Right Sidebar */}
       <div className="space-y-6">
+        {/* Date Selection */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('booking.selectDate') || 'Select Date'}</h3>
+          <div className="space-y-4">
+            <select
+              value={bookingDate}
+              onChange={handleDateChange}
+              disabled={loadingDates || availableDates.length === 0}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+            >
+              <option value="">
+                {loadingDates
+                  ? (t('booking.loadingDates') || 'Loading dates...')
+                  : availableDates.length === 0
+                    ? (t('booking.noDatesAvailable') || 'No dates available')
+                    : (t('booking.chooseDate') || 'Choose a date')}
+              </option>
+              {availableDates.map((dateOption) => (
+                <option
+                  key={dateOption.date}
+                  value={dateOption.date}
+                  disabled={dateOption.status === 'closed'}
+                >
+                  {new Date(dateOption.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                  {dateOption.status === 'closed' ? ' - CLOSED' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Selected Slot Info */}
+        {selectedAvailabilityWindow && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <h4 className="font-medium text-green-800 mb-2">Selected Time</h4>
+            <div className="text-green-700">
+              <div className="font-medium">
+                {new Date(selectedAvailabilityWindow.date).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </div>
+              <div>
+                {selectedAvailabilityWindow.start_time.substring(0, 5)} - {selectedAvailabilityWindow.end_time.substring(0, 5)}
+              </div>
+            </div>
+            <Link
+              href={`/book/${shopId}?slot=${selectedAvailabilityWindow.id}`}
+              className="mt-3 inline-block w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg text-center transition-colors"
+            >
+              Book This Time →
+            </Link>
+          </div>
+        )}
+
         {/* Book Appointment Button */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <Link
@@ -641,6 +794,11 @@ export default function PublicShopDetailPage() {
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
               <p className="text-green-700 font-medium">{t('booking.success')}</p>
               <p className="text-green-600 text-sm mt-1">{t('booking.ownerWillConfirm')}</p>
+              {!user && (
+                <p className="text-green-600 text-xs mt-2 italic">
+                  Redirecting to home page in a few seconds...
+                </p>
+              )}
             </div>
           ) : (
             <form onSubmit={handleBookingSubmit} className="space-y-4">
@@ -693,8 +851,11 @@ export default function PublicShopDetailPage() {
                   onChange={(e) => setBookingDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  disabled={true}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 cursor-not-allowed"
+                  title="Select a date from the dropdown above"
                 />
+                <p className="text-xs text-gray-500 mt-1">Select a date from the dropdown above</p>
               </div>
 
               <div>

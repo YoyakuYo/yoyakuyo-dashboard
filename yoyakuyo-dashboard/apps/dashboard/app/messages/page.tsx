@@ -6,7 +6,10 @@ import { apiUrl } from "@/lib/apiClient";
 
 interface Conversation {
   id: string;
-  shop_id: string;
+  conversation_type?: 'booking_owner' | 'support_admin' | 'admin_owner';
+  target_type?: 'shop' | 'admin' | 'owner';
+  target_id?: string;
+  shop_id?: string; // Legacy field
   customer_type: 'line' | 'web' | 'guest';
   customer_ref: string;
   last_message_at: string | null;
@@ -21,7 +24,7 @@ interface Conversation {
 interface Message {
   id: string;
   conversation_id: string;
-  sender_role?: 'customer' | 'shop' | 'ai';
+  sender_role?: 'customer' | 'shop' | 'admin' | 'ai';
   sender_type: 'customer' | 'shop';
   body?: string;
   content?: string;
@@ -343,8 +346,18 @@ export default function OwnerInboxPage() {
   };
 
   const handleSelectConversation = (conversation: Conversation) => {
+    // Validate conversation scoping
+    if (!conversation.target_id) {
+      console.error('[Owner Inbox] ❌ Conversation missing target_id:', conversation);
+      alert('This conversation is improperly configured. Please contact support.');
+      return;
+    }
+
     console.log('[Owner Inbox] 🖱️ [DIAGNOSTIC] Conversation selected', {
       conversationId: conversation.id,
+      conversationType: conversation.conversation_type,
+      targetType: conversation.target_type,
+      targetId: conversation.target_id,
       shopName: conversation.shop?.name,
       shopId: conversation.shop_id,
       customerType: conversation.customer_type,
@@ -500,6 +513,7 @@ export default function OwnerInboxPage() {
                 messages.map((message) => {
                   const senderRole = message.sender_role || (message.sender_type === 'shop' ? 'shop' : 'customer');
                   const isOwner = senderRole === 'shop';
+                  const isAdmin = senderRole === 'admin';
                   const isAI = senderRole === 'ai';
                   // Use content field if available, fallback to body
                   const messageContent = message.content || message.body || '';
@@ -507,12 +521,14 @@ export default function OwnerInboxPage() {
                   return (
                     <div
                       key={message.id}
-                      className={`flex ${isOwner ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${isOwner || isAdmin ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
                         className={`max-w-[85%] md:max-w-md px-4 py-2 rounded-lg ${
                           isOwner
                             ? 'bg-blue-600 text-white'
+                            : isAdmin
+                            ? 'bg-green-600 text-white'
                             : isAI
                             ? 'bg-purple-100 text-purple-900 border border-purple-300'
                             : 'bg-white text-gray-900 border border-gray-200'
@@ -525,10 +541,13 @@ export default function OwnerInboxPage() {
                         {isAI && (
                           <p className="text-xs font-semibold text-purple-700 mb-1">AI Assistant</p>
                         )}
+                        {isAdmin && (
+                          <p className="text-xs font-semibold text-green-100 mb-1">Admin Support</p>
+                        )}
                         <p className="text-sm break-words whitespace-pre-wrap">{messageContent}</p>
                         <p
                           className={`text-xs mt-1 ${
-                            isOwner ? 'text-blue-100' : isAI ? 'text-purple-600' : 'text-gray-500'
+                            isOwner ? 'text-blue-100' : isAdmin ? 'text-green-100' : isAI ? 'text-purple-600' : 'text-gray-500'
                           }`}
                         >
                           {new Date(message.created_at).toLocaleTimeString('en-US', {

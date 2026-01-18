@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiUrl } from "@/lib/apiClient";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface Shop {
   id: string;
@@ -29,6 +30,7 @@ export default function ShopManagementTable({
   onRefresh,
 }: ShopManagementTableProps) {
   const t = useTranslations();
+  const router = useRouter();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
@@ -171,7 +173,10 @@ export default function ShopManagementTable({
                 <Link
                   href={`/shops/${shop.id}`}
                   className="text-blue-600 hover:text-blue-900"
-                  target="_blank"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    router.push(`/shops/${shop.id}`);
+                  }}
                 >
                   {shop.name}
                 </Link>

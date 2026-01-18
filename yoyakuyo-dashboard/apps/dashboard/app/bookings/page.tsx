@@ -26,6 +26,7 @@ interface Booking {
     end_time: string;
     notes: string;
     status: 'pending' | 'confirmed' | 'rejected' | 'cancelled' | 'completed';
+    source?: 'guest' | 'web' | 'line';
     shops?: { name: string } | null;
     services?: { name: string } | null;
     staff?: { first_name: string; last_name: string } | null;
@@ -400,7 +401,42 @@ const BookingsPage = () => {
         }
     };
 
-    const confirmBooking = async (bookingId: string) => {
+    const createBookingConversation = async (bookingId: string, shopId: string) => {
+    try {
+      // Create scoped conversation for this specific booking
+      const res = await fetch(`${apiUrl}/api/internal-messaging/conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId || '',
+        },
+        body: JSON.stringify({
+          conversation_type: 'booking_owner',
+          target_type: 'shop',
+          target_id: shopId,
+          booking_id: bookingId,
+          customer_type: 'web', // Owner initiating conversation
+          customer_ref: userId,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Created booking conversation:', data.conversation_id);
+        // Navigate to messages page - the conversation should now appear
+        router.push('/messages');
+      } else {
+        const error = await res.json().catch(() => ({ error: 'Failed to create conversation' }));
+        console.error('Failed to create booking conversation:', error);
+        alert('Failed to start conversation. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating booking conversation:', error);
+      alert('Failed to start conversation. Please try again.');
+    }
+  };
+
+  const confirmBooking = async (bookingId: string) => {
         if (!user?.id) return;
         setUpdatingStatus(bookingId);
         try {
@@ -822,7 +858,23 @@ const BookingsPage = () => {
 
                                             {/* Card Footer - Action Buttons */}
                                             <div className="px-5 py-4 bg-gray-50 border-t border-gray-200">
-                                                <div className="flex gap-2">
+                                                <div className="flex gap-2 flex-wrap">
+                                                    {/* Message Button - Always available for completed bookings */}
+                                                    {booking.status === 'completed' && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setOpenDropdown(null);
+                                                                // Create scoped conversation for this booking and navigate to messages
+                                                                createBookingConversation(booking.id, booking.shop_id);
+                                                            }}
+                                                            className="flex-1 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                                            </svg>
+                                                            Message
+                                                        </button>
+                                                    )}
                                                     {canReschedule && (
                                                         <button
                                                             onClick={() => {
