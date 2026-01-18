@@ -84,6 +84,14 @@ export function CustomAuthProvider({ children }: { children: ReactNode }) {
 
       const data = await response.json();
 
+      // Check for 403 errors (owner/admin access denied)
+      if (response.status === 403) {
+        return { 
+          success: false, 
+          error: data.error || 'Access denied. Owners and admins cannot use customer login.' 
+        };
+      }
+
       if (!response.ok || !data.success) {
         return { success: false, error: data.error || 'Login failed' };
       }
@@ -182,8 +190,24 @@ export function CustomAuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Error signing out:", error);
     } finally {
-      localStorage.removeItem('yoyaku_session');
-      localStorage.removeItem('yoyaku_user');
+      // Full session + role cleanup on logout
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('yoyaku_session');
+        localStorage.removeItem('yoyaku_user');
+        // Clear auth role
+        localStorage.removeItem('yoyaku_selected_auth_role');
+        // Clear any cached tokens
+        localStorage.removeItem('supabase.auth.token');
+        // Clear any other auth-related localStorage items
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes('supabase') || key.includes('auth') || key.includes('session'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+      }
       setSession(null);
       setUser(null);
       router.push("/");

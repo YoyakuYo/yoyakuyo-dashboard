@@ -9,6 +9,7 @@ import PublicFooter from "./PublicFooter";
 import LoginJoinModal from "./LoginJoinModal";
 
 function PublicLayoutContent({ children }: { children: React.ReactNode }) {
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Global Public Header - appears on ALL public pages */}
@@ -24,6 +25,8 @@ function PublicLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* Unified Login/Join Modal */}
       <LoginJoinModal />
+
+      {/* AI Assistant removed - no longer available for customers */}
     </div>
   );
 }

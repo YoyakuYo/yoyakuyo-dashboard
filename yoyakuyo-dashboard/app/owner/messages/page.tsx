@@ -335,11 +335,15 @@ function OwnerMessagesPageContent() {
         // Mark messages as read when conversation is opened (even from cache)
         console.log('[Owner Messages] 🚀 [DIAGNOSTIC] About to call markMessagesAsRead for conversation:', conversationId);
         console.log('[Owner Messages] 📊 [DIAGNOSTIC] Current user ID:', user?.id);
+        console.log('[Owner Messages] 🔍 [DIAGNOSTIC] Calling markMessagesAsRead now...');
+
         try {
+          console.log('[Owner Messages] 🎯 [DIAGNOSTIC] Inside try block, about to call markMessagesAsRead');
           const result = await markMessagesAsRead(conversationId);
           console.log('[Owner Messages] ✅ [DIAGNOSTIC] markMessagesAsRead completed with result:', result);
         } catch (error) {
           console.error('[Owner Messages] ❌ [DIAGNOSTIC] markMessagesAsRead threw error:', error);
+          console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error stack:', error?.stack);
         }
 
         // Force refresh conversation list after marking messages as read

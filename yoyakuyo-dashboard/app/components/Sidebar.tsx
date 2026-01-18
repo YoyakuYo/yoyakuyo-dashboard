@@ -33,13 +33,16 @@ const Sidebar = React.memo(() => {
   ).length;
 
   // Debug: Log notification counts
+  console.log('[Sidebar] 🔍 [DIAGNOSTIC] ownerNotifications type:', typeof ownerNotifications);
+  console.log('[Sidebar] 🔍 [DIAGNOSTIC] ownerNotifications value:', ownerNotifications);
+  console.log('[Sidebar] 🔍 [DIAGNOSTIC] ownerNotifications isArray:', Array.isArray(ownerNotifications));
   console.log('[Sidebar] Notification counts:', {
-    total: ownerNotifications.length,
-    unread: ownerNotifications.filter(n => !n.is_read).length,
+    total: Array.isArray(ownerNotifications) ? ownerNotifications.length : 'NOT_ARRAY',
+    unread: Array.isArray(ownerNotifications) ? ownerNotifications.filter(n => !n.is_read).length : 'NOT_ARRAY',
     supportTickets: unreadSupportCount,
     conversationMessages: unreadConversationCount,
-    supportTicketDetails: ownerNotifications.filter(n => !n.is_read && n.type === 'new_support_ticket').map(n => ({ type: n.type, title: n.title, data: n.data })),
-    conversationDetails: ownerNotifications.filter(n => !n.is_read && n.type === 'new_message' && n.data?.conversation_id).map(n => ({ type: n.type, title: n.title, data: n.data }))
+    supportTicketDetails: Array.isArray(ownerNotifications) ? ownerNotifications.filter(n => !n.is_read && n.type === 'new_support_ticket').map(n => ({ type: n.type, title: n.title, data: n.data })) : 'NOT_ARRAY',
+    conversationDetails: Array.isArray(ownerNotifications) ? ownerNotifications.filter(n => !n.is_read && n.type === 'new_message' && n.data?.conversation_id).map(n => ({ type: n.type, title: n.title, data: n.data })) : 'NOT_ARRAY'
   });
 
   // Load unread summary on mount

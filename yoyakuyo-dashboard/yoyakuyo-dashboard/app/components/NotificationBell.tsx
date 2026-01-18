@@ -7,7 +7,7 @@ import { apiUrl } from '@/lib/apiClient';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 
 interface NotificationBellProps {
-  userType: 'owner' | 'customer';
+  userType: 'owner' | 'customer' | 'admin';
   userId: string;
 }
 
@@ -41,19 +41,42 @@ export default function NotificationBell({ userType, userId }: NotificationBellP
     if (notification.type === 'new_booking' || notification.type === 'booking_update') {
       const bookingId = notification.data?.booking_id;
       if (bookingId) {
-        router.push(`/bookings?highlight=${bookingId}`);
+        if (userType === 'admin') {
+          router.push(`/admin/bookings?highlight=${bookingId}`);
+        } else {
+          router.push(`/bookings?highlight=${bookingId}`);
+        }
       } else {
-        router.push('/bookings');
+        router.push(userType === 'admin' ? '/admin/bookings' : '/bookings');
       }
     } else if (notification.type === 'new_message') {
-      const sessionId = notification.data?.session_id;
-      if (sessionId) {
-        router.push(userType === 'owner' ? `/owner/messages?session=${sessionId}` : `/customer/messages?session=${sessionId}`);
+      // Unified messaging uses conversation_id; older flows used session_id.
+      const conversationId = notification.data?.conversation_id || notification.data?.session_id;
+      if (conversationId) {
+        if (userType === 'admin') {
+          router.push(`/admin/support?conversation=${conversationId}`);
+        } else if (userType === 'owner') {
+          router.push(`/owner/messages?conversation=${conversationId}`);
+        } else {
+          router.push(`/customer/messages?conversation=${conversationId}`);
+        }
       } else {
-        router.push(userType === 'owner' ? '/owner/messages' : '/customer/messages');
+        if (userType === 'admin') {
+          router.push('/admin/support');
+        } else if (userType === 'owner') {
+          router.push('/owner/messages');
+        } else {
+          router.push('/customer/messages');
+        }
       }
     } else if (notification.type === 'new_review') {
-      router.push(userType === 'owner' ? '/owner/reviews' : '/customer/reviews');
+      if (userType === 'admin') {
+        router.push('/admin/reviews');
+      } else if (userType === 'owner') {
+        router.push('/owner/reviews');
+      } else {
+        router.push('/customer/reviews');
+      }
     }
 
     setIsOpen(false);
@@ -204,7 +227,13 @@ export default function NotificationBell({ userType, userId }: NotificationBellP
               <button
                 onClick={() => {
                   setIsOpen(false);
-                  router.push(userType === 'owner' ? '/owner/notifications' : '/customer/notifications');
+                  if (userType === 'admin') {
+                    router.push('/admin/notifications');
+                  } else if (userType === 'owner') {
+                    router.push('/owner/notifications');
+                  } else {
+                    router.push('/customer/notifications');
+                  }
                 }}
                 className="text-sm text-blue-600 hover:text-blue-700 font-medium w-full text-center"
               >

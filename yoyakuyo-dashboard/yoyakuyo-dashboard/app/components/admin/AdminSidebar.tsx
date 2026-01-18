@@ -57,13 +57,26 @@ const AdminSidebar = React.memo(() => {
         onClick={(e) => e.stopPropagation()}
         style={{ height: "100vh", width: "100%" }}
       >
-        <button
-          aria-label="Close menu"
-          className="text-2xl text-gray-400 self-end mb-4"
-          onClick={() => setDrawerOpen(false)}
-        >
-          ×
-        </button>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setDrawerOpen(false);
+              router.push("/admin");
+            }}
+            className="text-xl font-bold hover:text-blue-400 transition-colors cursor-pointer"
+          >
+            {t("admin.dashboard") || "Admin Dashboard"}
+          </button>
+          <button
+            aria-label="Close menu"
+            className="text-2xl text-gray-400"
+            onClick={() => setDrawerOpen(false)}
+          >
+            ×
+          </button>
+        </div>
         <ul className="space-y-1 flex-1">
           {navItems.map((item) => {
             const isActive =
@@ -120,7 +133,16 @@ const AdminSidebar = React.memo(() => {
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white min-h-screen">
         <div className="p-6 border-b border-slate-700">
-          <h1 className="text-xl font-bold">{t("admin.dashboard") || "Admin Dashboard"}</h1>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              router.push("/admin");
+            }}
+            className="text-xl font-bold hover:text-blue-400 transition-colors cursor-pointer"
+          >
+            {t("admin.dashboard") || "Admin Dashboard"}
+          </button>
         </div>
         <nav className="flex-1 p-4">
           <ul className="space-y-1">

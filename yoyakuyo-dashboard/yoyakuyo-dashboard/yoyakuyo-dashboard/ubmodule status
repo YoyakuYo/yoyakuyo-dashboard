@@ -1,0 +1,192 @@
+[1mdiff --git a/yoyakuyo-dashboard/app/(auth)/customer-login/page.tsx b/yoyakuyo-dashboard/app/(auth)/customer-login/page.tsx[m
+[1mindex a1984040..cea8bf5e 100644[m
+[1m--- a/yoyakuyo-dashboard/app/(auth)/customer-login/page.tsx[m
+[1m+++ b/yoyakuyo-dashboard/app/(auth)/customer-login/page.tsx[m
+[36m@@ -84,15 +84,6 @@[m [mexport default function CustomerLoginPage() {[m
+             />[m
+           </div>[m
+ [m
+[31m-          <div className="flex justify-end -mt-2">[m
+[31m-            <Link[m
+[31m-              href="/forgot-password"[m
+[31m-              className="text-sm text-blue-600 hover:text-blue-700 hover:underline"[m
+[31m-            >[m
+[31m-              {t('forgotPassword')}[m
+[31m-            </Link>[m
+[31m-          </div>[m
+[31m-[m
+           <button[m
+             type="submit"[m
+             disabled={loading}[m
+[1mdiff --git a/yoyakuyo-dashboard/app/admin/layout.tsx b/yoyakuyo-dashboard/app/admin/layout.tsx[m
+[1mindex 2a656edd..4190440f 100644[m
+[1m--- a/yoyakuyo-dashboard/app/admin/layout.tsx[m
+[1m+++ b/yoyakuyo-dashboard/app/admin/layout.tsx[m
+[36m@@ -1,6 +1,7 @@[m
+ // Admin layout with AdminGuard and AdminSidebar[m
+ "use client";[m
+ [m
+[32m+[m[32mimport { usePathname } from "next/navigation";[m
+ import AdminGuard from "@/app/components/AdminGuard";[m
+ import AdminSidebar from "@/app/components/admin/AdminSidebar";[m
+ [m
+[36m@@ -9,6 +10,14 @@[m [mexport default function AdminLayout({[m
+ }: {[m
+   children: React.ReactNode;[m
+ }) {[m
+[32m+[m[32m  const pathname = usePathname();[m
+[32m+[m[41m  [m
+[32m+[m[32m  // Login page should not have sidebar or guard (it handles its own auth)[m
+[32m+[m[32m  if (pathname === "/admin/login" || pathname?.startsWith("/admin/login/")) {[m
+[32m+[m[32m    return <>{children}</>;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  // All other admin pages get the guard and sidebar[m
+   return ([m
+     <AdminGuard>[m
+       <div className="flex min-h-screen bg-gray-50">[m
+[1mdiff --git a/yoyakuyo-dashboard/app/admin/page.tsx b/yoyakuyo-dashboard/app/admin/page.tsx[m
+[1mindex 0c379798..55c8143f 100644[m
+[1m--- a/yoyakuyo-dashboard/app/admin/page.tsx[m
+[1m+++ b/yoyakuyo-dashboard/app/admin/page.tsx[m
+[36m@@ -1,10 +1,10 @@[m
+ // Admin dashboard main page[m
+ "use client";[m
+ [m
+[31m-import React, { useState, useEffect } from "react";[m
+[32m+[m[32mimport React, { useState, useEffect, useRef } from "react";[m
+ import { useTranslations } from "next-intl";[m
+ import { apiUrl } from "@/lib/apiClient";[m
+[31m-import { useCustomAuth } from "@/lib/useCustomAuth";[m
+[32m+[m[32mimport { getSupabaseClient } from "@/lib/supabaseClient";[m
+ import AdminStatsCard from "@/app/components/admin/AdminStatsCard";[m
+ import LineChart from "@/app/components/LineChart";[m
+ [m
+[36m@@ -31,25 +31,54 @@[m [minterface PlatformStats {[m
+ [m
+ export default function AdminDashboardPage() {[m
+   const t = useTranslations();[m
+[31m-  const { user } = useCustomAuth();[m
+   const [loading, setLoading] = useState(true);[m
+   const [stats, setStats] = useState<PlatformStats | null>(null);[m
+   const [error, setError] = useState<string | null>(null);[m
+[32m+[m[32m  const [userId, setUserId] = useState<string | null>(null);[m
+[32m+[m[32m  const loadingRef = useRef(false);[m
+[32m+[m[32m  const lastUserIdRef = useRef<string | null>(null);[m
+ [m
+[32m+[m[32m  // Get user from Supabase Auth[m
+   useEffect(() => {[m
+[31m-    if (user?.id) {[m
+[32m+[m[32m    const getUserId = async () => {[m
+[32m+[m[32m      const supabase = getSupabaseClient();[m
+[32m+[m[32m      const { data: { session } } = await supabase.auth.getSession();[m
+[32m+[m[32m      if (session?.user) {[m
+[32m+[m[32m        setUserId(session.user.id);[m
+[32m+[m[32m      }[m
+[32m+[m[32m    };[m
+[32m+[m[32m    getUserId();[m
+[32m+[m[32m  }, []);[m
+[32m+[m
+[32m+[m[32m  useEffect(() => {[m
+[32m+[m[32m    // Prevent multiple simultaneous loads[m
+[32m+[m[32m    if (loadingRef.current) {[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    // If user hasn't changed, don't reload[m
+[32m+[m[32m    if (userId === lastUserIdRef.current && lastUserIdRef.current !== null) {[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    if (userId) {[m
+[32m+[m[32m      lastUserIdRef.current = userId;[m
+       loadStats();[m
+     }[m
+[31m-  }, [user]);[m
+[32m+[m[32m  }, [userId]);[m
+ [m
+   const loadStats = async () => {[m
+[32m+[m[32m    if (loadingRef.current) {[m
+[32m+[m[32m      return;[m
+[32m+[m[32m    }[m
+[32m+[m[32m    loadingRef.current = true;[m
+     try {[m
+       setLoading(true);[m
+       setError(null);[m
+ [m
+       const response = await fetch(`${apiUrl}/admin/stats`, {[m
+         headers: {[m
+[31m-          "x-user-id": user?.id || "",[m
+[32m+[m[32m          "x-user-id": userId || "",[m
+           "Content-Type": "application/json",[m
+         },[m
+       });[m
+[36m@@ -70,6 +99,7 @@[m [mexport default function AdminDashboardPage() {[m
+       setError(err.message || "Failed to load stats");[m
+     } finally {[m
+       setLoading(false);[m
+[32m+[m[32m      loadingRef.current = false;[m
+     }[m
+   };[m
+ [m
+[1mdiff --git a/yoyakuyo-dashboard/app/admin/shop-claims/page.tsx b/yoyakuyo-dashboard/app/admin/shop-claims/page.tsx[m
+[1mindex dbe34857..1b5552ef 100644[m
+[1m--- a/yoyakuyo-dashboard/app/admin/shop-claims/page.tsx[m
+[1m+++ b/yoyakuyo-dashboard/app/admin/shop-claims/page.tsx[m
+[36m@@ -7,7 +7,7 @@[m [mimport React, { useState, useEffect } from 'react';[m
+ import { useRouter } from 'next/navigation';[m
+ import { useTranslations } from 'next-intl';[m
+ import { apiUrl } from '@/lib/apiClient';[m
+[31m-import { useCustomAuth } from '@/lib/useCustomAuth';[m
+[32m+[m[32mimport { getSupabaseClient } from '@/lib/supabaseClient';[m
+ [m
+ interface ClaimFile {[m
+   id: string;[m
+[36m@@ -47,18 +47,37 @@[m [minterface ClaimRequest {[m
+ export default function AdminShopClaimsPage() {[m
+   const t = useTranslations();[m
+   const router = useRouter();[m
+[31m-  const { user, loading: authLoading } = useCustomAuth();[m
+[32m+[m[32m  const [userId, setUserId] = useState<string | null>(null);[m
+[32m+[m[32m  const [authLoading, setAuthLoading] = useState(true);[m
+   const [claims, setClaims] = useState<ClaimRequest[]>([]);[m
+   const [loading, setLoading] = useState(true);[m
+   const [processingId, setProcessingId] = useState<string | null>(null);[m
+   const [adminNote, setAdminNote] = useState<Record<string, string>>({});[m
+   const [error, setError] = useState<string | null>(null);[m
+ [m
+[32m+[m[32m  // Get user from Supabase Auth[m
+   useEffect(() => {[m
+[31m-    if (!authLoading && user) {[m
+[32m+[m[32m    const getUserId = async () => {[m
+[32m+[m[32m      try {[m
+[32m+[m[32m        const supabase = getSupabaseClient();[m
+[32m+[m[32m        const { data: { session } } = await supabase.auth.getSession();[m
+[32m+[m[32m        if (session?.user) {[m
+[32m+[m[32m          setUserId(session.user.id);[m
+[32m+[m[32m        }[m
+[32m+[m[32m      } catch (error) {[m
+[32m+[m[32m        console.error("Error getting user session:", error);[m
+[32m+[m[32m      } finally {[m
+[32m+[m[32m        setAuthLoading(false);[m
+[32m+[m[32m      }[m
+[32m+[m[32m    };[m
+[32m+[m[32m    getUserId();[m
+[32m+[m[32m  }, []);[m
+[32m+[m
+[32m+[m[32m  useEffect(() => {[m
+[32m+[m[32m    if (userId) {[m
+       fetchPendingClaims();[m
+     }[m
+[31m-  }, [authLoading, user]);[m
+[32m+[m[32m  }, [userId]);[m
+ [m
+   const fetchPendingClaims = async () => {[m
+     try {[m
+[36m@@ -66,7 +85,7 @@[m [mexport default function AdminShopClaimsPage() {[m
+       const res = await fetch(`${apiUrl}/shop-claims/pending`, {[m
+         headers: {[m
+           'Content-Type': 'application/json',[m
+[31m-          'x-user-id': user?.id || '',[m
+[32m+[m[32m          'x-user-id': userId || '',[m
+         },[m

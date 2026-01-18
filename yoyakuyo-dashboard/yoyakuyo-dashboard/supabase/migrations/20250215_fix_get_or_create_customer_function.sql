@@ -54,10 +54,12 @@ BEGIN
   )
   RETURNING id INTO new_auth_user_id;
 
-  -- Create customer
-  INSERT INTO customers (id, role)
-  VALUES (new_auth_user_id, 'customer')
-  ON CONFLICT (id) DO NOTHING;
+  -- Create customer with LINE role
+  INSERT INTO customers (id, role, line_user_id)
+  VALUES (new_auth_user_id, 'line', line_user_id_param)
+  ON CONFLICT (id) DO UPDATE SET
+    role = 'line',
+    line_user_id = EXCLUDED.line_user_id;
 
   -- Create line_accounts mapping
   INSERT INTO line_accounts (customer_id, line_user_id)

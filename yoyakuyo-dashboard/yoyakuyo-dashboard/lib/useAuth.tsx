@@ -56,11 +56,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const {
           data: { subscription },
-        } = supabase.auth.onAuthStateChange((event, session) => {
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
           // Update session and user state whenever auth state changes
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
+          
+          // CRITICAL: Don't reset role on auth state change
+          // Role is persisted separately and should not be inferred from auth state
+          // This prevents the role leak where owner login gets reset to customer
           
           // Log auth events for debugging (only in development)
           if (process.env.NODE_ENV === 'development') {
@@ -89,11 +93,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     try {
       const supabase = getSupabaseClient();
+      
+      // Full session + role cleanup on logout
       await supabase.auth.signOut();
+      
+      // Clear role from localStorage
+      if (typeof window !== 'undefined') {
+        // Clear auth role
+        localStorage.removeItem('yoyaku_selected_auth_role');
+        // Clear any cached tokens
+        localStorage.removeItem('supabase.auth.token');
+        // Clear any other auth-related localStorage items
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes('supabase') || key.includes('auth') || key.includes('session'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+      }
+      
       router.push("/");
     } catch (error) {
       console.error("Error signing out:", error);
-      // Still redirect even if signOut fails
+      // Still clear localStorage and redirect even if signOut fails
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('yoyaku_selected_auth_role');
+        localStorage.removeItem('supabase.auth.token');
+      }
       router.push("/");
     }
   }, [router]);
