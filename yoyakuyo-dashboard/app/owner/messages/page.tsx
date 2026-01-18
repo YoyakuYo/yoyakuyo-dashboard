@@ -334,11 +334,21 @@ function OwnerMessagesPageContent() {
 
         // Mark messages as read when conversation is opened (even from cache)
         console.log('[Owner Messages] 🚀 [DIAGNOSTIC] About to call markMessagesAsRead for conversation:', conversationId);
+        console.log('[Owner Messages] 📊 [DIAGNOSTIC] Current user ID:', user?.id);
         try {
           const result = await markMessagesAsRead(conversationId);
-          console.log('[Owner Messages] ✅ [DIAGNOSTIC] markMessagesAsRead result:', result);
+          console.log('[Owner Messages] ✅ [DIAGNOSTIC] markMessagesAsRead completed with result:', result);
         } catch (error) {
           console.error('[Owner Messages] ❌ [DIAGNOSTIC] markMessagesAsRead threw error:', error);
+        }
+
+        // Force refresh conversation list after marking messages as read
+        console.log('[Owner Messages] 🔄 [DIAGNOSTIC] Forcing conversation list refresh');
+        try {
+          await loadCustomerThreads();
+          console.log('[Owner Messages] ✅ [DIAGNOSTIC] Conversation list refreshed');
+        } catch (error) {
+          console.error('[Owner Messages] ❌ [DIAGNOSTIC] Failed to refresh conversation list:', error);
         }
       } else {
         const errorText = await res.text();
@@ -392,11 +402,22 @@ function OwnerMessagesPageContent() {
         },
       });
 
-      console.log('[Owner Messages] 📥 [DIAGNOSTIC] Mark read response', {
+      console.log('[Owner Messages] 📥 [DIAGNOSTIC] Mark read response details', {
         status: res.status,
         statusText: res.statusText,
         ok: res.ok,
+        url: res.url,
+        headers: Object.fromEntries(res.headers.entries()),
       });
+
+      // Log the response body if available
+      let responseBody;
+      try {
+        responseBody = await res.clone().json();
+        console.log('[Owner Messages] 📄 [DIAGNOSTIC] Mark read response body:', responseBody);
+      } catch (e) {
+        console.log('[Owner Messages] 📄 [DIAGNOSTIC] Mark read response has no JSON body');
+      }
 
       if (res.ok) {
         console.log('[Owner Messages] ✅ [DIAGNOSTIC] Messages marked as read successfully');

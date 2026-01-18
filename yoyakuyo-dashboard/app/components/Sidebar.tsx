@@ -208,15 +208,6 @@ const Sidebar = React.memo(() => {
 
   return (
     <>
-      {/* Mobile menu button - matches ADMIN pattern */}
-      <button
-        className="lg:hidden fixed top-4 left-4 z-[251] bg-blue-600 text-white p-2 rounded-lg"
-        onClick={() => setDrawerOpen(true)}
-        aria-label="Open menu"
-      >
-        ☰
-      </button>
-
       {/* Mobile drawer - matches ADMIN z-index and positioning */}
       {MobileDrawer}
 
