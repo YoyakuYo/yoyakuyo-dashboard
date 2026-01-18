@@ -307,8 +307,7 @@ function OwnerMessagesPageContent() {
         // Format messages for display
         const formattedMessages: Message[] = (data.messages || []).map((msg: any) => {
           // Map sender_role to role and sender_type
-          const isOwner = msg.sender_role === 'shop' || msg.sender_role === 'owner';
-          const isAI = msg.sender_role === 'ai';
+          const isOwner = msg.sender_role === 'shop' || msg.sender_role === 'owner' || msg.sender_role === 'ai';
 
           console.log('[Owner Messages] 📝 Formatting message:', {
             id: msg.id,
@@ -316,14 +315,13 @@ function OwnerMessagesPageContent() {
             sender_type: msg.sender_type,
             content_preview: (msg.content || msg.body || '').substring(0, 50),
             isOwner,
-            isAI,
-            final_role: isOwner || isAI ? 'assistant' : 'user',
+            final_role: isOwner ? 'assistant' : 'user',
             final_sender_type: isOwner ? 'owner' : 'customer'
           });
 
           return {
             id: msg.id,
-            role: isOwner || isAI ? 'assistant' : 'user',
+            role: isOwner ? 'assistant' : 'user',
             sender_type: isOwner ? 'owner' : 'customer',
             content: msg.content || msg.body || '',
             created_at: msg.created_at,
