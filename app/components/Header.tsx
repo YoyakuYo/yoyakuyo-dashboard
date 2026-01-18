@@ -43,7 +43,7 @@ export default function Header() {
       </header>
       
       {/* Desktop Header - Fixed at top */}
-      <header className="hidden lg:flex fixed top-0 left-64 right-0 h-16 bg-white border-b border-gray-200 z-40 items-center px-6">
+      <header className="hidden lg:flex fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-40 items-center px-6">
         <button
           onClick={(e) => {
             // Ensure logo click only navigates, never logs out

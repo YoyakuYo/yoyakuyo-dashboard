@@ -195,7 +195,7 @@ const Sidebar = React.memo(() => {
     <>
       {/* Hamburger for mobile (render separately in layout/header where Sidebar is used) */}
       {/* Fixed Sidebar for desktop */}
-      <aside className="hidden lg:block w-64 bg-slate-900 text-white min-h-screen fixed left-0 top-0 pt-16">
+      <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white min-h-screen">
         <nav className="p-4 flex flex-col h-full">
           <ul className="space-y-1 flex-1">
             {navItems.map((item) => {
