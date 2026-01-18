@@ -296,14 +296,15 @@ function OwnerMessagesPageContent() {
         ok: res.ok,
       });
       
-      if (res.ok) {
+      if (res.ok || res.status === 304) {
         const data = await res.json();
         console.log('[Owner Messages] ✅ [DIAGNOSTIC] Messages loaded', {
           conversationId,
           messagesCount: data.messages?.length || 0,
+          fromCache: res.status === 304,
           messages: data.messages,
         });
-        
+
         // Format messages for display
         const formattedMessages: Message[] = (data.messages || []).map((msg: any) => {
           // Map sender_role to role and sender_type
@@ -327,11 +328,11 @@ function OwnerMessagesPageContent() {
             created_at: msg.created_at,
           };
         });
-        
+
         console.log('[Owner Messages] ✅ [DIAGNOSTIC] Formatted messages:', formattedMessages.length);
         setMessages(formattedMessages);
 
-        // Mark messages as read when conversation is loaded
+        // Mark messages as read when conversation is opened (even from cache)
         await markMessagesAsRead(conversationId);
       } else {
         const errorText = await res.text();
