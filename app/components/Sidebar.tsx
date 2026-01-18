@@ -42,21 +42,6 @@ const Sidebar = React.memo(() => {
     conversationDetails: ownerNotifications.filter(n => !n.is_read && n.type === 'new_message' && n.data?.conversation_id).map(n => ({ type: n.type, title: n.title, data: n.data }))
   });
 
-  // Count unread conversation messages (regular customer messages)
-  const unreadConversationCount = ownerNotifications.filter(
-    (n) => !n.is_read && n.type === 'new_message' && n.data?.conversation_id
-  ).length;
-
-  // Debug: Log notification counts
-  console.log('[Sidebar] Notification counts:', {
-    total: ownerNotifications.length,
-    unread: ownerNotifications.filter(n => !n.is_read).length,
-    supportTickets: unreadSupportCount,
-    conversationMessages: unreadConversationCount,
-    supportTicketDetails: ownerNotifications.filter(n => !n.is_read && n.type === 'new_support_ticket').map(n => ({ type: n.type, title: n.title, data: n.data })),
-    conversationDetails: ownerNotifications.filter(n => !n.is_read && n.type === 'new_message' && n.data?.conversation_id).map(n => ({ type: n.type, title: n.title, data: n.data }))
-  });
-
   // Load unread summary on mount
   useEffect(() => {
     if (user?.id) {
