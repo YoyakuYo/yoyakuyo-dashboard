@@ -36,7 +36,29 @@ function OwnerMessagesPageContent() {
   const searchParams = useSearchParams();
   const t = useTranslations();
   const [customerThreads, setCustomerThreads] = useState<CustomerThread[]>([]);
-  const [selectedThread, setSelectedThread] = useState<string | null>(null);
+  const [selectedThread, setSelectedThread] = useState<string | null>(() => {
+    // Try to restore selected conversation from localStorage or URL params
+    if (typeof window !== 'undefined') {
+      const urlConversationId = new URLSearchParams(window.location.search).get('conversation') ||
+                               new URLSearchParams(window.location.search).get('conversationId') ||
+                               new URLSearchParams(window.location.search).get('session');
+      if (urlConversationId) {
+        console.log('[Owner Messages] 🎯 Initializing with URL conversation:', urlConversationId);
+        return urlConversationId;
+      }
+
+      // Fallback to localStorage
+      const saved = localStorage.getItem('selectedConversation');
+      if (saved) {
+        console.log('[Owner Messages] 💾 Initializing with saved conversation:', saved);
+        return saved;
+      }
+
+      console.log('[Owner Messages] 🆕 Initializing with no conversation selected');
+      return null;
+    }
+    return null;
+  });
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -63,13 +85,35 @@ function OwnerMessagesPageContent() {
       searchParams.get('session');
 
     if (conversationId && conversationId !== selectedThread) {
+      console.log('[Owner Messages] 🔗 URL param conversation selected:', conversationId);
       setSelectedThread(conversationId);
+    } else if (!conversationId && selectedThread) {
+      // If no URL param but we have a saved conversation, keep it
+      console.log('[Owner Messages] 💾 Restored conversation from state/localStorage:', selectedThread);
     }
   }, [searchParams, selectedThread]);
+
+  // Force refresh conversations on window focus (user returning to tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user?.id && !loading) {
+        console.log('[Owner Messages] 🔄 Window focused - refreshing conversations');
+        loadCustomerThreads();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user?.id, loading]);
 
   useEffect(() => {
     if (selectedThread) {
       loadMessages(selectedThread);
+      // Save to localStorage for persistence across page refreshes
+      localStorage.setItem('selectedConversation', selectedThread);
+    } else {
+      // Clear localStorage when no conversation is selected
+      localStorage.removeItem('selectedConversation');
     }
   }, [selectedThread]);
 
@@ -86,8 +130,14 @@ function OwnerMessagesPageContent() {
     setLoading(true);
     try {
       await loadCustomerThreads();
+      console.log('[Owner Messages] ✅ Data loaded successfully');
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('[Owner Messages] ❌ Error loading data:', error);
+      // Clear any stale state on error
+      setCustomerThreads([]);
+      setMessages([]);
+      setSelectedThread(null);
+      localStorage.removeItem('selectedConversation');
     } finally {
       setLoading(false);
     }
@@ -125,6 +175,20 @@ function OwnerMessagesPageContent() {
           })
         );
         
+        // Sort conversations by last message time (most recent first)
+        conversationsWithShops.sort((a: any, b: any) => {
+          const aTime = new Date(a.last_message_at || a.created_at).getTime();
+          const bTime = new Date(b.last_message_at || b.created_at).getTime();
+          return bTime - aTime; // Most recent first
+        });
+
+        console.log('[Owner Messages] 📋 [DIAGNOSTIC] Conversations sorted by time, first 3:', conversationsWithShops.slice(0, 3).map(c => ({
+          id: c.id,
+          lastMessageAt: c.last_message_at,
+          createdAt: c.created_at,
+          customerName: c.customer?.name || 'Unknown'
+        })));
+
         // Format conversations for customer messages
         const formattedThreads: CustomerThread[] = conversationsWithShops.map((conv: any) => {
           // Prioritize customer name, but if not available, extract name from email or use type
@@ -168,6 +232,23 @@ function OwnerMessagesPageContent() {
         
         console.log('[Owner Messages] ✅ [DIAGNOSTIC] Formatted threads:', formattedThreads.length);
         console.log('[Owner Messages] 📋 [DIAGNOSTIC] Sample thread:', formattedThreads[0]);
+
+        // Auto-select most recent conversation if none selected
+        if (!selectedThread && formattedThreads.length > 0) {
+          const mostRecentThread = formattedThreads[0];
+          console.log('[Owner Messages] 🎯 Auto-selecting most recent conversation:', mostRecentThread.id);
+          setSelectedThread(mostRecentThread.id);
+        } else if (selectedThread && formattedThreads.length > 0) {
+          // Verify selected conversation still exists
+          const selectedExists = formattedThreads.some(t => t.id === selectedThread);
+          if (!selectedExists) {
+            console.log('[Owner Messages] ⚠️ Selected conversation no longer exists, auto-selecting most recent');
+            setSelectedThread(formattedThreads[0].id);
+          } else {
+            console.log('[Owner Messages] ✅ Selected conversation still exists:', selectedThread);
+          }
+        }
+
         setCustomerThreads(formattedThreads);
       } else {
         const errorText = await res.text();
@@ -366,9 +447,24 @@ function OwnerMessagesPageContent() {
         {/* Threads List */}
         <div className="w-80 bg-white rounded-lg shadow border border-gray-200 flex flex-col">
           <div className="p-4 border-b border-gray-200">
-            <h2 className="font-semibold text-gray-900">
-              {t('messages.customerConversations')}
-            </h2>
+            <div className="flex justify-between items-center">
+              <h2 className="font-semibold text-gray-900">
+                {t('messages.customerConversations')}
+              </h2>
+              <button
+                onClick={() => {
+                  console.log('[Owner Messages] 🔄 Manual refresh triggered');
+                  loadCustomerThreads();
+                }}
+                disabled={loading}
+                className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh conversations"
+              >
+                <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto">
             {customerThreads.length > 0 ? (
