@@ -170,7 +170,6 @@ BEGIN
     'start_time', b.start_time,
     'customer_name', COALESCE(c.name, pending_record.customer_name, 'Unknown'),
     'customer_email', c.email,
-    'customer_phone', c.phone,
     'notes', pending_record.notes, -- Notes come from pending booking
     'created_at', b.created_at
   ) INTO result
