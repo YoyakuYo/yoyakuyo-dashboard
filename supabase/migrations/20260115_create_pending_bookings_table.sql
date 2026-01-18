@@ -87,7 +87,7 @@ BEGIN
     RAISE EXCEPTION 'Pending booking not found';
   END IF;
 
-  -- Insert into bookings table
+  -- Insert into bookings table (only columns that exist)
   INSERT INTO bookings (
     shop_id,
     service_id,
@@ -97,9 +97,7 @@ BEGIN
     status,
     date,
     start_time,
-    notes,
-    created_at,
-    updated_at
+    created_at
   )
   VALUES (
     pending_record.shop_id,
@@ -110,9 +108,7 @@ BEGIN
     'confirmed',
     pending_record.date,
     pending_record.start_time,
-    pending_record.notes,
-    pending_record.created_at,
-    now()
+    pending_record.created_at
   )
   RETURNING id INTO confirmed_booking_id;
 
@@ -175,9 +171,8 @@ BEGIN
     'customer_name', COALESCE(c.name, pending_record.customer_name, 'Unknown'),
     'customer_email', c.email,
     'customer_phone', c.phone,
-    'notes', b.notes,
-    'created_at', b.created_at,
-    'updated_at', b.updated_at
+    'notes', pending_record.notes, -- Notes come from pending booking
+    'created_at', b.created_at
   ) INTO result
   FROM bookings b
   LEFT JOIN customers c ON b.customer_id = c.id
