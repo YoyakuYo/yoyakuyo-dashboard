@@ -19,22 +19,14 @@ export function useBookingNotificationsHook() {
     if (!user?.id) return;
 
     try {
-      const bookingsRes = await fetch(`${apiUrl}/bookings`, {
-        headers: {
-          'x-user-id': user.id,
-        },
-      });
+      // UNIFIED SYSTEM: Frontend should NOT show pending bookings
+      // All customer bookings go to pending_bookings first for AI approval
+      // Frontend only shows confirmed bookings, AI manages pending ones
+      // So the pending count should be 0 (no pending bookings shown in frontend)
+      setUnreadBookingsCount(0);
 
-      if (bookingsRes.ok) {
-        const bookingsData = await bookingsRes.json();
-        const bookings = Array.isArray(bookingsData) ? bookingsData : [];
-        // Count bookings with pending statuses: pending, awaiting_confirmation, reschedule_requested
-        const pendingStatuses = ['pending', 'awaiting_confirmation', 'reschedule_requested'];
-        const pendingCount = bookings.filter((booking: any) => 
-          pendingStatuses.includes(booking.status)
-        ).length;
-        setUnreadBookingsCount(pendingCount);
-      }
+      // Optional: You could show count of conversations with pending bookings
+      // But for now, keep it at 0 since frontend doesn't show pending bookings
     } catch (error: any) {
       // Silently handle connection errors (API server not running)
       if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {

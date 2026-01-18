@@ -516,9 +516,15 @@ const MyShopPage = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        // Filter to only this shop's bookings
-        const shopBookings = Array.isArray(data) 
-          ? data.filter((b: any) => b.shop_id === shopId)
+        // Filter to only this shop's bookings AND exclude old pending bookings
+        // Only show bookings that are confirmed, completed, or cancelled
+        // Don't show old 'pending' status bookings or bookings with null/undefined status
+        const shopBookings = Array.isArray(data)
+          ? data.filter((b: any) =>
+              b.shop_id === shopId &&
+              b.status && // Must have a status
+              (b.status === 'confirmed' || b.status === 'completed' || b.status === 'cancelled')
+            )
           : [];
         setBookings(shopBookings);
       }
@@ -1817,12 +1823,12 @@ const MyShopPage = () => {
                           booking.status === 'completed' ? 'bg-blue-100 text-blue-700' :
                           'bg-yellow-100 text-yellow-700'
                         }`}>
-                          {t(`status.${booking.status || 'pending'}`)}
+                          {t(`status.${booking.status || 'unknown'}`)}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex gap-2 flex-wrap">
-                          {(!booking.status || booking.status === 'pending') && (
+                          {/* Removed pending booking actions - only show for confirmed/completed/cancelled bookings */}
                             <>
                               <button
                                 onClick={() =>

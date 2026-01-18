@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/useAuth';
 import { useRouter } from 'next/navigation';
 import { apiUrl } from '@/lib/apiClient';
 import Link from 'next/link';
-import { useAIConversation } from '@/lib/useAIConversation';
+// AI conversation hook removed
 import FloatingHelpButton from '../../components/FloatingHelpButton';
 import { useTranslations } from 'next-intl';
 
@@ -403,11 +403,7 @@ export default function OwnerDashboardPage() {
             )}
           </div>
 
-          {/* AI Assistant Card */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">{t('dashboard.ownerAIAssistant')}</h2>
-            <AIAssistantCard shopId={shop?.id} />
-          </div>
+          {/* AI Assistant removed - no longer available */}
         </div>
 
         {/* Recent Activity */}
@@ -476,67 +472,4 @@ export default function OwnerDashboardPage() {
   );
 }
 
-// AI Assistant Card Component
-function AIAssistantCard({ shopId }: { shopId?: string }) {
-  const { user } = useAuth();
-  const t = useTranslations();
-  const { messages, addMessage, saving } = useAIConversation({
-    userType: 'owner',
-    userId: user?.id || undefined,
-    contextKey: 'owner_dashboard',
-    shopId: shopId || undefined,
-  });
-  const [input, setInput] = useState('');
-
-  const handleSend = async () => {
-    if (!input.trim() || saving) return;
-    await addMessage('user', input);
-    setInput('');
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="h-32 overflow-y-auto border rounded-lg p-3 bg-gray-50">
-        {messages.length === 0 ? (
-          <p className="text-sm text-gray-500">{t('dashboard.startAIConversation')}</p>
-        ) : (
-          <div className="space-y-2">
-            {messages.slice(-3).map((msg, idx) => (
-              <div key={idx} className={`text-sm ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                <span className={msg.role === 'user' ? 'text-blue-600' : 'text-gray-700'}>
-                  {msg.content}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-          className="flex-1 px-3 py-2 border rounded-lg text-sm"
-          placeholder={t('dashboard.askAQuestion')}
-          disabled={saving}
-        />
-        <button
-          onClick={handleSend}
-          disabled={saving || !input.trim()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
-        >
-          {t('chat.send')}
-        </button>
-      </div>
-      <Link href="/owner/ai" className="text-sm text-blue-600 hover:text-blue-800">
-        {t('dashboard.openFullAIAssistant')} →
-      </Link>
-    </div>
-  );
-}
+// AI Assistant Card component removed
