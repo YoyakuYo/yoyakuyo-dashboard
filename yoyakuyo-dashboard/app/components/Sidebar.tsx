@@ -112,7 +112,6 @@ const Sidebar = React.memo(() => {
     { href: '/owner/calendar', labelKey: 'nav.calendar', icon: '📆' },
     { href: '/analytics', labelKey: 'nav.analytics', icon: '📊' },
     { href: '/owner/messages', labelKey: 'nav.messages', icon: '💬', badge: unreadCount > 0 ? unreadCount : undefined },
-    { href: '/owner/ai', labelKey: 'nav.aiAssistant', icon: '🤖' },
     { href: '/owner/support', labelKey: 'nav.contactSupport', icon: '💬' },
     { href: '/owner/subscription', labelKey: 'nav.subscriptions', icon: '💳' },
     { href: '/owner/settings', labelKey: 'nav.settings', icon: '⚙️' },
