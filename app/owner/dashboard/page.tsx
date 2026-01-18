@@ -8,7 +8,6 @@ import { useAuth } from '@/lib/useAuth';
 import { useRouter } from 'next/navigation';
 import { apiUrl } from '@/lib/apiClient';
 import Link from 'next/link';
-// AI conversation hook removed
 import FloatingHelpButton from '../../components/FloatingHelpButton';
 import { useTranslations } from 'next-intl';
 
@@ -403,7 +402,6 @@ export default function OwnerDashboardPage() {
             )}
           </div>
 
-          {/* AI Assistant removed - no longer available */}
         </div>
 
         {/* Recent Activity */}
@@ -471,5 +469,3 @@ export default function OwnerDashboardPage() {
   );
 }
 
-// AI Assistant Card Component
-// AI Assistant Card component removed
