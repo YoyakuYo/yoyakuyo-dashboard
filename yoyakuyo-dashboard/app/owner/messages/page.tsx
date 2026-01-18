@@ -335,8 +335,8 @@ function OwnerMessagesPageContent() {
         // Mark messages as read when conversation is opened (even from cache)
         console.log('[Owner Messages] 🚀 [DIAGNOSTIC] About to call markMessagesAsRead for conversation:', conversationId);
         try {
-          await markMessagesAsRead(conversationId);
-          console.log('[Owner Messages] ✅ [DIAGNOSTIC] markMessagesAsRead completed successfully');
+          const result = await markMessagesAsRead(conversationId);
+          console.log('[Owner Messages] ✅ [DIAGNOSTIC] markMessagesAsRead result:', result);
         } catch (error) {
           console.error('[Owner Messages] ❌ [DIAGNOSTIC] markMessagesAsRead threw error:', error);
         }
