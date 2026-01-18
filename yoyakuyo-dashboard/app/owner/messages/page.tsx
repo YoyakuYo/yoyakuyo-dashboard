@@ -333,7 +333,13 @@ function OwnerMessagesPageContent() {
         setMessages(formattedMessages);
 
         // Mark messages as read when conversation is opened (even from cache)
-        await markMessagesAsRead(conversationId);
+        console.log('[Owner Messages] 🚀 [DIAGNOSTIC] About to call markMessagesAsRead for conversation:', conversationId);
+        try {
+          await markMessagesAsRead(conversationId);
+          console.log('[Owner Messages] ✅ [DIAGNOSTIC] markMessagesAsRead completed successfully');
+        } catch (error) {
+          console.error('[Owner Messages] ❌ [DIAGNOSTIC] markMessagesAsRead threw error:', error);
+        }
       } else {
         const errorText = await res.text();
         let errorData;
@@ -364,6 +370,8 @@ function OwnerMessagesPageContent() {
   };
 
   const markMessagesAsRead = async (conversationId: string) => {
+    console.log('[Owner Messages] 🎯 [DIAGNOSTIC] markMessagesAsRead function called with:', conversationId);
+
     if (!user?.id) {
       console.error('[Owner Messages] ❌ Cannot mark messages as read - missing user.id');
       return;
