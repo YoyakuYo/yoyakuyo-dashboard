@@ -309,7 +309,18 @@ function OwnerMessagesPageContent() {
           // Map sender_role to role and sender_type
           const isOwner = msg.sender_role === 'shop' || msg.sender_role === 'owner';
           const isAI = msg.sender_role === 'ai';
-          
+
+          console.log('[Owner Messages] 📝 Formatting message:', {
+            id: msg.id,
+            sender_role: msg.sender_role,
+            sender_type: msg.sender_type,
+            content_preview: (msg.content || msg.body || '').substring(0, 50),
+            isOwner,
+            isAI,
+            final_role: isOwner || isAI ? 'assistant' : 'user',
+            final_sender_type: isOwner ? 'owner' : 'customer'
+          });
+
           return {
             id: msg.id,
             role: isOwner || isAI ? 'assistant' : 'user',
