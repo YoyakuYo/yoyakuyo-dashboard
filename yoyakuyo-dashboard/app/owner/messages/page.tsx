@@ -319,6 +319,9 @@ function OwnerMessagesPageContent() {
         
         console.log('[Owner Messages] ✅ [DIAGNOSTIC] Formatted messages:', formattedMessages.length);
         setMessages(formattedMessages);
+
+        // Mark messages as read when conversation is loaded
+        await markMessagesAsRead(conversationId);
       } else {
         const errorText = await res.text();
         let errorData;
@@ -345,6 +348,57 @@ function OwnerMessagesPageContent() {
         userId: user.id,
       });
       setMessages([]);
+    }
+  };
+
+  const markMessagesAsRead = async (conversationId: string) => {
+    if (!user?.id) {
+      console.error('[Owner Messages] ❌ Cannot mark messages as read - missing user.id');
+      return;
+    }
+
+    try {
+      console.log('[Owner Messages] 📖 [DIAGNOSTIC] Marking messages as read', {
+        conversationId,
+        userId: user.id,
+        endpoint: `${apiUrl}/api/internal-messaging/${conversationId}/mark-read`,
+      });
+
+      const res = await fetch(`${apiUrl}/api/internal-messaging/${conversationId}/mark-read`, {
+        method: 'PATCH',
+        headers: {
+          'x-user-id': user.id,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('[Owner Messages] 📥 [DIAGNOSTIC] Mark read response', {
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+      });
+
+      if (res.ok) {
+        console.log('[Owner Messages] ✅ [DIAGNOSTIC] Messages marked as read successfully');
+
+        // Refresh conversation list to update unread counts
+        await loadCustomerThreads();
+      } else {
+        const errorText = await res.text();
+        console.error('[Owner Messages] ❌ [DIAGNOSTIC] Failed to mark messages as read', {
+          status: res.status,
+          error: errorText,
+          conversationId,
+          userId: user.id,
+        });
+      }
+    } catch (error: any) {
+      console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error marking messages as read', {
+        error,
+        message: error.message,
+        conversationId,
+        userId: user.id,
+      });
     }
   };
 
