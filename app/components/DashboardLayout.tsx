@@ -11,7 +11,7 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import OwnerSidebar from "./OwnerSidebar";
 import PublicLayoutWrapper from "./PublicLayoutWrapper";
-import { OwnerAIChatProvider, OwnerAIChat } from "./OwnerAIChat";
+// AI chat removed
 import { useBookingNotificationsHook } from "@/lib/useBookingNotifications";
 import BookingNotificationBar from "./BookingNotificationBar";
 import { useBookingNotifications } from "./BookingNotificationContext";
