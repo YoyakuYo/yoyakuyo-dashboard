@@ -389,10 +389,18 @@ function OwnerMessagesPageContent() {
         );
 
         console.log('[Owner Messages] 📧 [DIAGNOSTIC] Found related notifications to mark as read:', relatedNotifications.length);
+        console.log('[Owner Messages] 📧 [DIAGNOSTIC] All owner notifications:', ownerNotifications.map(n => ({
+          id: n.id,
+          type: n.type,
+          conversation_id: n.data?.conversation_id,
+          is_read: n.is_read,
+          recipient_id: n.recipient_id
+        })));
 
         // Mark each notification as read
         for (const notification of relatedNotifications) {
           try {
+            console.log('[Owner Messages] 🔄 [DIAGNOSTIC] Attempting to mark notification as read:', notification.id);
             await markAsRead(notification.id);
             console.log('[Owner Messages] ✅ [DIAGNOSTIC] Marked notification as read:', notification.id);
           } catch (error) {
