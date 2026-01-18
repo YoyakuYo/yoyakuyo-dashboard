@@ -119,7 +119,7 @@
     "shopSetup": "SHOP SETUP",
     "servicesPricing": "SERVICES & PRICING",
     "operations": "OPERATIONS",
-    "aiAutomation": "AI & AUTOMATION",
+    "automation": "AUTOMATION",
     "businessBilling": "BUSINESS & BILLING",
     "system": "SYSTEM",
     "shopProfile": "Shop Profile",
@@ -132,8 +132,7 @@
     "staffRoles": "Staff & Roles",
     "payouts": "Payouts",
     "settings": "Settings",
-    "aiBookingAssistant": "AI BOOKING ASSISTANT",
-    "availability": "Availability",
+    "availability": "Availability"
   },
   "home": {
     "welcomeTitle": "Welcome to Yoyaku Yo",
