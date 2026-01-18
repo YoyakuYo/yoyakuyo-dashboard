@@ -144,7 +144,7 @@ BEGIN
     type,
     title,
     body,
-    metadata
+    data
   )
   SELECT
     CASE WHEN c.role IN ('web', 'line') THEN 'customer' ELSE 'guest' END,
