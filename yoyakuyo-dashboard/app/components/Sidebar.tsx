@@ -141,82 +141,92 @@ const Sidebar = React.memo(() => {
 
   const MobileDrawer = (
     <div
-      className={`lg:hidden fixed inset-0 z-[300] bg-slate-900 text-white transition-transform duration-300 ${drawerOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      className={`lg:hidden fixed inset-0 z-[250] bg-slate-900 text-white transition-transform duration-300 ${
+        drawerOpen ? "translate-x-0" : "-translate-x-full"
+      }`}
       style={{ maxWidth: 320 }}
       onClick={() => setDrawerOpen(false)}
     >
       <nav
         className="p-4 h-full flex flex-col overflow-y-auto"
-        onClick={e => e.stopPropagation() /* Prevent overlay close when clicking inside menu */}
-        style={{ height: '100vh', width: '100%', pointerEvents: 'auto' }}
+        onClick={(e) => e.stopPropagation()}
+        style={{ height: "100vh", width: "100%" }}
       >
-        <button
-          aria-label="Close menu"
-          className="text-2xl text-gray-400 self-end mb-4"
-          onClick={() => setDrawerOpen(false)}
-        >
-          ×
-        </button>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-bold">Owner Dashboard</h1>
+          <button
+            aria-label="Close menu"
+            className="text-2xl text-gray-400"
+            onClick={() => setDrawerOpen(false)}
+          >
+            ×
+          </button>
+        </div>
         <ul className="space-y-1 flex-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
             return (
               <li key={item.href}>
-                <button
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors relative cursor-pointer w-full text-left ${
+                <Link
+                  href={item.href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     isActive
-                      ? 'bg-blue-600 text-white font-bold'
-                      : 'text-gray-300 hover:bg-slate-800 hover:text-white'
+                      ? "bg-blue-600 text-white font-bold"
+                      : "text-gray-300 hover:bg-slate-800 hover:text-white"
                   }`}
-                  style={{ pointerEvents: 'auto' }}
-                  onClick={() => {
-                    router.push(item.href);
-                    setDrawerOpen(false);
-                  }}
+                  onClick={() => setDrawerOpen(false)}
                 >
-                  {isActive && (
-                    <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r"></span>
-                  )}
                   <span className="text-xl">{item.icon}</span>
-                  <span className={`font-medium ${isActive ? 'font-bold' : ''}`}>{t(item.labelKey)}</span>
+                  <span>{t(item.labelKey)}</span>
                   {item.badge !== undefined && item.badge > 0 && (
                     <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
                       {item.badge}
                     </span>
                   )}
-                </button>
+                </Link>
               </li>
             );
           })}
         </ul>
-        <div className="mt-auto pt-4 border-t border-gray-700 mb-4">
+        <div className="mt-auto pt-4 border-t border-slate-700">
           {user && (
-            <div className="px-4 py-2 mb-2">
-              <p className="text-sm text-gray-400 truncate" title={user.email || undefined}>
-                {user.email}
-              </p>
+            <div className="px-4 py-2 text-sm text-gray-400 mb-2">
+              {user.email}
             </div>
           )}
           <button
             onClick={signOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-slate-800 hover:text-white transition-colors"
           >
-            <span className="text-xl">🚪</span>
-            <span className="font-medium">{t('nav.logout')}</span>
+            <span>🚪</span>
+            <span>{t('nav.logout')}</span>
           </button>
         </div>
       </nav>
-      <div className="fixed inset-0 z-[290] bg-black/60" onClick={() => setDrawerOpen(false)} />
     </div>
   );
 
   return (
     <>
-      {/* Hamburger for mobile (render separately in layout/header where Sidebar is used) */}
-      {/* Fixed Sidebar for desktop */}
-      <aside className="hidden lg:block w-64 bg-slate-900 text-white min-h-screen fixed left-0 top-0 pt-16">
-        <nav className="p-4 flex flex-col h-full">
-          <ul className="space-y-1 flex-1">
+      {/* Mobile menu button - matches ADMIN pattern */}
+      <button
+        className="lg:hidden fixed top-4 left-4 z-[251] bg-blue-600 text-white p-2 rounded-lg"
+        onClick={() => setDrawerOpen(true)}
+        aria-label="Open menu"
+      >
+        ☰
+      </button>
+
+      {/* Mobile drawer - matches ADMIN z-index and positioning */}
+      {MobileDrawer}
+
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white min-h-screen">
+        <div className="p-6 border-b border-slate-700">
+          <h1 className="text-xl font-bold">Owner Dashboard</h1>
+        </div>
+        <nav className="flex-1 p-4">
+          <ul className="space-y-1">
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
               return (
@@ -227,7 +237,6 @@ const Sidebar = React.memo(() => {
                         ? 'bg-blue-600 text-white font-bold'
                         : 'text-gray-300 hover:bg-slate-800 hover:text-white'
                     }`}
-                    style={{ pointerEvents: 'auto' }}
                     onClick={() => router.push(item.href)}
                   >
                     {isActive && (
@@ -245,26 +254,22 @@ const Sidebar = React.memo(() => {
               );
             })}
           </ul>
-          <div className="mt-auto pt-4 border-t border-gray-700">
-            {user && (
-              <div className="px-4 py-2 mb-2">
-                <p className="text-sm text-gray-400 truncate" title={user.email || undefined}>
-                  {user.email}
-                </p>
-              </div>
-            )}
-            <button
-              onClick={signOut}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-            >
-              <span className="text-xl">🚪</span>
-              <span className="font-medium">{t('nav.logout')}</span>
-            </button>
-          </div>
         </nav>
+        <div className="p-4 border-t border-slate-700">
+          {user && (
+            <div className="px-4 py-2 text-sm text-gray-400 mb-2 truncate">
+              {user.email}
+            </div>
+          )}
+          <button
+            onClick={signOut}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-slate-800 hover:text-white transition-colors"
+          >
+            <span>🚪</span>
+            <span>{t('nav.logout')}</span>
+          </button>
+        </div>
       </aside>
-      {/* Mobile drawer overlay */}
-      {MobileDrawer}
     </>
   );
 });
