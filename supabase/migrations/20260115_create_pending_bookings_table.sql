@@ -112,9 +112,8 @@ BEGIN
   )
   RETURNING id INTO confirmed_booking_id;
 
-  -- Mark pending booking as confirmed (or delete it)
-  UPDATE pending_bookings
-  SET notes = COALESCE(notes, '') || ' [CONFIRMED:' || confirmed_booking_id || ']'
+  -- Delete the pending booking since it's now confirmed
+  DELETE FROM pending_bookings
   WHERE id = pending_booking_id;
 
   -- Create notifications for the confirmed booking
