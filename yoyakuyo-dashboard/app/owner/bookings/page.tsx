@@ -185,7 +185,7 @@ export default function OwnerBookingsPage() {
   }
 
   return (
-    <div className="p-8">
+    <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">{t('nav.bookings')}</h1>
       </div>

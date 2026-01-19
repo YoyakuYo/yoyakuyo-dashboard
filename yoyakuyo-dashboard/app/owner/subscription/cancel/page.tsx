@@ -27,7 +27,7 @@ export default function SubscriptionCancelPage() {
   }
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto">
       <div className="bg-white rounded-lg shadow-lg p-8 text-center">
         <div className="mb-6">
           <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gray-100 mb-4">

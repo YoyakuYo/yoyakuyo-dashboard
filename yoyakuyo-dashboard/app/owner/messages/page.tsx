@@ -564,11 +564,11 @@ function OwnerMessagesPageContent() {
   }
 
   return (
-    <div className="p-8">
+    <div>
       <h1 className="text-3xl font-bold text-gray-900 mb-6">{t('messages.title')}</h1>
 
 
-      <div className="flex gap-6 h-[calc(100vh-250px)]">
+      <div className="flex gap-6 h-full">
         {/* Threads List */}
         <div className="w-80 bg-white rounded-lg shadow border border-gray-200 flex flex-col">
           <div className="p-4 border-b border-gray-200">

@@ -534,7 +534,7 @@ export default function ClaimShopPage() {
 
   return (
     <OwnerGuard>
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4">
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-8">
           {/* STEP 1: SELECT SHOP */}
