@@ -40,7 +40,7 @@ export default function BookingNotificationBar({
   if (!notification || !isVisible) return null;
 
   return (
-    <div className="fixed top-16 left-64 right-0 z-50 px-6 py-4 animate-slide-down">
+    <div className="fixed top-16 lg:left-64 left-0 right-0 z-50 px-6 py-4 animate-slide-down">
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-lg p-4 flex items-center justify-between max-w-4xl mx-auto">
         <div className="flex items-center gap-4 flex-1">
           <div className="flex-shrink-0">

@@ -144,7 +144,7 @@ const Sidebar = React.memo(() => {
 
   const MobileDrawer = (
     <div
-      className={`lg:hidden fixed inset-0 z-[250] bg-slate-900 text-white transition-transform duration-300 ${
+      className={`lg:hidden fixed inset-0 z-50 bg-slate-900 text-white transition-transform duration-300 ${
         drawerOpen ? "translate-x-0" : "-translate-x-full"
       }`}
       style={{ maxWidth: 320 }}
