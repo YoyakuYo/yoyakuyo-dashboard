@@ -108,11 +108,24 @@ export default function DashboardLayout({
   return (
     <AuthGuard>
       <BookingNotificationsWrapper>
-        <Header />
-        <Sidebar />
-        <main className="lg:ml-64 pt-16 min-h-screen bg-gray-50">
-          {children}
-        </main>
+        {/* Dashboard Layout Container - Flex layout for sidebar + content */}
+        <div className="flex min-h-screen bg-gray-50">
+          {/* Sidebar - Fixed width, full height */}
+          <Sidebar />
+
+          {/* Main Content Area - Takes remaining space */}
+          <div className="flex-1 flex flex-col min-h-screen">
+            {/* Header - Fixed at top of content area */}
+            <Header />
+
+            {/* Page Content - Scrollable area below header */}
+            <main className="flex-1 overflow-y-auto pt-4 pb-8">
+              <div className="px-6 lg:px-8">
+                {children}
+              </div>
+            </main>
+          </div>
+        </div>
       </BookingNotificationsWrapper>
     </AuthGuard>
   );

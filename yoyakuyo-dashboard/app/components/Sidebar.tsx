@@ -215,7 +215,7 @@ const Sidebar = React.memo(() => {
       {MobileDrawer}
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex flex-col fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] bg-slate-900 text-white">
+      <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white min-h-screen">
         <div className="p-6 border-b border-slate-700">
           <h1 className="text-xl font-bold">Owner Dashboard</h1>
         </div>
