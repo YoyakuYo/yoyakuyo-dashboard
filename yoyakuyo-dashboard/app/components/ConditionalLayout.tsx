@@ -50,6 +50,7 @@ export default function ConditionalLayout({
   }
   
   // For all other routes, use DashboardLayout
+  console.log("🔄 CONDITIONALLAYOUT: Using DashboardLayout for path:", pathname);
   return <DashboardLayout>{children}</DashboardLayout>;
 }
 

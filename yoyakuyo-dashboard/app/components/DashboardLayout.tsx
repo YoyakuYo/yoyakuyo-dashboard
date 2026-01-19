@@ -37,6 +37,10 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // HARD DEBUG LOGGING
+  console.log("🔥 DASHBOARD LAYOUT MOUNTED FOR PATH:", pathname);
+  console.log("🔥 DASHBOARD LAYOUT CHILDREN:", !!children);
+
   // Listen for sidebar drawer open events
   useEffect(() => {
     const handleOpenSidebar = () => setDrawerOpen(true);
@@ -49,7 +53,8 @@ export default function DashboardLayout({
   // All other routes are public and use (public)/layout.tsx
   const isOwnerRoute = useMemo(() => {
     const route = pathname || "";
-    
+    console.log("🔍 CHECKING ROUTE FOR OWNER LAYOUT:", route);
+
     // Owner dashboard routes (protected, should use DashboardLayout)
     const ownerRoutes = [
       '/shops', // Owner dashboard (not /shops/[id] which is public)
@@ -58,19 +63,22 @@ export default function DashboardLayout({
       '/settings',
       '/analytics',
     ];
-    
+
     // Check exact matches
     if (ownerRoutes.includes(route)) {
+      console.log("✅ EXACT OWNER ROUTE MATCH:", route);
       return true;
     }
-    
+
     // Check if it starts with owner route patterns
-    if (route.startsWith('/shops/services') || 
-        route.startsWith('/owner/') || 
+    if (route.startsWith('/shops/services') ||
+        route.startsWith('/owner/') ||
         route.startsWith('/owner/subscription')) {
+      console.log("✅ OWNER ROUTE PATTERN MATCH:", route);
       return true;
     }
-    
+
+    console.log("❌ NOT AN OWNER ROUTE:", route);
     // Everything else is public (uses (public)/layout.tsx)
     return false;
   }, [pathname]);
@@ -113,6 +121,7 @@ export default function DashboardLayout({
   }
 
   // For owner dashboard routes, apply full dashboard layout with AuthGuard
+  console.log("🎯 RENDERING OWNER DASHBOARD LAYOUT FOR:", pathname);
   return (
     <AuthGuard>
       <BookingNotificationsWrapper>
