@@ -119,8 +119,8 @@ export default function DashboardLayout({
             <Header />
 
             {/* Page Content - Scrollable area below header */}
-            <main className="flex-1 overflow-y-auto pt-4 pb-8">
-              <div className="px-6 lg:px-8">
+            <main className="flex-1 overflow-auto">
+              <div className="p-6 lg:p-8">
                 {children}
               </div>
             </main>
