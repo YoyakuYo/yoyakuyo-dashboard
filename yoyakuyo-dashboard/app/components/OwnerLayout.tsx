@@ -1,8 +1,7 @@
 "use client";
 
 import React from 'react';
-import DesktopSidebar from './DesktopSidebar';
-import MobileSidebar from './MobileSidebar';
+import OwnerSidebar from './OwnerSidebar';
 import Header from './Header';
 
 interface OwnerLayoutProps {
@@ -12,8 +11,8 @@ interface OwnerLayoutProps {
 const OwnerLayout: React.FC<OwnerLayoutProps> = ({ children }) => {
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Desktop Sidebar - Direct flex item like AdminSidebar */}
-      <DesktopSidebar />
+      {/* OwnerSidebar - Unified component like AdminSidebar */}
+      <OwnerSidebar />
 
       {/* Content Area - Takes remaining space like admin layout */}
       <div className="flex-1 flex flex-col">
@@ -25,9 +24,6 @@ const OwnerLayout: React.FC<OwnerLayoutProps> = ({ children }) => {
           <div className="p-6 lg:p-8">{children}</div>
         </main>
       </div>
-
-      {/* Mobile Sidebar - Separate overlay */}
-      <MobileSidebar />
     </div>
   );
 };
