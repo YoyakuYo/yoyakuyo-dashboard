@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/useAuth';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
+import { useShop } from '../contexts/ShopContext';
 import ReviewCard from '../components/ReviewCard';
 import ReviewStats from '../components/ReviewStats';
 import ShopCalendar from '../components/ShopCalendar';
@@ -159,16 +160,16 @@ const MyShopPage = () => {
   const authLoading = Boolean(loading); // Ensure it's always a boolean for stable dependency array
   const router = useRouter();
   const t = useTranslations();
+  const { shop, loading: shopLoading, refreshShop, updateShop } = useShop();
   const { unreadBookingsCount } = useBookingNotifications();
   const { notifications, markAsRead } = useNotifications('owner', user?.id || '');
-  
+
   // Count unread review notifications
   const unreadReviewsCount = notifications.filter(
     (n) => !n.is_read && n.type === 'new_review'
   ).length;
 
-  const [shop, setShop] = useState<Shop | null>(null);
-  const [pageLoading, setPageLoading] = useState(true);
+  const pageLoading = shopLoading;
   const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'staff' | 'bookings' | 'photos' | 'reviews' | 'calendar'>('overview');
   
   // Form states
@@ -319,154 +320,35 @@ const MyShopPage = () => {
     }
   }, [showClaimShop, user, authLoading, apiUrl]);
 
-  // Fetch user's shop
+  // Initialize shop form when shop data is available
   useEffect(() => {
-    // Wait for auth to finish loading and ensure user exists with valid ID
-    if (authLoading || !user || !user.id) {
-      if (authLoading) {
-        setPageLoading(true);
-      } else if (!user) {
-        setPageLoading(false);
-      }
-      return;
+    if (shop) {
+      setShopForm({
+        name: shop.name || '',
+        address: shop.address || '',
+        phone: shop.phone || '',
+        email: shop.email || '',
+        website: shop.website || '',
+        google_place_id: shop.google_place_id || '',
+        city: shop.city || '',
+        country: shop.country || '',
+        zip_code: shop.zip_code || '',
+        description: shop.description || '',
+        language_code: shop.language_code || '',
+        category: shop.category || null,
+        subcategory: shop.subcategory || null,
+        logo_url: shop.logo_url || null,
+        cover_photo_url: shop.cover_photo_url || null,
+      });
+      // Fetch related data
+      fetchServices(shop.id);
+      fetchStaff(shop.id);
+      fetchBookings(shop.id);
+      fetchPhotos(shop.id);
+    } else {
+      setShopForm({});
     }
-
-    // Prevent multiple concurrent fetches
-    if (pageLoading) return;
-
-    const fetchMyShop = async () => {
-      try {
-        setPageLoading(true);
-        // Validate user.id is a valid UUID before making request
-        if (!user.id || typeof user.id !== 'string' || user.id === 'undefined' || user.id === 'null') {
-          console.error('Invalid user ID:', user.id);
-          setShop(null);
-          setShopForm({});
-          setPageLoading(false);
-          return;
-        }
-
-        // Fetch shops owned by user - backend filters by owner_user_id when my_shops=true
-        // Use pagination to limit response (only need first shop, limit to 1 for performance)
-        const url = `${apiUrl}/shops?my_shops=true&page=1&limit=1`;
-        console.log('Fetching shop from:', url);
-        console.log('User ID:', user.id);
-        
-        let res;
-        try {
-          res = await fetch(url, {
-            headers: {
-              'x-user-id': user.id,
-              'Content-Type': 'application/json',
-            },
-          });
-        } catch (fetchError: any) {
-          // Handle connection errors gracefully
-          if (fetchError?.message?.includes('Failed to fetch') || fetchError?.message?.includes('ERR_CONNECTION_REFUSED')) {
-            // API server is not running - silently handle
-            setShop(null);
-            setShopForm({});
-            setPageLoading(false);
-            return;
-          }
-          throw fetchError;
-        }
-        
-        if (res.status === 404) {
-          // User owns no shop - this is not an error, just no shop exists
-          console.log('No shop found for user (404 response)');
-          setShop(null);
-          setShopForm({});
-          setPageLoading(false);
-          return;
-        }
-        
-        if (res.ok) {
-          const contentType = res.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            try {
-              const response = await res.json();
-              // Backend returns paginated: { shops: [...], page, limit, total, totalPages }
-              const shopsArray = Array.isArray(response) 
-                ? response 
-                : (response.shops && Array.isArray(response.shops)
-                  ? response.shops
-                  : (response.data && Array.isArray(response.data) 
-                    ? response.data 
-                    : []));
-              if (shopsArray.length > 0) {
-                // Use the first shop if multiple exist
-                const userShop = shopsArray[0];
-                setShop(userShop);
-                setShopForm({
-                  name: userShop.name || '',
-                  address: userShop.address || '',
-                  phone: userShop.phone || '',
-                  email: userShop.email || '',
-                  website: userShop.website || '',
-                  google_place_id: userShop.google_place_id || '',
-                  city: userShop.city || '',
-                  country: userShop.country || '',
-                  zip_code: userShop.zip_code || '',
-                  description: userShop.description || '',
-                  language_code: userShop.language_code || '',
-                  category: userShop.category || null,
-                  subcategory: userShop.subcategory || null,
-                  logo_url: userShop.logo_url || null,
-                  cover_photo_url: userShop.cover_photo_url || null,
-                });
-                // Fetch related data
-                fetchServices(userShop.id);
-                fetchStaff(userShop.id);
-                fetchBookings(userShop.id);
-                fetchPhotos(userShop.id);
-              } else {
-                setShop(null);
-                setShopForm({});
-              }
-            } catch (jsonError: any) {
-              console.error('Error parsing JSON response:', jsonError);
-              setShop(null);
-              setShopForm({});
-            }
-          } else {
-            console.error('Expected JSON but received:', contentType);
-            setShop(null);
-            setShopForm({});
-          }
-        } else {
-          // Handle non-200 responses
-          const contentType = res.headers.get('content-type');
-          let errorText = 'Unknown error';
-          if (contentType && contentType.includes('application/json')) {
-            try {
-              const errorData = await res.json();
-              errorText = errorData.error || errorData.message || errorText;
-            } catch {
-              errorText = await res.text().catch(() => 'Unknown error');
-            }
-          } else {
-            errorText = await res.text().catch(() => 'Unknown error');
-          }
-          console.error('Error fetching shop:', res.status, res.statusText, errorText);
-          setShop(null);
-          setShopForm({});
-        }
-      } catch (error: any) {
-        // Silently handle connection errors (API server not running)
-        if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-          console.error('Error fetching shop:', error);
-        }
-        // Ensure consistent state on error
-        setShop(null);
-        setShopForm({});
-      } finally {
-        setPageLoading(false);
-      }
-    };
-
-    fetchMyShop();
-  }, [user, authLoading, apiUrl]);
+  }, [shop]);
 
   const fetchServices = async (shopId: string) => {
     if (!shopId || !user) return;
@@ -981,7 +863,7 @@ const MyShopPage = () => {
 
       if (res.ok) {
         const newShop = await res.json();
-        setShop(newShop);
+        updateShop(newShop);
         setShopForm(newShop);
         setShowCreateShop(false);
         router.refresh();
@@ -1026,7 +908,7 @@ const MyShopPage = () => {
 
       if (res.ok) {
         const updatedShop = await res.json();
-        setShop(updatedShop);
+        updateShop(updatedShop);
         setShopForm(updatedShop);
         setEditingShop(false);
       } else {
@@ -1157,7 +1039,7 @@ const MyShopPage = () => {
 
           if (updateRes.ok) {
             const updatedShop = await updateRes.json();
-            setShop(updatedShop);
+            updateShop(updatedShop);
           }
           // Only refresh for logo/cover to update shop data
           router.refresh();
@@ -1237,7 +1119,7 @@ const MyShopPage = () => {
 
           if (updateRes.ok) {
             const updatedShop = await updateRes.json();
-            setShop(updatedShop);
+            updateShop(updatedShop);
           }
         }
         
@@ -1386,7 +1268,7 @@ const MyShopPage = () => {
                             
                             if (res.ok) {
                               const claimedShop = await res.json();
-                              setShop(claimedShop);
+                              updateShop(claimedShop);
                               setShopForm(claimedShop);
                               setShowClaimShop(false);
                               router.refresh();
