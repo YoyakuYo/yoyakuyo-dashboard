@@ -132,7 +132,7 @@ const Sidebar = React.memo(() => {
 
   // Owner navigation: put "My Shop" at the top and remove the legacy Dashboard link
   const navItems = [
-    { href: '/owner/shop-profile', labelKey: 'nav.myShop', icon: '🏪' },
+    { href: '/shops', labelKey: 'nav.myShop', icon: '🏪' },
     { href: '/owner/bookings', labelKey: 'nav.bookings', icon: '📅', badge: unreadBookingsCount > 0 ? unreadBookingsCount : undefined },
     { href: '/owner/calendar', labelKey: 'nav.calendar', icon: '📆' },
     { href: '/analytics', labelKey: 'nav.analytics', icon: '📊' },
@@ -170,14 +170,16 @@ const Sidebar = React.memo(() => {
             const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
             return (
               <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                <button
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full text-left ${
                     isActive
                       ? "bg-blue-600 text-white font-bold"
                       : "text-gray-300 hover:bg-slate-800 hover:text-white"
                   }`}
-                  onClick={() => setDrawerOpen(false)}
+                  onClick={() => {
+                    setDrawerOpen(false);
+                    router.push(item.href);
+                  }}
                 >
                   <span className="text-xl">{item.icon}</span>
                   <span>{t(item.labelKey)}</span>
@@ -186,7 +188,7 @@ const Sidebar = React.memo(() => {
                       {item.badge}
                     </span>
                   )}
-                </Link>
+                </button>
               </li>
             );
           })}

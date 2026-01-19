@@ -331,6 +331,9 @@ const MyShopPage = () => {
       return;
     }
 
+    // Prevent multiple concurrent fetches
+    if (pageLoading) return;
+
     const fetchMyShop = async () => {
       try {
         setPageLoading(true);
@@ -370,8 +373,8 @@ const MyShopPage = () => {
         }
         
         if (res.status === 404) {
-          // User owns no shop
-          console.log('No shop found for user');
+          // User owns no shop - this is not an error, just no shop exists
+          console.log('No shop found for user (404 response)');
           setShop(null);
           setShopForm({});
           setPageLoading(false);
@@ -454,6 +457,7 @@ const MyShopPage = () => {
         if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
           console.error('Error fetching shop:', error);
         }
+        // Ensure consistent state on error
         setShop(null);
         setShopForm({});
       } finally {

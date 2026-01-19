@@ -22,7 +22,7 @@ export default function Header() {
       {/* Mobile Header */}
       <header className="lg:hidden flex items-center px-4 h-14 bg-white/95 border-b border-gray-200 shadow-sm sticky top-0 z-[201]">
         <button
-          className="text-2xl text-gray-800 focus:outline-none p-2 mr-2 lg:hidden"
+          className="text-2xl text-gray-800 focus:outline-none p-2 mr-2 lg:hidden relative z-[202]"
           aria-label="Open menu"
           onClick={handleOpenSidebar}
         >
