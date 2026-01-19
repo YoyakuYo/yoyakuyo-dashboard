@@ -341,9 +341,9 @@ function OwnerMessagesPageContent() {
           console.log('[Owner Messages] 🎯 [DIAGNOSTIC] Inside try block, about to call markMessagesAsRead');
           const result = await markMessagesAsRead(conversationId);
           console.log('[Owner Messages] ✅ [DIAGNOSTIC] markMessagesAsRead completed with result:', result);
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('[Owner Messages] ❌ [DIAGNOSTIC] markMessagesAsRead threw error:', error);
-          console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error stack:', error?.stack);
+          console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error stack:', error instanceof Error ? error.stack : 'No stack trace available');
         }
 
         // Force refresh conversation list after marking messages as read
