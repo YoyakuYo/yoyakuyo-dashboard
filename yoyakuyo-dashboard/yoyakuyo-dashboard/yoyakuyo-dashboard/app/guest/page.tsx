@@ -76,7 +76,7 @@ export default function GuestInboxPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await messagingFetch(`${apiUrl}/api/internal-messaging/${convId}/messages`, {
+      const res = await messagingFetch(`${apiUrl}/api/internal-messaging/conversations/${convId}/messages`, {
         bookingToken: guestId,
       });
       if (!res.ok) {

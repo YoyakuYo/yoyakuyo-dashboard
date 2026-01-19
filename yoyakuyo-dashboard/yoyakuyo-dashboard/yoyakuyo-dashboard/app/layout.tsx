@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/useAuth";
 import { CustomAuthProvider } from "@/lib/useCustomAuth";
-import { AuthRoleProvider } from "@/lib/AuthRoleContext";
 import { NextIntlProviderWrapper } from "./components/NextIntlProvider";
 import { BookingNotificationProvider } from "./components/BookingNotificationContext";
 import ConditionalLayout from "./components/ConditionalLayout";
@@ -52,17 +51,15 @@ export default function RootLayout({
         {/* Universal Language Selector - sticky, always top (hidden on LINE app routes) */}
         <ConditionalLanguageSwitcher />
         <NextIntlProviderWrapper>
-          <AuthRoleProvider>
-            <AuthProvider>
-              <CustomAuthProvider>
-                <BookingNotificationProvider>
-                  <ConditionalLayout>
-                    {children}
-                  </ConditionalLayout>
-                </BookingNotificationProvider>
-              </CustomAuthProvider>
-            </AuthProvider>
-          </AuthRoleProvider>
+          <AuthProvider>
+            <CustomAuthProvider>
+              <BookingNotificationProvider>
+                <ConditionalLayout>
+                  {children}
+                </ConditionalLayout>
+              </BookingNotificationProvider>
+            </CustomAuthProvider>
+          </AuthProvider>
         </NextIntlProviderWrapper>
       </body>
     </html>

@@ -7,9 +7,10 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import AuthGuard from "./AuthGuard";
-import OwnerLayout from "./OwnerLayout";
+import Header from "./Header";
+import Sidebar from "./Sidebar";
+import OwnerSidebar from "./OwnerSidebar";
 import PublicLayoutWrapper from "./PublicLayoutWrapper";
-import { ShopProvider } from "../contexts/ShopContext";
 // AI chat removed
 import { useBookingNotificationsHook } from "@/lib/useBookingNotifications";
 import BookingNotificationBar from "./BookingNotificationBar";
@@ -106,13 +107,13 @@ export default function DashboardLayout({
   // For owner dashboard routes, apply full dashboard layout with AuthGuard
   return (
     <AuthGuard>
-      <ShopProvider>
-        <BookingNotificationsWrapper>
-          <OwnerLayout>
-            {children}
-          </OwnerLayout>
-        </BookingNotificationsWrapper>
-      </ShopProvider>
+      <BookingNotificationsWrapper>
+        <Header />
+        <Sidebar />
+        <main className="lg:ml-64 pt-16 min-h-screen bg-gray-50">
+          {children}
+        </main>
+      </BookingNotificationsWrapper>
     </AuthGuard>
   );
 }

@@ -9,7 +9,7 @@ import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
 import { useBookingNotifications } from './BookingNotificationContext';
-import { useNotifications } from '@/lib/useNotifications';
+import NotificationDot from './NotificationDot';
 
 const Sidebar = React.memo(() => {
   const pathname = usePathname();
@@ -18,13 +18,7 @@ const Sidebar = React.memo(() => {
   const [unreadCount, setUnreadCount] = useState(0);
   const subscriptionRef = useRef<any>(null);
   const { unreadBookingsCount } = useBookingNotifications();
-  const { notifications: ownerNotifications } = useNotifications('owner', user?.id || '');
   const [drawerOpen, setDrawerOpen] = useState(false);
-  
-  // Count unread support ticket notifications
-  const unreadSupportCount = ownerNotifications.filter(
-    (n) => !n.is_read && (n.type === 'new_support_ticket' || (n.type === 'new_message' && n.data?.conversation_id))
-  ).length;
 
   // Load unread summary on mount
   useEffect(() => {
@@ -114,11 +108,11 @@ const Sidebar = React.memo(() => {
   // Owner navigation: put "My Shop" at the top and remove the legacy Dashboard link
   const navItems = [
     { href: '/owner/shop-profile', labelKey: 'nav.myShop', icon: '🏪' },
-    { href: '/owner/bookings', labelKey: 'nav.bookings', icon: '📅', badge: unreadBookingsCount > 0 ? unreadBookingsCount : undefined },
+    { href: '/owner/bookings', labelKey: 'nav.bookings', icon: '📅' },
     { href: '/owner/calendar', labelKey: 'nav.calendar', icon: '📆' },
     { href: '/analytics', labelKey: 'nav.analytics', icon: '📊' },
     { href: '/owner/messages', labelKey: 'nav.messages', icon: '💬', badge: unreadCount > 0 ? unreadCount : undefined },
-    { href: '/owner/support', labelKey: 'nav.contactSupport', icon: '💬', badge: unreadSupportCount > 0 ? unreadSupportCount : undefined },
+    { href: '/owner/support', labelKey: 'nav.contactSupport', icon: '💬' },
     { href: '/owner/subscription', labelKey: 'nav.subscriptions', icon: '💳' },
     { href: '/owner/settings', labelKey: 'nav.settings', icon: '⚙️' },
   ];
@@ -195,7 +189,7 @@ const Sidebar = React.memo(() => {
     <>
       {/* Hamburger for mobile (render separately in layout/header where Sidebar is used) */}
       {/* Fixed Sidebar for desktop */}
-      <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white min-h-screen">
+      <aside className="hidden lg:block w-64 bg-slate-900 text-white min-h-screen fixed left-0 top-0 pt-16">
         <nav className="p-4 flex flex-col h-full">
           <ul className="space-y-1 flex-1">
             {navItems.map((item) => {

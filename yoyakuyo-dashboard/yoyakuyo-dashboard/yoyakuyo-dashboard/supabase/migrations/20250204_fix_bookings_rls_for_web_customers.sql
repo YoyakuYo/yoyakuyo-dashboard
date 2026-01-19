@@ -10,24 +10,29 @@ DROP POLICY IF EXISTS "bookings_read_own" ON bookings;
 -- ============================================
 -- Create updated RLS policy for customers to read their own bookings
 -- ============================================
--- Allow customers to read bookings where customer_id references a customer with matching auth_user_id
+-- Allow customers to read bookings where:
+-- 1. customer_id = auth.uid() (old structure, for Supabase Auth users)
+-- 2. user_id = auth.uid() (new structure, for web customers)
+-- 3. customer_profile_id matches a profile where customer_auth_id = auth.uid() (web customers with profiles)
 CREATE POLICY "bookings_read_own"
 ON bookings
 FOR SELECT
 USING (
-  -- Check if the booking belongs to a web customer where auth_user_id = current user
+  -- Old structure: customer_id = auth.uid()
+  customer_id = auth.uid()
+  OR
+  -- New structure: user_id = auth.uid()
+  user_id = auth.uid()
+  OR
+  -- Web customers with profiles: customer_profile_id matches profile where customer_auth_id = auth.uid()
   EXISTS (
-    SELECT 1 FROM customers c
-    WHERE c.id = bookings.customer_id
-    AND c.auth_user_id = auth.uid()
+    SELECT 1 FROM customer_profiles cp
+    WHERE cp.id = bookings.customer_profile_id
+    AND cp.customer_auth_id = auth.uid()
   )
   OR
-  -- Allow reading guest bookings (no ownership check for guests)
-  EXISTS (
-    SELECT 1 FROM customers c
-    WHERE c.id = bookings.customer_id
-    AND c.role = 'guest'
-  )
+  -- Fallback: customer_profile_id = auth.uid() (old structure)
+  customer_profile_id = auth.uid()
 );
 
 -- ============================================
@@ -39,27 +44,29 @@ CREATE POLICY "bookings_insert_own"
 ON bookings
 FOR INSERT
 WITH CHECK (
-  -- Check if the booking belongs to a web customer where auth_user_id = current user
+  -- Old structure: customer_id = auth.uid()
+  customer_id = auth.uid()
+  OR
+  -- New structure: user_id = auth.uid()
+  user_id = auth.uid()
+  OR
+  -- Web customers with profiles: customer_profile_id matches profile where customer_auth_id = auth.uid()
   EXISTS (
-    SELECT 1 FROM customers c
-    WHERE c.id = bookings.customer_id
-    AND c.auth_user_id = auth.uid()
+    SELECT 1 FROM customer_profiles cp
+    WHERE cp.id = bookings.customer_profile_id
+    AND cp.customer_auth_id = auth.uid()
   )
   OR
-  -- Allow guest bookings (customer_id references a guest customer)
-  EXISTS (
-    SELECT 1 FROM customers c
-    WHERE c.id = bookings.customer_id
-    AND c.role = 'guest'
-  )
+  -- Fallback: customer_profile_id = auth.uid() (old structure)
+  customer_profile_id = auth.uid()
   OR
-  -- Allow creating bookings without customer_id (pure guest bookings)
-  customer_id IS NULL
+  -- Allow guest bookings (customer_id is NULL, user_id is NULL, customer_profile_id is NULL)
+  (customer_id IS NULL AND user_id IS NULL AND customer_profile_id IS NULL)
 );
 
 -- ============================================
 -- Comments
 -- ============================================
-COMMENT ON POLICY "bookings_read_own" ON bookings IS 'Allows customers to read their own bookings by checking if customer_id references a customer with matching auth_user_id, or allows reading guest bookings';
-COMMENT ON POLICY "bookings_insert_own" ON bookings IS 'Allows customers to create bookings for themselves or guest bookings';
+COMMENT ON POLICY "bookings_read_own" ON bookings IS 'Allows customers to read their own bookings by customer_id, user_id, or customer_profile_id';
+COMMENT ON POLICY "bookings_insert_own" ON bookings IS 'Allows customers to create their own bookings or guest bookings';
 

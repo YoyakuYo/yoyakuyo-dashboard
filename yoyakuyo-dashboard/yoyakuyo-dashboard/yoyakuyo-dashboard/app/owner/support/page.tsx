@@ -61,34 +61,25 @@ export default function OwnerSupportPage() {
     );
   }
 
-  if (!shopId) {
-    return (
-      <div className="p-8">
-        <div className="mb-6">
-          <Link href="/owner/shop-profile" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
-            ← {t('common.back')} {t('nav.dashboard')}
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900">{t('support.title') || 'Contact Support'}</h1>
-          <p className="text-gray-600 mt-1">{t('support.subtitle') || 'Get help from our support team'}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-8 text-center">
-          <p className="text-gray-600 mb-4">{t('support.loadingShop') || 'Loading shop information...'}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="p-8">
       <div className="mb-6">
         <Link href="/owner/shop-profile" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
           ← {t('common.back')} {t('nav.dashboard')}
         </Link>
-        <h1 className="text-3xl font-bold text-gray-900">{t('support.title') || 'Contact Support'}</h1>
-        <p className="text-gray-600 mt-1">{t('support.subtitle') || 'Get help from our support team'}</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t('support.title')}</h1>
+        <p className="text-gray-600 mt-1">{t('support.subtitle')}</p>
       </div>
 
-      <SupportChat shopId={shopId} />
+      <div className="bg-white rounded-lg shadow border border-gray-200 p-8 text-center">
+        <p className="text-gray-600 mb-4">{t('support.unavailable')}</p>
+        <Link
+          href="/owner/shop-profile"
+          className="text-blue-600 hover:text-blue-800 font-medium"
+        >
+          {t('common.back')} {t('nav.dashboard')} →
+        </Link>
+      </div>
     </div>
   );
 }

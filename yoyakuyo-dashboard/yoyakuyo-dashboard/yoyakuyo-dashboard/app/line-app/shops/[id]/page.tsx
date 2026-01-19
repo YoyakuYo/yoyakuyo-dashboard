@@ -44,20 +44,6 @@ interface TimeSlot {
   end_time: string;
 }
 
-interface AvailabilityWindow {
-  id: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  status?: 'available' | 'booked' | 'blocked';
-  source?: 'manual' | 'booking' | 'template';
-}
-
-type DateStatusOption = {
-  date: string; // YYYY-MM-DD
-  status: "available" | "closed";
-};
-
 interface Review {
   id: string;
   rating: number;
@@ -84,9 +70,6 @@ export default function LineShopDetailPage() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
-  const [dateOptions, setDateOptions] = useState<DateStatusOption[]>([]);
-  const [selectedAvailabilityWindow, setSelectedAvailabilityWindow] = useState<AvailabilityWindow | null>(null);
-  const [useCalendarPicker, setUseCalendarPicker] = useState(true);
   const [loadingTimeSlots, setLoadingTimeSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
@@ -199,13 +182,12 @@ export default function LineShopDetailPage() {
   // Load favorite status for this shop when customerId is available
   useEffect(() => {
     const loadFavoriteStatus = async () => {
-      if (!customerId || !lineUserId || !apiUrl || !shopId) return;
+      if (!customerId || !apiUrl || !shopId) return;
 
       try {
         const res = await fetch(`${apiUrl}/customers/favorites`, {
           headers: {
-            "x-line-user-id": lineUserId, // PRIMARY: Use LINE identity for resolution
-            "x-customer-id": customerId, // BACKUP: In case middleware needs fallback
+            "x-user-id": customerId,
           },
         });
 
@@ -404,110 +386,6 @@ export default function LineShopDetailPage() {
     }
   }, [selectedDate, selectedServiceId]);
 
-  const normalizeTimeToHHMMSS = (t: string): string => {
-    const s = String(t || '').trim();
-    if (!s) return '00:00:00';
-    if (/^\d{2}:\d{2}$/.test(s)) return `${s}:00`;
-    if (/^\d{2}:\d{2}:\d{2}$/.test(s)) return s;
-    return s.length >= 8 ? s.slice(0, 8) : '00:00:00';
-  };
-
-  const timeToMinutes = (t: string): number => {
-    const [hh, mm] = t.split(':').map((x) => parseInt(x || '0', 10) || 0);
-    return hh * 60 + mm;
-  };
-
-  // Convert API availability ranges into discrete start times customers can choose.
-  // IMPORTANT: We step in 15-minute increments (not serviceDuration) to allow more choices,
-  // but only include start times where the service fits fully inside the available range.
-  const generateTimeSlotsFromRanges = (
-    ranges: Array<{ start_time: string; end_time: string }>,
-    serviceDurationMinutes: number,
-    stepMinutes: number = 15
-  ): TimeSlot[] => {
-    const duration = Math.max(1, serviceDurationMinutes || 60);
-    const step = Math.max(1, stepMinutes || 15);
-    const out: TimeSlot[] = [];
-
-    ranges.forEach((r, rangeIndex) => {
-      const start = timeToMinutes(normalizeTimeToHHMMSS(r.start_time));
-      const end = timeToMinutes(normalizeTimeToHHMMSS(r.end_time));
-      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return;
-
-      for (let cur = start; cur + duration <= end; cur += step) {
-        const sh = Math.floor(cur / 60);
-        const sm = cur % 60;
-        const ehTotal = cur + duration;
-        const eh = Math.floor(ehTotal / 60);
-        const em = ehTotal % 60;
-
-        const startStr = `${String(sh).padStart(2, '0')}:${String(sm).padStart(2, '0')}:00`;
-        const endStr = `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}:00`;
-
-        out.push({
-          id: `${rangeIndex}-${cur}`,
-          start_time: startStr,
-          end_time: endStr,
-        });
-      }
-    });
-
-    return out;
-  };
-
-  const formatDateLocal = (date: Date): string => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  };
-
-  const parseISODateLocal = (dateStr: string): Date => {
-    const [y, m, d] = dateStr.split("-").map((n) => parseInt(n, 10));
-    return new Date(y, (m || 1) - 1, d || 1);
-  };
-
-  // Load customer date dropdown options from backend (owner calendar is source of truth)
-  useEffect(() => {
-    if (!shopId) return;
-
-    const loadDateOptions = async () => {
-      try {
-        const start = new Date();
-        const startDate = formatDateLocal(start);
-        const end = new Date(start);
-        end.setDate(end.getDate() + 29);
-        const endDate = formatDateLocal(end);
-
-        const res = await fetch(
-          `${apiUrl}/shops/${shopId}/availability/dates?startDate=${startDate}&endDate=${endDate}`
-        );
-
-        if (!res.ok) {
-          setDateOptions([]);
-          return;
-        }
-
-        const data = await res.json().catch(() => []);
-        const options: DateStatusOption[] = Array.isArray(data) ? data : [];
-        setDateOptions(options);
-
-        // If previously selected date is now closed or missing, clear selection
-        setSelectedDate((prev) => {
-          if (!prev) return prev;
-          const match = options.find((o) => o.date === prev);
-          if (!match) return "";
-          if (match.status === "closed") return "";
-          return prev;
-        });
-      } catch (e) {
-        setDateOptions([]);
-      }
-    };
-
-    loadDateOptions();
-  }, [shopId]);
-
   const fetchTimeSlots = async () => {
     if (!selectedDate || !selectedServiceId) {
       setTimeSlots([]);
@@ -521,13 +399,8 @@ export default function LineShopDetailPage() {
       
       if (res.ok) {
         const data = await res.json();
-        const ranges = Array.isArray(data) ? data : [];
-
-        const service = services.find(s => s.id === selectedServiceId);
-        const serviceDuration = service?.duration || 60;
-
-        const generated = generateTimeSlotsFromRanges(ranges, serviceDuration, 15);
-        setTimeSlots(generated);
+        const slots = Array.isArray(data) ? data : [];
+        setTimeSlots(slots);
       } else {
         setTimeSlots([]);
       }
@@ -569,17 +442,11 @@ export default function LineShopDetailPage() {
         console.warn("[LINE Booking] ⚠️ LIFF not available - LINE notifications may not work");
       }
 
-      const slotFromCalendar = selectedAvailabilityWindow && selectedAvailabilityWindow.date === selectedDate
-        ? selectedAvailabilityWindow
-        : null;
-
-      // Find the selected timeslot (fallback for quick picker mode)
-      const selectedSlot = slotFromCalendar
-        ? slotFromCalendar
-        : timeSlots.find(slot => {
-            const time = slot.start_time.split(':').slice(0, 2).join(':');
-            return time === selectedTime;
-          });
+      // Find the selected timeslot
+      const selectedSlot = timeSlots.find(slot => {
+        const time = slot.start_time.split(':').slice(0, 2).join(':');
+        return time === selectedTime;
+      });
 
       if (!selectedSlot) {
         setBookingError("Please select a valid time slot.");
@@ -661,6 +528,18 @@ export default function LineShopDetailPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Get available dates (next 30 days)
+  const getAvailableDates = () => {
+    const dates = [];
+    const today = new Date();
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      dates.push(date.toISOString().split("T")[0]);
+    }
+    return dates;
   };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
@@ -941,15 +820,14 @@ export default function LineShopDetailPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">{t("chooseDate")}</option>
-                    {dateOptions.map((opt) => (
-                      <option key={opt.date} value={opt.date} disabled={opt.status === "closed"}>
-                        {parseISODateLocal(opt.date).toLocaleDateString("en-US", {
+                    {getAvailableDates().map((date) => (
+                      <option key={date} value={date}>
+                        {new Date(date).toLocaleDateString("en-US", {
                           weekday: "long",
                           year: "numeric",
                           month: "long",
                           day: "numeric",
                         })}
-                        {opt.status === "closed" ? " - CLOSED" : ""}
                       </option>
                     ))}
                   </select>

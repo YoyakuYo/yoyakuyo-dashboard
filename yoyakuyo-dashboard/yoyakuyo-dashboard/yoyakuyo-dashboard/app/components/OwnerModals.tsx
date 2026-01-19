@@ -8,7 +8,6 @@ import { getSupabaseClient } from '@/lib/supabaseClient';
 import { AuthError } from '@supabase/supabase-js';
 import { apiUrl } from '@/lib/apiClient';
 import { authApi } from '@/lib/api';
-import { useAuthRole } from '@/lib/AuthRoleContext';
 
 const Modal = React.memo(({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) => {
   if (!isOpen) return null;
@@ -49,7 +48,6 @@ Modal.displayName = 'Modal';
 
 export default function OwnerModals() {
   const router = useRouter();
-  const { selectedRole, setSelectedRole, clearSelectedRole } = useAuthRole();
   
   let t: ReturnType<typeof useTranslations>;
   let tAuth: ReturnType<typeof useTranslations>;
@@ -82,37 +80,21 @@ export default function OwnerModals() {
   useEffect(() => {
     // Only listen for owner-specific events (from role selection modal)
     // DO NOT listen to openLoginModal/openSignupModal - those go to RoleSelectionModal first
-    const handleOpenOwnerLoginModal = async () => {
-      // CRITICAL: Clear any existing session BEFORE showing login form
-      // This prevents auto-login from stale tokens
+    const handleOpenOwnerLoginModal = () => {
+      // If Supabase session exists, restore and redirect (no re-entry).
       try {
         const supabase = getSupabaseClient();
-        // Clear Supabase session
-        await supabase.auth.signOut();
-        // Clear role from localStorage
-        clearSelectedRole();
-        // Clear any cached tokens
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('supabase.auth.token');
-          // Clear any other auth-related localStorage items
-          const keysToRemove: string[] = [];
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key && (key.includes('supabase') || key.includes('auth') || key.includes('session'))) {
-              keysToRemove.push(key);
-            }
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user) {
+            router.push('/shops');
+            router.refresh();
+          } else {
+            setShowLoginModal(true);
           }
-          keysToRemove.forEach(key => localStorage.removeItem(key));
-        }
-      } catch (error) {
-        console.warn('[Owner Login] Error clearing session:', error);
+        }).catch(() => setShowLoginModal(true));
+      } catch {
+        setShowLoginModal(true);
       }
-      
-      // CRITICAL: Persist role BEFORE showing login inputs
-      setSelectedRole("owner");
-      
-      // Now show login form (no auto-login)
-      setShowLoginModal(true);
     };
     const handleOpenOwnerSignupModal = () => {
       setShowSignupModal(true);
@@ -203,6 +185,16 @@ export default function OwnerModals() {
         return;
       }
 
+      try {
+      await authApi.syncUser(
+          authData.user.id,
+          authData.user.email || email,
+          authData.user.user_metadata?.name
+        );
+      } catch (syncError) {
+        console.warn('Failed to sync user to users (non-blocking):', syncError);
+      }
+
       await new Promise(resolve => setTimeout(resolve, 200));
       
       const { data: { session: verifySession } } = await supabase.auth.getSession();
@@ -214,104 +206,11 @@ export default function OwnerModals() {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      // CRITICAL: Check if user is an owner - check users table FIRST (most reliable)
-      // Owner signup via Supabase Auth creates users with role='owner', not entries in owners table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, email, role, full_name')
-        .eq('id', authData.user.id)
-        .maybeSingle();
-
-      let isOwner = false;
-      let ownerName = null;
-
-      // Check if user has role='owner' in users table
-      if (userData && userData.role === 'owner') {
-        isOwner = true;
-        ownerName = userData.full_name;
-        console.log('[Owner Login] ✅ Owner found in users table with role=owner');
-      } else {
-        // Fallback: Check owners table (for legacy owners or separate auth)
-        const { data: ownerCheck } = await supabase
-          .from('owners')
-          .select('id, email, name')
-          .or(`id.eq.${authData.user.id},email.eq.${email.toLowerCase().trim()}`)
-          .maybeSingle();
-
-        if (ownerCheck) {
-          isOwner = true;
-          ownerName = ownerCheck.name;
-          console.log('[Owner Login] ✅ Owner found in owners table');
-        }
-      }
-
-      if (!isOwner) {
-        // Sign out if not an owner
-        await supabase.auth.signOut();
-        clearSelectedRole();
-        setLoginError('This account is not registered as an owner. Please use customer login.');
-        setLoginLoading(false);
-        return;
-      }
-
-      // CRITICAL: Persist role immediately after successful Owner login
-      setSelectedRole("owner");
-      console.log('[Owner Login] ✅ Role persisted: owner');
-
-      // CRITICAL: Ensure owner has role='owner' in users table
-      try {
-        // If user doesn't exist in users table or role is not 'owner', sync/update it
-        if (!userData || userData.role !== 'owner') {
-          console.log('[Owner Login] Owner verified but role not set in users table, syncing...');
-          
-          // Try to sync user with owner role
-          try {
-            await authApi.syncUser(
-              authData.user.id,
-              authData.user.email || email,
-              authData.user.user_metadata?.name || ownerName
-            );
-          } catch (syncError) {
-            console.warn('Failed to sync user to users (non-blocking):', syncError);
-          }
-
-          // Try to update role directly via users table
-          const { error: updateError } = await supabase
-            .from('users')
-            .upsert({
-              id: authData.user.id,
-              email: authData.user.email || email,
-              role: 'owner',
-              full_name: authData.user.user_metadata?.name || ownerName || null,
-            }, {
-              onConflict: 'id'
-            });
-
-          if (updateError) {
-            console.warn('[Owner Login] Failed to update role in users table:', updateError);
-          } else {
-            console.log('[Owner Login] ✅ Successfully set role=owner in users table');
-          }
-        }
-
-        // Wait a moment for the update to propagate
-        await new Promise(resolve => setTimeout(resolve, 200));
-
-        // Owner login should always redirect to owner dashboard
-        setShowLoginModal(false);
-        setLoginLoading(false);
-        router.push('/owner/shop-profile');
+      setShowLoginModal(false);
+      setTimeout(() => {
+        router.push('/shops');
         router.refresh();
-      } catch (roleError) {
-        // If role check fails but owner was verified, allow access
-        console.error('Error syncing user role:', roleError);
-        console.log('[Owner Login] Owner verified, allowing access despite sync error');
-        
-        setShowLoginModal(false);
-        setLoginLoading(false);
-        router.push('/owner/shop-profile');
-        router.refresh();
-      }
+      }, 300);
     } catch (err) {
       console.error('Login error:', err);
       const authError = err as AuthError;

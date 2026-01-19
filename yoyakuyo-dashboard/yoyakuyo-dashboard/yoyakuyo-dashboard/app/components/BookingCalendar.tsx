@@ -8,8 +8,7 @@ import { apiUrl } from '@/lib/apiClient';
 
 interface Booking {
   id: string;
-  start_time: string; // Can be TIME (HH:MM:SS) or full timestamp
-  date?: string; // DATE field (YYYY-MM-DD format) - optional
+  start_time: string;
   status: 'pending' | 'confirmed' | 'rejected' | 'cancelled' | 'completed';
   customer_name?: string;
   services?: { name: string } | null;
@@ -72,30 +71,12 @@ export default function BookingCalendar({ bookings, onDateClick, selectedDate, s
   }, [shopId]);
 
   // Group bookings by date
-  // CRITICAL: Use booking.date (DATE) if available, otherwise extract from start_time
   const bookingsByDate = useMemo(() => {
     const grouped: Record<string, Booking[]> = {};
     bookings.forEach(booking => {
-      let dateKey: string | null = null;
-      
-      // Priority 1: Use date field if available (DATE type, YYYY-MM-DD format)
-      if (booking.date) {
-        dateKey = booking.date;
-      } 
-      // Priority 2: Extract date from start_time if it's a full timestamp
-      else if (booking.start_time) {
-        // Check if start_time is a full timestamp (contains 'T' or is ISO format)
-        if (booking.start_time.includes('T') || booking.start_time.length > 10) {
-          const date = new Date(booking.start_time);
-          if (!isNaN(date.getTime())) {
-            dateKey = date.toISOString().split('T')[0];
-          }
-        }
-        // If start_time is just TIME (HH:MM:SS), we can't determine the date
-        // Skip this booking (shouldn't happen if API returns date field)
-      }
-      
-      if (dateKey) {
+      if (booking.start_time) {
+        const date = new Date(booking.start_time);
+        const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
         if (!grouped[dateKey]) {
           grouped[dateKey] = [];
         }

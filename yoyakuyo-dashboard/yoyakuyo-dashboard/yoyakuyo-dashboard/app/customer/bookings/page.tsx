@@ -224,14 +224,18 @@ function CustomerBookingsPageContent() {
                   <div className="text-sm text-gray-600 space-y-1">
                     <p>
                       <strong>{t('common.date')}:</strong>{" "}
-                      {booking.date 
-                        ? new Date(booking.date + 'T00:00:00').toLocaleDateString()
+                      {booking.start_time 
+                        ? new Date(booking.start_time).toLocaleDateString()
+                        : booking.date 
+                        ? new Date(booking.date).toLocaleDateString()
+                        : booking.booking_date 
+                        ? new Date(booking.booking_date).toLocaleDateString()
                         : 'N/A'}
                     </p>
                     <p>
                       <strong>{t('common.time')}:</strong>{" "}
                       {booking.start_time 
-                        ? booking.start_time.substring(0, 5) // Format HH:MM from TIME
+                        ? new Date(booking.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
                         : booking.time_slot || booking.booking_time || 'N/A'}
                     </p>
                     {booking.shops?.address && (

@@ -9,7 +9,6 @@ import { apiUrl } from "@/lib/apiClient";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from 'next-intl';
-import { useNotifications } from '@/lib/useNotifications';
 
 interface CustomerThread {
   id: string;
@@ -36,7 +35,6 @@ function OwnerMessagesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations();
-  const { notifications: ownerNotifications, markAsRead } = useNotifications('owner', user?.id || '');
   const [customerThreads, setCustomerThreads] = useState<CustomerThread[]>([]);
   const [selectedThread, setSelectedThread] = useState<string | null>(() => {
     // Try to restore selected conversation from localStorage or URL params
@@ -296,64 +294,31 @@ function OwnerMessagesPageContent() {
         ok: res.ok,
       });
       
-      if (res.ok || res.status === 304) {
+      if (res.ok) {
         const data = await res.json();
         console.log('[Owner Messages] ✅ [DIAGNOSTIC] Messages loaded', {
           conversationId,
           messagesCount: data.messages?.length || 0,
-          fromCache: res.status === 304,
           messages: data.messages,
         });
-
+        
         // Format messages for display
         const formattedMessages: Message[] = (data.messages || []).map((msg: any) => {
           // Map sender_role to role and sender_type
-          const isOwner = msg.sender_role === 'shop' || msg.sender_role === 'owner' || msg.sender_role === 'ai';
-
-          console.log('[Owner Messages] 📝 Formatting message:', {
-            id: msg.id,
-            sender_role: msg.sender_role,
-            sender_type: msg.sender_type,
-            content_preview: (msg.content || msg.body || '').substring(0, 50),
-            isOwner,
-            final_role: isOwner ? 'assistant' : 'user',
-            final_sender_type: isOwner ? 'owner' : 'customer'
-          });
-
+          const isOwner = msg.sender_role === 'shop' || msg.sender_role === 'owner';
+          const isAI = msg.sender_role === 'ai';
+          
           return {
             id: msg.id,
-            role: isOwner ? 'assistant' : 'user',
+            role: isOwner || isAI ? 'assistant' : 'user',
             sender_type: isOwner ? 'owner' : 'customer',
             content: msg.content || msg.body || '',
             created_at: msg.created_at,
           };
         });
-
+        
         console.log('[Owner Messages] ✅ [DIAGNOSTIC] Formatted messages:', formattedMessages.length);
         setMessages(formattedMessages);
-
-        // Mark messages as read when conversation is opened (even from cache)
-        console.log('[Owner Messages] 🚀 [DIAGNOSTIC] About to call markMessagesAsRead for conversation:', conversationId);
-        console.log('[Owner Messages] 📊 [DIAGNOSTIC] Current user ID:', user?.id);
-        console.log('[Owner Messages] 🔍 [DIAGNOSTIC] Calling markMessagesAsRead now...');
-
-        try {
-          console.log('[Owner Messages] 🎯 [DIAGNOSTIC] Inside try block, about to call markMessagesAsRead');
-          const result = await markMessagesAsRead(conversationId);
-          console.log('[Owner Messages] ✅ [DIAGNOSTIC] markMessagesAsRead completed with result:', result);
-        } catch (error) {
-          console.error('[Owner Messages] ❌ [DIAGNOSTIC] markMessagesAsRead threw error:', error);
-          console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error stack:', error?.stack);
-        }
-
-        // Force refresh conversation list after marking messages as read
-        console.log('[Owner Messages] 🔄 [DIAGNOSTIC] Forcing conversation list refresh');
-        try {
-          await loadCustomerThreads();
-          console.log('[Owner Messages] ✅ [DIAGNOSTIC] Conversation list refreshed');
-        } catch (error) {
-          console.error('[Owner Messages] ❌ [DIAGNOSTIC] Failed to refresh conversation list:', error);
-        }
       } else {
         const errorText = await res.text();
         let errorData;
@@ -380,96 +345,6 @@ function OwnerMessagesPageContent() {
         userId: user.id,
       });
       setMessages([]);
-    }
-  };
-
-  const markMessagesAsRead = async (conversationId: string) => {
-    console.log('[Owner Messages] 🎯 [DIAGNOSTIC] markMessagesAsRead function called with:', conversationId);
-
-    if (!user?.id) {
-      console.error('[Owner Messages] ❌ Cannot mark messages as read - missing user.id');
-      return;
-    }
-
-    try {
-      console.log('[Owner Messages] 📖 [DIAGNOSTIC] Marking messages as read', {
-        conversationId,
-        userId: user.id,
-        endpoint: `${apiUrl}/api/internal-messaging/${conversationId}/mark-read`,
-      });
-
-      const res = await fetch(`${apiUrl}/api/internal-messaging/${conversationId}/mark-read`, {
-        method: 'PATCH',
-        headers: {
-          'x-user-id': user.id,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('[Owner Messages] 📥 [DIAGNOSTIC] Mark read response details', {
-        status: res.status,
-        statusText: res.statusText,
-        ok: res.ok,
-        url: res.url,
-        headers: Object.fromEntries(res.headers.entries()),
-      });
-
-      // Log the response body if available
-      let responseBody;
-      try {
-        responseBody = await res.clone().json();
-        console.log('[Owner Messages] 📄 [DIAGNOSTIC] Mark read response body:', responseBody);
-      } catch (e) {
-        console.log('[Owner Messages] 📄 [DIAGNOSTIC] Mark read response has no JSON body');
-      }
-
-      if (res.ok) {
-        console.log('[Owner Messages] ✅ [DIAGNOSTIC] Messages marked as read successfully');
-
-        // Mark corresponding notifications as read
-        const relatedNotifications = ownerNotifications.filter(
-          (n) => n.type === 'new_message' && n.data?.conversation_id === conversationId && !n.is_read
-        );
-
-        console.log('[Owner Messages] 📧 [DIAGNOSTIC] Found related notifications to mark as read:', relatedNotifications.length);
-        console.log('[Owner Messages] 📧 [DIAGNOSTIC] All owner notifications:', ownerNotifications.map(n => ({
-          id: n.id,
-          type: n.type,
-          conversation_id: n.data?.conversation_id,
-          is_read: n.is_read,
-          recipient_id: n.recipient_id
-        })));
-
-        // Mark each notification as read
-        for (const notification of relatedNotifications) {
-          try {
-            console.log('[Owner Messages] 🔄 [DIAGNOSTIC] Attempting to mark notification as read:', notification.id);
-            await markAsRead(notification.id);
-            console.log('[Owner Messages] ✅ [DIAGNOSTIC] Marked notification as read:', notification.id);
-          } catch (error) {
-            console.error('[Owner Messages] ❌ [DIAGNOSTIC] Failed to mark notification as read:', notification.id, error);
-          }
-        }
-
-        // Refresh conversation list to update unread counts
-        console.log('[Owner Messages] 🔄 [DIAGNOSTIC] Refreshing conversation list after marking messages as read');
-        await loadCustomerThreads();
-      } else {
-        const errorText = await res.text();
-        console.error('[Owner Messages] ❌ [DIAGNOSTIC] Failed to mark messages as read', {
-          status: res.status,
-          error: errorText,
-          conversationId,
-          userId: user.id,
-        });
-      }
-    } catch (error: any) {
-      console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error marking messages as read', {
-        error,
-        message: error.message,
-        conversationId,
-        userId: user.id,
-      });
     }
   };
 

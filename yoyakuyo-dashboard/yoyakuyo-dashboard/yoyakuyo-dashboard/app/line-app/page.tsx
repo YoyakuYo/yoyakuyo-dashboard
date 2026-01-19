@@ -299,38 +299,6 @@ const lineTexts = {
     ko: "저장됨",
     zh: "已保存",
   },
-  supportTitle: {
-    ja: "サポート",
-    en: "Support",
-    es: "Soporte",
-    pt: "Suporte",
-    ko: "지원",
-    zh: "支持",
-  },
-  supportSubtitle: {
-    ja: "管理者または店舗オーナーに連絡してください。",
-    en: "Contact admin support or shop owners for assistance.",
-    es: "Contacta con el soporte de administración o los propietarios de tiendas para obtener ayuda.",
-    pt: "Entre em contato com o suporte administrativo ou proprietários de lojas para obter ajuda.",
-    ko: "도움이 필요하시면 관리자 지원 또는 가게 주인에게 연락하세요.",
-    zh: "如需帮助，请联系管理员支持或店铺所有者。",
-  },
-  supportButton: {
-    ja: "サポートページを開く",
-    en: "Open Support",
-    es: "Abrir soporte",
-    pt: "Abrir suporte",
-    ko: "지원 페이지 열기",
-    zh: "打开支持",
-  },
-  nav_support: {
-    ja: "サポート",
-    en: "Support",
-    es: "Soporte",
-    pt: "Suporte",
-    ko: "지원",
-    zh: "支持",
-  },
 };
 
 function LineAppPageContent() {
@@ -799,6 +767,16 @@ function LineAppPageContent() {
           </div>
         )}
 
+        {activeTab === "ai" && (
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">{tx("aiTitle")}</h2>
+              <p className="text-gray-600">{tx("aiSubtitle")}</p>
+              <p className="mt-4 text-gray-500">AI Assistant is no longer available.</p>
+            </div>
+          </div>
+        )}
+
         {activeTab === "favorites" && (
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -809,21 +787,6 @@ function LineAppPageContent() {
                 className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
               >
                 {tx("favoritesButton")}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "support" && (
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">{tx("supportTitle")}</h2>
-              <p className="text-gray-600">{tx("supportSubtitle")}</p>
-              <button
-                onClick={() => router.push("/line-app/support")}
-                className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-              >
-                {tx("supportButton")}
               </button>
             </div>
           </div>
@@ -855,6 +818,13 @@ function LineAppPageContent() {
                 <span className="text-xs mt-1">{tx("nav_inbox")}</span>
               </button>
               <button
+                onClick={() => navigateToTab("ai")}
+                className={`flex flex-col items-center py-2 ${activeTab === "ai" ? "text-blue-600" : "text-gray-600"}`}
+              >
+                <span className="text-2xl">🤖</span>
+                <span className="text-xs mt-1">{tx("nav_ai")}</span>
+              </button>
+              <button
                 onClick={() => navigateToTab("favorites")}
                 className={`flex flex-col items-center py-2 ${
                   activeTab === "favorites" ? "text-blue-600" : "text-gray-600"
@@ -862,15 +832,6 @@ function LineAppPageContent() {
               >
                 <span className="text-2xl">⭐</span>
                 <span className="text-xs mt-1">{tx("nav_favorites")}</span>
-              </button>
-              <button
-                onClick={() => router.push("/line-app/support")}
-                className={`flex flex-col items-center py-2 ${
-                  activeTab === "support" ? "text-blue-600" : "text-gray-600"
-                }`}
-              >
-                <span className="text-2xl">💬</span>
-                <span className="text-xs mt-1">{tx("nav_support")}</span>
               </button>
             </div>
           </div>

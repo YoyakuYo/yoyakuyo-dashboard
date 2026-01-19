@@ -155,12 +155,12 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {t("admin.dashboard")}
-        </h1>
-        <p className="text-gray-600">{t("admin.platformOverview")}</p>
-      </div>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {t("admin.dashboard")}
+          </h1>
+          <p className="text-gray-600">{t("admin.platformOverview")}</p>
+        </div>
         <button
           onClick={loadStats}
           className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
@@ -170,8 +170,14 @@ export default function AdminDashboardPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-sm text-red-800">{error}</p>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
+          <p className="text-red-800">{error}</p>
+          <button
+            onClick={loadStats}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            {t("common.refresh") || "Refresh"}
+          </button>
         </div>
       )}
 

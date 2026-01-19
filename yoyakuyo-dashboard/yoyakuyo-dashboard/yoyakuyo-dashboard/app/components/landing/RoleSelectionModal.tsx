@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
-import { useAuthRole } from '@/lib/AuthRoleContext';
 
 const Modal = React.memo(({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) => {
   if (!isOpen) return null;
@@ -47,7 +46,6 @@ Modal.displayName = 'Modal';
 
 export default function RoleSelectionModal() {
   const router = useRouter();
-  const { setSelectedRole } = useAuthRole();
   const t = useTranslations('landing');
   let tAuth: ReturnType<typeof useTranslations>;
   try {
@@ -96,9 +94,6 @@ export default function RoleSelectionModal() {
   }, []);
 
   const handleCustomerClick = () => {
-    // CRITICAL: Persist role BEFORE showing login inputs
-    setSelectedRole("customer");
-    
     setIsOpen(false);
     // If a valid customer custom-auth session exists, restore and redirect immediately.
     try {
@@ -133,9 +128,6 @@ export default function RoleSelectionModal() {
   };
 
   const handleOwnerClick = () => {
-    // CRITICAL: Persist role BEFORE showing login inputs
-    setSelectedRole("owner");
-    
     setIsOpen(false);
     // If a Supabase session exists, restore and redirect immediately.
     try {

@@ -94,12 +94,8 @@ export async function getMessagingAuthHeaders(options: MessagingApiOptions): Pro
   
   // CRITICAL: ALWAYS send LINE identity headers if available
   // Backend will resolve customer_id from these headers
-  // PRIORITY: LINE headers take precedence over web user ID
   if (options.lineUserId) {
     headers['x-line-user-id'] = options.lineUserId;
-    console.log('[Messaging API Client] ✅ Adding x-line-user-id header:', options.lineUserId.substring(0, 10) + '...');
-  } else {
-    console.warn('[Messaging API Client] ⚠️ No lineUserId provided in options');
   }
   
   if (options.idToken) {
@@ -108,26 +104,21 @@ export async function getMessagingAuthHeaders(options: MessagingApiOptions): Pro
   
   // Try to resolve canonical user_id, but don't block if it fails
   // Backend can resolve from line_user_id if needed
-  // IMPORTANT: Only resolve user_id if we have LINE identity, otherwise it might override LINE detection
-  if (options.lineUserId) {
-    try {
-      const userId = await resolveUserId(options);
-      if (userId) {
-        headers['x-user-id'] = userId;
-        headers['x-customer-id'] = userId; // Also send as customer-id for compatibility
-        console.log('[Messaging API Client] ✅ Resolved user_id for LINE user:', userId.substring(0, 10) + '...');
-      }
-    } catch (error) {
-      console.warn('[Messaging API Client] ⚠️ Failed to resolve user_id, but continuing with LINE headers:', error);
-      // Continue anyway - backend can resolve from x-line-user-id
+  try {
+    const userId = await resolveUserId(options);
+    if (userId) {
+      headers['x-user-id'] = userId;
+      headers['x-customer-id'] = userId; // Also send as customer-id for compatibility
     }
+  } catch (error) {
+    console.warn('[Messaging API Client] ⚠️ Failed to resolve user_id, but continuing with LINE headers:', error);
+    // Continue anyway - backend can resolve from x-line-user-id
   }
   
-  // Web user ID (direct) - ONLY if no LINE user ID (LINE takes priority)
-  if (options.userId && !options.lineUserId) {
+  // Web user ID (direct)
+  if (options.userId) {
     headers['x-user-id'] = options.userId;
     headers['x-customer-id'] = options.userId;
-    console.log('[Messaging API Client] ✅ Adding web user ID headers');
   }
   
   // Guest booking token
@@ -135,14 +126,6 @@ export async function getMessagingAuthHeaders(options: MessagingApiOptions): Pro
     headers['x-booking-token'] = options.bookingToken;
     headers['x-guest-id'] = options.bookingToken;
   }
-  
-  console.log('[Messaging API Client] Final headers:', {
-    hasLineUserId: !!headers['x-line-user-id'],
-    hasIdToken: !!headers['x-id-token'],
-    hasUserId: !!headers['x-user-id'],
-    hasCustomerId: !!headers['x-customer-id'],
-    headerKeys: Object.keys(headers)
-  });
   
   return headers;
 }
@@ -157,68 +140,19 @@ export async function messagingFetch(
     body?: any;
   }
 ): Promise<Response> {
-  let { method = 'GET', body, ...authOptions } = options;
-
-  // If body is provided but method is GET/HEAD, automatically use POST
-  // GET/HEAD requests cannot have a body
-  if (body && (method === 'GET' || method === 'HEAD')) {
-    console.warn('[Messaging API Client] Body provided with GET/HEAD method, automatically switching to POST');
-    method = 'POST';
-  }
-
+  const { method = 'GET', body, ...authOptions } = options;
+  
   const headers = await getMessagingAuthHeaders(authOptions);
-
+  
   const fetchOptions: RequestInit = {
     method,
     headers,
   };
-
+  
   if (body) {
     fetchOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
   }
-
-  // DEBUG: Log the actual request being made
-  console.log('[Messaging API Client] Making request:', {
-    url,
-    method,
-    hasBody: !!body,
-    headers: Object.keys(headers),
-    fullUrl: url,
-    hasLineUserId: !!headers['x-line-user-id'],
-    hasIdToken: !!headers['x-id-token'],
-    hasUserId: !!headers['x-user-id'],
-    lineUserIdPreview: headers['x-line-user-id']?.substring(0, 10) + '...' || 'MISSING'
-  });
-  console.log('[Messaging API Client] Full request details:', {
-    url,
-    method,
-    headers: Object.keys(headers).length,
-    hasBody: !!body,
-    bodySize: body ? JSON.stringify(body).length : 0,
-    headerKeys: Object.keys(headers),
-    criticalHeaders: {
-      'x-line-user-id': headers['x-line-user-id'] ? 'PRESENT' : 'MISSING',
-      'x-id-token': headers['x-id-token'] ? 'PRESENT' : 'MISSING',
-      'x-user-id': headers['x-user-id'] ? 'PRESENT' : 'MISSING',
-      'x-customer-id': headers['x-customer-id'] ? 'PRESENT' : 'MISSING'
-    }
-  });
-
-  // DEBUG: Actually make the request and log response
-  try {
-    const response = await fetch(url, fetchOptions);
-    console.log('[Messaging API Client] Response received:', {
-      status: response.status,
-      statusText: response.statusText,
-      url: response.url,
-      ok: response.ok
-    });
-    return response;
-  } catch (error) {
-    console.error('[Messaging API Client] Fetch error:', error);
-    throw error;
-  }
-
+  
   return fetch(url, fetchOptions);
 }
 

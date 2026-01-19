@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCustomAuth } from "@/lib/useCustomAuth";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { useTranslations } from "next-intl";
+import NotificationBell from "@/app/components/NotificationBell";
 
 export default function CustomerHeader() {
   const { user, signOut } = useCustomAuth();
@@ -56,20 +57,25 @@ export default function CustomerHeader() {
     <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-40 lg:left-64">
       <div className="h-full px-4 flex items-center justify-between">
         {/* Logo - Links to customer home, does NOT log out */}
-        <button
+        <Link 
+          href="/customer/home" 
+          className="text-xl font-bold text-blue-600 hover:text-blue-700 transition-colors"
           onClick={(e) => {
             // Ensure logo click only navigates, never logs out
             e.preventDefault();
-            e.stopPropagation();
             router.push("/customer/home");
           }}
-          className="text-xl font-bold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
         >
           {t('home.title') || 'Yoyaku Yo'}
-        </button>
+        </Link>
 
-        {/* Right side: Profile */}
+        {/* Right side: Notifications, Profile */}
         <div className="flex items-center gap-4">
+          {/* Notifications */}
+          {profile && (
+            <NotificationBell userType="customer" userId={profile.id} />
+          )}
+
           {/* Profile Dropdown */}
           <div className="relative">
             <button

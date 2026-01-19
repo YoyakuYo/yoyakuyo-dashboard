@@ -86,11 +86,12 @@ export default function LineFavoritesPage() {
         const profile = await window.liff.getProfile();
         const lineUserId = profile.userId;
         
-        // Build headers for LINE user favorites access
-        // Use x-line-user-id for identity resolution, don't send x-user-id to avoid conflicts
+        // Build headers - MUST include customer_id as x-user-id for backend auth check
+        // Backend /customers/favorites checks auth.users using x-user-id
         const headers: Record<string, string> = {
-          "x-line-user-id": lineUserId, // PRIMARY: Use LINE identity for resolution
-          "x-customer-id": customerId, // BACKUP: In case middleware needs fallback
+          "x-user-id": customerId, // REQUIRED: Backend checks auth.users with this
+          "x-customer-id": customerId, // Also send as customer-id for compatibility
+          "x-line-user-id": lineUserId, // Include LINE identity for logging
         };
         
         // Include ID token

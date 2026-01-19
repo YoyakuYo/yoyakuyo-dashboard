@@ -9,7 +9,6 @@ import LineQRCodeSection from './components/landing/LineQRCodeSection';
 import OwnerModals from './components/OwnerModals';
 import CustomerModals from './components/CustomerModals';
 function LandingPageContent() {
-
   return (
     <div className="w-full min-h-screen bg-white">
       {/* Minimal Navbar - Fixed at top, always visible */}
@@ -38,8 +37,6 @@ function LandingPageContent() {
         {/* Customer Modals for Login/Join */}
         <CustomerModals />
       </div>
-
-      {/* AI Assistant removed - no longer available for customers */}
     </div>
   );
 }

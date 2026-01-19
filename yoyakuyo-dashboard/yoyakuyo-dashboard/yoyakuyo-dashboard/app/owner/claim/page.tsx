@@ -13,7 +13,6 @@ import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
 import { REGIONS } from '@/lib/regions';
 import { PREFECTURES } from '@/lib/prefectures';
-import OwnerGuard from '@/app/components/OwnerGuard';
 
 interface Shop {
   id: string;
@@ -533,7 +532,6 @@ export default function ClaimShopPage() {
   }
 
   return (
-    <OwnerGuard>
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-8">
@@ -1225,6 +1223,5 @@ export default function ClaimShopPage() {
         </div>
       </div>
     </div>
-    </OwnerGuard>
   );
 }

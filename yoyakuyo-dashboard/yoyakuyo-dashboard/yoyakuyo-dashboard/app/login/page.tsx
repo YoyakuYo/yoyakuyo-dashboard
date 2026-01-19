@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import { authApi } from "@/lib/api";
-import { useAuthRole } from "@/lib/AuthRoleContext";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -15,27 +14,16 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const router = useRouter();
   const t = useTranslations();
-  const { selectedRole, setSelectedRole } = useAuthRole();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
 
-    // CRITICAL: Require role selection before login
-    if (!selectedRole) {
-      setMessage("Error: Please select whether you are logging in as Owner or Customer");
-      setLoading(false);
-      return;
-    }
-
     try {
       const supabase = getSupabaseClient();
       let authData: any = null;
       let authError: any = null;
-
-      // NOTE: Role validation is handled by checking role after authentication
-      // We don't block login here to avoid breaking the existing flow
 
       // Try direct Supabase auth first (fastest, works if CORS is configured)
       try {
@@ -128,65 +116,14 @@ export default function LoginPage() {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      // CRITICAL: Use persisted role for redirect (don't infer from database)
+      // Redirect to dashboard
       setMessage("Login successful! Redirecting...");
-      
-      // Clear selected role after successful login
-      setSelectedRole(null);
-      
-      // Redirect based on persisted role (not inferred from database)
-      if (selectedRole === 'owner') {
-        setTimeout(() => {
-          router.push("/owner/shop-profile");
-          router.refresh();
-        }, 300);
-      } else if (selectedRole === 'customer') {
-        setTimeout(() => {
-          router.push("/customer/home");
-          router.refresh();
-        }, 300);
-      } else {
-        // Fallback: check database role if persisted role is missing
-        try {
-          const { apiUrl } = await import('@/lib/apiClient');
-          const roleResponse = await fetch(`${apiUrl}/users/me`, {
-            headers: { 'x-user-id': authData.user.id },
-          });
-
-          if (roleResponse.ok) {
-            const roleData = await roleResponse.json();
-            const userRole = roleData.user?.role || roleData.role;
-
-            if (userRole === 'owner') {
-              setTimeout(() => {
-                router.push("/owner/shop-profile");
-                router.refresh();
-              }, 300);
-            } else if (userRole === 'admin') {
-              setTimeout(() => {
-                router.push("/admin");
-                router.refresh();
-              }, 300);
-            } else {
-              setTimeout(() => {
-                router.push("/customer/home");
-                router.refresh();
-              }, 300);
-            }
-          } else {
-            setTimeout(() => {
-              router.push("/customer/home");
-              router.refresh();
-            }, 300);
-          }
-        } catch (roleError) {
-          console.error('Error checking user role:', roleError);
-          setTimeout(() => {
-            router.push("/customer/home");
-            router.refresh();
-          }, 300);
-        }
-      }
+      // Small delay to ensure auth state propagates, then redirect
+      setTimeout(() => {
+        router.push("/dashboard");
+        // Force a refresh of server components to pick up new auth state
+        router.refresh();
+      }, 300);
     } catch (error: any) {
       setMessage(`Unexpected error: ${error.message}`);
       setLoading(false);

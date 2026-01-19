@@ -6,7 +6,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
-import OwnerGuard from '@/app/components/OwnerGuard';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import { getSupabaseClient } from '@/lib/supabaseClient';
@@ -309,7 +308,6 @@ export default function CreateShopPage() {
   }
 
   return (
-    <OwnerGuard>
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Create Your Shop</h1>
 
@@ -703,7 +701,6 @@ export default function CreateShopPage() {
         )}
       </div>
     </div>
-    </OwnerGuard>
   );
 }
 

@@ -341,9 +341,9 @@ function OwnerMessagesPageContent() {
           console.log('[Owner Messages] 🎯 [DIAGNOSTIC] Inside try block, about to call markMessagesAsRead');
           const result = await markMessagesAsRead(conversationId);
           console.log('[Owner Messages] ✅ [DIAGNOSTIC] markMessagesAsRead completed with result:', result);
-        } catch (error: unknown) {
+        } catch (error) {
           console.error('[Owner Messages] ❌ [DIAGNOSTIC] markMessagesAsRead threw error:', error);
-          console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error stack:', error instanceof Error ? error.stack : 'Unknown error');
+          console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error stack:', error?.stack);
         }
 
         // Force refresh conversation list after marking messages as read

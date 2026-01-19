@@ -17,7 +17,7 @@ interface Notification {
   created_at: string;
 }
 
-export function useNotifications(userType: 'owner' | 'customer' | 'admin', userId: string) {
+export function useNotifications(userType: 'owner' | 'customer', userId: string) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -126,9 +126,7 @@ export function useNotifications(userType: 'owner' | 'customer' | 'admin', userI
         // For customers, userId is already customer_profile_id (passed from CustomerHeader)
         recipientId = userId;
         actualRecipientIdRef.current = userId;
-      } else if (userType === 'admin' || userType === 'owner') {
-        // For admin and owner, userId is the auth.uid() directly
-        recipientId = userId;
+      } else {
         actualRecipientIdRef.current = userId;
       }
 
@@ -141,26 +139,23 @@ export function useNotifications(userType: 'owner' | 'customer' | 'admin', userI
             event: 'INSERT',
             schema: 'public',
             table: 'notifications',
-            filter: `recipient_type=eq.${userType}`,
+            filter: `recipient_type=eq.${userType}&recipient_id=eq.${recipientId}`,
           },
           (payload: any) => {
             const newNotification = payload.new as Notification;
             
-            // Only process if this notification is for the current user
-            if (newNotification.recipient_type === userType && newNotification.recipient_id === recipientId) {
-              // Add to notifications list
-              setNotifications((prev) => [newNotification, ...prev]);
-              setUnreadCount((prev) => prev + 1);
+            // Add to notifications list
+            setNotifications((prev) => [newNotification, ...prev]);
+            setUnreadCount((prev) => prev + 1);
 
-              // Show toast notification
-              toast.success(
-                `${newNotification.title}\n${newNotification.body}`,
-                {
-                  duration: 5000,
-                  icon: '🔔',
-                }
-              );
-            }
+            // Show toast notification
+            toast.success(
+              `${newNotification.title}\n${newNotification.body}`,
+              {
+                duration: 5000,
+                icon: '🔔',
+              }
+            );
           }
         )
         .on(
@@ -169,22 +164,19 @@ export function useNotifications(userType: 'owner' | 'customer' | 'admin', userI
             event: 'UPDATE',
             schema: 'public',
             table: 'notifications',
-            filter: `recipient_type=eq.${userType}`,
+            filter: `recipient_type=eq.${userType}&recipient_id=eq.${recipientId}`,
           },
           (payload: any) => {
             const updatedNotification = payload.new as Notification;
             
-            // Only process if this notification is for the current user
-            if (updatedNotification.recipient_type === userType && updatedNotification.recipient_id === recipientId) {
-              // Update in notifications list
-              setNotifications((prev) =>
-                prev.map((n) => (n.id === updatedNotification.id ? updatedNotification : n))
-              );
-              
-              // Update unread count
-              if (updatedNotification.is_read) {
-                setUnreadCount((prev) => Math.max(0, prev - 1));
-              }
+            // Update in notifications list
+            setNotifications((prev) =>
+              prev.map((n) => (n.id === updatedNotification.id ? updatedNotification : n))
+            );
+            
+            // Update unread count
+            if (updatedNotification.is_read) {
+              setUnreadCount((prev) => Math.max(0, prev - 1));
             }
           }
         )
