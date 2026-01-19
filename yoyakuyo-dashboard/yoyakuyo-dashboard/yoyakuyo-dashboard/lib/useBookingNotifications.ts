@@ -19,14 +19,35 @@ export function useBookingNotificationsHook() {
     if (!user?.id) return;
 
     try {
-      // UNIFIED SYSTEM: Frontend should NOT show pending bookings
-      // All customer bookings go to pending_bookings first for AI approval
-      // Frontend only shows confirmed bookings, AI manages pending ones
-      // So the pending count should be 0 (no pending bookings shown in frontend)
-      setUnreadBookingsCount(0);
+      const bookingsRes = await fetch(`${apiUrl}/bookings`, {
+        headers: {
+          'x-user-id': user.id,
+        },
+      });
 
-      // Optional: You could show count of conversations with pending bookings
-      // But for now, keep it at 0 since frontend doesn't show pending bookings
+      if (bookingsRes.ok) {
+        const bookingsData = await bookingsRes.json();
+        // Handle both array response and object with bookings property
+        const bookings = Array.isArray(bookingsData) 
+          ? bookingsData 
+          : (Array.isArray(bookingsData?.bookings) ? bookingsData.bookings : []);
+        
+        // Count bookings with pending statuses: pending, awaiting_confirmation, reschedule_requested
+        const pendingStatuses = ['pending', 'awaiting_confirmation', 'reschedule_requested'];
+        const pendingBookings = bookings.filter((booking: any) => 
+          pendingStatuses.includes(booking.status)
+        );
+        const pendingCount = pendingBookings.length;
+        
+        console.log(`[Booking Notifications] Loaded ${bookings.length} bookings, ${pendingCount} pending`);
+        if (pendingCount > 0) {
+          console.log(`[Booking Notifications] Pending bookings:`, pendingBookings.map((b: any) => ({ id: b.id, status: b.status, shop_id: b.shop_id })));
+        }
+        
+        setUnreadBookingsCount(pendingCount);
+      } else {
+        console.error(`[Booking Notifications] Failed to fetch bookings: ${bookingsRes.status} ${bookingsRes.statusText}`);
+      }
     } catch (error: any) {
       // Silently handle connection errors (API server not running)
       if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
@@ -230,10 +251,16 @@ export function useBookingNotificationsHook() {
 
         if (shopsRes.ok) {
           const shopsData = await shopsRes.json();
-          const shops = Array.isArray(shopsData) ? shopsData : [];
+          // Handle both array response and object with shops property
+          const shops = Array.isArray(shopsData) 
+            ? shopsData 
+            : (Array.isArray(shopsData?.shops) ? shopsData.shops : []);
           shopIdsRef.current = shops.map((shop: any) => shop.id);
 
+          console.log(`[Booking Notifications] Found ${shopIdsRef.current.length} shops for owner:`, shopIdsRef.current);
+
           if (shopIdsRef.current.length === 0) {
+            console.log(`[Booking Notifications] No shops found for owner, setting count to 0`);
             setUnreadBookingsCount(0);
             return;
           }
@@ -247,14 +274,27 @@ export function useBookingNotificationsHook() {
 
           if (bookingsRes.ok) {
             const bookingsData = await bookingsRes.json();
-            const bookings = Array.isArray(bookingsData) ? bookingsData : [];
+            // Handle both array response and object with bookings property
+            const bookings = Array.isArray(bookingsData) 
+              ? bookingsData 
+              : (Array.isArray(bookingsData?.bookings) ? bookingsData.bookings : []);
+            
             // Count bookings with pending statuses: pending, awaiting_confirmation, reschedule_requested
             // Note: awaiting_confirmation and reschedule_requested may not exist yet, but we check for them for future compatibility
             const pendingStatuses = ['pending', 'awaiting_confirmation', 'reschedule_requested'];
-            const pendingCount = bookings.filter((booking: any) => 
+            const pendingBookings = bookings.filter((booking: any) => 
               pendingStatuses.includes(booking.status)
-            ).length;
+            );
+            const pendingCount = pendingBookings.length;
+            
+            console.log(`[Booking Notifications] Initial load: ${bookings.length} bookings, ${pendingCount} pending`);
+            if (pendingCount > 0) {
+              console.log(`[Booking Notifications] Pending bookings:`, pendingBookings.map((b: any) => ({ id: b.id, status: b.status, shop_id: b.shop_id })));
+            }
+            
             setUnreadBookingsCount(pendingCount);
+          } else {
+            console.error(`[Booking Notifications] Failed to fetch bookings: ${bookingsRes.status} ${bookingsRes.statusText}`);
           }
         }
       } catch (error: any) {

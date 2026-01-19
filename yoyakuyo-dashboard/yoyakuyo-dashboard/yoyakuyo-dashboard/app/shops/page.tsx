@@ -11,9 +11,9 @@ import ReviewCard from '../components/ReviewCard';
 import ReviewStats from '../components/ReviewStats';
 import ShopCalendar from '../components/ShopCalendar';
 import { useBookingNotifications } from '../components/BookingNotificationContext';
-import NotificationDot from '../components/NotificationDot';
 import PushNotificationButton from '../components/PushNotificationButton';
 import { useNotifications } from '@/lib/useNotifications';
+import OwnerGuard from '../components/OwnerGuard';
 
 
 interface Shop {
@@ -516,15 +516,9 @@ const MyShopPage = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        // Filter to only this shop's bookings AND exclude old pending bookings
-        // Only show bookings that are confirmed, completed, or cancelled
-        // Don't show old 'pending' status bookings or bookings with null/undefined status
-        const shopBookings = Array.isArray(data)
-          ? data.filter((b: any) =>
-              b.shop_id === shopId &&
-              b.status && // Must have a status
-              (b.status === 'confirmed' || b.status === 'completed' || b.status === 'cancelled')
-            )
+        // Filter to only this shop's bookings
+        const shopBookings = Array.isArray(data) 
+          ? data.filter((b: any) => b.shop_id === shopId)
           : [];
         setBookings(shopBookings);
       }
@@ -1468,10 +1462,14 @@ const MyShopPage = () => {
             >
               {t(`myShop.${tab}`)}
               {tab === 'bookings' && unreadBookingsCount > 0 && (
-                <NotificationDot className="absolute top-1 right-1" />
+                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  {unreadBookingsCount}
+                </span>
               )}
               {tab === 'reviews' && unreadReviewsCount > 0 && (
-                <NotificationDot className="absolute top-1 right-1" />
+                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  {unreadReviewsCount}
+                </span>
               )}
               {activeTab === tab && (
                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></span>
@@ -1791,44 +1789,90 @@ const MyShopPage = () => {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('myShop.customer')}</th>
-                    <th className="hidden md:table-cell text-left py-3 px-4 font-semibold text-gray-700">{t('common.email')}</th>
-                    <th className="hidden md:table-cell text-left py-3 px-4 font-semibold text-gray-700">{t('common.phone')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('myShop.dateTime')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('myShop.service')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('common.status')}</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">{t('common.actions')}</th>
+                  <tr className="border-b-2 border-gray-200 bg-gray-50">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">{t('myShop.customer')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">{t('myShop.dateTime')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">{t('myShop.service')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">{t('common.status')}</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {bookings.map((booking) => (
-                    <tr key={booking.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                      <td className="py-3 px-4 text-gray-900 font-medium">
-                        {booking.customer_name || t('common.unknown')}
-                      </td>
-                      <td className="hidden md:table-cell py-3 px-4 text-gray-600 max-w-xs truncate">{booking.customer_email || 'N/A'}</td>
-                      <td className="hidden md:table-cell py-3 px-4 text-gray-600">{booking.customer_phone || 'N/A'}</td>
-                      <td className="py-3 px-4 text-gray-700">
-                        {booking.start_time ? new Date(booking.start_time).toLocaleString() : 'N/A'}
-                      </td>
-                      <td className="py-3 px-4 text-gray-600">
-                        {(booking as any).services?.name || 'N/A'}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  {bookings.map((booking) => {
+                    // Determine customer type from booking source/channel
+                    const customerType = (booking as any).source || (booking as any).channel || 'guest';
+                    const getCustomerTypeLabel = (type: string) => {
+                      if (type === 'line') return 'LINE';
+                      if (type === 'web') return 'Web';
+                      return 'Guest';
+                    };
+                    const getCustomerTypeColor = (type: string) => {
+                      if (type === 'line') return 'bg-blue-50 text-blue-700 border-blue-200';
+                      if (type === 'web') return 'bg-purple-50 text-purple-700 border-purple-200';
+                      return 'bg-gray-50 text-gray-700 border-gray-200';
+                    };
+
+                    // Format date and time
+                    // CRITICAL: Use booking.date (DATE) + booking.start_time (TIME), not start_at
+                    const formatDateTime = (booking: any) => {
+                      if (booking.date && booking.start_time) {
+                        // Combine DATE and TIME to create proper datetime
+                        const date = new Date(`${booking.date}T${booking.start_time}`);
+                        if (!isNaN(date.getTime())) {
+                          return {
+                            date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                            time: booking.start_time.substring(0, 5) // Format HH:MM from TIME
+                          };
+                        }
+                      }
+                      if (booking.date) {
+                        // Fallback: just show date if time is missing
+                        const date = new Date(booking.date + 'T00:00:00');
+                        return {
+                          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                          time: 'N/A'
+                        };
+                      }
+                      return { date: 'N/A', time: '' };
+                    };
+
+                    const dateTime = formatDateTime(booking);
+
+                    return (
+                      <tr key={booking.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td className="py-4 px-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-gray-900 font-medium">
+                              {booking.customer_name || t('common.unknown')}
+                            </span>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getCustomerTypeColor(customerType)}`}>
+                              {getCustomerTypeLabel(customerType)}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex flex-col">
+                            <span className="text-gray-900 font-medium">{dateTime.date}</span>
+                            <span className="text-gray-500 text-sm">{dateTime.time}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 text-gray-700">
+                          {(booking as any).services?.name || 'N/A'}
+                        </td>
+                      <td className="py-4 px-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                           booking.status === 'confirmed' ? 'bg-green-100 text-green-700' :
                           booking.status === 'rejected' ? 'bg-red-100 text-red-700' :
                           booking.status === 'cancelled' ? 'bg-gray-100 text-gray-700' :
                           booking.status === 'completed' ? 'bg-blue-100 text-blue-700' :
                           'bg-yellow-100 text-yellow-700'
                         }`}>
-                          {t(`status.${booking.status || 'unknown'}`)}
+                          {t(`status.${booking.status || 'pending'}`)}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-4 px-4">
                         <div className="flex gap-2 flex-wrap">
-                          {/* Removed pending booking actions - only show for confirmed/completed/cancelled bookings */}
+                          {(!booking.status || booking.status === 'pending') && (
                             <>
                               <button
                                 onClick={() =>
@@ -1838,7 +1882,7 @@ const MyShopPage = () => {
                                     booking.customer_name || null
                                   )
                                 }
-                                className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
+                                className="px-3 py-1.5 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors font-medium"
                               >
                                 {t('common.confirm')}
                               </button>
@@ -1850,7 +1894,7 @@ const MyShopPage = () => {
                                     booking.customer_name || null
                                   )
                                 }
-                                className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium"
+                                className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition-colors font-medium"
                               >
                                 {t('common.reject')}
                               </button>
@@ -1865,7 +1909,7 @@ const MyShopPage = () => {
                                   booking.customer_name || null
                                 )
                               }
-                              className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                              className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors font-medium"
                             >
                               {t('status.completed')}
                             </button>
@@ -1876,7 +1920,7 @@ const MyShopPage = () => {
                                 onClick={() =>
                                   openCancelModal(booking.id, booking.customer_name || null)
                                 }
-                                className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium"
+                                className="px-3 py-1.5 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition-colors font-medium"
                               >
                                 {t('booking.cancelBooking')}
                               </button>
@@ -1888,7 +1932,7 @@ const MyShopPage = () => {
                                     booking.start_time
                                   )
                                 }
-                                className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                className="px-3 py-1.5 bg-gray-600 text-white text-xs rounded-md hover:bg-gray-700 transition-colors font-medium"
                               >
                                 {t('booking.rescheduleBooking')}
                               </button>
@@ -1897,7 +1941,8 @@ const MyShopPage = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -2359,5 +2404,12 @@ const MyShopPage = () => {
   );
 };
 
-export default MyShopPage;
+// Wrap with OwnerGuard to ensure only users with role='owner' can access
+export default function ProtectedMyShopPage() {
+  return (
+    <OwnerGuard>
+      <MyShopPage />
+    </OwnerGuard>
+  );
+}
 

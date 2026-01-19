@@ -4,8 +4,12 @@
 "use client";
 
 import React, { useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function Header() {
+  const router = useRouter();
+  
   // Add mobile hamburger for opening sidebar
   const handleOpenSidebar = () => {
     if (typeof window !== 'undefined') {
@@ -14,16 +18,44 @@ export default function Header() {
   };
 
   return (
-    <header className="lg:hidden flex items-center px-4 h-14 bg-white/95 border-b border-gray-200 shadow-sm sticky top-0 z-[201]">
-      <button
-        className="text-2xl text-gray-800 focus:outline-none p-2 mr-2 lg:hidden"
-        aria-label="Open menu"
-        onClick={handleOpenSidebar}
-      >
-        {/* Hamburger icon */}
-        <span aria-hidden="true">☰</span>
-      </button>
-      <span className="text-lg font-bold text-japanese-charcoal">Yoyaku Yo</span>
-    </header>
+    <>
+      {/* Mobile Header */}
+      <header className="lg:hidden flex items-center px-4 h-14 bg-white/95 border-b border-gray-200 shadow-sm sticky top-0 z-[201]">
+        <button
+          className="text-2xl text-gray-800 focus:outline-none p-2 mr-2 lg:hidden"
+          aria-label="Open menu"
+          onClick={handleOpenSidebar}
+        >
+          {/* Hamburger icon */}
+          <span aria-hidden="true">☰</span>
+        </button>
+        <button
+          onClick={(e) => {
+            // Ensure logo click only navigates, never logs out
+            e.preventDefault();
+            e.stopPropagation();
+            router.push("/owner/shop-profile");
+          }}
+          className="text-lg font-bold text-japanese-charcoal hover:text-blue-600 transition-colors cursor-pointer"
+        >
+          Yoyaku Yo
+        </button>
+      </header>
+      
+      {/* Desktop Header - Fixed at top */}
+      <header className="hidden lg:flex fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-40 items-center px-6">
+        <button
+          onClick={(e) => {
+            // Ensure logo click only navigates, never logs out
+            e.preventDefault();
+            e.stopPropagation();
+            router.push("/owner/shop-profile");
+          }}
+          className="text-xl font-bold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+        >
+          Yoyaku Yo
+        </button>
+      </header>
+    </>
   );
 }

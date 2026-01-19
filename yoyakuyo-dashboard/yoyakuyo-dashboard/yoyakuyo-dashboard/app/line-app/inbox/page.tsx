@@ -20,7 +20,10 @@ declare global {
 
 interface Conversation {
   id: string;
-  shop_id: string;
+  conversation_type?: string;
+  target_type?: string;
+  target_id?: string;
+  shop_id?: string;
   shop?: {
     id: string;
     name: string;
@@ -28,6 +31,7 @@ interface Conversation {
   };
   last_message_at?: string;
   created_at: string;
+  is_support_ticket?: boolean;
   unread_count?: number;
 }
 
@@ -241,45 +245,197 @@ function LineInboxPageContent() {
       
       // ALWAYS inject X-User-Id via unified messaging API client
       // Rely on backend auth context to resolve customer_type/customer_ref
+      // Load conversations - API will infer conversation_type=booking_owner for LINE customers
+      // Don't filter here to ensure we get all conversations (including legacy ones without conversation_type)
+      console.log('[LINE Inbox] API URL debug:', {
+        apiUrl,
+        typeofApiUrl: typeof apiUrl,
+        apiUrlValue: apiUrl,
+        isUndefined: apiUrl === undefined,
+        isNull: apiUrl === null,
+        isEmptyString: apiUrl === '',
+      });
+      // Note: API will automatically infer conversation_type=booking_owner for LINE customers
+      // We don't filter here to ensure we get all conversations, including legacy ones
+      const inboxUrl = `${apiUrl}/api/internal-messaging/conversations?conversation_type=booking_owner`;
+      console.log('[LINE Inbox] Constructed inbox URL:', inboxUrl);
+      console.log('[LINE Inbox] About to call conversations API:', {
+        apiUrl,
+        inboxUrl,
+        lineUserId: lineUserId ? 'present' : 'missing',
+        idToken: idToken ? 'present' : 'missing',
+        envApiUrl: process.env.NEXT_PUBLIC_API_URL,
+        apiUrlType: typeof apiUrl,
+        apiUrlValue: apiUrl
+      });
+
+      // Check if apiUrl is just a path (starts with /)
+      if (apiUrl && apiUrl.startsWith('/')) {
+        console.warn('[LINE Inbox] apiUrl starts with / - this might be the issue!', { apiUrl });
+      }
+
+      const debugStartTime = new Date().toISOString();
+      setRtDebug(`🔍 Starting conversation load at ${debugStartTime}`);
+      setRtStatus('Loading conversations...');
+
+      console.log('🔍 [LINE APP DEBUG] Starting conversation load...', {
+        inboxUrl,
+        lineUserId: lineUserId ? 'present' : 'missing',
+        idToken: token ? 'present' : 'missing',
+        apiUrl: apiUrl,
+        timestamp: debugStartTime
+      });
+
+      // CRITICAL: Validate lineUserId is present before making request
+      if (!lineUserId) {
+        console.error('[LINE Inbox] ❌ CRITICAL: lineUserId is missing!', {
+          lineUserId,
+          token: token ? 'present' : 'missing',
+          stateLineUserId: lineUserId
+        });
+        throw new Error('LINE user ID is required to load conversations');
+      }
+      
+      console.log('[LINE Inbox] ✅ Validated lineUserId before request:', {
+        lineUserId: lineUserId.substring(0, 10) + '...',
+        hasIdToken: !!token
+      });
+      
       const res = await messagingFetch(
-        `${apiUrl}/api/internal-messaging/conversations`,
+        inboxUrl,
         {
           lineUserId,
           idToken: token,
         }
       );
 
+      console.log('🔍 [LINE APP DEBUG] Conversation load response received:', {
+        ok: res.ok,
+        status: res.status,
+        statusText: res.statusText,
+        url: res.url,
+        timestamp: new Date().toISOString()
+      });
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Failed to load conversations' }));
-        throw new Error(errorData.error || 'Failed to load conversations');
+
+        const errorTimestamp = new Date().toISOString();
+        setRtDebug(`❌ FAILED at ${errorTimestamp}: ${res.status} ${res.statusText}`);
+        setRtStatus(`Error: ${errorData.error || 'Unknown error'}`);
+
+        console.error('🔍 [LINE APP DEBUG] CONVERSATION LOAD FAILED:', {
+          status: res.status,
+          statusText: res.statusText,
+          error: errorData,
+          errorMessage: errorData.error,
+          requestId: errorData.request_id,
+          inboxUrl,
+          timestamp: errorTimestamp
+        });
+
+        let errorMessage = 'Failed to load conversations. Please try again.';
+        if (res.status === 401) {
+          errorMessage = 'Authentication error. Please close and reopen the app.';
+        } else if (res.status === 403) {
+          errorMessage = 'You do not have permission to view conversations.';
+        }
+
+        // Show detailed error in alert for debugging
+        const debugInfo = `🔍 DEBUG INFO (Check browser console too):
+• Status: ${res.status} ${res.statusText}
+• Error: ${errorData.error || 'Unknown'}
+• Request ID: ${errorData.request_id || 'None'}
+• URL: ${inboxUrl}
+• Timestamp: ${new Date().toISOString()}`;
+
+        alert(`${errorMessage}\n\n${debugInfo}`);
+        setLoading(false); // Stop loading state
+        setError(errorMessage);
+        return; // Don't throw - prevent infinite loading
       }
 
+      setRtDebug(`✅ Conversation load successful at ${new Date().toISOString()}`);
+      setRtStatus('Parsing response...');
+
+      console.log('🔍 [LINE APP DEBUG] Conversation load successful, parsing response...');
+
       const data = await res.json();
+      console.log('[LINE Inbox] Loaded conversations:', data.conversations?.length || 0);
+      console.log('[LINE Inbox] Sample conversation:', data.conversations?.[0]);
+
+      // DEBUG: Check conversation types
+      const conversationTypes = data.conversations?.map((c: any) => c.conversation_type) || [];
+      console.log('[LINE Inbox] Conversation types:', [...new Set(conversationTypes)]);
       console.log("[LINE Inbox] Loaded conversations:", data.conversations?.length || 0);
       
-      // CRITICAL: Deduplicate by shop_id - keep only the latest conversation per shop
+      // CRITICAL: Deduplicate by target_id - keep only the latest conversation per target
       const rawConversations: Conversation[] = data.conversations || [];
-      const byShop = new Map<string, Conversation>();
+      console.log('[LINE Inbox] Raw conversations before deduplication:', rawConversations.length);
+      console.log('[LINE Inbox] Raw conversation details:', rawConversations.map(c => ({
+        id: c.id,
+        target_id: c.target_id,
+        shop_id: c.shop_id,
+        conversation_type: c.conversation_type,
+        last_message_at: c.last_message_at,
+        created_at: c.created_at
+      })));
+      
+      const byTarget = new Map<string, Conversation>();
       for (const conv of rawConversations) {
-        const key = conv.shop_id;
-        const existing = byShop.get(key);
+        const key = conv.target_id || conv.shop_id || conv.id;
+        const existing = byTarget.get(key);
         if (!existing) {
-          byShop.set(key, conv);
+          byTarget.set(key, conv);
         } else {
           // Keep the one with latest last_message_at (or created_at if no messages)
-          const existingTime = new Date(existing.last_message_at || existing.created_at).getTime();
-          const newTime = new Date(conv.last_message_at || conv.created_at).getTime();
-          if (newTime > existingTime) {
-            byShop.set(key, conv);
+          // Validate dates before parsing to avoid NaN
+          const existingDateStr = existing.last_message_at || existing.created_at;
+          const newDateStr = conv.last_message_at || conv.created_at;
+          
+          if (existingDateStr && newDateStr) {
+            const existingTime = new Date(existingDateStr).getTime();
+            const newTime = new Date(newDateStr).getTime();
+            if (!isNaN(existingTime) && !isNaN(newTime) && newTime > existingTime) {
+              byTarget.set(key, conv);
+            } else if (isNaN(existingTime) && !isNaN(newTime)) {
+              // If existing has invalid date but new has valid, use new
+              byTarget.set(key, conv);
+            }
+            // If both are invalid or existing is newer, keep existing
+          } else if (newDateStr && !existingDateStr) {
+            // New has date but existing doesn't, use new
+            byTarget.set(key, conv);
           }
+          // If both missing dates or existing has date, keep existing
         }
       }
-      const deduped = Array.from(byShop.values()).sort((a, b) =>
-        new Date(b.last_message_at || b.created_at).getTime() -
-        new Date(a.last_message_at || a.created_at).getTime()
-      );
+      
+      const deduped = Array.from(byTarget.values()).sort((a, b) => {
+        const aDateStr = a.last_message_at || a.created_at;
+        const bDateStr = b.last_message_at || b.created_at;
+        
+        if (!aDateStr && !bDateStr) return 0;
+        if (!aDateStr) return 1; // a goes to end
+        if (!bDateStr) return -1; // b goes to end
+        
+        const aTime = new Date(aDateStr).getTime();
+        const bTime = new Date(bDateStr).getTime();
+        
+        if (isNaN(aTime) && isNaN(bTime)) return 0;
+        if (isNaN(aTime)) return 1; // a goes to end
+        if (isNaN(bTime)) return -1; // b goes to end
+        
+        return bTime - aTime; // Most recent first
+      });
       console.log("[LINE Inbox] Deduplicated conversations:", deduped.length, "from", rawConversations.length);
       setConversations(deduped);
+
+      // Auto-select the most recent conversation for better UX
+      if (deduped.length > 0 && !selectedConversation) {
+        console.log("[LINE Inbox] Auto-selecting most recent conversation:", deduped[0].id);
+        handleSelectConversation(deduped[0]);
+      }
     } catch (error: any) {
       console.error("[LINE Inbox] Error loading conversations:", error);
       setError(`Failed to load conversations: ${error.message || 'Unknown error'}`);
@@ -314,21 +470,21 @@ function LineInboxPageContent() {
             existingConv = allConversations.find(c => c.shop_id === shopId);
             
             // Update conversations list with backend data (deduplicated)
-            const byShop = new Map<string, Conversation>();
+            const byTarget = new Map<string, Conversation>();
             for (const conv of allConversations) {
-              const key = conv.shop_id;
-              const existing = byShop.get(key);
+              const key = conv.target_id || conv.shop_id || conv.id;
+              const existing = byTarget.get(key);
               if (!existing) {
-                byShop.set(key, conv);
+                byTarget.set(key, conv);
               } else {
                 const existingTime = new Date(existing.last_message_at || existing.created_at).getTime();
                 const newTime = new Date(conv.last_message_at || conv.created_at).getTime();
                 if (newTime > existingTime) {
-                  byShop.set(key, conv);
+                  byTarget.set(key, conv);
                 }
               }
             }
-            const deduped = Array.from(byShop.values()).sort((a, b) =>
+            const deduped = Array.from(byTarget.values()).sort((a, b) =>
               new Date(b.last_message_at || b.created_at).getTime() -
               new Date(a.last_message_at || a.created_at).getTime()
             );
@@ -381,7 +537,7 @@ function LineInboxPageContent() {
       
       // ALWAYS inject X-User-Id via unified messaging API client
       const res = await messagingFetch(
-        `${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`,
+        `${apiUrl}/api/internal-messaging/${conversationId}/messages`,
         {
           lineUserId,
           idToken: token,
@@ -398,6 +554,9 @@ function LineInboxPageContent() {
           setError('Authentication required. Please log in again.');
           // STEP 4: Keep current conversation_id, show error state instead
           return;
+        } else {
+          // Show alert for other errors since user can't see console on mobile
+          alert('Failed to load messages. Please check your connection and try again.');
         }
         throw new Error('Failed to load messages');
       }
@@ -448,64 +607,153 @@ function LineInboxPageContent() {
     let conversationId: string;
     let conversationToUse: Conversation | null = selectedConversation;
 
-    // If no selected conversation, check if one exists in the list for this shop
-    if (!conversationToUse) {
-      // Determine which shop we're messaging
-      const shopId = preselectedShopId || (conversations.length > 0 ? conversations[0].shop_id : null);
-      
-      if (!shopId) {
-        setError('Cannot send message: No shop selected and no conversation exists.');
-        return;
-      }
+      // If no selected conversation, check if one exists in the list for this shop
+      if (!conversationToUse) {
+        // Determine which shop we're messaging
+        const shopId = preselectedShopId || (conversations.length > 0 ? conversations[0].shop_id : null);
 
-      // FIRST: Check if conversation already exists in list (by shop_id)
-      let existingConv = conversations.find(c => c.shop_id === shopId);
+        console.log('[LINE Inbox] sendMessage - Shop determination:', {
+          preselectedShopId,
+          conversationsCount: conversations.length,
+          firstConversationShopId: conversations.length > 0 ? conversations[0].shop_id : null,
+          determinedShopId: shopId
+        });
+
+        if (!shopId) {
+          setError('Cannot send message: No shop selected and no conversation exists.');
+          return;
+        }
+
+      // FIRST: Check if conversation already exists in list (by target_id for shop conversations)
+      let existingConv = conversations.find(c => c.target_id === shopId && c.conversation_type === 'booking_owner');
+
+      console.log('[LINE Inbox] sendMessage - Existing conversation check:', {
+        shopId,
+        conversationType: 'booking_owner',
+        foundInList: !!existingConv,
+        existingConvId: existingConv?.id,
+        conversationsCount: conversations.length,
+        conversationsList: conversations.map(c => ({ id: c.id, target_id: c.target_id, type: c.conversation_type, shop_id: c.shop_id }))
+      });
       
       // SECOND: If not in list, check backend (conversation might exist but not be loaded)
       if (!existingConv) {
-        console.log("[LINE Inbox] Not in list, checking backend for existing conversation...");
+        console.log("🔍 [LINE APP DEBUG] Not in list, checking backend for existing conversation...");
+        console.log("🔍 [LINE APP DEBUG] Backend conversation check - authentication context:", {
+          lineUserId: lineUserId ? 'present' : 'missing',
+          idToken: idToken ? 'present' : 'missing',
+          apiUrl,
+          shopId,
+          timestamp: new Date().toISOString()
+        });
+
         try {
+          const backendCheckUrl = `${apiUrl}/api/internal-messaging/conversations?conversation_type=booking_owner`;
+          console.log("🔍 [LINE APP DEBUG] Making backend conversation check request:", backendCheckUrl);
+
           const res = await messagingFetch(
-            `${apiUrl}/api/internal-messaging/conversations`,
+            backendCheckUrl,
             {
               lineUserId,
               idToken,
             }
           );
+
+          console.log("🔍 [LINE APP DEBUG] Backend conversation check response:", {
+            ok: res.ok,
+            status: res.status,
+            statusText: res.statusText,
+            url: backendCheckUrl,
+            timestamp: new Date().toISOString()
+          });
           
           if (res.ok) {
             const data = await res.json();
+            console.log("🔍 [LINE APP DEBUG] Backend conversation check successful:", {
+              hasConversations: !!data.conversations,
+              conversationsCount: data.conversations?.length || 0,
+              request_id: data.request_id,
+              timestamp: new Date().toISOString()
+            });
+
             const allConversations: Conversation[] = data.conversations || [];
-            existingConv = allConversations.find(c => c.shop_id === shopId);
-            
+            existingConv = allConversations.find(c => c.target_id === shopId && c.conversation_type === 'booking_owner');
+
+            console.log("🔍 [LINE APP DEBUG] Backend conversation search results:", {
+              allConversationsCount: allConversations.length,
+              foundInBackend: !!existingConv,
+              backendConvId: existingConv?.id,
+              lookingForShopId: shopId,
+              lookingForType: 'booking_owner',
+              foundConversation: existingConv ? {
+                id: existingConv.id,
+                target_id: existingConv.target_id,
+                conversation_type: existingConv.conversation_type,
+                shop_id: existingConv.shop_id
+              } : null,
+              allConversationsSummary: allConversations.map(c => ({
+                id: c.id,
+                target_id: c.target_id,
+                type: c.conversation_type,
+                shop_id: c.shop_id
+              })),
+              timestamp: new Date().toISOString()
+            });
+
             if (existingConv) {
               // Update conversations list with backend data (deduplicated)
-              const byShop = new Map<string, Conversation>();
+              const byTarget = new Map<string, Conversation>();
               for (const conv of allConversations) {
-                const key = conv.shop_id;
-                const existing = byShop.get(key);
+                const key = conv.target_id || conv.shop_id || conv.id;
+                const existing = byTarget.get(key);
                 if (!existing) {
-                  byShop.set(key, conv);
+                  byTarget.set(key, conv);
                 } else {
                   const existingTime = new Date(existing.last_message_at || existing.created_at).getTime();
                   const newTime = new Date(conv.last_message_at || conv.created_at).getTime();
                   if (newTime > existingTime) {
-                    byShop.set(key, conv);
+                    byTarget.set(key, conv);
                   }
                 }
               }
-              const deduped = Array.from(byShop.values()).sort((a, b) =>
+              const deduped = Array.from(byTarget.values()).sort((a, b) =>
                 new Date(b.last_message_at || b.created_at).getTime() -
                 new Date(a.last_message_at || a.created_at).getTime()
               );
               setConversations(deduped);
-              
+
               // Re-check after updating list
               existingConv = deduped.find(c => c.shop_id === shopId);
             }
+          } else {
+            // Backend request failed!
+            const errorData = await res.json().catch(() => ({ error: 'Failed to parse error response' }));
+
+            console.error("🔍 [LINE APP DEBUG] BACKEND CONVERSATION CHECK CRITICAL FAILURE:", {
+              status: res.status,
+              statusText: res.statusText,
+              error: errorData,
+              errorMessage: errorData.error,
+              requestId: errorData.request_id,
+              url: `${apiUrl}/api/internal-messaging/conversations?conversation_type=booking_owner`,
+              timestamp: new Date().toISOString()
+            });
+
+            const debugInfo = `🔍 BACKEND CHECK FAILED:
+• Status: ${res.status} ${res.statusText}
+• Error: ${errorData.error || 'Unknown'}
+• Request ID: ${errorData.request_id || 'None'}
+• This is why "failed to load messages" appears!
+• Check browser console for full details.`;
+
+            alert(`Failed to check for existing conversations. Please try again.\n\n${debugInfo}`);
+            setError('Failed to check for existing conversations. Please try again.');
+            return;
           }
         } catch (fetchError) {
           console.error("[LINE Inbox] Error checking backend for conversation:", fetchError);
+          setError('Failed to connect to server. Please check your connection and try again.');
+          return;
         }
       }
       
@@ -527,6 +775,12 @@ function LineInboxPageContent() {
       } else {
         // NO conversation exists anywhere - create ONLY when sending first message
         console.log("[LINE Inbox] No conversation exists anywhere, creating ONLY because user is sending first message:", shopId);
+        console.log('[LINE Inbox] Creating new conversation with params:', {
+          shop_id: shopId,
+          booking_id: preselectedBookingId,
+          customer_type: 'line',
+          customer_ref: lineUserId
+        });
         
         try {
           const convRes = await messagingFetch(
@@ -540,6 +794,9 @@ function LineInboxPageContent() {
                 booking_id: preselectedBookingId || null,
                 customer_type: 'line',
                 customer_ref: lineUserId,
+                conversation_type: 'booking_owner',
+                target_type: 'shop',
+                target_id: shopId,
               },
             }
           );
@@ -562,27 +819,28 @@ function LineInboxPageContent() {
           
           // Add to conversations list with proper deduplication
           setConversations(prev => {
-            // CRITICAL: Deduplicate by shop_id - only one conversation per shop
-            const byShop = new Map<string, Conversation>();
+            // CRITICAL: Deduplicate by target_id - only one conversation per target
+            const byTarget = new Map<string, Conversation>();
             // Add existing conversations
             for (const conv of prev) {
-              const key = conv.shop_id;
-              const existing = byShop.get(key);
+              const key = conv.target_id || conv.shop_id || conv.id;
+              const existing = byTarget.get(key);
               if (!existing) {
-                byShop.set(key, conv);
+                byTarget.set(key, conv);
               } else {
                 // Keep the one with latest last_message_at
                 const existingTime = new Date(existing.last_message_at || existing.created_at).getTime();
                 const newTime = new Date(conv.last_message_at || conv.created_at).getTime();
                 if (newTime > existingTime) {
-                  byShop.set(key, conv);
+                  byTarget.set(key, conv);
                 }
               }
             }
-            // Add new conversation (will replace if shop_id exists)
-            byShop.set(shopId, conversationToUse!);
-            
-            const deduped = Array.from(byShop.values()).sort((a, b) =>
+            // Add new conversation (will replace if target_id exists)
+            const newKey = conversationToUse!.target_id || conversationToUse!.shop_id || conversationToUse!.id;
+            byTarget.set(newKey, conversationToUse!);
+
+            const deduped = Array.from(byTarget.values()).sort((a, b) =>
               new Date(b.last_message_at || b.created_at).getTime() -
               new Date(a.last_message_at || a.created_at).getTime()
             );
@@ -628,6 +886,12 @@ function LineInboxPageContent() {
     }
 
     // CRITICAL: Ensure realtime subscription is ALWAYS active before sending
+    console.log('[LINE Inbox] Realtime subscription check:', {
+      conversationId,
+      hasRealtimeChannel: !!realtimeChannelRef.current,
+      realtimeChannelState: realtimeChannelRef.current?.state
+    });
+
     if (conversationId && !realtimeChannelRef.current) {
       console.log("[LINE Inbox] Realtime subscription missing, setting up now:", conversationId);
       subscribeToMessages(conversationId);
@@ -676,22 +940,61 @@ function LineInboxPageContent() {
       });
       
       // ALWAYS inject X-User-Id via unified messaging API client
-      const res = await messagingFetch(
-        `${apiUrl}/api/internal-messaging/messages`,
-        {
-          method: 'POST',
-          lineUserId,
-          idToken,
-          body: {
-            conversation_id: conversationId,
-            content: trimmedContent,
-          },
+      // Add timeout to prevent hanging on mobile networks
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        alert('Request timed out. Please check your connection and try again.');
+      }, 15000); // 15 second timeout for mobile
+
+      let res: Response;
+      try {
+        res = await messagingFetch(
+          `${apiUrl}/api/internal-messaging/messages`,
+          {
+            method: 'POST',
+            lineUserId,
+            idToken,
+            body: {
+              conversation_id: conversationId,
+              content: trimmedContent,
+            },
+          }
+        );
+        clearTimeout(timeoutId);
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out. Please try again.');
         }
-      );
+        throw error;
+      }
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Failed to send message' }));
-        throw new Error(errorData.error || 'Failed to send message');
+
+        // Show user-visible error message for mobile LINE users
+        let errorMessage = 'Failed to send message. Please try again.';
+        if (res.status === 401) {
+          errorMessage = 'Authentication error. Please close and reopen the app.';
+        } else if (res.status === 403) {
+          errorMessage = 'You do not have permission to send messages.';
+        } else if (res.status === 404) {
+          errorMessage = 'Conversation not found. Please refresh.';
+        } else if (res.status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+
+        console.error('[LINE Inbox] Message sending failed:', {
+          status: res.status,
+          statusText: res.statusText,
+          error: errorData,
+          conversationId,
+          contentLength: trimmedContent.length
+        });
+
+        alert(errorMessage);
+        throw new Error(errorData.error || `Failed to send message (${res.status})`);
       }
 
       const data = await res.json();
@@ -1050,15 +1353,9 @@ function LineInboxPageContent() {
     if (conversations.length === 1 && !selectedConversation && !preselectedShopId && lineUserId && idToken && !loading) {
       const singleConv = conversations[0];
       console.log("[LINE Inbox] Auto-opening single conversation:", singleConv.id);
-      lockedConversationIdRef.current = singleConv.id;
-      setSelectedConversation(singleConv);
-      // Load messages and subscribe immediately
-      (async () => {
-        await loadMessages(singleConv.id, lineUserId, idToken);
-        subscribeToMessages(singleConv.id);
-      })();
+      handleSelectConversation(singleConv);
     }
-  }, [conversations.length, preselectedShopId, lineUserId, idToken, loading]);
+  }, [conversations.length, selectedConversation, preselectedShopId, lineUserId, idToken, loading]);
 
   // STEP 5: Subscribe to realtime when conversation is selected
   // CRITICAL: Only subscribe when conversation actually changes, don't clean up unnecessarily
@@ -1155,10 +1452,22 @@ function LineInboxPageContent() {
           </div>
         )}
 
+        {/* DEBUG DISPLAY - VISIBLE ON PHONE */}
+        {(rtDebug || rtStatus) && (
+          <div className="px-4 py-2 flex-shrink-0">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-yellow-800 text-xs font-mono">
+                🔍 DEBUG: {rtDebug}
+                {rtStatus && <span className="block mt-1">📊 Status: {rtStatus}</span>}
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 flex flex-col min-h-0 px-2 md:px-4 py-2">
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
-            {/* Mobile Conversations List (full-width) - Only show if 2+ conversations */}
-            {conversations.length >= 2 && (
+            {/* Mobile Conversations List (full-width) - Show if 1+ conversations */}
+            {conversations.length >= 1 && (
               <div className="md:hidden border-b border-gray-200">
                 <div className="p-3 flex-shrink-0">
                   <h2 className="font-semibold text-gray-900 text-sm">
@@ -1175,20 +1484,30 @@ function LineInboxPageContent() {
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
                         <h3 className="font-semibold text-gray-900 truncate">
-                          {conv.shop?.name || 'Shop'}
+                            {conv.shop?.name || (conv.is_support_ticket ? t("admin.support") || "Support" : 'Shop')}
                         </h3>
+                          {conv.is_support_ticket && (
+                            <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-medium">
+                              {t("admin.support") || "Support"}
+                            </span>
+                          )}
+                        </div>
                         {conv.unread_count && conv.unread_count > 0 && (
                           <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1">
                             {conv.unread_count}
                           </span>
                         )}
                       </div>
-                      {conv.last_message_at && (
-                        <p className="text-xs text-gray-400">
-                          {new Date(conv.last_message_at).toLocaleString()}
-                        </p>
-                      )}
+                      {conv.last_message_at && (() => {
+                        const date = new Date(conv.last_message_at);
+                        return !isNaN(date.getTime()) ? (
+                          <p className="text-xs text-gray-400">
+                            {date.toLocaleString()}
+                          </p>
+                        ) : null;
+                      })()}
                     </button>
                   ))}
                 </div>
@@ -1196,8 +1515,8 @@ function LineInboxPageContent() {
             )}
 
             <div className="flex flex-1 min-h-0" style={{ height: '100%' }}>
-              {/* Desktop Conversations List - Only show if 2+ conversations */}
-              {conversations.length >= 2 && (
+              {/* Desktop Conversations List - Show if 1+ conversations */}
+              {conversations.length >= 1 && (
                 <div className="w-1/3 border-r border-gray-200 flex flex-col min-w-0 hidden md:flex">
                 <div className="p-3 border-b border-gray-200 flex-shrink-0">
                   <h2 className="font-semibold text-gray-900 text-sm">{t("conversationsTitle")}</h2>
@@ -1228,7 +1547,10 @@ function LineInboxPageContent() {
                         </div>
                         {conv.last_message_at && (
                           <p className="text-xs text-gray-400">
-                            {new Date(conv.last_message_at).toLocaleString()}
+                            {(() => {
+                              const date = new Date(conv.last_message_at);
+                              return !isNaN(date.getTime()) ? date.toLocaleString() : '';
+                            })()}
                           </p>
                         )}
                       </button>
@@ -1240,11 +1562,11 @@ function LineInboxPageContent() {
 
             {/* Messages View */}
             <div className="flex-1 flex flex-col min-w-0 min-h-0">
-              {selectedConversation ? (
+              {selectedConversation || conversations.length === 0 ? (
                 <>
                   <div className="p-3 border-b border-gray-200 flex-shrink-0">
                     <h2 className="font-semibold text-gray-900 text-sm">
-                      {selectedConversation.shop?.name || 'Shop'}
+                      {selectedConversation ? (selectedConversation.shop?.name || 'Shop') : t("messagesTitle") || 'Messages'}
                     </h2>
                   </div>
                   
@@ -1258,6 +1580,18 @@ function LineInboxPageContent() {
                       <div className="text-center text-red-600 mt-8 p-4 bg-red-50 rounded-lg border border-red-200">
                         <p className="font-semibold">⚠️ {t("error")}</p>
                         <p className="text-sm mt-2">{error}</p>
+                      </div>
+                    ) : !selectedConversation && conversations.length > 0 ? (
+                      <div className="text-center text-gray-500 mt-8">
+                        <p className="text-lg mb-2">{t("selectConversation") || "Select a conversation from the list to start messaging"}</p>
+                        {conversations.length === 1 && (
+                          <button
+                            onClick={() => handleSelectConversation(conversations[0])}
+                            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                          >
+                            {t("openConversation") || "Open Conversation"}
+                          </button>
+                        )}
                       </div>
                     ) : messages.length === 0 ? (
                       <div className="text-center text-gray-500 mt-8">
@@ -1325,32 +1659,34 @@ function LineInboxPageContent() {
                     <div ref={messagesEndRef} />
                   </div>
 
-                  {/* Input Area */}
-                  <div className="border-t border-gray-200 p-3 flex-shrink-0" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-                    <div className="flex gap-2">
-                      <textarea
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            sendMessage();
-                          }
-                        }}
-                        placeholder={t("typeMessage")}
-                        rows={2}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
-                        disabled={sending}
-                      />
-                      <button
-                        onClick={sendMessage}
-                        disabled={sending || !newMessage.trim()}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm whitespace-nowrap"
-                      >
+                  {/* Input Area - Show when conversation is selected */}
+                  {selectedConversation && (
+                    <div className="border-t border-gray-200 p-3 flex-shrink-0" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+                      <div className="flex gap-2">
+                        <textarea
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              sendMessage();
+                            }
+                          }}
+                          placeholder={t("typeMessage")}
+                          rows={2}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                          disabled={sending}
+                        />
+                        <button
+                          onClick={sendMessage}
+                          disabled={sending || !newMessage.trim()}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm whitespace-nowrap"
+                        >
                         {sending ? t("sending") : t("send")}
                       </button>
                     </div>
                   </div>
+                  )}
                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center">

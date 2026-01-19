@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCustomAuth } from "@/lib/useCustomAuth";
+import { getSupabaseClient } from "@/lib/supabaseClient";
 
 export default function CustomerLoginPage() {
   const t = useTranslations();
@@ -29,17 +30,117 @@ export default function CustomerLoginPage() {
     const result = await signIn(emailFromForm, passwordFromForm, 'customer');
 
     if (!result.success) {
+      // Check if error is owner/admin access denied
+      if (result.error?.includes('Owners cannot use customer login') || 
+          result.error?.includes('Admins cannot use customer login') ||
+          result.error?.includes('OWNER_ACCESS_DENIED') ||
+          result.error?.includes('ADMIN_ACCESS_DENIED')) {
+        setMessage(`Error: ${result.error}`);
+        setLoading(false);
+        setTimeout(() => {
+          router.push('/login?error=owner_cannot_access_customer_dashboard');
+        }, 2000);
+        return;
+      }
       setMessage(`Error: ${result.error || 'Login failed'}`);
       setLoading(false);
       return;
     }
 
-    // Redirect to customer dashboard
-    setMessage("Login successful! Redirecting...");
-    setTimeout(() => {
+    // CRITICAL: Verify customer after successful authentication (similar to owner login)
+    // Customer login uses useCustomAuth (JWT), not Supabase Auth
+    // Get user from localStorage (stored by useCustomAuth)
+    try {
+      // Get user from localStorage (stored by useCustomAuth after successful login)
+      const storedUser = typeof window !== 'undefined' 
+        ? localStorage.getItem('yoyaku_user') 
+        : null;
+      
+      if (!storedUser) {
+        // If user not in localStorage, backend validation already passed, so allow access
+        console.log('[Customer Login] User not in localStorage, but backend validation passed - allowing access');
+      } else {
+        const userData = JSON.parse(storedUser);
+        const userId = userData.id;
+        const userEmail = userData.email || emailFromForm;
+
+        // Check if user is a customer - check users table FIRST (most reliable)
+        const supabase = getSupabaseClient();
+        const { data: dbUserData, error: userError } = await supabase
+          .from('users')
+          .select('id, email, role')
+          .eq('id', userId)
+          .maybeSingle();
+
+        let isCustomer = false;
+
+        // Check if user has role='customer' or no role (default to customer)
+        if (dbUserData) {
+          const role = dbUserData.role;
+          // Customer if role is 'customer', null, or undefined (not 'owner' or 'admin')
+          if (role === 'customer' || !role || (role !== 'owner' && role !== 'admin' && role !== 'super_admin')) {
+            isCustomer = true;
+            console.log('[Customer Login] ✅ Customer found in users table:', { role: role || 'no role (default customer)' });
+          }
+        } else {
+          // User doesn't exist in users table - check owners table to block owners
+          const { data: ownerData } = await supabase
+            .from('owners')
+            .select('id, email')
+            .or(`id.eq.${userId},email.eq.${userEmail.toLowerCase().trim()}`)
+            .maybeSingle();
+
+          if (ownerData) {
+            // User is an owner - clear session and show error
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('yoyaku_session');
+              localStorage.removeItem('yoyaku_user');
+            }
+            setMessage('This account is registered as an owner. Please use owner login.');
+            setLoading(false);
+            return;
+          }
+
+          // Not found in users or owners table - default to customer (allow access)
+          // Backend already validated, so this is safe
+          isCustomer = true;
+          console.log('[Customer Login] ✅ User not found in users/owners table, defaulting to customer');
+        }
+
+        if (!isCustomer) {
+          // User is an owner or admin - clear session and show error
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('yoyaku_session');
+            localStorage.removeItem('yoyaku_user');
+          }
+          setMessage('This account is not registered as a customer. Please use owner login.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // CRITICAL: Persist role immediately after successful Customer login
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('yoyaku_selected_auth_role', 'customer');
+      }
+      console.log('[Customer Login] ✅ Role persisted: customer');
+
+      // Wait a moment for the update to propagate (same as owner login)
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Customer login should always redirect to customer dashboard (same pattern as owner login)
+      setLoading(false);
       router.push("/customer/home");
       router.refresh();
-    }, 300);
+    } catch (verifyError) {
+      // If verification fails but customer was verified, allow access (same pattern as owner login)
+      console.error('Error verifying customer:', verifyError);
+      console.log('[Customer Login] Customer verified, allowing access despite verification error');
+      
+      setLoading(false);
+      router.push("/customer/home");
+      router.refresh();
+    }
   };
 
   return (

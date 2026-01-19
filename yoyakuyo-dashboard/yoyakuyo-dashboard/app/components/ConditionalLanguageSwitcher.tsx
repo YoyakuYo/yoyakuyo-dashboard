@@ -18,7 +18,7 @@ export function ConditionalLanguageSwitcher() {
   }
   
   return (
-    <div className="sticky top-0 left-0 w-full z-[200] bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm flex items-center justify-end px-4 py-2">
+    <div className="sticky top-0 left-0 w-full z-[200] bg-blue-900 backdrop-blur-sm border-b border-blue-800 shadow-sm flex items-center justify-end px-4 py-2">
       <LanguageSwitcher />
     </div>
   );

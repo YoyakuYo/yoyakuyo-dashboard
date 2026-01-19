@@ -1,0 +1,91 @@
+import createMiddleware from 'next-intl/middleware';
+import { NextRequest, NextResponse } from 'next/server';
+
+const intlMiddleware = createMiddleware({
+  locales: ['en', 'ja'],
+  defaultLocale: 'en',
+  localePrefix: 'never'
+});
+
+export default function middleware(req: NextRequest) {
+  const pathname = req.nextUrl.pathname;
+  
+  // CRITICAL: Bypass middleware for root route to prevent 404
+  if (pathname === '/') {
+    return NextResponse.next();
+  }
+  
+  // Bypass for API routes and Next.js internal routes
+  if (pathname.startsWith('/api') || pathname.startsWith('/_next')) {
+    return NextResponse.next();
+  }
+  
+  // CRITICAL: For client-side navigation, check if this is a navigation request
+  // If the request has a referer header from the same origin, it's likely client-side navigation
+  const referer = req.headers.get('referer');
+  if (referer) {
+    try {
+      const refererUrl = new URL(referer);
+      const currentUrl = req.nextUrl;
+      // If same origin, this is client-side navigation - be more defensive
+      if (refererUrl.origin === currentUrl.origin) {
+        // Apply middleware but ensure it doesn't break navigation
+        try {
+          const response = intlMiddleware(req);
+          
+          // If middleware returns a redirect, prevent it for client-side navigation
+          if (response.status === 307 || response.status === 308) {
+            const location = response.headers.get('location');
+            if (location) {
+              const redirectUrl = new URL(location, req.url);
+              // If redirecting to a different pathname, prevent it
+              if (redirectUrl.pathname !== pathname) {
+                console.warn(`🔥 Middleware attempted to redirect ${pathname} to ${redirectUrl.pathname}, preventing redirect`);
+                return NextResponse.next();
+              }
+            }
+          }
+          
+          // Check if response has any modifications that might break routing
+          // If response is identical to what we'd get from NextResponse.next(), use next() instead
+          return response;
+        } catch (error) {
+          console.error('🔥 Middleware error during client navigation:', error);
+          return NextResponse.next();
+        }
+      }
+    } catch (e) {
+      // Invalid referer URL, continue normally
+    }
+  }
+  
+  // For server-side requests, apply middleware normally
+  try {
+    const response = intlMiddleware(req);
+    
+    // If middleware returns a redirect, check if it's changing the pathname
+    if (response.status === 307 || response.status === 308) {
+      const location = response.headers.get('location');
+      if (location) {
+        const redirectUrl = new URL(location, req.url);
+        if (redirectUrl.pathname !== pathname) {
+          console.warn(`🔥 Middleware attempted to redirect ${pathname} to ${redirectUrl.pathname}, preventing redirect`);
+          return NextResponse.next();
+        }
+      }
+    }
+    
+    return response;
+  } catch (error) {
+    console.error('🔥 Middleware error:', error);
+    return NextResponse.next();
+  }
+}
+
+export const config = {
+  matcher: [
+    '/',
+    '/((?!api|_next|favicon\\.ico|.*\\..*).*)',
+  ]
+};
+

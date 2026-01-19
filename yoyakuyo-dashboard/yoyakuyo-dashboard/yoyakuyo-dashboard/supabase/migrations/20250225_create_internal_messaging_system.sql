@@ -34,33 +34,91 @@ END $$;
 -- ============================================
 -- STEP 3: Create conversations table
 -- ============================================
+-- Create conversation type enums
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'conversation_type_enum') THEN
+        CREATE TYPE conversation_type_enum AS ENUM ('booking_owner', 'support_admin', 'admin_owner');
+        RAISE NOTICE 'Created conversation_type_enum';
+    ELSE
+        RAISE NOTICE 'conversation_type_enum already exists';
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'target_type_enum') THEN
+        CREATE TYPE target_type_enum AS ENUM ('shop', 'admin', 'owner');
+        RAISE NOTICE 'Created target_type_enum';
+    ELSE
+        RAISE NOTICE 'target_type_enum already exists';
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS conversations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    shop_id UUID NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
-    booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
+    conversation_type conversation_type_enum NOT NULL DEFAULT 'booking_owner',
+    target_type target_type_enum NOT NULL DEFAULT 'shop',
+    target_id TEXT NOT NULL, -- shop_id (UUID), admin_id, or owner_id, or 'system' for admin support
+    booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL, -- REQUIRED for booking_owner type
     customer_type customer_type_enum NOT NULL,
     customer_ref TEXT NOT NULL, -- line_user_id OR user_id OR guest_token
     last_message_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    
-    -- Ensure one conversation per shop + customer_ref combination
-    UNIQUE(shop_id, customer_ref)
+
+    -- Ensure proper scoping: one conversation per context
+    UNIQUE(conversation_type, target_type, target_id, customer_ref, booking_id)
 );
 
 -- Add missing columns if table exists without them (for existing tables from partial runs)
 DO $$
 BEGIN
+    -- Add conversation_type if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'conversations'
+        AND column_name = 'conversation_type'
+    ) THEN
+        ALTER TABLE conversations
+        ADD COLUMN conversation_type conversation_type_enum NOT NULL DEFAULT 'booking_owner';
+        RAISE NOTICE 'Added conversation_type column to conversations';
+    END IF;
+
+    -- Add target_type if missing
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'conversations'
+        AND column_name = 'target_type'
+    ) THEN
+        ALTER TABLE conversations
+        ADD COLUMN target_type target_type_enum NOT NULL DEFAULT 'shop';
+        RAISE NOTICE 'Added target_type column to conversations';
+    END IF;
+
+    -- Add target_id if missing (will be populated from shop_id)
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'conversations'
+        AND column_name = 'target_id'
+    ) THEN
+        ALTER TABLE conversations
+        ADD COLUMN target_id TEXT;
+        -- Migrate existing shop_id to target_id for booking_owner conversations
+        UPDATE conversations SET target_id = shop_id::text WHERE conversation_type = 'booking_owner' AND shop_id IS NOT NULL;
+        RAISE NOTICE 'Added target_id column to conversations and migrated shop_id data';
+    END IF;
+
     -- Add booking_id if missing
     IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'conversations' 
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'conversations'
         AND column_name = 'booking_id'
     ) THEN
-        ALTER TABLE conversations 
+        ALTER TABLE conversations
         ADD COLUMN booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL;
         RAISE NOTICE 'Added booking_id column to conversations';
     END IF;
-    
+
     -- Add customer_type if missing
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns 
@@ -360,4 +418,100 @@ COMMENT ON TABLE messages IS 'Messages within conversations. Supports LINE, Web,
 COMMENT ON COLUMN conversations.customer_type IS 'Type of customer: line, web, or guest';
 COMMENT ON COLUMN conversations.customer_ref IS 'Reference to customer: line_user_id (for line), user_id (for web), or guest_token (for guest)';
 COMMENT ON COLUMN messages.sender_type IS 'Type of sender: customer or shop';
+
+-- ============================================
+-- DATA MIGRATION: Split existing conversations
+-- ============================================
+DO $$
+DECLARE
+    conv_record RECORD;
+BEGIN
+    RAISE NOTICE 'Starting conversation data migration...';
+
+    -- Step 1: Migrate booking conversations (those with booking_id)
+    FOR conv_record IN
+        SELECT id, shop_id, booking_id, customer_type, customer_ref
+        FROM conversations
+        WHERE booking_id IS NOT NULL
+        AND (conversation_type IS NULL OR conversation_type = 'booking_owner')
+    LOOP
+        -- Update existing conversation with proper scoping
+        UPDATE conversations SET
+            conversation_type = 'booking_owner',
+            target_type = 'shop',
+            target_id = conv_record.shop_id::text
+        WHERE id = conv_record.id;
+
+        RAISE NOTICE 'Migrated booking conversation: %', conv_record.id;
+    END LOOP;
+
+    -- Step 2: Migrate support conversations (those with is_support_ticket = true)
+    FOR conv_record IN
+        SELECT id, shop_id, customer_type, customer_ref
+        FROM conversations
+        WHERE is_support_ticket = true
+        AND conversation_type IS NULL
+    LOOP
+        -- Update existing conversation with proper scoping
+        UPDATE conversations SET
+            conversation_type = 'support_admin',
+            target_type = 'admin',
+            target_id = 'system'
+        WHERE id = conv_record.id;
+
+        RAISE NOTICE 'Migrated support conversation: %', conv_record.id;
+    END LOOP;
+
+    -- Step 3: Set defaults for any remaining conversations
+    UPDATE conversations SET
+        conversation_type = 'booking_owner',
+        target_type = 'shop',
+        target_id = shop_id::text
+    WHERE conversation_type IS NULL
+    AND shop_id IS NOT NULL;
+
+    -- Step 4: Fix NULL target_id issues (CRITICAL)
+    UPDATE conversations SET
+        target_id = shop_id::text
+    WHERE target_id IS NULL
+    AND conversation_type = 'booking_owner'
+    AND shop_id IS NOT NULL;
+
+    UPDATE conversations SET
+        target_id = 'system'
+    WHERE target_id IS NULL
+    AND conversation_type = 'support_admin';
+
+    -- Log any remaining NULL target_id issues
+    RAISE NOTICE 'Remaining conversations with NULL target_id: %',
+        (SELECT COUNT(*) FROM conversations WHERE target_id IS NULL);
+
+    -- Step 5: Consolidate duplicate conversations
+    -- Find conversations with identical scoping that should be merged
+    CREATE TEMP TABLE duplicate_conversations AS
+    SELECT
+        conversation_type,
+        target_type,
+        target_id,
+        customer_type,
+        customer_ref,
+        booking_id,
+        ARRAY_AGG(id ORDER BY created_at) as conversation_ids,
+        ARRAY_AGG(created_at ORDER BY created_at) as created_dates,
+        COUNT(*) as duplicate_count
+    FROM conversations
+    WHERE conversation_type IS NOT NULL
+    AND target_type IS NOT NULL
+    AND target_id IS NOT NULL
+    GROUP BY conversation_type, target_type, target_id, customer_type, customer_ref, booking_id
+    HAVING COUNT(*) > 1;
+
+    -- For each set of duplicates, keep the oldest and delete the rest
+    -- Note: This is a complex operation that would require message migration
+    -- For now, we'll just log the duplicates for manual review
+    RAISE NOTICE 'Found % duplicate conversation groups to review manually',
+        (SELECT COUNT(*) FROM duplicate_conversations);
+
+    RAISE NOTICE 'Conversation data migration completed!';
+END $$;
 

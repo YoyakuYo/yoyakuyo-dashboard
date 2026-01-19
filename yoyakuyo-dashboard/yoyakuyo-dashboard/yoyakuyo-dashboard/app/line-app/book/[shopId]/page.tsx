@@ -36,6 +36,7 @@ interface Service {
   id: string;
   name: string;
   duration: number;
+  duration_minutes?: number;
   price?: number;
 }
 
@@ -44,6 +45,11 @@ interface TimeSlot {
   start_time: string;
   end_time: string;
 }
+
+type DateStatusOption = {
+  date: string; // YYYY-MM-DD
+  status: "available" | "closed";
+};
 
 function LineBookingPageContent() {
   const params = useParams();
@@ -57,6 +63,7 @@ function LineBookingPageContent() {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [dateOptions, setDateOptions] = useState<DateStatusOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [liffInitialized, setLiffInitialized] = useState(false);
@@ -125,6 +132,60 @@ function LineBookingPageContent() {
     }
   }, [selectedDate]);
 
+  const formatDateLocal = (date: Date): string => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  const parseISODateLocal = (dateStr: string): Date => {
+    const [y, m, d] = dateStr.split("-").map((n) => parseInt(n, 10));
+    return new Date(y, (m || 1) - 1, d || 1);
+  };
+
+  // Load customer date dropdown options from backend (owner calendar is source of truth)
+  useEffect(() => {
+    if (!shopId) return;
+
+    const loadDateOptions = async () => {
+      try {
+        const start = new Date();
+        const startDate = formatDateLocal(start);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 29);
+        const endDate = formatDateLocal(end);
+
+        const res = await fetch(
+          `${apiUrl}/shops/${shopId}/availability/dates?startDate=${startDate}&endDate=${endDate}`
+        );
+
+        if (!res.ok) {
+          setDateOptions([]);
+          return;
+        }
+
+        const data = await res.json().catch(() => []);
+        const options: DateStatusOption[] = Array.isArray(data) ? data : [];
+        setDateOptions(options);
+
+        // If previously selected date is now closed or missing, clear selection
+        setSelectedDate((prev) => {
+          if (!prev) return prev;
+          const match = options.find((o) => o.date === prev);
+          if (!match) return "";
+          if (match.status === "closed") return "";
+          return prev;
+        });
+      } catch (e) {
+        setDateOptions([]);
+      } finally {
+      }
+    };
+
+    loadDateOptions();
+  }, [shopId]);
+
   const fetchService = async () => {
     if (!serviceId) return;
     
@@ -143,8 +204,59 @@ function LineBookingPageContent() {
     }
   };
 
+  // Generate individual time slots from availability ranges based on service duration
+  const generateTimeSlots = (availabilityRanges: Array<{ start_time: string; end_time: string }>, serviceDuration: number) => {
+    const slots: TimeSlot[] = [];
+
+    console.log(`[generateTimeSlots] Generating slots from ${availabilityRanges.length} ranges with duration ${serviceDuration} minutes`);
+
+    availabilityRanges.forEach((range, rangeIndex) => {
+      // Parse start and end times - handle both HH:MM and HH:MM:SS formats
+      const startParts = range.start_time.split(':');
+      const endParts = range.end_time.split(':');
+      
+      const startHour = parseInt(startParts[0], 10);
+      const startMinute = parseInt(startParts[1] || '0', 10);
+      const endHour = parseInt(endParts[0], 10);
+      const endMinute = parseInt(endParts[1] || '0', 10);
+
+      const startMinutes = startHour * 60 + startMinute;
+      const endMinutes = endHour * 60 + endMinute;
+
+      console.log(`[generateTimeSlots] Range ${rangeIndex}: ${range.start_time} (${startMinutes} min) to ${range.end_time} (${endMinutes} min)`);
+
+      // Generate slots every serviceDuration minutes
+      for (let currentMinutes = startMinutes; currentMinutes + serviceDuration <= endMinutes; currentMinutes += serviceDuration) {
+        const startHours = Math.floor(currentMinutes / 60);
+        const startMins = currentMinutes % 60;
+        const startTimeString = `${startHours.toString().padStart(2, '0')}:${startMins.toString().padStart(2, '0')}:00`;
+
+        // Calculate end time
+        const endTotalMinutes = currentMinutes + serviceDuration;
+        const endHours = Math.floor(endTotalMinutes / 60);
+        const endMins = endTotalMinutes % 60;
+        const endTimeString = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}:00`;
+
+        slots.push({
+          id: `${rangeIndex}-${currentMinutes}`,
+          start_time: startTimeString,
+          end_time: endTimeString
+        });
+      }
+    });
+
+    console.log(`[generateTimeSlots] Generated ${slots.length} time slots`);
+    return slots;
+  };
+
   const fetchTimeSlots = async () => {
     if (!selectedDate) {
+      setTimeSlots([]);
+      return;
+    }
+
+    if (!service) {
+      console.warn("No service selected - cannot generate time slots without duration");
       setTimeSlots([]);
       return;
     }
@@ -154,28 +266,47 @@ function LineBookingPageContent() {
       // Use the same endpoint as the main app
       const url = `${apiUrl}/shops/${shopId}/availability?date=${selectedDate}`;
       console.log("Fetching availability from:", url);
-      
+
       const res = await fetch(url);
       console.log("Availability response status:", res.status);
-      
+
       if (res.ok) {
         const data = await res.json();
         console.log("Availability response data:", data);
+
+        // Generate individual time slots from availability ranges
+        const availabilityRanges = Array.isArray(data) ? data : [];
+        console.log(`[fetchTimeSlots] Received ${availabilityRanges.length} availability ranges:`, availabilityRanges);
         
-        // Map the response to match the expected format
-        const slots = Array.isArray(data) ? data : [];
-        setTimeSlots(slots);
+        // Get service duration - prefer duration_minutes, fallback to duration (which might be in hours)
+        let serviceDuration = service.duration_minutes;
+        if (!serviceDuration && service.duration) {
+          // If duration is provided but not duration_minutes, assume it's in minutes
+          // But if it's a small number (< 60), it might already be in minutes
+          serviceDuration = service.duration < 60 ? service.duration : service.duration * 60;
+        }
+        // Default to 60 minutes if no duration specified
+        if (!serviceDuration || serviceDuration <= 0) {
+          console.warn(`[fetchTimeSlots] No valid service duration found, defaulting to 60 minutes`);
+          serviceDuration = 60;
+        }
         
+        console.log(`[fetchTimeSlots] Using service duration: ${serviceDuration} minutes`);
+        const generatedSlots = generateTimeSlots(availabilityRanges, serviceDuration);
+
+        console.log(`Generated ${generatedSlots.length} time slots from ${availabilityRanges.length} availability ranges`);
+        setTimeSlots(generatedSlots);
+
         // Log for debugging
-        if (slots.length === 0) {
-          console.warn("No timeslots returned for date:", selectedDate, "shopId:", shopId);
+        if (generatedSlots.length === 0) {
+          console.warn("No timeslots generated for date:", selectedDate, "shopId:", shopId);
           console.warn("This might mean:");
           console.warn("1. Shop is closed on this date (holiday)");
-          console.warn("2. Shop has no services");
-          console.warn("3. Shop has services but no timeslots generated");
+          console.warn("2. No availability ranges returned");
+          console.warn("3. Service duration too long for available time ranges");
           console.warn("4. All timeslots are already booked");
         } else {
-          console.log(`✅ Found ${slots.length} timeslots for date:`, selectedDate);
+          console.log(`✅ Generated ${generatedSlots.length} timeslots for date:`, selectedDate);
         }
       } else {
         const errorData = await res.json().catch(() => ({ error: "Failed to fetch availability" }));
@@ -332,18 +463,6 @@ function LineBookingPageContent() {
     }
   };
 
-  // Get available dates (next 30 days)
-  const getAvailableDates = () => {
-    const dates = [];
-    const today = new Date();
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      dates.push(date.toISOString().split("T")[0]);
-    }
-    return dates;
-  };
-
   // Debug logging
   useEffect(() => {
     console.log("LineBookingPage - shopId:", shopId, "serviceId:", serviceId);
@@ -423,14 +542,15 @@ function LineBookingPageContent() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             >
               <option value="">{t("chooseDate")}</option>
-              {getAvailableDates().map((date) => (
-                <option key={date} value={date}>
-                  {new Date(date).toLocaleDateString("en-US", {
+              {dateOptions.map((opt) => (
+                <option key={opt.date} value={opt.date} disabled={opt.status === "closed"}>
+                  {parseISODateLocal(opt.date).toLocaleDateString("en-US", {
                     weekday: "long",
                     year: "numeric",
                     month: "long",
                     day: "numeric",
                   })}
+                  {opt.status === "closed" ? " - CLOSED" : ""}
                 </option>
               ))}
             </select>
