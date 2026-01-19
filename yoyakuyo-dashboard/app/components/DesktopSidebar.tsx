@@ -117,7 +117,16 @@ const DesktopSidebar = React.memo(() => {
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white min-h-screen">
       <div className="p-6 border-b border-slate-700">
-        <h1 className="text-xl font-bold">Owner Dashboard</h1>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            router.push("/shops");
+          }}
+          className="text-xl font-bold hover:text-blue-400 transition-colors cursor-pointer"
+        >
+          Owner Dashboard
+        </button>
       </div>
       <nav className="flex-1 p-4">
         <ul className="space-y-1">

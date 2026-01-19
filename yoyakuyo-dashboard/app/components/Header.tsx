@@ -9,53 +9,37 @@ import { useRouter } from 'next/navigation';
 
 export default function Header() {
   const router = useRouter();
-  
-  // Add mobile hamburger for opening sidebar
-  const handleOpenSidebar = () => {
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('openSidebarDrawer'));
-    }
-  };
 
   return (
-    <>
-      {/* Mobile Header */}
-      <header className="lg:hidden flex items-center px-4 h-14 bg-white/95 border-b border-gray-200 shadow-sm sticky top-0 z-[201]">
-        <button
-          className="text-2xl text-gray-800 focus:outline-none p-2 mr-2 lg:hidden relative z-[202]"
-          aria-label="Open menu"
-          onClick={handleOpenSidebar}
-        >
-          {/* Hamburger icon */}
-          <span aria-hidden="true">☰</span>
-        </button>
-        <button
-          onClick={(e) => {
-            // Ensure logo click only navigates, never logs out
-            e.preventDefault();
-            e.stopPropagation();
-            router.push("/owner/shop-profile");
-          }}
-          className="text-lg font-bold text-japanese-charcoal hover:text-blue-600 transition-colors cursor-pointer"
-        >
-          Yoyaku Yo
-        </button>
-      </header>
-      
-      {/* Desktop Header - Fixed at top */}
-      <header className="hidden lg:flex fixed top-0 left-64 right-0 h-16 bg-white border-b border-gray-200 z-40 items-center px-6">
-        <button
-          onClick={(e) => {
-            // Ensure logo click only navigates, never logs out
-            e.preventDefault();
-            e.stopPropagation();
-            router.push("/owner/shop-profile");
-          }}
-          className="text-xl font-bold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
-        >
-          Yoyaku Yo
-        </button>
-      </header>
-    </>
+    <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+      {/* Mobile hamburger button */}
+      <button
+        className="lg:hidden absolute top-4 left-4 z-[251] bg-blue-600 text-white p-2 rounded-lg"
+        onClick={() => {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('openSidebarDrawer'));
+          }
+        }}
+        aria-label="Open menu"
+      >
+        ☰
+      </button>
+
+      <div className="px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={(e) => {
+              // Ensure logo click only navigates, never logs out
+              e.preventDefault();
+              e.stopPropagation();
+              router.push("/shops");
+            }}
+            className="text-xl font-bold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+          >
+            Yoyaku Yo
+          </button>
+        </div>
+      </div>
+    </header>
   );
 }

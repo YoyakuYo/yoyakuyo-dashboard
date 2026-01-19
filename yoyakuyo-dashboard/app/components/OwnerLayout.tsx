@@ -11,24 +11,23 @@ interface OwnerLayoutProps {
 
 const OwnerLayout: React.FC<OwnerLayoutProps> = ({ children }) => {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header - Fixed positioned for both mobile and desktop */}
-      <Header />
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Desktop Sidebar - Direct flex item like AdminSidebar */}
+      <DesktopSidebar />
 
-      {/* Mobile Layout - Only render mobile sidebar */}
-      <div className="lg:hidden">
-        <MobileSidebar />
+      {/* Content Area - Takes remaining space like admin layout */}
+      <div className="flex-1 flex flex-col">
+        {/* Header - Inside content area, sticky like AdminHeader */}
+        <Header />
+
+        {/* Main Content - Flex-1, scrollable like admin layout */}
+        <main className="flex-1 overflow-auto">
+          <div className="p-6 lg:p-8">{children}</div>
+        </main>
       </div>
 
-      {/* Desktop Layout - Only render desktop sidebar */}
-      <div className="hidden lg:block">
-        <DesktopSidebar />
-      </div>
-
-      {/* Main Content - Always render, positioned correctly for both layouts */}
-      <main className="lg:ml-64 pt-16 min-h-screen bg-gray-50">
-        {children}
-      </main>
+      {/* Mobile Sidebar - Separate overlay */}
+      <MobileSidebar />
     </div>
   );
 };
