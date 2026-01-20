@@ -75,7 +75,7 @@ export default function AdminAnalyticsPage() {
       const [allShopsCountResult, verifiedShopsResult, customersResult, bookingsResult] = await Promise.all([
         supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
-        supabase.from('customers').select('id, role'), // Get customers with roles
+        supabase.from('customers').select('id, first_name, last_name, email, role'), // Get customers with full data
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id')
       ]);
 
@@ -90,11 +90,17 @@ export default function AdminAnalyticsPage() {
       const totalCustomers = customersData.length;
       const allBookings = bookingsResult.data || [];
 
-      // Set customers state for UI display
-      setCustomers(customersData);
+      // Set active customers state for UI display (only customers who have made bookings)
+      setCustomers(activeCustomers);
 
-      // Calculate customer role breakdown
-      const customerRoles = customersData.reduce((acc, customer) => {
+      // Get unique customer IDs from bookings
+      const activeCustomerIds = new Set(bookings.map(booking => booking.customer_id).filter(Boolean));
+
+      // Filter customers to only those who have made bookings
+      const activeCustomers = customersData.filter(customer => activeCustomerIds.has(customer.id));
+
+      // Calculate customer role breakdown from active customers only
+      const customerRoles = activeCustomers.reduce((acc, customer) => {
         const role = customer.role?.toLowerCase() || 'other';
         if (role === 'web' || role === 'customer') acc.web++;
         else if (role === 'guest') acc.guest++;
@@ -174,7 +180,6 @@ export default function AdminAnalyticsPage() {
       }, {} as Record<string, number>);
 
       const customerBookingsArray = Object.values(customerBookings);
-      const activeCustomers = Object.keys(customerBookings).length;
       const repeatCustomers = customerBookingsArray.filter(count => count > 1).length;
       const avgBookingsPerCustomer = activeCustomers > 0 ?
         Math.round((totalBookings / activeCustomers) * 100) / 100 : 0;
@@ -409,9 +414,11 @@ export default function AdminAnalyticsPage() {
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.first_name} {customer.last_name}
+                          {customer.first_name && customer.last_name
+                            ? `${customer.first_name} ${customer.last_name}`
+                            : `Web Customer ${index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.email}</div>
+                        <div className="text-sm text-gray-500">{customer.email || 'No email'}</div>
                       </div>
                     </div>
                   </div>
@@ -431,9 +438,11 @@ export default function AdminAnalyticsPage() {
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.first_name} {customer.last_name}
+                          {customer.first_name && customer.last_name
+                            ? `${customer.first_name} ${customer.last_name}`
+                            : `Guest Customer ${index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.email || 'No email'}</div>
+                        <div className="text-sm text-gray-500">{customer.email || 'Anonymous booking'}</div>
                       </div>
                     </div>
                   </div>
@@ -453,9 +462,11 @@ export default function AdminAnalyticsPage() {
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.first_name} {customer.last_name}
+                          {customer.first_name && customer.last_name
+                            ? `${customer.first_name} ${customer.last_name}`
+                            : `LINE Customer ${index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.email || 'LINE user'}</div>
+                        <div className="text-sm text-gray-500">{customer.email || 'LINE app user'}</div>
                       </div>
                     </div>
                   </div>
