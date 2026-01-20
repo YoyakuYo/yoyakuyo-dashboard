@@ -138,7 +138,7 @@ const Sidebar = React.memo(() => {
 
 
   return (
-    <aside className="flex flex-col w-64 bg-slate-900 text-white min-h-screen">
+    <aside className="fixed top-16 left-0 z-50 w-64 bg-slate-900 text-white h-[calc(100vh-4rem)] flex flex-col">
         <div className="p-6 border-b border-slate-700">
           <h1 className="text-xl font-bold">Owner Dashboard</h1>
         </div>

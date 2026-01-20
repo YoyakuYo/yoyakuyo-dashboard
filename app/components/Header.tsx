@@ -11,7 +11,7 @@ export default function Header() {
   const router = useRouter();
 
   return (
-    <header className="flex items-center h-16 bg-white border-b border-gray-200 px-6">
+    <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 px-6 z-40">
       <button
         onClick={(e) => {
           // Ensure logo click only navigates, never logs out
