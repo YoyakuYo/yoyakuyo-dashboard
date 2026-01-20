@@ -137,7 +137,6 @@ const Sidebar = React.memo(() => {
     { href: '/owner/bookings', labelKey: 'nav.bookings', icon: '📅', badge: unreadBookingsCount > 0 ? unreadBookingsCount : undefined },
     { href: '/owner/calendar', labelKey: 'nav.calendar', icon: '📆' },
     { href: '/analytics', labelKey: 'nav.analytics', icon: '📊' },
-    { href: '/assistant', labelKey: 'nav.aiAssistant', icon: '🤖' },
     { href: '/owner/messages', labelKey: 'nav.messages', icon: '💬', badge: unreadConversationCount > 0 ? unreadConversationCount : undefined },
     { href: '/owner/support', labelKey: 'nav.contactSupport', icon: '💬', badge: unreadSupportCount > 0 ? unreadSupportCount : undefined },
     { href: '/owner/subscription', labelKey: 'nav.subscriptions', icon: '💳' },
