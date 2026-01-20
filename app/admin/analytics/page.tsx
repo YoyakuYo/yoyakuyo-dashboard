@@ -68,7 +68,7 @@ export default function AdminAnalyticsPage() {
 
       // Platform Overview
       const [shopsResult, customersResult, bookingsResult] = await Promise.all([
-        supabase.from('shops').select('id, name, created_at, updated_at'),
+        supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true),
         supabase.from('customers').select('id, created_at'),
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id')
       ]);
@@ -79,7 +79,11 @@ export default function AdminAnalyticsPage() {
 
       const shops = shopsResult.data || [];
       const customers = customersResult.data || [];
-      const bookings = bookingsResult.data || [];
+      const allBookings = bookingsResult.data || [];
+
+      // Only include bookings from verified shops
+      const verifiedShopIds = new Set(shops.map(shop => shop.id));
+      const bookings = allBookings.filter(booking => verifiedShopIds.has(booking.shop_id));
 
       // Calculate active shops (updated in last 30 days)
       const thirtyDaysAgo = new Date();
