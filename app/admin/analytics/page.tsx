@@ -26,6 +26,7 @@ interface CustomerActivity {
   activeCustomers: number;
   repeatCustomers: number;
   avgBookingsPerCustomer: number;
+  customerRoles: { web: number; guest: number; line: number; other: number };
   peakBookingHours: Array<{ hour: number; bookings: number }>;
   peakBookingDays: Array<{ day: string; bookings: number }>;
 }
@@ -52,6 +53,7 @@ export default function AdminAnalyticsPage() {
     activeCustomers: 0,
     repeatCustomers: 0,
     avgBookingsPerCustomer: 0,
+    customerRoles: { web: 0, guest: 0, line: 0, other: 0 },
     peakBookingHours: [],
     peakBookingDays: []
   });
@@ -72,7 +74,7 @@ export default function AdminAnalyticsPage() {
       const [allShopsCountResult, verifiedShopsResult, customersResult, bookingsResult] = await Promise.all([
         supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
-        supabase.from('customers').select('id', { count: 'exact', head: true }), // Count all customers
+        supabase.from('customers').select('id, role'), // Get customers with roles
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id')
       ]);
 
@@ -83,8 +85,19 @@ export default function AdminAnalyticsPage() {
 
       const totalShops = allShopsCountResult.count || 0;
       const verifiedShops = verifiedShopsResult.data || [];
-      const totalCustomers = customersResult.count || 0;
+      const customers = customersResult.data || [];
+      const totalCustomers = customers.length;
       const allBookings = bookingsResult.data || [];
+
+      // Calculate customer role breakdown
+      const customerRoles = customers.reduce((acc, customer) => {
+        const role = customer.role?.toLowerCase() || 'other';
+        if (role === 'web' || role === 'customer') acc.web++;
+        else if (role === 'guest') acc.guest++;
+        else if (role === 'line') acc.line++;
+        else acc.other++;
+        return acc;
+      }, { web: 0, guest: 0, line: 0, other: 0 });
 
       // Only include bookings from verified shops for performance metrics
       const verifiedShopIds = new Set(verifiedShops.map(shop => shop.id));
@@ -190,6 +203,7 @@ export default function AdminAnalyticsPage() {
         activeCustomers,
         repeatCustomers,
         avgBookingsPerCustomer,
+        customerRoles,
         peakBookingHours,
         peakBookingDays
       });
@@ -230,7 +244,7 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Platform Overview */}
-      <div>
+        <div>
         <h2 className="text-2xl font-semibold text-gray-900 mb-4">Platform Overview</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
           <AdminStatsCard
@@ -339,7 +353,7 @@ export default function AdminAnalyticsPage() {
       {/* Customer Activity */}
       <div>
         <h2 className="text-2xl font-semibold text-gray-900 mb-4">Customer Activity</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6">
           <AdminStatsCard
             title="Active Customers"
             value={customerActivity.activeCustomers.toString()}
@@ -357,7 +371,25 @@ export default function AdminAnalyticsPage() {
             value={customerActivity.avgBookingsPerCustomer.toString()}
             icon="📈"
           />
-        </div>
+          <AdminStatsCard
+            title="Web Customers"
+            value={customerActivity.customerRoles.web.toString()}
+            subtitle="Registered users"
+            icon="🌐"
+          />
+          <AdminStatsCard
+            title="Guest Customers"
+            value={customerActivity.customerRoles.guest.toString()}
+            subtitle="Anonymous bookings"
+            icon="👤"
+          />
+          <AdminStatsCard
+            title="LINE Customers"
+            value={customerActivity.customerRoles.line.toString()}
+            subtitle="LINE app users"
+            icon="📱"
+          />
+      </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Peak Booking Hours */}
@@ -372,10 +404,10 @@ export default function AdminAnalyticsPage() {
                   <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm">
                     {hour.bookings} bookings
                   </span>
-                </div>
+            </div>
               ))}
             </div>
-          </div>
+      </div>
 
           {/* Peak Booking Days */}
           <div className="bg-white rounded-lg shadow p-6">
