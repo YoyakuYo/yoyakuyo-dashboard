@@ -110,7 +110,7 @@ export default function DashboardLayout({
       <BookingNotificationsWrapper>
         <Header />
         <Sidebar />
-        <main className="lg:ml-64 pt-16 min-h-screen bg-gray-50">
+        <main className="ml-64 pt-16 min-h-screen bg-gray-50">
           {children}
         </main>
       </BookingNotificationsWrapper>
