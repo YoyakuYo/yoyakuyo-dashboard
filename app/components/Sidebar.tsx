@@ -220,12 +220,13 @@ const Sidebar = React.memo(() => {
       {MobileDrawer}
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex fixed top-16 left-0 z-50 w-64 bg-slate-900 text-white h-[calc(100vh-4rem)] flex-col">
-        <div className="p-6 border-b border-slate-700">
+      <aside className="hidden md:flex fixed top-16 left-0 z-50 w-64 bg-slate-900 text-white h-[calc(100vh-4rem)] flex flex-col">
+        <div className="p-6 border-b border-slate-700 flex-shrink-0">
           <h1 className="text-xl font-bold">Owner Dashboard</h1>
         </div>
-        <nav className="flex-1 p-4">
-          <ul className="space-y-1">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <nav className="p-4 overflow-y-auto flex-1">
+            <ul className="space-y-1">
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
               return (
@@ -253,8 +254,9 @@ const Sidebar = React.memo(() => {
               );
             })}
           </ul>
-        </nav>
-        <div className="p-4 border-t border-slate-700">
+          </nav>
+        </div>
+        <div className="flex-shrink-0 p-4 border-t border-slate-700">
           {user && (
             <div className="px-4 py-2 text-sm text-gray-400 mb-2 truncate">
               {user.email}
