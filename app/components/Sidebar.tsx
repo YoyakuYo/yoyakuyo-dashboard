@@ -204,7 +204,7 @@ const Sidebar = React.memo(() => {
           )}
           <button
             onClick={signOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-slate-800 hover:text-white transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white hover:bg-red-600 hover:text-white transition-colors border border-red-500"
           >
             <span>🚪</span>
             <span>{t('nav.logout')}</span>
@@ -262,7 +262,7 @@ const Sidebar = React.memo(() => {
           )}
           <button
             onClick={signOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-slate-800 hover:text-white transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white hover:bg-red-600 hover:text-white transition-colors border border-red-500"
           >
             <span>🚪</span>
             <span>{t('nav.logout')}</span>
