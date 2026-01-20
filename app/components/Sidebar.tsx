@@ -142,7 +142,7 @@ const Sidebar = React.memo(() => {
     { href: '/owner/subscription', labelKey: 'nav.subscriptions', icon: '💳' },
     { href: '/owner/settings', labelKey: 'nav.settings', icon: '⚙️' },
     // User info and logout as navigation items
-    { type: 'user', label: user?.email || '', icon: '👤' },
+    { type: 'user', label: user?.email || '', icon: '👤', labelKey: undefined },
     { type: 'logout', labelKey: 'nav.logout', icon: '🚪', action: 'logout' },
   ];
 
@@ -196,7 +196,7 @@ const Sidebar = React.memo(() => {
                     }}
                   >
                     <span className="text-xl">{item.icon}</span>
-                    <span>{item.labelKey ? t(item.labelKey) : item.label}</span>
+                    <span>{item.labelKey ? t(item.labelKey) : (item.label || '')}</span>
                   </button>
                 </li>
               );
@@ -218,7 +218,7 @@ const Sidebar = React.memo(() => {
                   }}
                 >
                   <span className="text-xl">{item.icon}</span>
-                  <span>{item.labelKey ? t(item.labelKey) : item.label}</span>
+                  <span>{item.labelKey ? t(item.labelKey) : (item.label || '')}</span>
                   {item.badge !== undefined && item.badge > 0 && (
                     <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
                       {item.badge}
@@ -267,7 +267,7 @@ const Sidebar = React.memo(() => {
                       onClick={signOut}
                     >
                       <span className="text-xl">{item.icon}</span>
-                      <span className="font-medium">{item.labelKey ? t(item.labelKey) : item.label}</span>
+                      <span className="font-medium">{item.labelKey ? t(item.labelKey) : (item.label || '')}</span>
                     </button>
                   </li>
                 );
@@ -289,7 +289,7 @@ const Sidebar = React.memo(() => {
                       <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r"></span>
                     )}
                     <span className="text-xl">{item.icon}</span>
-                    <span className={`font-medium ${isActive ? 'font-bold' : ''}`}>{item.labelKey ? t(item.labelKey) : item.label}</span>
+                    <span className={`font-medium ${isActive ? 'font-bold' : ''}`}>{item.labelKey ? t(item.labelKey) : (item.label || '')}</span>
                     {item.badge !== undefined && item.badge > 0 && (
                       <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
                         {item.badge}
