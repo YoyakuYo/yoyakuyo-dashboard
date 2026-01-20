@@ -89,6 +89,10 @@ export default function AdminAnalyticsPage() {
       const customersData = customersResult.data || [];
       const allBookings = bookingsResult.data || [];
 
+      // Only include bookings from verified shops for performance metrics
+      const verifiedShopIds = new Set(verifiedShops.map(shop => shop.id));
+      const bookings = allBookings.filter(booking => verifiedShopIds.has(booking.shop_id));
+
       // Get unique customer IDs from bookings
       const activeCustomerIds = new Set(bookings.map(booking => booking.customer_id).filter(Boolean));
 
@@ -107,10 +111,6 @@ export default function AdminAnalyticsPage() {
         else acc.other++;
         return acc;
       }, { web: 0, guest: 0, line: 0, other: 0 });
-
-      // Only include bookings from verified shops for performance metrics
-      const verifiedShopIds = new Set(verifiedShops.map(shop => shop.id));
-      const bookings = allBookings.filter(booking => verifiedShopIds.has(booking.shop_id));
 
       // Calculate active verified shops (updated in last 30 days)
       const thirtyDaysAgo = new Date();
