@@ -124,7 +124,7 @@ export default function AdminAnalyticsPage() {
 
       const sortedShops = shopBookingsArray.sort((a, b) => b.bookings - a.bookings);
       const mostActiveShops = sortedShops.slice(0, 5);
-      const leastActiveShops = sortedShops.slice(-Math.min(5, sortedShops.length)).reverse();
+      const leastActiveShops = [...sortedShops].sort((a, b) => a.bookings - b.bookings).slice(0, 5);
 
       // Cancellation rate
       const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
