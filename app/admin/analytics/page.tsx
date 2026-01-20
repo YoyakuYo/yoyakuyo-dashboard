@@ -180,8 +180,8 @@ export default function AdminAnalyticsPage() {
 
       const customerBookingsArray = Object.values(customerBookings);
       const repeatCustomers = customerBookingsArray.filter(count => count > 1).length;
-      const avgBookingsPerCustomer = activeCustomers > 0 ?
-        Math.round((totalBookings / activeCustomers) * 100) / 100 : 0;
+      const avgBookingsPerCustomer = activeCustomers.length > 0 ?
+        Math.round((totalBookings / activeCustomers.length) * 100) / 100 : 0;
 
       // Peak booking hours
       const hourBookings = bookings.reduce((acc, booking) => {
