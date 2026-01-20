@@ -190,8 +190,8 @@ const Sidebar = React.memo(() => {
                 <li key={`mobile-logout-${index}`} className="mt-2">
                   <button
                     className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-white hover:bg-red-600 hover:text-white border border-red-500"
-                    onClick={() => {
-                      handleSignOut();
+                      onClick={() => {
+                      signOut();
                       setDrawerOpen(false);
                     }}
                   >
@@ -264,7 +264,7 @@ const Sidebar = React.memo(() => {
                   <li key={`logout-${index}`} className="mt-2">
                     <button
                       className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer w-full text-left text-white hover:bg-red-600 hover:text-white border border-red-500"
-                      onClick={handleSignOut}
+                      onClick={signOut}
                     >
                       <span className="text-xl">{item.icon}</span>
                       <span className="font-medium">{t(item.labelKey)}</span>
