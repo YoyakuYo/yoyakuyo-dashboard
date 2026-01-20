@@ -3,7 +3,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
@@ -14,6 +14,13 @@ export default function Sidebar() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const t = useTranslations();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const openSidebarDrawer = () => setDrawerOpen(true);
+    window.addEventListener('openSidebarDrawer', openSidebarDrawer);
+    return () => window.removeEventListener('openSidebarDrawer', openSidebarDrawer);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -43,8 +50,74 @@ export default function Sidebar() {
     },
   ];
 
+  // Mobile Drawer
+  const MobileDrawer = (
+    <div
+      className={`lg:hidden fixed inset-0 z-[60] bg-slate-900 text-white transition-transform duration-300 ${
+        drawerOpen ? "translate-x-0" : "-translate-x-full"
+      }`}
+      style={{ maxWidth: 320 }}
+      onClick={() => setDrawerOpen(false)}
+    >
+      <nav
+        className="p-4 h-full flex flex-col overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+        style={{ height: "100vh", width: "100%" }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-bold">Dashboard</h1>
+          <button
+            aria-label="Close menu"
+            className="text-2xl text-gray-400"
+            onClick={() => setDrawerOpen(false)}
+          >
+            ×
+          </button>
+        </div>
+        <ul className="space-y-1 flex-1">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    isActive
+                      ? "bg-blue-600 text-white font-bold"
+                      : "text-gray-300 hover:bg-slate-800 hover:text-white"
+                  }`}
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  <span className="text-xl">{item.icon}</span>
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="mt-auto pt-4 border-t border-slate-700">
+          {user && (
+            <div className="px-4 py-2 text-sm text-gray-400 mb-2 truncate">
+              {user.email}
+            </div>
+          )}
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-slate-800 hover:text-white transition-colors"
+          >
+            <span>🚪</span>
+            <span>Logout</span>
+          </button>
+        </div>
+      </nav>
+    </div>
+  );
+
   return (
-    <aside className="fixed top-0 left-0 z-50 w-64 bg-white shadow-lg h-screen flex flex-col">
+    <>
+      {/* Mobile drawer overlay */}
+      {MobileDrawer}
+      <aside className="hidden lg:flex fixed top-0 left-0 z-50 w-64 bg-white shadow-lg h-screen flex flex-col">
       {/* Logo */}
       <div className="flex items-center justify-center h-16 px-4 bg-blue-600">
         <h1 className="text-xl font-bold text-white">Yoyaku Yo</h1>
