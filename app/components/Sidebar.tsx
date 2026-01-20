@@ -17,6 +17,7 @@ const Sidebar = React.memo(() => {
   const { signOut, user } = useAuth();
   const t = useTranslations();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const subscriptionRef = useRef<any>(null);
   const { unreadBookingsCount } = useBookingNotifications();
   const { notifications: ownerNotifications } = useNotifications('owner', user?.id || '');
@@ -58,6 +59,12 @@ const Sidebar = React.memo(() => {
       }
     };
   }, [user]);
+
+  useEffect(() => {
+    const openSidebarDrawer = () => setDrawerOpen(true);
+    window.addEventListener('openSidebarDrawer', openSidebarDrawer);
+    return () => window.removeEventListener('openSidebarDrawer', openSidebarDrawer);
+  }, []);
 
 
   const loadUnreadSummary = async () => {
@@ -137,8 +144,83 @@ const Sidebar = React.memo(() => {
   ];
 
 
+  // Mobile Drawer
+  const MobileDrawer = (
+    <div
+      className={`lg:hidden fixed inset-0 z-[60] bg-slate-900 text-white transition-transform duration-300 ${
+        drawerOpen ? "translate-x-0" : "-translate-x-full"
+      }`}
+      style={{ maxWidth: 320 }}
+      onClick={() => setDrawerOpen(false)}
+    >
+      <nav
+        className="p-4 h-full flex flex-col overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+        style={{ height: "100vh", width: "100%" }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-bold">Owner Dashboard</h1>
+          <button
+            aria-label="Close menu"
+            className="text-2xl text-gray-400"
+            onClick={() => setDrawerOpen(false)}
+          >
+            ×
+          </button>
+        </div>
+        <ul className="space-y-1 flex-1">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
+            return (
+              <li key={item.href}>
+                <button
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    isActive
+                      ? "bg-blue-600 text-white font-bold"
+                      : "text-gray-300 hover:bg-slate-800 hover:text-white"
+                  }`}
+                  onClick={() => {
+                    setDrawerOpen(false);
+                    router.push(item.href);
+                  }}
+                >
+                  <span className="text-xl">{item.icon}</span>
+                  <span>{t(item.labelKey)}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="mt-auto pt-4 border-t border-slate-700">
+          {user && (
+            <div className="px-4 py-2 text-sm text-gray-400 mb-2 truncate">
+              {user.email}
+            </div>
+          )}
+          <button
+            onClick={signOut}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-slate-800 hover:text-white transition-colors"
+          >
+            <span>🚪</span>
+            <span>{t('nav.logout')}</span>
+          </button>
+        </div>
+      </nav>
+    </div>
+  );
+
   return (
-    <aside className="fixed top-16 left-0 z-50 w-64 bg-slate-900 text-white h-[calc(100vh-4rem)] flex flex-col">
+    <>
+      {/* Mobile drawer overlay */}
+      {MobileDrawer}
+
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex fixed top-16 left-0 z-50 w-64 bg-slate-900 text-white h-[calc(100vh-4rem)] flex-col">
         <div className="p-6 border-b border-slate-700">
           <h1 className="text-xl font-bold">Owner Dashboard</h1>
         </div>
@@ -187,6 +269,7 @@ const Sidebar = React.memo(() => {
           </button>
         </div>
       </aside>
+    </>
   );
 });
 
