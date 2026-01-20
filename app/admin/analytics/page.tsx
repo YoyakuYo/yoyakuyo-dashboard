@@ -391,6 +391,75 @@ export default function AdminAnalyticsPage() {
           />
       </div>
 
+        {/* Customer Role Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Web Customers */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Web Customers</h3>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {customers
+                .filter(customer => customer.role?.toLowerCase() === 'web' || customer.role?.toLowerCase() === 'customer')
+                .map((customer, index) => (
+                  <div key={customer.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-sm font-medium text-gray-600">{index + 1}</span>
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {customer.first_name} {customer.last_name}
+                        </div>
+                        <div className="text-sm text-gray-500">{customer.email}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+
+          {/* Guest Customers */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Guest Customers</h3>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {customers
+                .filter(customer => customer.role?.toLowerCase() === 'guest')
+                .map((customer, index) => (
+                  <div key={customer.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-sm font-medium text-gray-600">{index + 1}</span>
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {customer.first_name} {customer.last_name}
+                        </div>
+                        <div className="text-sm text-gray-500">{customer.email || 'No email'}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+
+          {/* LINE Customers */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">LINE Customers</h3>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {customers
+                .filter(customer => customer.role?.toLowerCase() === 'line')
+                .map((customer, index) => (
+                  <div key={customer.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-sm font-medium text-gray-600">{index + 1}</span>
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {customer.first_name} {customer.last_name}
+                        </div>
+                        <div className="text-sm text-gray-500">{customer.email || 'LINE user'}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Peak Booking Hours */}
           <div className="bg-white rounded-lg shadow p-6">
