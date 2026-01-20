@@ -250,8 +250,8 @@ const Sidebar = React.memo(() => {
               // Handle special items (user info and logout)
               if (item.type === 'user') {
                 return (
-                  <li key={`user-${index}`} className="mt-4 pt-4 border-t border-slate-700">
-                    <div className="flex items-center gap-3 px-4 py-2 text-sm text-gray-400 truncate">
+                  <li key={`user-${index}`} className="mt-2">
+                    <div className="flex items-center gap-3 px-4 py-1 text-sm text-gray-400 truncate">
                       <span className="text-lg">{item.icon}</span>
                       <span className="truncate">{item.label}</span>
                     </div>
@@ -261,9 +261,9 @@ const Sidebar = React.memo(() => {
 
               if (item.type === 'logout') {
                 return (
-                  <li key={`logout-${index}`} className="mt-2">
+                  <li key={`logout-${index}`}>
                     <button
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer w-full text-left text-white hover:bg-red-600 hover:text-white border border-red-500"
+                      className="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors cursor-pointer w-full text-left text-white hover:bg-red-600 hover:text-white border border-red-500"
                       onClick={signOut}
                     >
                       <span className="text-xl">{item.icon}</span>
