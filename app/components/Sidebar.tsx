@@ -141,6 +141,9 @@ const Sidebar = React.memo(() => {
     { href: '/owner/support', labelKey: 'nav.contactSupport', icon: '💬', badge: unreadSupportCount > 0 ? unreadSupportCount : undefined },
     { href: '/owner/subscription', labelKey: 'nav.subscriptions', icon: '💳' },
     { href: '/owner/settings', labelKey: 'nav.settings', icon: '⚙️' },
+    // User info and logout as navigation items
+    { type: 'user', label: user?.email || '', icon: '👤' },
+    { type: 'logout', labelKey: 'nav.logout', icon: '🚪', action: 'logout' },
   ];
 
 
@@ -169,7 +172,37 @@ const Sidebar = React.memo(() => {
           </button>
         </div>
         <ul className="space-y-1 flex-1">
-          {navItems.map((item) => {
+          {navItems.map((item, index) => {
+            // Handle special items (user info and logout)
+            if (item.type === 'user') {
+              return (
+                <li key={`mobile-user-${index}`} className="mt-4 pt-4 border-t border-slate-700">
+                  <div className="flex items-center gap-3 px-4 py-2 text-sm text-gray-400 truncate">
+                    <span className="text-lg">{item.icon}</span>
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                </li>
+              );
+            }
+
+            if (item.type === 'logout') {
+              return (
+                <li key={`mobile-logout-${index}`} className="mt-2">
+                  <button
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-white hover:bg-red-600 hover:text-white border border-red-500"
+                    onClick={() => {
+                      handleSignOut();
+                      setDrawerOpen(false);
+                    }}
+                  >
+                    <span className="text-xl">{item.icon}</span>
+                    <span>{t(item.labelKey)}</span>
+                  </button>
+                </li>
+              );
+            }
+
+            // Regular navigation items
             const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
             return (
               <li key={item.href}>
@@ -196,20 +229,6 @@ const Sidebar = React.memo(() => {
             );
           })}
         </ul>
-        <div className="mt-auto pt-4 border-t border-slate-700">
-          {user && (
-            <div className="px-4 py-2 text-sm text-gray-400 mb-2 truncate">
-              {user.email}
-            </div>
-          )}
-          <button
-            onClick={signOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white hover:bg-red-600 hover:text-white transition-colors border border-red-500"
-          >
-            <span>🚪</span>
-            <span>{t('nav.logout')}</span>
-          </button>
-        </div>
       </nav>
     </div>
   );
@@ -227,7 +246,34 @@ const Sidebar = React.memo(() => {
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <nav className="p-4 overflow-y-auto flex-1">
             <ul className="space-y-1">
-            {navItems.map((item) => {
+            {navItems.map((item, index) => {
+              // Handle special items (user info and logout)
+              if (item.type === 'user') {
+                return (
+                  <li key={`user-${index}`} className="mt-4 pt-4 border-t border-slate-700">
+                    <div className="flex items-center gap-3 px-4 py-2 text-sm text-gray-400 truncate">
+                      <span className="text-lg">{item.icon}</span>
+                      <span className="truncate">{item.label}</span>
+                    </div>
+                  </li>
+                );
+              }
+
+              if (item.type === 'logout') {
+                return (
+                  <li key={`logout-${index}`} className="mt-2">
+                    <button
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors cursor-pointer w-full text-left text-white hover:bg-red-600 hover:text-white border border-red-500"
+                      onClick={handleSignOut}
+                    >
+                      <span className="text-xl">{item.icon}</span>
+                      <span className="font-medium">{t(item.labelKey)}</span>
+                    </button>
+                  </li>
+                );
+              }
+
+              // Regular navigation items
               const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
               return (
                 <li key={item.href}>
@@ -255,20 +301,6 @@ const Sidebar = React.memo(() => {
             })}
           </ul>
           </nav>
-        </div>
-        <div className="flex-shrink-0 p-4 border-t border-slate-700">
-          {user && (
-            <div className="px-4 py-2 text-sm text-gray-400 mb-2 truncate">
-              {user.email}
-            </div>
-          )}
-          <button
-            onClick={signOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white hover:bg-red-600 hover:text-white transition-colors border border-red-500"
-          >
-            <span>🚪</span>
-            <span>{t('nav.logout')}</span>
-          </button>
         </div>
       </aside>
     </>
