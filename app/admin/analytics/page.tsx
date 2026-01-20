@@ -68,22 +68,22 @@ export default function AdminAnalyticsPage() {
       setLoading(true);
       const supabase = getSupabaseClient();
 
-      // Platform Overview - fetch all shops for total count, but verified shops for performance
-      const [allShopsResult, verifiedShopsResult, customersResult, bookingsResult] = await Promise.all([
-        supabase.from('shops').select('id'), // Just count all shops
+      // Platform Overview - count all shops, but fetch verified shops for performance
+      const [allShopsCountResult, verifiedShopsResult, customersResult, bookingsResult] = await Promise.all([
+        supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
-        supabase.from('customers').select('id, created_at'),
+        supabase.from('customers').select('id', { count: 'exact', head: true }), // Count all customers
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id')
       ]);
 
-      if (allShopsResult.error) throw allShopsResult.error;
+      if (allShopsCountResult.error) throw allShopsCountResult.error;
       if (verifiedShopsResult.error) throw verifiedShopsResult.error;
       if (customersResult.error) throw customersResult.error;
       if (bookingsResult.error) throw bookingsResult.error;
 
-      const allShops = allShopsResult.data || [];
+      const totalShops = allShopsCountResult.count || 0;
       const verifiedShops = verifiedShopsResult.data || [];
-      const customers = customersResult.data || [];
+      const totalCustomers = customersResult.count || 0;
       const allBookings = bookingsResult.data || [];
 
       // Only include bookings from verified shops for performance metrics
@@ -99,8 +99,6 @@ export default function AdminAnalyticsPage() {
 
       // Calculate platform overview
       const totalBookings = bookings.length;
-      const totalCustomers = customers.length;
-      const totalShops = allShops.length;
       const verifiedShopsCount = verifiedShops.length;
 
       setPlatformOverview({
@@ -125,7 +123,7 @@ export default function AdminAnalyticsPage() {
 
       const sortedShops = shopBookingsArray.sort((a, b) => b.bookings - a.bookings);
       const mostActiveShops = sortedShops.slice(0, 5);
-      const leastActiveShops = sortedShops.slice(-5).reverse();
+      const leastActiveShops = sortedShops.slice(-Math.min(5, sortedShops.length)).reverse();
 
       // Cancellation rate
       const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
