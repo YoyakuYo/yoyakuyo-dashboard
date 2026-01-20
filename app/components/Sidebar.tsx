@@ -203,7 +203,7 @@ const Sidebar = React.memo(() => {
             }
 
             // Regular navigation items
-            const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
+            const isActive = item.href && (pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href)));
             return (
               <li key={item.href}>
                 <button
@@ -214,7 +214,7 @@ const Sidebar = React.memo(() => {
                   }`}
                   onClick={() => {
                     setDrawerOpen(false);
-                    router.push(item.href);
+                    item.href && router.push(item.href);
                   }}
                 >
                   <span className="text-xl">{item.icon}</span>
@@ -274,7 +274,7 @@ const Sidebar = React.memo(() => {
               }
 
               // Regular navigation items
-              const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
+              const isActive = item.href && (pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href)));
               return (
                 <li key={item.href}>
                   <button
@@ -283,7 +283,7 @@ const Sidebar = React.memo(() => {
                         ? 'bg-blue-600 text-white font-bold'
                         : 'text-gray-300 hover:bg-slate-800 hover:text-white'
                     }`}
-                    onClick={() => router.push(item.href)}
+                    onClick={() => item.href && router.push(item.href)}
                   >
                     {isActive && (
                       <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r"></span>
