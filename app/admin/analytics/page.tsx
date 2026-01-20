@@ -7,6 +7,7 @@ import AdminStatsCard from '@/app/components/admin/AdminStatsCard';
 
 interface PlatformOverview {
   totalShops: number;
+  verifiedShops: number;
   activeShops: number;
   totalCustomers: number;
   totalBookings: number;
@@ -32,6 +33,7 @@ interface CustomerActivity {
 export default function AdminAnalyticsPage() {
   const [platformOverview, setPlatformOverview] = useState<PlatformOverview>({
     totalShops: 0,
+    verifiedShops: 0,
     activeShops: 0,
     totalCustomers: 0,
     totalBookings: 0,
@@ -66,40 +68,45 @@ export default function AdminAnalyticsPage() {
       setLoading(true);
       const supabase = getSupabaseClient();
 
-      // Platform Overview
-      const [shopsResult, customersResult, bookingsResult] = await Promise.all([
-        supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true),
+      // Platform Overview - fetch all shops for total count, but verified shops for performance
+      const [allShopsResult, verifiedShopsResult, customersResult, bookingsResult] = await Promise.all([
+        supabase.from('shops').select('id'), // Just count all shops
+        supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
         supabase.from('customers').select('id, created_at'),
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id')
       ]);
 
-      if (shopsResult.error) throw shopsResult.error;
+      if (allShopsResult.error) throw allShopsResult.error;
+      if (verifiedShopsResult.error) throw verifiedShopsResult.error;
       if (customersResult.error) throw customersResult.error;
       if (bookingsResult.error) throw bookingsResult.error;
 
-      const shops = shopsResult.data || [];
+      const allShops = allShopsResult.data || [];
+      const verifiedShops = verifiedShopsResult.data || [];
       const customers = customersResult.data || [];
       const allBookings = bookingsResult.data || [];
 
-      // Only include bookings from verified shops
-      const verifiedShopIds = new Set(shops.map(shop => shop.id));
+      // Only include bookings from verified shops for performance metrics
+      const verifiedShopIds = new Set(verifiedShops.map(shop => shop.id));
       const bookings = allBookings.filter(booking => verifiedShopIds.has(booking.shop_id));
 
-      // Calculate active shops (updated in last 30 days)
+      // Calculate active verified shops (updated in last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const activeShops = shops.filter(shop =>
+      const activeVerifiedShops = verifiedShops.filter(shop =>
         new Date(shop.updated_at) > thirtyDaysAgo
       ).length;
 
       // Calculate platform overview
       const totalBookings = bookings.length;
       const totalCustomers = customers.length;
-      const totalShops = shops.length;
+      const totalShops = allShops.length;
+      const verifiedShopsCount = verifiedShops.length;
 
       setPlatformOverview({
         totalShops,
-        activeShops,
+        verifiedShops: verifiedShopsCount,
+        activeShops: activeVerifiedShops,
         totalCustomers,
         totalBookings,
         visitorsToday: 0 // This would need analytics tracking implementation
@@ -112,7 +119,7 @@ export default function AdminAnalyticsPage() {
       }, {} as Record<string, number>);
 
       const shopBookingsArray = Object.entries(shopBookings).map(([shopId, count]) => {
-        const shop = shops.find(s => s.id === shopId);
+        const shop = verifiedShops.find(s => s.id === shopId);
         return { name: shop?.name || 'Unknown Shop', bookings: count };
       });
 
@@ -124,19 +131,19 @@ export default function AdminAnalyticsPage() {
       const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
       const cancellationRate = totalBookings > 0 ? (cancelledBookings / totalBookings) * 100 : 0;
 
-      // Inactive shops (no bookings in last 30 days)
+      // Inactive verified shops (no bookings in last 30 days)
       const recentBookings = bookings.filter(b =>
         new Date(b.created_at) > thirtyDaysAgo
       );
-      const activeShopIds = new Set(recentBookings.map(b => b.shop_id));
-      const inactiveShops = shops.filter(shop => !activeShopIds.has(shop.id)).length;
+      const activeVerifiedShopIds = new Set(recentBookings.map(b => b.shop_id));
+      const inactiveVerifiedShops = verifiedShops.filter(shop => !activeVerifiedShopIds.has(shop.id)).length;
 
       setShopPerformance({
-        bookingsPerShop: totalShops > 0 ? Math.round(totalBookings / totalShops) : 0,
+        bookingsPerShop: verifiedShopsCount > 0 ? Math.round(totalBookings / verifiedShopsCount) : 0,
         mostActiveShops,
         leastActiveShops,
         cancellationRate: Math.round(cancellationRate * 100) / 100,
-        inactiveShops
+        inactiveShops: inactiveVerifiedShops
       });
 
       // Customer Activity
@@ -221,17 +228,23 @@ export default function AdminAnalyticsPage() {
       {/* Platform Overview */}
       <div>
         <h2 className="text-2xl font-semibold text-gray-900 mb-4">Platform Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
           <AdminStatsCard
             title="Total Shops"
             value={platformOverview.totalShops.toString()}
             icon="🏪"
           />
           <AdminStatsCard
+            title="Verified Shops"
+            value={platformOverview.verifiedShops.toString()}
+            subtitle="Active & verified"
+            icon="✅"
+          />
+          <AdminStatsCard
             title="Active Shops"
             value={platformOverview.activeShops.toString()}
             subtitle="Updated in last 30 days"
-            icon="✅"
+            icon="🔄"
           />
           <AdminStatsCard
             title="Total Customers"
