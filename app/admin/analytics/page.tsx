@@ -58,6 +58,7 @@ export default function AdminAnalyticsPage() {
     peakBookingDays: []
   });
 
+  const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,12 +86,15 @@ export default function AdminAnalyticsPage() {
 
       const totalShops = allShopsCountResult.count || 0;
       const verifiedShops = verifiedShopsResult.data || [];
-      const customers = customersResult.data || [];
-      const totalCustomers = customers.length;
+      const customersData = customersResult.data || [];
+      const totalCustomers = customersData.length;
       const allBookings = bookingsResult.data || [];
 
+      // Set customers state for UI display
+      setCustomers(customersData);
+
       // Calculate customer role breakdown
-      const customerRoles = customers.reduce((acc, customer) => {
+      const customerRoles = customersData.reduce((acc, customer) => {
         const role = customer.role?.toLowerCase() || 'other';
         if (role === 'web' || role === 'customer') acc.web++;
         else if (role === 'guest') acc.guest++;
