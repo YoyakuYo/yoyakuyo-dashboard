@@ -16,10 +16,12 @@ export default function Header() {
     }
   };
 
+  console.log("Header component rendering");
+
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-40">
+    <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-40" data-testid="header">
       {/* Mobile Header */}
-      <div className="flex lg:hidden items-center h-full px-4">
+      <div className="flex md:hidden items-center h-full px-4">
         <button
           className="text-2xl text-gray-800 focus:outline-none p-2 mr-2"
           aria-label="Open menu"
@@ -40,7 +42,7 @@ export default function Header() {
       </div>
 
       {/* Desktop Header */}
-      <div className="hidden lg:flex items-center h-full px-6">
+      <div className="hidden md:flex items-center h-full px-6">
         <button
           onClick={(e) => {
             e.preventDefault();
