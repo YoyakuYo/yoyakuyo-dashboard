@@ -70,7 +70,7 @@ export default function AdminAnalyticsPage() {
       const [shopsResult, customersResult, bookingsResult] = await Promise.all([
         supabase.from('shops').select('id, name, created_at, updated_at'),
         supabase.from('profiles').select('id, created_at').eq('role', 'customer'),
-        supabase.from('bookings').select('id, created_at, status, shop_id')
+        supabase.from('bookings').select('id, created_at, status, shop_id, customer_id')
       ]);
 
       if (shopsResult.error) throw shopsResult.error;
