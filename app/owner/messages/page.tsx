@@ -681,6 +681,8 @@ function OwnerMessagesPageContent() {
               <div className="p-4 border-t border-gray-200">
                 <div className="flex gap-2">
                   <input
+                    id="message-input"
+                    name="message"
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
