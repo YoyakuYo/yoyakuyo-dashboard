@@ -87,17 +87,16 @@ export default function AdminAnalyticsPage() {
       const totalShops = allShopsCountResult.count || 0;
       const verifiedShops = verifiedShopsResult.data || [];
       const customersData = customersResult.data || [];
-      const totalCustomers = customersData.length;
       const allBookings = bookingsResult.data || [];
-
-      // Set active customers state for UI display (only customers who have made bookings)
-      setCustomers(activeCustomers);
 
       // Get unique customer IDs from bookings
       const activeCustomerIds = new Set(bookings.map(booking => booking.customer_id).filter(Boolean));
 
       // Filter customers to only those who have made bookings
       const activeCustomers = customersData.filter(customer => activeCustomerIds.has(customer.id));
+
+      // Set active customers state for UI display (only customers who have made bookings)
+      setCustomers(activeCustomers);
 
       // Calculate customer role breakdown from active customers only
       const customerRoles = activeCustomers.reduce((acc, customer) => {
@@ -128,7 +127,7 @@ export default function AdminAnalyticsPage() {
         totalShops,
         verifiedShops: verifiedShopsCount,
         activeShops: activeVerifiedShops,
-        totalCustomers,
+        totalCustomers: activeCustomers.length,
         totalBookings,
         visitorsToday: 0 // This would need analytics tracking implementation
       });
