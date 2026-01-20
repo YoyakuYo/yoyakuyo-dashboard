@@ -23,7 +23,7 @@ export default function AdminLayout({
     <AdminGuard>
       <div className="flex min-h-screen bg-gray-50">
         <AdminSidebar />
-        <div className="flex-1 lg:ml-64 flex flex-col">
+        <div className="flex-1 lg:ml-0 flex flex-col">
           <AdminHeader />
           <main className="flex-1 overflow-auto">
             <div className="p-6 lg:p-8">{children}</div>
