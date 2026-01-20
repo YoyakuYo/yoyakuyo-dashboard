@@ -69,7 +69,7 @@ export default function AdminAnalyticsPage() {
       // Platform Overview
       const [shopsResult, customersResult, bookingsResult] = await Promise.all([
         supabase.from('shops').select('id, name, created_at, updated_at'),
-        supabase.from('profiles').select('id, created_at').eq('role', 'customer'),
+        supabase.from('customers').select('id, created_at'),
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id')
       ]);
 
