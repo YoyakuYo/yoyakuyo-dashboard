@@ -116,9 +116,10 @@ export default function AdminAnalyticsPage() {
         return acc;
       }, {} as Record<string, number>);
 
-      const shopBookingsArray = Object.entries(shopBookings).map(([shopId, count]) => {
-        const shop = verifiedShops.find(s => s.id === shopId);
-        return { name: shop?.name || 'Unknown Shop', bookings: count };
+      // Include all verified shops, even those with 0 bookings
+      const shopBookingsArray = verifiedShops.map(shop => {
+        const bookingCount = shopBookings[shop.id] || 0;
+        return { name: shop.name || 'Unknown Shop', bookings: bookingCount };
       });
 
       const sortedShops = shopBookingsArray.sort((a, b) => b.bookings - a.bookings);
