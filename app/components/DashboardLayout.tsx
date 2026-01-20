@@ -108,6 +108,19 @@ export default function DashboardLayout({
   return (
     <AuthGuard>
       <BookingNotificationsWrapper>
+        {/* Mobile hamburger button - positioned like admin dashboard */}
+        <button
+          className="md:hidden fixed top-4 left-4 z-[251] bg-blue-600 text-white p-2 rounded-lg"
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('openSidebarDrawer'));
+            }
+          }}
+          aria-label="Open menu"
+        >
+          ☰
+        </button>
+
         <Header />
         <Sidebar />
         <main className="md:ml-64 pt-16 min-h-screen bg-gray-50">
