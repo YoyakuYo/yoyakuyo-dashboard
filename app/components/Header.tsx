@@ -16,10 +16,8 @@ export default function Header() {
     }
   };
 
-  console.log("Header component rendering");
-
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-40" data-testid="header">
+    <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-40">
       {/* Mobile Header */}
       <div className="flex md:hidden items-center h-full px-4">
         <button

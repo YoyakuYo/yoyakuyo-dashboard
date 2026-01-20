@@ -214,15 +214,13 @@ const Sidebar = React.memo(() => {
     </div>
   );
 
-  console.log("Sidebar component rendering");
-
   return (
     <>
       {/* Mobile drawer overlay */}
       {MobileDrawer}
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex fixed top-16 left-0 z-50 w-64 bg-slate-900 text-white h-[calc(100vh-4rem)] flex-col" data-testid="sidebar">
+      <aside className="hidden md:flex fixed top-16 left-0 z-50 w-64 bg-slate-900 text-white h-[calc(100vh-4rem)] flex-col">
         <div className="p-6 border-b border-slate-700">
           <h1 className="text-xl font-bold">Owner Dashboard</h1>
         </div>
