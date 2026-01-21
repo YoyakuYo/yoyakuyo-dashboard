@@ -72,30 +72,34 @@ export default function AdminAnalyticsPage() {
       const supabase = getSupabaseClient();
 
       // Platform Overview - count all shops, but fetch verified shops for performance
-      const [allShopsCountResult, verifiedShopsResult, customersResult, bookingsResult] = await Promise.all([
+      const [allShopsCountResult, verifiedShopsResult, customersResult, customerProfilesResult, bookingsResult] = await Promise.all([
         supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
-        supabase
-          .from('customers')
-          .select(`
-            id, name, email, role, auth_user_id,
-            customer_profiles!inner(name, email)
-          `), // Join with customer_profiles table
+        supabase.from('customers').select('id, name, email, role, auth_user_id'), // Get customers
+        supabase.from('customer_profiles').select('id, name, email'), // Get customer profiles
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id')
       ]);
 
       if (allShopsCountResult.error) throw allShopsCountResult.error;
       if (verifiedShopsResult.error) throw verifiedShopsResult.error;
       if (customersResult.error) throw customersResult.error;
+      if (customerProfilesResult.error) throw customerProfilesResult.error;
       if (bookingsResult.error) throw bookingsResult.error;
 
       const totalShops = allShopsCountResult.count || 0;
       const verifiedShops = verifiedShopsResult.data || [];
       const customersData = customersResult.data || [];
+      const customerProfilesData = customerProfilesResult.data || [];
       const allBookings = bookingsResult.data || [];
 
-      // Use customers data directly (no users table join needed)
-      const enrichedCustomers = customersData;
+      // Create a map of customer profiles by ID for easy lookup
+      const customerProfilesMap = new Map(customerProfilesData.map(profile => [profile.id, profile]));
+
+      // Enrich customers with profile data
+      const enrichedCustomers = customersData.map(customer => ({
+        ...customer,
+        customer_profiles: customer.auth_user_id ? customerProfilesMap.get(customer.auth_user_id) : null
+      }));
 
       // Only include bookings from verified shops for performance metrics
       const verifiedShopIds = new Set(verifiedShops.map(shop => shop.id));
