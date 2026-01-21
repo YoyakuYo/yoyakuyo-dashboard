@@ -72,34 +72,25 @@ export default function AdminAnalyticsPage() {
       const supabase = getSupabaseClient();
 
       // Platform Overview - count all shops, but fetch verified shops for performance
-      const [allShopsCountResult, verifiedShopsResult, customersResult, usersResult, bookingsResult] = await Promise.all([
+      const [allShopsCountResult, verifiedShopsResult, customersResult, bookingsResult] = await Promise.all([
         supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
         supabase.from('customers').select('id, name, email, role, auth_user_id'), // Get customers
-        supabase.from('users').select('id, name, email'), // Get users data
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id')
       ]);
 
       if (allShopsCountResult.error) throw allShopsCountResult.error;
       if (verifiedShopsResult.error) throw verifiedShopsResult.error;
       if (customersResult.error) throw customersResult.error;
-      if (usersResult.error) throw usersResult.error;
       if (bookingsResult.error) throw bookingsResult.error;
 
       const totalShops = allShopsCountResult.count || 0;
       const verifiedShops = verifiedShopsResult.data || [];
       const customersData = customersResult.data || [];
-      const usersData = usersResult.data || [];
       const allBookings = bookingsResult.data || [];
 
-      // Create a map of users by ID for easy lookup
-      const usersMap = new Map(usersData.map(user => [user.id, user]));
-
-      // Enrich customers with user data
-      const enrichedCustomers = customersData.map(customer => ({
-        ...customer,
-        users: customer.auth_user_id ? usersMap.get(customer.auth_user_id) : null
-      }));
+      // Use customers data directly (no users table join needed)
+      const enrichedCustomers = customersData;
 
       // Only include bookings from verified shops for performance metrics
       const verifiedShopIds = new Set(verifiedShops.map(shop => shop.id));
@@ -425,9 +416,9 @@ export default function AdminAnalyticsPage() {
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.users?.name || customer.name || `Web Customer ${index + 1}`}
+                          {customer.name || `Web Customer ${index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.users?.email || customer.email || 'No email'}</div>
+                        <div className="text-sm text-gray-500">{customer.email || 'No email'}</div>
                       </div>
                     </div>
                   </div>
@@ -447,9 +438,9 @@ export default function AdminAnalyticsPage() {
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.users?.name || customer.name || `Guest Customer ${index + 1}`}
+                          {customer.name || `Guest Customer ${index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.users?.email || customer.email || 'Anonymous booking'}</div>
+                        <div className="text-sm text-gray-500">{customer.email || 'Anonymous booking'}</div>
                       </div>
                     </div>
                   </div>
@@ -469,9 +460,9 @@ export default function AdminAnalyticsPage() {
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.users?.name || customer.name || `LINE Customer ${index + 1}`}
+                          {customer.name || `LINE Customer ${index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.users?.email || customer.email || 'LINE app user'}</div>
+                        <div className="text-sm text-gray-500">{customer.email || 'LINE app user'}</div>
                       </div>
                     </div>
                   </div>
