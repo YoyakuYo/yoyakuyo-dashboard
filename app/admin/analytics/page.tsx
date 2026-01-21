@@ -75,7 +75,12 @@ export default function AdminAnalyticsPage() {
       const [allShopsCountResult, verifiedShopsResult, customersResult, bookingsResult] = await Promise.all([
         supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
-        supabase.from('customers').select('id, name, email, role, auth_user_id'), // Get customers
+        supabase
+          .from('customers')
+          .select(`
+            id, name, email, role, auth_user_id,
+            customer_profiles!inner(name, email)
+          `), // Join with customer_profiles table
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id')
       ]);
 
@@ -416,9 +421,9 @@ export default function AdminAnalyticsPage() {
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.name || `Web Customer ${customer.id?.slice(-4) || index + 1}`}
+                          {customer.customer_profiles?.name || customer.name || `Web Customer ${customer.id?.slice(-4) || index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.email || `ID: ${customer.id?.slice(-4) || 'Unknown'}`}</div>
+                        <div className="text-sm text-gray-500">{customer.customer_profiles?.email || customer.email || `ID: ${customer.id?.slice(-4) || 'Unknown'}`}</div>
                       </div>
                     </div>
                   </div>
@@ -438,9 +443,9 @@ export default function AdminAnalyticsPage() {
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.name || `Guest Customer ${index + 1}`}
+                          {customer.customer_profiles?.name || customer.name || `Guest Customer ${index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.email || 'Anonymous booking'}</div>
+                        <div className="text-sm text-gray-500">{customer.customer_profiles?.email || customer.email || 'Anonymous booking'}</div>
                       </div>
                     </div>
                   </div>
@@ -460,9 +465,9 @@ export default function AdminAnalyticsPage() {
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.name || `LINE Customer ${index + 1}`}
+                          {customer.customer_profiles?.name || customer.name || `LINE Customer ${index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.email || 'LINE app user'}</div>
+                        <div className="text-sm text-gray-500">{customer.customer_profiles?.email || customer.email || 'LINE app user'}</div>
                       </div>
                     </div>
                   </div>
