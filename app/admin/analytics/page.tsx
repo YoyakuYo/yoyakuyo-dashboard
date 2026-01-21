@@ -75,7 +75,12 @@ export default function AdminAnalyticsPage() {
       const [allShopsCountResult, verifiedShopsResult, customersResult, bookingsResult] = await Promise.all([
         supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
-        supabase.from('customers').select('id, name, email, role'), // Get customers with correct column names
+        supabase
+          .from('customers')
+          .select(`
+            id, name, email, role, auth_user_id,
+            users!inner(name, email)
+          `), // Join with users table to get auth user info
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id')
       ]);
 
@@ -413,9 +418,9 @@ export default function AdminAnalyticsPage() {
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.name || `Web Customer ${index + 1}`}
+                          {customer.users?.name || customer.name || `Web Customer ${index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.email || 'No email'}</div>
+                        <div className="text-sm text-gray-500">{customer.users?.email || customer.email || 'No email'}</div>
                       </div>
                     </div>
                   </div>
@@ -435,9 +440,9 @@ export default function AdminAnalyticsPage() {
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.name || `Guest Customer ${index + 1}`}
+                          {customer.users?.name || customer.name || `Guest Customer ${index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.email || 'Anonymous booking'}</div>
+                        <div className="text-sm text-gray-500">{customer.users?.email || customer.email || 'Anonymous booking'}</div>
                       </div>
                     </div>
                   </div>
@@ -457,9 +462,9 @@ export default function AdminAnalyticsPage() {
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.name || `LINE Customer ${index + 1}`}
+                          {customer.users?.name || customer.name || `LINE Customer ${index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.email || 'LINE app user'}</div>
+                        <div className="text-sm text-gray-500">{customer.users?.email || customer.email || 'LINE app user'}</div>
                       </div>
                     </div>
                   </div>
