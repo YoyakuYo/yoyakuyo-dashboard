@@ -72,27 +72,34 @@ export default function AdminAnalyticsPage() {
       const supabase = getSupabaseClient();
 
       // Platform Overview - count all shops, but fetch verified shops for performance
-      const [allShopsCountResult, verifiedShopsResult, customersResult, bookingsResult] = await Promise.all([
+      const [allShopsCountResult, verifiedShopsResult, customersResult, usersResult, bookingsResult] = await Promise.all([
         supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
-        supabase
-          .from('customers')
-          .select(`
-            id, name, email, role, auth_user_id,
-            users!inner(name, email)
-          `), // Join with users table to get auth user info
+        supabase.from('customers').select('id, name, email, role, auth_user_id'), // Get customers
+        supabase.from('users').select('id, name, email'), // Get users data
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id')
       ]);
 
       if (allShopsCountResult.error) throw allShopsCountResult.error;
       if (verifiedShopsResult.error) throw verifiedShopsResult.error;
       if (customersResult.error) throw customersResult.error;
+      if (usersResult.error) throw usersResult.error;
       if (bookingsResult.error) throw bookingsResult.error;
 
       const totalShops = allShopsCountResult.count || 0;
       const verifiedShops = verifiedShopsResult.data || [];
       const customersData = customersResult.data || [];
+      const usersData = usersResult.data || [];
       const allBookings = bookingsResult.data || [];
+
+      // Create a map of users by ID for easy lookup
+      const usersMap = new Map(usersData.map(user => [user.id, user]));
+
+      // Enrich customers with user data
+      const enrichedCustomers = customersData.map(customer => ({
+        ...customer,
+        users: customer.auth_user_id ? usersMap.get(customer.auth_user_id) : null
+      }));
 
       // Only include bookings from verified shops for performance metrics
       const verifiedShopIds = new Set(verifiedShops.map(shop => shop.id));
@@ -102,7 +109,7 @@ export default function AdminAnalyticsPage() {
       const activeCustomerIds = new Set(bookings.map(booking => booking.customer_id).filter(Boolean));
 
       // Filter customers to only those who have made bookings
-      const activeCustomers = customersData.filter(customer => activeCustomerIds.has(customer.id));
+      const activeCustomers = enrichedCustomers.filter(customer => activeCustomerIds.has(customer.id));
 
       // Set active customers state for UI display (only customers who have made bookings)
       setCustomers(activeCustomers);
