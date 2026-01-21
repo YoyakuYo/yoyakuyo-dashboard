@@ -208,7 +208,7 @@ export default function AdminAnalyticsPage() {
         .sort((a, b) => b.bookings - a.bookings);
 
       setCustomerActivity({
-        activeCustomers,
+        activeCustomers: activeCustomers.length,
         repeatCustomers,
         avgBookingsPerCustomer,
         customerRoles,
