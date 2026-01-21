@@ -416,9 +416,9 @@ export default function AdminAnalyticsPage() {
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.name || `Web Customer ${index + 1}`}
+                          {customer.name || `Web Customer ${customer.id?.slice(-4) || index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.email || 'No email'}</div>
+                        <div className="text-sm text-gray-500">{customer.email || `ID: ${customer.id?.slice(-4) || 'Unknown'}`}</div>
                       </div>
                     </div>
                   </div>
