@@ -95,10 +95,11 @@ export default function AdminAnalyticsPage() {
       // Create a map of customer profiles by ID for easy lookup
       const customerProfilesMap = new Map(customerProfilesData.map(profile => [profile.id, profile]));
 
-      // Enrich customers with profile data
+      // For now, just use customers data directly since customer_profiles doesn't match
+      // The web customer names/emails need to be populated in the customers table itself
       const enrichedCustomers = customersData.map(customer => ({
         ...customer,
-        customer_profiles: customer.auth_user_id ? customerProfilesMap.get(customer.auth_user_id) : null
+        customer_profiles: null // Disable profiles lookup since IDs don't match
       }));
 
       // Only include bookings from verified shops for performance metrics
