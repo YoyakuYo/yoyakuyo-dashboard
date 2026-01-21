@@ -418,16 +418,19 @@ export default function AdminAnalyticsPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Web Customers</h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {customers
-                .filter(customer => customer.role?.toLowerCase() === 'web' || customer.role?.toLowerCase() === 'customer')
+                .filter(customer => {
+                  const role = customer.role?.toLowerCase();
+                  return role === 'web' || role === 'customer' || (!role && customer.customer_profiles); // Include customers with profiles but no role
+                })
                 .map((customer, index) => (
                   <div key={customer.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
                     <div className="flex items-center space-x-3">
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.customer_profiles?.name || customer.name || `Web Customer ${customer.id?.slice(-4) || index + 1}`}
+                          {customer.name || customer.customer_profiles?.name || `Web Customer ${customer.id?.slice(-4) || index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.customer_profiles?.email || customer.email || `ID: ${customer.id?.slice(-4) || 'Unknown'}`}</div>
+                        <div className="text-sm text-gray-500">{customer.email || customer.customer_profiles?.email || `ID: ${customer.id?.slice(-4) || 'Unknown'}`}</div>
                       </div>
                     </div>
                   </div>
