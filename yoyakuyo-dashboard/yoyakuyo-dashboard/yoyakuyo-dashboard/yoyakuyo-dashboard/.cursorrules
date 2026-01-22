@@ -1,0 +1,70 @@
+# Cursor Rules for Supabase Migrations
+
+## Database Schema Changes
+
+When making ANY database schema changes (creating/updating tables, columns, constraints):
+
+1. **ALWAYS check existing schema first:**
+   - Run `npm run migrate:pre-check` to sync with Supabase
+   - Review existing migrations in `supabase/migrations/`
+   - Check if tables/columns already exist in Supabase
+
+2. **Generate migration automatically:**
+   - Run `npm run migrate:auto` which will:
+     - Pull current schema from Supabase
+     - Detect NEW changes only
+     - Generate migration file with timestamp
+     - Push to Supabase automatically
+
+3. **Never recreate existing objects:**
+   - Use `IF NOT EXISTS` in all SQL statements
+   - Check migrations folder before creating new ones
+   - Only add NEW changes, not duplicates
+   - If table/column exists → SKIP creating it
+
+4. **After schema changes:**
+   - Always run `npm run migrate:auto`
+   - Verify migration was applied successfully
+   - Confirm no conflicts or errors
+
+## Migration File Rules
+
+- ✅ Use descriptive names: `add_shop_holidays_table.sql`
+- ✅ ALWAYS include `IF NOT EXISTS` checks
+- ✅ Add comments explaining the change
+- ✅ Test migrations before pushing
+- ❌ Never drop tables without backup
+- ❌ Never create duplicate migrations
+- ❌ Never create migrations for existing objects
+
+## Automatic Migration Workflow
+
+The system will automatically:
+1. Pull current schema from Supabase (`supabase db pull`)
+2. Generate diff migration (`supabase db diff`)
+3. Create migration file with timestamp
+4. Push to Supabase (`supabase db push`)
+5. Confirm success
+
+**Command:** `npm run migrate:auto`
+
+## Pre-Migration Check
+
+Before creating any migration, run:
+```bash
+npm run migrate:pre-check
+```
+
+This ensures:
+- Schema is synced with Supabase
+- No duplicate migrations are created
+- Existing objects are identified
+
+## Conflict Resolution
+
+If migrations get out of sync:
+1. Run `npm run supabase:pull` to sync
+2. Review differences with `npm run supabase:diff`
+3. Resolve conflicts manually if needed
+4. Push with `npm run supabase:push`
+

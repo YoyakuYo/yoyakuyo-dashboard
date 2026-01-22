@@ -1,0 +1,53 @@
+fbd10b6c 2025-12-29 14:03:28 +0900 Omar Sow Comprehensive update: Data reorganization, script fixes, and monitoring for city data
+M	apps/api/package-lock.json
+M	apps/api/package.json
+M	apps/api/src/routes/shops.ts
+A	apps/api/src/scripts/cleanupIncompleteAddresses.ts
+A	apps/api/src/scripts/handle_missing_city_data.ts
+A	apps/api/src/scripts/populateMissingCityData.ts
+
+9b5c60e7 2025-12-28 21:15:40 +0900 Omar Sow feat: Add city dropdown, verified shops filter, guest booking support, and fix Categories text
+M	app/shops/[id]/page.tsx
+M	apps/api/src/routes/bookings.ts
+
+eeb1e315 2025-12-28 20:46:48 +0900 Omar Sow feat: Add diagnostic logs for apiUrl and /cities endpoint to debug city dropdown
+M	app/categories/[categoryId]/page.tsx
+M	apps/api/src/routes/shops.ts
+
+29c7db24 2025-12-28 20:34:00 +0900 Omar Sow feat: Adjust 'CATEGORIES' display to 'Categories' in navigation bar
+M	app/components/landing/MinimalNavbar.tsx
+
+71391dd0 2025-12-28 20:25:25 +0900 Omar Sow feat: Implement category slug system, guest booking, city data, search bar, city and verified shop filters
+M	app/categories/[categoryId]/page.tsx
+
+8d3202a8 2025-12-28 20:22:20 +0900 Omar Sow feat: Implement category slug system, guest booking, city data, and add shop query diagnostics
+M	apps/api/src/routes/shops.ts
+
+87b48263 2025-12-28 20:03:10 +0900 Omar Sow feat: Removed temporary debugging logs from frontend
+M	app/browse/page.tsx
+M	app/layout.tsx
+
+ede46306 2025-12-28 18:27:39 +0900 Omar Sow feat: Add GET /cities API endpoint and enable city filtering in GET /shops
+M	apps/api/src/routes/shops.ts
+
+9f18d6ac 2025-12-28 18:08:13 +0900 Omar Sow feat: Implement search bar on category pages; feat: Add cities table migration and corrected population script
+M	app/categories/[categoryId]/page.tsx
+A	supabase/migrations/add_cities_table_and_shop_city_id.sql
+
+3143f53b 2025-12-28 17:33:30 +0900 Omar Sow fix: Corrected TypeScript compilation errors in populateCitiesTable script
+M	apps/api/src/scripts/populateCitiesTable.ts
+
+8cb43cbc 2025-12-28 17:29:39 +0900 Omar Sow feat: Add script to populate cities table from shop addresses
+A	apps/api/src/scripts/populateCitiesTable.ts
+
+dbfdc4a7 2025-12-28 16:39:33 +0900 Omar Sow Update submodule reference to latest version.
+M	yoyakuyo-api
+
+4c291234 2025-12-28 16:29:04 +0900 Omar Sow Fix guest booking flow: removed login requirement, adjusted API to accept guest bookings, and added logging for debugging.
+M	app/shops/[id]/page.tsx
+M	apps/api/dist/routes/bookings.js
+M	apps/api/dist/routes/shops.js
+M	apps/api/src/ai/ai.ts
+M	apps/api/src/routes/bookings.ts
+M	apps/api/src/routes/shops.ts
+A	supabase/migrations/add_category_slugs.sql

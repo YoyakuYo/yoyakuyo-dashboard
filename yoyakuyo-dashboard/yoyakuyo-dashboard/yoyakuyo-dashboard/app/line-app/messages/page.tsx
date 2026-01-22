@@ -24,7 +24,7 @@ try {
 interface Message {
   id: string;
   conversation_id: string;
-  sender_role?: 'customer' | 'shop' | 'ai';
+  sender_role?: 'customer' | 'shop' | 'admin' | 'ai';
   sender_type: 'customer' | 'shop';
   body: string;
   is_read: boolean;
@@ -96,7 +96,13 @@ export default function MessagesPage() {
 
       if (!convRes.ok) {
         const errorData = await convRes.json().catch(() => ({ error: 'Failed to create conversation' }));
-        throw new Error(errorData.error || 'Failed to create conversation');
+        console.error('[Messages] Conversation creation failed:', {
+          status: convRes.status,
+          statusText: convRes.statusText,
+          error: errorData,
+          headers: Object.fromEntries(convRes.headers.entries())
+        });
+        throw new Error(errorData.error || `Failed to create conversation (${convRes.status})`);
       }
 
       const convData = await convRes.json();
@@ -118,7 +124,7 @@ export default function MessagesPage() {
 
   const loadMessages = async (convId: string, lineUserId: string, token: string) => {
     try {
-      const res = await fetch(`${apiUrl}/api/internal-messaging/conversations/${convId}/messages`, {
+      const res = await fetch(`${apiUrl}/api/internal-messaging/${convId}/messages`, {
         headers: {
           'x-line-user-id': lineUserId,
           'x-id-token': token,
@@ -239,7 +245,14 @@ export default function MessagesPage() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({ error: 'Failed to send message' }));
-        throw new Error(errorData.error || 'Failed to send message');
+        console.error('[Messages] Message sending failed:', {
+          status: res.status,
+          statusText: res.statusText,
+          error: errorData,
+          conversationId,
+          contentLength: trimmedContent.length
+        });
+        throw new Error(errorData.error || `Failed to send message (${res.status})`);
       }
 
       const data = await res.json();
@@ -295,6 +308,7 @@ export default function MessagesPage() {
           messages.map((message) => {
             const senderRole = message.sender_role || (message.sender_type === 'shop' ? 'shop' : 'customer');
             const isCustomer = senderRole === 'customer';
+            const isAdmin = senderRole === 'admin';
             const isAI = senderRole === 'ai';
             
             return (
@@ -306,6 +320,8 @@ export default function MessagesPage() {
                   className={`max-w-[85%] md:max-w-md px-4 py-2 rounded-lg ${
                     isCustomer
                       ? 'bg-green-600 text-white'
+                      : isAdmin
+                      ? 'bg-blue-600 text-white'
                       : isAI
                       ? 'bg-purple-100 text-purple-900 border border-purple-300'
                       : 'bg-white text-gray-900 border border-gray-200'
@@ -320,10 +336,13 @@ export default function MessagesPage() {
                   {isAI && (
                     <p className="text-xs font-semibold text-purple-700 mb-1">{t("aiTitle")}</p>
                   )}
+                  {isAdmin && (
+                    <p className="text-xs font-semibold text-blue-100 mb-1">Admin Support</p>
+                  )}
                   <p className="text-sm whitespace-pre-wrap break-words">{message.body}</p>
                   <p
                     className={`text-xs mt-1 ${
-                      isCustomer ? 'text-green-100' : isAI ? 'text-purple-600' : 'text-gray-500'
+                      isCustomer ? 'text-green-100' : isAdmin ? 'text-blue-100' : isAI ? 'text-purple-600' : 'text-gray-500'
                     }`}
                   >
                     {new Date(message.created_at).toLocaleTimeString('en-US', {

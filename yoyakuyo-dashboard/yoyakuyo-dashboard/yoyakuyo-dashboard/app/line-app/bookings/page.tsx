@@ -224,8 +224,9 @@ interface Booking {
   source?: string;
   booking_type?: string; // Legacy field for backward compatibility
   line_user_id?: string; // Legacy field
-  start_time: string;
-  end_time: string;
+  start_time: string; // TIME type (HH:MM:SS) or full timestamp
+  end_time?: string; // Optional TIME type
+  date?: string; // DATE type (YYYY-MM-DD format) - required for proper date display
   booked_for?: string; // New canonical field
   status: string;
   shop_id?: string;
@@ -406,23 +407,23 @@ function LineBookingsPageContent() {
     const serviceData = Array.isArray(booking.services) ? booking.services[0] : booking.services;
     
     // Show booking details in alert/modal (simple implementation)
+    // CRITICAL: Use booking.date (DATE) + booking.start_time (TIME), not start_at (doesn't exist)
+    const bookingDate = booking.date ? new Date(booking.date + 'T00:00:00') : null;
+    const dateStr = bookingDate ? bookingDate.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }) : 'N/A';
+    const timeStr = booking.start_time ? booking.start_time.substring(0, 5) : 'N/A';
+    const endTimeStr = booking.end_time ? booking.end_time.substring(0, 5) : '';
+    
     const details = `
 ${t("bookingDetailsTitle")}:
 - ${t("bookingDetailsShop")}: ${shopData?.name || t("unknown")}
 - ${t("bookingDetailsService")}: ${serviceData?.name || t("unknown")}
-- ${t("dateLabel")}: ${new Date(booking.start_time).toLocaleDateString('en-US', { 
-  weekday: 'long', 
-  year: 'numeric', 
-  month: 'long', 
-  day: 'numeric' 
-})}
-- ${t("timeLabel")}: ${new Date(booking.start_time).toLocaleTimeString('en-US', { 
-  hour: '2-digit', 
-  minute: '2-digit' 
-})} - ${new Date(booking.end_time).toLocaleTimeString('en-US', { 
-  hour: '2-digit', 
-  minute: '2-digit' 
-})}
+- ${t("dateLabel")}: ${dateStr}
+- ${t("timeLabel")}: ${timeStr}${endTimeStr ? ` - ${endTimeStr}` : ''}
 - ${t("bookingDetailsStatus")}: ${booking.status}
 - ${t("bookingIdLabel")}: ${booking.id}
     `.trim();
@@ -473,15 +474,19 @@ ${t("bookingDetailsTitle")}:
         }
       }
 
-      // PART 5: Cancel booking - send both customer_id and ID token for LINE users
+      // PART 5: Cancel booking - send LINE headers for proper identity resolution
       const cancelHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      
-      if (customerId) {
-        cancelHeaders['x-user-id'] = customerId;
+
+      if (currentLineUserId) {
+        cancelHeaders['x-line-user-id'] = currentLineUserId; // PRIMARY: Use LINE identity
       }
-      
+
+      if (customerId) {
+        cancelHeaders['x-customer-id'] = customerId; // BACKUP: In case middleware needs fallback
+      }
+
       if (idToken) {
         cancelHeaders['x-id-token'] = idToken;
       }
@@ -659,19 +664,20 @@ ${t("bookingDetailsTitle")}:
                   </p>
                   <p className="text-sm text-gray-600">
                     <span className="font-medium">{t("dateLabel")}:</span>{" "}
-                    {new Date(booking.start_time).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    {booking.date 
+                      ? new Date(booking.date + 'T00:00:00').toLocaleDateString("en-US", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })
+                      : 'N/A'}
                   </p>
                   <p className="text-sm text-gray-600">
                     <span className="font-medium">{t("timeLabel")}:</span>{" "}
-                    {new Date(booking.start_time).toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {booking.start_time 
+                      ? booking.start_time.substring(0, 5) // Format HH:MM from TIME
+                      : 'N/A'}
                   </p>
                 </div>
 

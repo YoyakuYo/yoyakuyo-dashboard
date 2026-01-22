@@ -343,7 +343,7 @@ function OwnerMessagesPageContent() {
           console.log('[Owner Messages] ✅ [DIAGNOSTIC] markMessagesAsRead completed with result:', result);
         } catch (error: unknown) {
           console.error('[Owner Messages] ❌ [DIAGNOSTIC] markMessagesAsRead threw error:', error);
-          console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error stack:', error instanceof Error ? error.stack : 'No stack trace available');
+          console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error stack:', error instanceof Error ? error.stack : 'Unknown error');
         }
 
         // Force refresh conversation list after marking messages as read
@@ -564,11 +564,11 @@ function OwnerMessagesPageContent() {
   }
 
   return (
-    <div>
+    <div className="p-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">{t('messages.title')}</h1>
 
 
-      <div className="flex gap-6 h-full">
+      <div className="flex gap-6 h-[calc(100vh-250px)]">
         {/* Threads List */}
         <div className="w-80 bg-white rounded-lg shadow border border-gray-200 flex flex-col">
           <div className="p-4 border-b border-gray-200">
@@ -681,6 +681,8 @@ function OwnerMessagesPageContent() {
               <div className="p-4 border-t border-gray-200">
                 <div className="flex gap-2">
                   <input
+                    id="message-input"
+                    name="message"
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}

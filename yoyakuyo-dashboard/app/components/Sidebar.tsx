@@ -1,7 +1,7 @@
 // apps/dashboard/app/components/Sidebar.tsx
 
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
@@ -16,6 +16,8 @@ const Sidebar = React.memo(() => {
   const router = useRouter();
   const { signOut, user } = useAuth();
   const t = useTranslations();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const subscriptionRef = useRef<any>(null);
   const { unreadBookingsCount } = useBookingNotifications();
   const { notifications: ownerNotifications } = useNotifications('owner', user?.id || '');
@@ -58,6 +60,12 @@ const Sidebar = React.memo(() => {
     };
   }, [user]);
 
+  useEffect(() => {
+    const openSidebarDrawer = () => setDrawerOpen(true);
+    window.addEventListener('openSidebarDrawer', openSidebarDrawer);
+    return () => window.removeEventListener('openSidebarDrawer', openSidebarDrawer);
+  }, []);
+
 
   const loadUnreadSummary = async () => {
     try {
@@ -69,11 +77,13 @@ const Sidebar = React.memo(() => {
 
       if (res.ok) {
         const data = await res.json();
+        setUnreadCount(data.unreadCount || 0);
       }
     } catch (error: any) {
       // Silently handle connection errors (API server not running)
       if (error?.message?.includes('Failed to fetch') || error?.message?.includes('ERR_CONNECTION_REFUSED')) {
         // API server is not running - this is expected during development
+        setUnreadCount(0);
         return;
       }
       // Only log unexpected errors
@@ -131,19 +141,140 @@ const Sidebar = React.memo(() => {
     { href: '/owner/support', labelKey: 'nav.contactSupport', icon: '💬', badge: unreadSupportCount > 0 ? unreadSupportCount : undefined },
     { href: '/owner/subscription', labelKey: 'nav.subscriptions', icon: '💳' },
     { href: '/owner/settings', labelKey: 'nav.settings', icon: '⚙️' },
+    // User info and logout as navigation items
+    { type: 'user', label: user?.email || '', icon: '👤', labelKey: undefined },
+    { type: 'logout', labelKey: 'nav.logout', icon: '🚪', action: 'logout' },
   ];
 
 
-  // Return only the desktop sidebar - mobile elements handled in layout
+  // Mobile Drawer
+  const MobileDrawer = (
+    <div
+      className={`md:hidden fixed inset-0 z-[60] bg-slate-900 text-white transition-transform duration-300 ${
+        drawerOpen ? "translate-x-0" : "-translate-x-full"
+      }`}
+      style={{ maxWidth: 320 }}
+      onClick={() => setDrawerOpen(false)}
+    >
+      <nav
+        className="p-4 h-full flex flex-col overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+        style={{ height: "100vh", width: "100%" }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-bold">Owner Dashboard</h1>
+          <button
+            aria-label="Close menu"
+            className="text-2xl text-gray-400"
+            onClick={() => setDrawerOpen(false)}
+          >
+            ×
+          </button>
+        </div>
+        <ul className="space-y-1 flex-1">
+          {navItems.map((item, index) => {
+            // Handle special items (user info and logout)
+            if (item.type === 'user') {
+              return (
+                <li key={`mobile-user-${index}`} className="mt-4 pt-4 border-t border-slate-700">
+                  <div className="flex items-center gap-3 px-4 py-2 text-sm text-gray-400 truncate">
+                    <span className="text-lg">{item.icon}</span>
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                </li>
+              );
+            }
+
+            if (item.type === 'logout') {
+              return (
+                <li key={`mobile-logout-${index}`} className="mt-2">
+                  <button
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-white hover:bg-red-600 hover:text-white border border-red-500"
+                      onClick={() => {
+                      signOut();
+                      setDrawerOpen(false);
+                    }}
+                  >
+                    <span className="text-xl">{item.icon}</span>
+                    <span>{item.labelKey ? t(item.labelKey) : (item.label || '')}</span>
+                  </button>
+                </li>
+              );
+            }
+
+            // Regular navigation items
+            const isActive = item.href && (pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href)));
+            return (
+              <li key={item.href}>
+                <button
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    isActive
+                      ? "bg-blue-600 text-white font-bold"
+                      : "text-gray-300 hover:bg-slate-800 hover:text-white"
+                  }`}
+                  onClick={() => {
+                    setDrawerOpen(false);
+                    item.href && router.push(item.href);
+                  }}
+                >
+                  <span className="text-xl">{item.icon}</span>
+                  <span>{item.labelKey ? t(item.labelKey) : (item.label || '')}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </div>
+  );
+
   return (
-    <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white min-h-screen">
-        <div className="p-6 border-b border-slate-700">
+    <>
+      {/* Mobile drawer overlay */}
+      {MobileDrawer}
+
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex fixed top-16 left-0 z-50 w-64 bg-slate-900 text-white h-[calc(100vh-4rem)] flex flex-col">
+        <div className="p-6 border-b border-slate-700 flex-shrink-0">
           <h1 className="text-xl font-bold">Owner Dashboard</h1>
         </div>
-        <nav className="flex-1 p-4">
-          <ul className="space-y-1">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <nav className="p-4 overflow-y-auto flex-1">
+            <ul className="space-y-1">
+            {navItems.map((item, index) => {
+              // Handle special items (user info and logout)
+              if (item.type === 'user') {
+                return (
+                  <li key={`user-${index}`} className="mt-2">
+                    <div className="flex items-center gap-3 px-4 py-1 text-sm text-gray-400 truncate">
+                      <span className="text-lg">{item.icon}</span>
+                      <span className="truncate">{item.label}</span>
+                    </div>
+                  </li>
+                );
+              }
+
+              if (item.type === 'logout') {
+                return (
+                  <li key={`logout-${index}`}>
+                    <button
+                      className="flex items-center gap-3 px-4 py-2 rounded-lg transition-colors cursor-pointer w-full text-left text-white hover:bg-red-600 hover:text-white border border-red-500"
+                      onClick={signOut}
+                    >
+                      <span className="text-xl">{item.icon}</span>
+                      <span className="font-medium">{item.labelKey ? t(item.labelKey) : (item.label || '')}</span>
+                    </button>
+                  </li>
+                );
+              }
+
+              // Regular navigation items
+              const isActive = item.href && (pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href)));
               return (
                 <li key={item.href}>
                   <button
@@ -152,13 +283,13 @@ const Sidebar = React.memo(() => {
                         ? 'bg-blue-600 text-white font-bold'
                         : 'text-gray-300 hover:bg-slate-800 hover:text-white'
                     }`}
-                    onClick={() => router.push(item.href)}
+                    onClick={() => item.href && router.push(item.href)}
                   >
                     {isActive && (
                       <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r"></span>
                     )}
                     <span className="text-xl">{item.icon}</span>
-                    <span className={`font-medium ${isActive ? 'font-bold' : ''}`}>{t(item.labelKey)}</span>
+                    <span className={`font-medium ${isActive ? 'font-bold' : ''}`}>{item.labelKey ? t(item.labelKey) : (item.label || '')}</span>
                     {item.badge !== undefined && item.badge > 0 && (
                       <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
                         {item.badge}
@@ -169,22 +300,10 @@ const Sidebar = React.memo(() => {
               );
             })}
           </ul>
-        </nav>
-        <div className="p-4 border-t border-slate-700">
-          {user && (
-            <div className="px-4 py-2 text-sm text-gray-400 mb-2 truncate">
-              {user.email}
-            </div>
-          )}
-          <button
-            onClick={signOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-slate-800 hover:text-white transition-colors"
-          >
-            <span>🚪</span>
-            <span>{t('nav.logout')}</span>
-          </button>
+          </nav>
         </div>
-    </aside>
+      </aside>
+    </>
   );
 });
 

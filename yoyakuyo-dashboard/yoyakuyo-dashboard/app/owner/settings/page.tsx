@@ -68,7 +68,7 @@ export default function OwnerSettingsPage() {
   }
 
   return (
-    <div className="p-8">
+    <div>
       <h1 className="text-3xl font-bold text-gray-900 mb-6">{t('settings.title')}</h1>
 
       <div className="bg-white rounded-lg shadow p-6 space-y-6">

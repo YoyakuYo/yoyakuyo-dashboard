@@ -95,42 +95,7 @@ export default function RoleSelectionModal() {
     };
   }, []);
 
-  const handleCustomerClick = () => {
-    // CRITICAL: Persist role BEFORE showing login inputs
-    setSelectedRole("customer");
-    
-    setIsOpen(false);
-    // If a valid customer custom-auth session exists, restore and redirect immediately.
-    try {
-      const storedSession = localStorage.getItem("yoyaku_session");
-      const storedUser = localStorage.getItem("yoyaku_user");
-      if (storedSession && storedUser) {
-        const sessionData = JSON.parse(storedSession) as { expires_at?: string; role?: string };
-        const userData = JSON.parse(storedUser) as { role?: string };
-        const expiresAt = sessionData?.expires_at ? new Date(sessionData.expires_at) : null;
-        const notExpired = !!expiresAt && expiresAt > new Date();
-        const role = sessionData?.role || userData?.role;
-        if (notExpired && role === "customer") {
-          router.push("/customer/home");
-          router.refresh();
-          return;
-        }
-      }
-    } catch {
-      // ignore parse errors
-    }
-
-    // Otherwise open customer modal (stay on landing and show modal)
-    if (mode === 'login') {
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('openCustomerLoginModal'));
-      }, 100);
-    } else {
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('openCustomerSignupModal'));
-      }, 100);
-    }
-  };
+  // Customer login/signup functionality removed - all customers are now guests
 
   const handleOwnerClick = () => {
     // CRITICAL: Persist role BEFORE showing login inputs
@@ -189,23 +154,12 @@ export default function RoleSelectionModal() {
       </h2>
 
       <div className="space-y-4">
-        {/* Customer Option */}
-        <button
-          onClick={handleCustomerClick}
-          className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center shadow-md hover:shadow-lg"
-        >
-          {mode === 'login' 
-            ? (tAuth('loginAsCustomer') || 'Login as Customer')
-            : (tAuth('joinAsCustomer') || 'Join as Customer')
-          }
-        </button>
-
-        {/* Owner Option */}
+        {/* Owner Option - Only option available now */}
         <button
           onClick={handleOwnerClick}
-          className="w-full bg-gray-100 text-gray-700 py-4 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors text-center border-2 border-gray-300"
+          className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center shadow-md hover:shadow-lg"
         >
-          {mode === 'login' 
+          {mode === 'login'
             ? (tAuth('loginAsOwner') || 'Login as Owner')
             : (tAuth('joinAsOwner') || 'Join as Owner')
           }

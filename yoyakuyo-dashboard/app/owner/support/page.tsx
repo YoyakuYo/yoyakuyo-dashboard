@@ -79,7 +79,7 @@ export default function OwnerSupportPage() {
   }
 
   return (
-    <div>
+    <div className="p-8">
       <div className="mb-6">
         <Link href="/owner/shop-profile" className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block">
           ← {t('common.back')} {t('nav.dashboard')}

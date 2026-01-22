@@ -7,7 +7,7 @@ import { getSupabaseClient } from './supabaseClient';
  * API base URL - always uses NEXT_PUBLIC_API_URL
  * This is the single source of truth for API URL across the dashboard app
  */
-export const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+export const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 /**
  * Get the API base URL from environment variables

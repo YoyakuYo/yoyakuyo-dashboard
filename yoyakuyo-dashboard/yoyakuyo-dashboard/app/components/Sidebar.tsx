@@ -3,7 +3,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
 import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
@@ -13,18 +13,35 @@ import { useNotifications } from '@/lib/useNotifications';
 
 const Sidebar = React.memo(() => {
   const pathname = usePathname();
+  const router = useRouter();
   const { signOut, user } = useAuth();
   const t = useTranslations();
-  const [unreadCount, setUnreadCount] = useState(0);
   const subscriptionRef = useRef<any>(null);
   const { unreadBookingsCount } = useBookingNotifications();
   const { notifications: ownerNotifications } = useNotifications('owner', user?.id || '');
-  const [drawerOpen, setDrawerOpen] = useState(false);
   
-  // Count unread support ticket notifications
+  // Count unread support ticket notifications (only actual support tickets)
   const unreadSupportCount = ownerNotifications.filter(
-    (n) => !n.is_read && (n.type === 'new_support_ticket' || (n.type === 'new_message' && n.data?.conversation_id))
+    (n) => !n.is_read && n.type === 'new_support_ticket'
   ).length;
+
+  // Count unread conversation messages (regular customer messages)
+  const unreadConversationCount = ownerNotifications.filter(
+    (n) => !n.is_read && n.type === 'new_message' && n.data?.conversation_id
+  ).length;
+
+  // Debug: Log notification counts
+  console.log('[Sidebar] 🔍 [DIAGNOSTIC] ownerNotifications type:', typeof ownerNotifications);
+  console.log('[Sidebar] 🔍 [DIAGNOSTIC] ownerNotifications value:', ownerNotifications);
+  console.log('[Sidebar] 🔍 [DIAGNOSTIC] ownerNotifications isArray:', Array.isArray(ownerNotifications));
+  console.log('[Sidebar] Notification counts:', {
+    total: Array.isArray(ownerNotifications) ? ownerNotifications.length : 'NOT_ARRAY',
+    unread: Array.isArray(ownerNotifications) ? ownerNotifications.filter(n => !n.is_read).length : 'NOT_ARRAY',
+    supportTickets: unreadSupportCount,
+    conversationMessages: unreadConversationCount,
+    supportTicketDetails: Array.isArray(ownerNotifications) ? ownerNotifications.filter(n => !n.is_read && n.type === 'new_support_ticket').map(n => ({ type: n.type, title: n.title, data: n.data })) : 'NOT_ARRAY',
+    conversationDetails: Array.isArray(ownerNotifications) ? ownerNotifications.filter(n => !n.is_read && n.type === 'new_message' && n.data?.conversation_id).map(n => ({ type: n.type, title: n.title, data: n.data })) : 'NOT_ARRAY'
+  });
 
   // Load unread summary on mount
   useEffect(() => {
@@ -41,11 +58,6 @@ const Sidebar = React.memo(() => {
     };
   }, [user]);
 
-  useEffect(() => {
-    const openSidebarDrawer = () => setDrawerOpen(true);
-    window.addEventListener('openSidebarDrawer', openSidebarDrawer);
-    return () => window.removeEventListener('openSidebarDrawer', openSidebarDrawer);
-  }, []);
 
   const loadUnreadSummary = async () => {
     try {
@@ -57,13 +69,11 @@ const Sidebar = React.memo(() => {
 
       if (res.ok) {
         const data = await res.json();
-        setUnreadCount(data.unreadCount || 0);
       }
     } catch (error: any) {
       // Silently handle connection errors (API server not running)
       if (error?.message?.includes('Failed to fetch') || error?.message?.includes('ERR_CONNECTION_REFUSED')) {
         // API server is not running - this is expected during development
-        setUnreadCount(0);
         return;
       }
       // Only log unexpected errors
@@ -117,98 +127,32 @@ const Sidebar = React.memo(() => {
     { href: '/owner/bookings', labelKey: 'nav.bookings', icon: '📅', badge: unreadBookingsCount > 0 ? unreadBookingsCount : undefined },
     { href: '/owner/calendar', labelKey: 'nav.calendar', icon: '📆' },
     { href: '/analytics', labelKey: 'nav.analytics', icon: '📊' },
-    { href: '/owner/messages', labelKey: 'nav.messages', icon: '💬', badge: unreadCount > 0 ? unreadCount : undefined },
+    { href: '/owner/messages', labelKey: 'nav.messages', icon: '💬', badge: unreadConversationCount > 0 ? unreadConversationCount : undefined },
     { href: '/owner/support', labelKey: 'nav.contactSupport', icon: '💬', badge: unreadSupportCount > 0 ? unreadSupportCount : undefined },
     { href: '/owner/subscription', labelKey: 'nav.subscriptions', icon: '💳' },
     { href: '/owner/settings', labelKey: 'nav.settings', icon: '⚙️' },
   ];
 
-  const MobileDrawer = (
-    <div
-      className={`lg:hidden fixed inset-0 z-[250] bg-slate-900 text-white transition-transform duration-300 ${drawerOpen ? 'translate-x-0' : '-translate-x-full'}`}
-      style={{ maxWidth: 320 }}
-      onClick={() => setDrawerOpen(false)}
-    >
-      <nav
-        className="p-4 h-full flex flex-col overflow-y-auto"
-        onClick={e => e.stopPropagation() /* Prevent overlay close when clicking inside menu */}
-        style={{ height: '100vh', width: '100%' }}
-      >
-        <button
-          aria-label="Close menu"
-          className="text-2xl text-gray-400 self-end mb-4"
-          onClick={() => setDrawerOpen(false)}
-        >
-          ×
-        </button>
-        <ul className="space-y-1 flex-1">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors relative ${
-                    isActive
-                      ? 'bg-blue-600 text-white font-bold'
-                      : 'text-gray-300 hover:bg-slate-800 hover:text-white'
-                  }`}
-                  onClick={() => setDrawerOpen(false)}
-                >
-                  {isActive && (
-                    <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r"></span>
-                  )}
-                  <span className="text-xl">{item.icon}</span>
-                  <span className={`font-medium ${isActive ? 'font-bold' : ''}`}>{t(item.labelKey)}</span>
-                  {item.badge !== undefined && item.badge > 0 && (
-                    <span className="ml-auto bg-[#3B82F6] text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-        <div className="mt-auto pt-4 border-t border-gray-700 mb-4">
-          {user && (
-            <div className="px-4 py-2 mb-2">
-              <p className="text-sm text-gray-400 truncate" title={user.email || undefined}>
-                {user.email}
-              </p>
-            </div>
-          )}
-          <button
-            onClick={signOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-          >
-            <span className="text-xl">🚪</span>
-            <span className="font-medium">{t('nav.logout')}</span>
-          </button>
-        </div>
-      </nav>
-      <div className="fixed inset-0 z-[240] bg-black/60" onClick={() => setDrawerOpen(false)} />
-    </div>
-  );
 
+  // Return only the desktop sidebar - mobile elements handled in layout
   return (
-    <>
-      {/* Hamburger for mobile (render separately in layout/header where Sidebar is used) */}
-      {/* Fixed Sidebar for desktop */}
-      <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white min-h-screen">
-        <nav className="p-4 flex flex-col h-full">
-          <ul className="space-y-1 flex-1">
+    <aside className="hidden lg:flex flex-col w-64 bg-slate-900 text-white min-h-screen">
+        <div className="p-6 border-b border-slate-700">
+          <h1 className="text-xl font-bold">Owner Dashboard</h1>
+        </div>
+        <nav className="flex-1 p-4">
+          <ul className="space-y-1">
             {navItems.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
               return (
                 <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors relative ${
+                  <button
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors relative cursor-pointer w-full text-left ${
                       isActive
                         ? 'bg-blue-600 text-white font-bold'
                         : 'text-gray-300 hover:bg-slate-800 hover:text-white'
                     }`}
+                    onClick={() => router.push(item.href)}
                   >
                     {isActive && (
                       <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 rounded-r"></span>
@@ -220,32 +164,27 @@ const Sidebar = React.memo(() => {
                         {item.badge}
                       </span>
                     )}
-                  </Link>
+                  </button>
                 </li>
               );
             })}
           </ul>
-          <div className="mt-auto pt-4 border-t border-gray-700">
-            {user && (
-              <div className="px-4 py-2 mb-2">
-                <p className="text-sm text-gray-400 truncate" title={user.email || undefined}>
-                  {user.email}
-                </p>
-              </div>
-            )}
-            <button
-              onClick={signOut}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-            >
-              <span className="text-xl">🚪</span>
-              <span className="font-medium">{t('nav.logout')}</span>
-            </button>
-          </div>
         </nav>
-      </aside>
-      {/* Mobile drawer overlay */}
-      {MobileDrawer}
-    </>
+        <div className="p-4 border-t border-slate-700">
+          {user && (
+            <div className="px-4 py-2 text-sm text-gray-400 mb-2 truncate">
+              {user.email}
+            </div>
+          )}
+          <button
+            onClick={signOut}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-slate-800 hover:text-white transition-colors"
+          >
+            <span>🚪</span>
+            <span>{t('nav.logout')}</span>
+          </button>
+        </div>
+    </aside>
   );
 });
 

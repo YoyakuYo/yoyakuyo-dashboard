@@ -3,10 +3,11 @@
 
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useAuth } from "@/lib/useAuth";
 import { apiUrl } from "@/lib/apiClient";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from 'next-intl';
 
 interface CustomerThread {
@@ -15,6 +16,8 @@ interface CustomerThread {
   shop_id: string;
   shop_name?: string;
   customer_email?: string;
+  customer_name?: string;
+  customer_role?: string;
   lastMessageAt: string;
   unreadCount: number;
 }
@@ -27,12 +30,35 @@ interface Message {
   created_at: string;
 }
 
-export default function OwnerMessagesPage() {
+function OwnerMessagesPageContent() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations();
   const [customerThreads, setCustomerThreads] = useState<CustomerThread[]>([]);
-  const [selectedThread, setSelectedThread] = useState<string | null>(null);
+  const [selectedThread, setSelectedThread] = useState<string | null>(() => {
+    // Try to restore selected conversation from localStorage or URL params
+    if (typeof window !== 'undefined') {
+      const urlConversationId = new URLSearchParams(window.location.search).get('conversation') ||
+                               new URLSearchParams(window.location.search).get('conversationId') ||
+                               new URLSearchParams(window.location.search).get('session');
+      if (urlConversationId) {
+        console.log('[Owner Messages] 🎯 Initializing with URL conversation:', urlConversationId);
+        return urlConversationId;
+      }
+
+      // Fallback to localStorage
+      const saved = localStorage.getItem('selectedConversation');
+      if (saved) {
+        console.log('[Owner Messages] 💾 Initializing with saved conversation:', saved);
+        return saved;
+      }
+
+      console.log('[Owner Messages] 🆕 Initializing with no conversation selected');
+      return null;
+    }
+    return null;
+  });
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -50,9 +76,44 @@ export default function OwnerMessagesPage() {
     }
   }, [user, authLoading, router]);
 
+  // Handle conversation deep link (e.g., from notifications)
+  useEffect(() => {
+    const conversationId =
+      searchParams.get('conversation') ||
+      searchParams.get('conversationId') ||
+      // Back-compat: older notifications used "session"
+      searchParams.get('session');
+
+    if (conversationId && conversationId !== selectedThread) {
+      console.log('[Owner Messages] 🔗 URL param conversation selected:', conversationId);
+      setSelectedThread(conversationId);
+    } else if (!conversationId && selectedThread) {
+      // If no URL param but we have a saved conversation, keep it
+      console.log('[Owner Messages] 💾 Restored conversation from state/localStorage:', selectedThread);
+    }
+  }, [searchParams, selectedThread]);
+
+  // Force refresh conversations on window focus (user returning to tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user?.id && !loading) {
+        console.log('[Owner Messages] 🔄 Window focused - refreshing conversations');
+        loadCustomerThreads();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user?.id, loading]);
+
   useEffect(() => {
     if (selectedThread) {
       loadMessages(selectedThread);
+      // Save to localStorage for persistence across page refreshes
+      localStorage.setItem('selectedConversation', selectedThread);
+    } else {
+      // Clear localStorage when no conversation is selected
+      localStorage.removeItem('selectedConversation');
     }
   }, [selectedThread]);
 
@@ -69,8 +130,14 @@ export default function OwnerMessagesPage() {
     setLoading(true);
     try {
       await loadCustomerThreads();
+      console.log('[Owner Messages] ✅ Data loaded successfully');
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('[Owner Messages] ❌ Error loading data:', error);
+      // Clear any stale state on error
+      setCustomerThreads([]);
+      setMessages([]);
+      setSelectedThread(null);
+      localStorage.removeItem('selectedConversation');
     } finally {
       setLoading(false);
     }
@@ -108,18 +175,80 @@ export default function OwnerMessagesPage() {
           })
         );
         
+        // Sort conversations by last message time (most recent first)
+        conversationsWithShops.sort((a: any, b: any) => {
+          const aTime = new Date(a.last_message_at || a.created_at).getTime();
+          const bTime = new Date(b.last_message_at || b.created_at).getTime();
+          return bTime - aTime; // Most recent first
+        });
+
+        console.log('[Owner Messages] 📋 [DIAGNOSTIC] Conversations sorted by time, first 3:', conversationsWithShops.slice(0, 3).map(c => ({
+          id: c.id,
+          lastMessageAt: c.last_message_at,
+          createdAt: c.created_at,
+          customerName: c.customer?.name || 'Unknown'
+        })));
+
         // Format conversations for customer messages
-        const formattedThreads: CustomerThread[] = conversationsWithShops.map((conv: any) => ({
-          id: conv.id,
-          session_id: conv.id,
-          shop_id: conv.shop_id,
-          shop_name: conv.shop?.name,
-          customer_email: conv.customer?.email || `${conv.customer_type} user`,
-          lastMessageAt: conv.last_message_at || conv.created_at,
-          unreadCount: conv.unread_count || 0,
-        }));
+        const formattedThreads: CustomerThread[] = conversationsWithShops.map((conv: any) => {
+          // Prioritize customer name, but if not available, extract name from email or use type
+          let displayName: string;
+          
+          // First try: use customer name from API
+          if (conv.customer?.name) {
+            displayName = conv.customer.name;
+          }
+          // Second try: extract name from email
+          else if (conv.customer?.email) {
+            const emailName = conv.customer.email.split('@')[0];
+            // Capitalize first letter and use as display name
+            displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+          }
+          // Third try: use customer_type to generate generic label
+          else if (conv.customer_type) {
+            displayName = conv.customer_type === 'line' ? 'LINE Customer' : 
+                          conv.customer_type === 'web' ? 'Web Customer' : 
+                          'Guest';
+          }
+          // Final fallback
+          else {
+            displayName = 'Customer';
+          }
+          
+          console.log(`[Owner Messages] Formatted thread ${conv.id}: customer_name="${displayName}", customer_email="${conv.customer?.email || 'null'}"`);
+          
+          return {
+            id: conv.id,
+            session_id: conv.id,
+            shop_id: conv.shop_id,
+            shop_name: conv.shop?.name,
+            customer_name: displayName, // Always a string, never null
+            customer_email: conv.customer?.email || undefined,
+            customer_role: conv.customer?.role || conv.customer_type || undefined,
+            lastMessageAt: conv.last_message_at || conv.created_at,
+            unreadCount: conv.unread_count || 0,
+          };
+        });
         
         console.log('[Owner Messages] ✅ [DIAGNOSTIC] Formatted threads:', formattedThreads.length);
+        console.log('[Owner Messages] 📋 [DIAGNOSTIC] Sample thread:', formattedThreads[0]);
+
+        // Auto-select most recent conversation if none selected
+        if (!selectedThread && formattedThreads.length > 0) {
+          const mostRecentThread = formattedThreads[0];
+          console.log('[Owner Messages] 🎯 Auto-selecting most recent conversation:', mostRecentThread.id);
+          setSelectedThread(mostRecentThread.id);
+        } else if (selectedThread && formattedThreads.length > 0) {
+          // Verify selected conversation still exists
+          const selectedExists = formattedThreads.some(t => t.id === selectedThread);
+          if (!selectedExists) {
+            console.log('[Owner Messages] ⚠️ Selected conversation no longer exists, auto-selecting most recent');
+            setSelectedThread(formattedThreads[0].id);
+          } else {
+            console.log('[Owner Messages] ✅ Selected conversation still exists:', selectedThread);
+          }
+        }
+
         setCustomerThreads(formattedThreads);
       } else {
         const errorText = await res.text();
@@ -147,11 +276,11 @@ export default function OwnerMessagesPage() {
       console.log('[Owner Messages] 🔍 [DIAGNOSTIC] Loading messages', {
         conversationId,
         userId: user.id,
-        endpoint: `${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`,
+        endpoint: `${apiUrl}/api/internal-messaging/${conversationId}/messages`,
       });
       
       // Use the new internal messaging endpoint
-      const res = await fetch(`${apiUrl}/api/internal-messaging/conversations/${conversationId}/messages`, {
+      const res = await fetch(`${apiUrl}/api/internal-messaging/${conversationId}/messages`, {
         method: 'GET',
         headers: {
           'x-user-id': user.id,
@@ -318,9 +447,24 @@ export default function OwnerMessagesPage() {
         {/* Threads List */}
         <div className="w-80 bg-white rounded-lg shadow border border-gray-200 flex flex-col">
           <div className="p-4 border-b border-gray-200">
-            <h2 className="font-semibold text-gray-900">
-              {t('messages.customerConversations')}
-            </h2>
+            <div className="flex justify-between items-center">
+              <h2 className="font-semibold text-gray-900">
+                {t('messages.customerConversations')}
+              </h2>
+              <button
+                onClick={() => {
+                  console.log('[Owner Messages] 🔄 Manual refresh triggered');
+                  loadCustomerThreads();
+                }}
+                disabled={loading}
+                className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh conversations"
+              >
+                <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto">
             {customerThreads.length > 0 ? (
@@ -334,11 +478,19 @@ export default function OwnerMessagesPage() {
                     }`}
                   >
                     <p className="font-medium text-sm text-gray-900">
-                      {thread.shop_name || t('messages.shop')}
+                      {thread.customer_name || t('messages.customer')}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {thread.customer_email || t('messages.customer')}
-                    </p>
+                    {thread.customer_role && (
+                      <span className={`inline-block mt-1 px-2 py-0.5 text-xs rounded-full ${
+                        thread.customer_role === 'web' ? 'bg-purple-100 text-purple-700' :
+                        thread.customer_role === 'line' ? 'bg-blue-100 text-blue-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {thread.customer_role === 'web' ? 'Web' :
+                         thread.customer_role === 'line' ? 'LINE' :
+                         thread.customer_role === 'guest' ? 'Guest' : thread.customer_role}
+                      </span>
+                    )}
                     {thread.unreadCount > 0 && (
                       <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-blue-600 text-white rounded-full">
                         {thread.unreadCount}
@@ -360,7 +512,9 @@ export default function OwnerMessagesPage() {
               {/* Header */}
               <div className="p-4 border-b border-gray-200">
                 <h2 className="font-semibold text-gray-900">
-                  {customerThreads.find(t => t.id === selectedThread)?.customer_email || t('messages.customer')}
+                  {customerThreads.find(t => t.id === selectedThread)?.customer_name || 
+                   customerThreads.find(t => t.id === selectedThread)?.customer_email || 
+                   t('messages.customer')}
                 </h2>
               </div>
 
@@ -433,6 +587,24 @@ export default function OwnerMessagesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OwnerMessagesPage() {
+  // Wrap content in Suspense so static prerender (next export) won't fail due to useSearchParams().
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      }
+    >
+      <OwnerMessagesPageContent />
+    </Suspense>
   );
 }
 

@@ -89,20 +89,14 @@ export default function MarketingHeroSlideshow() {
             {t('heroSubtitle')}
           </p>
 
-          {/* Button Row */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link
-              href="/customer-signup"
-              className="px-8 py-4 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all text-lg min-w-[200px]"
-            >
-              {t('joinAsCustomer')}
-            </Link>
+          {/* Button Row - Only Owner Signup Available */}
+          <div className="flex justify-center items-center">
             <button
               onClick={() => {
                 // Open owner signup modal (handled by parent)
                 window.dispatchEvent(new CustomEvent('openSignupModal'));
               }}
-              className="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white font-semibold rounded-lg border-2 border-white/30 hover:border-white/50 transition-all text-lg min-w-[200px]"
+              className="px-8 py-4 bg-white hover:bg-gray-100 text-gray-900 font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all text-lg min-w-[200px]"
             >
               {t('joinAsOwner')}
             </button>

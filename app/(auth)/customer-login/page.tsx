@@ -1,20 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
-import { useCustomAuth } from "@/lib/useCustomAuth";
-import { getSupabaseClient } from "@/lib/supabaseClient";
 
 export default function CustomerLoginPage() {
-  const t = useTranslations();
-  const { signIn } = useCustomAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to home page immediately
+    router.push("/");
+  }, [router]);
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-50">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 text-center">
+        <h1 className="text-2xl font-bold mb-4 text-gray-900">Customer Login Disabled</h1>
+        <p className="text-gray-600 mb-6">
+          Customer accounts are no longer available. You can book appointments as a guest without creating an account.
+        </p>
+        <a
+          href="/"
+          className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Go to Homepage
+        </a>
+      </div>
+    </main>
+  );
+}
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

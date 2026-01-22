@@ -1,364 +1,523 @@
-// Admin analytics & reports page
+// Admin Analytics - Performance Only
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { apiUrl } from "@/lib/apiClient";
-import { getSupabaseClient } from "@/lib/supabaseClient";
-import LineChart from "@/app/components/LineChart";
+import React, { useState, useEffect } from 'react';
+import { getSupabaseClient } from '@/lib/supabaseClient';
+import AdminStatsCard from '@/app/components/admin/AdminStatsCard';
 
-interface RevenueData {
-  totalRevenue: number;
-  revenueByPeriod: Array<{
-    period: string;
-    revenue: number;
-  }>;
-}
-
-interface UserGrowthData {
-  growthByDate: Array<{
-    date: string;
-    admins: number;
-    owners: number;
-    customers: number;
-  }>;
+interface PlatformOverview {
+  totalShops: number;
+  verifiedShops: number;
+  activeShops: number;
+  totalCustomers: number;
+  totalBookings: number;
+  visitorsToday: number;
 }
 
 interface ShopPerformance {
-  shops: Array<{
-    shopId: string;
-    shopName: string;
-    isVerified: boolean;
-    totalBookings: number;
-    completedBookings: number;
-    revenue: number;
-  }>;
+  bookingsPerShop: number;
+  mostActiveShops: Array<{ name: string; bookings: number }>;
+  leastActiveShops: Array<{ name: string; bookings: number }>;
+  cancellationRate: number;
+  inactiveShops: number;
 }
 
-interface BookingTrends {
-  statusCounts: Record<string, number>;
-  dailyTrends: Array<{
-    date: string;
-    total: number;
-    confirmed: number;
-    completed: number;
-    cancelled: number;
-  }>;
+interface CustomerActivity {
+  activeCustomers: number;
+  repeatCustomers: number;
+  avgBookingsPerCustomer: number;
+  customerRoles: { web: number; guest: number; line: number; other: number };
+  peakBookingHours: Array<{ hour: number; bookings: number }>;
+  peakBookingDays: Array<{ day: string; bookings: number }>;
 }
 
 export default function AdminAnalyticsPage() {
-  const t = useTranslations();
-  const router = useRouter();
-  const [userId, setUserId] = useState<string | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [platformOverview, setPlatformOverview] = useState<PlatformOverview>({
+    totalShops: 0,
+    verifiedShops: 0,
+    activeShops: 0,
+    totalCustomers: 0,
+    totalBookings: 0,
+    visitorsToday: 0
+  });
+
+  const [shopPerformance, setShopPerformance] = useState<ShopPerformance>({
+    bookingsPerShop: 0,
+    mostActiveShops: [],
+    leastActiveShops: [],
+    cancellationRate: 0,
+    inactiveShops: 0
+  });
+
+  const [customerActivity, setCustomerActivity] = useState<CustomerActivity>({
+    activeCustomers: 0,
+    repeatCustomers: 0,
+    avgBookingsPerCustomer: 0,
+    customerRoles: { web: 0, guest: 0, line: 0, other: 0 },
+    peakBookingHours: [],
+    peakBookingDays: []
+  });
+
+  const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [revenueData, setRevenueData] = useState<RevenueData | null>(null);
-  const [userGrowthData, setUserGrowthData] = useState<UserGrowthData | null>(null);
-  const [shopPerformance, setShopPerformance] = useState<ShopPerformance | null>(null);
-  const [bookingTrends, setBookingTrends] = useState<BookingTrends | null>(null);
-  const [period, setPeriod] = useState("monthly");
-  const [exporting, setExporting] = useState(false);
 
-  // Get user from Supabase Auth
   useEffect(() => {
-    const getUserId = async () => {
-      try {
-        const supabase = getSupabaseClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          setUserId(session.user.id);
-        }
-      } catch (error) {
-        console.error("Error getting user session:", error);
-      } finally {
-        setAuthLoading(false);
-      }
-    };
-    getUserId();
+    loadAnalyticsData();
   }, []);
 
-  useEffect(() => {
-    if (userId) {
-      loadAllAnalytics();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, period]);
-
-  const loadAllAnalytics = async () => {
+  const loadAnalyticsData = async () => {
     try {
       setLoading(true);
-      setError(null);
-      
-      const [revenueRes, usersRes, shopsRes, bookingsRes] = await Promise.all([
-        fetch(`${apiUrl}/admin/analytics/revenue?period=${period}`, {
-          headers: {
-            "x-user-id": userId || "",
-            "Content-Type": "application/json",
-          },
-        }),
-        fetch(`${apiUrl}/admin/analytics/users?days=30`, {
-          headers: {
-            "x-user-id": userId || "",
-            "Content-Type": "application/json",
-          },
-        }),
-        fetch(`${apiUrl}/admin/analytics/shops`, {
-          headers: {
-            "x-user-id": userId || "",
-            "Content-Type": "application/json",
-          },
-        }),
-        fetch(`${apiUrl}/admin/bookings/analytics`, {
-          headers: {
-            "x-user-id": userId || "",
-            "Content-Type": "application/json",
-          },
-        }),
+      const supabase = getSupabaseClient();
+
+      // Platform Overview - count all shops, but fetch verified shops for performance
+      const [allShopsCountResult, verifiedShopsResult, customersResult, customerProfilesResult, bookingsResult] = await Promise.all([
+        supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
+        supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
+        supabase.from('customers').select('id, name, email, role, auth_user_id'), // Get customers
+        supabase.from('customer_profiles').select('id, name, email'), // Get customer profiles
+        supabase.from('bookings').select('id, created_at, status, shop_id, customer_id')
       ]);
 
-      if (revenueRes.ok) {
-        const revenue = await revenueRes.json();
-        setRevenueData(revenue);
-      }
+      if (allShopsCountResult.error) throw allShopsCountResult.error;
+      if (verifiedShopsResult.error) throw verifiedShopsResult.error;
+      if (customersResult.error) throw customersResult.error;
+      if (customerProfilesResult.error) throw customerProfilesResult.error;
+      if (bookingsResult.error) throw bookingsResult.error;
 
-      if (usersRes.ok) {
-        const users = await usersRes.json();
-        setUserGrowthData(users);
-      }
+      const totalShops = allShopsCountResult.count || 0;
+      const verifiedShops = verifiedShopsResult.data || [];
+      const customersData = customersResult.data || [];
+      const customerProfilesData = customerProfilesResult.data || [];
+      const allBookings = bookingsResult.data || [];
 
-      if (shopsRes.ok) {
-        const shops = await shopsRes.json();
-        setShopPerformance(shops);
-      }
+      // Create a map of customer profiles by ID for easy lookup
+      const customerProfilesMap = new Map(customerProfilesData.map(profile => [profile.id, profile]));
 
-      if (bookingsRes.ok) {
-        const bookings = await bookingsRes.json();
-        setBookingTrends(bookings);
-      }
-    } catch (error: any) {
-      console.error("Error loading analytics:", error);
-      setError(error.message || "Failed to load analytics");
+      // For now, just use customers data directly since customer_profiles doesn't match
+      // The web customer names/emails need to be populated in the customers table itself
+      const enrichedCustomers = customersData.map(customer => ({
+        ...customer,
+        customer_profiles: null // Disable profiles lookup since IDs don't match
+      }));
+
+      // Only include bookings from verified shops for performance metrics
+      const verifiedShopIds = new Set(verifiedShops.map(shop => shop.id));
+      const bookings = allBookings.filter(booking => verifiedShopIds.has(booking.shop_id));
+
+      // Get unique customer IDs from bookings
+      const activeCustomerIds = new Set(bookings.map(booking => booking.customer_id).filter(Boolean));
+
+      // Filter customers to only those who have made bookings
+      const activeCustomers = enrichedCustomers.filter(customer => activeCustomerIds.has(customer.id));
+
+      // Set active customers state for UI display (only customers who have made bookings)
+      setCustomers(activeCustomers);
+
+      // Calculate customer role breakdown from active customers only
+      const customerRoles = activeCustomers.reduce((acc, customer) => {
+        const role = customer.role?.toLowerCase() || 'other';
+        if (role === 'web' || role === 'customer') acc.web++;
+        else if (role === 'guest') acc.guest++;
+        else if (role === 'line') acc.line++;
+        else acc.other++;
+        return acc;
+      }, { web: 0, guest: 0, line: 0, other: 0 });
+
+      // Calculate active verified shops (updated in last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const activeVerifiedShops = verifiedShops.filter(shop =>
+        new Date(shop.updated_at) > thirtyDaysAgo
+      ).length;
+
+      // Calculate platform overview
+      const totalBookings = bookings.length;
+      const verifiedShopsCount = verifiedShops.length;
+
+      setPlatformOverview({
+        totalShops,
+        verifiedShops: verifiedShopsCount,
+        activeShops: activeVerifiedShops,
+        totalCustomers: activeCustomers.length,
+        totalBookings,
+        visitorsToday: 0 // This would need analytics tracking implementation
+      });
+
+      // Shop Performance
+      const shopBookings = bookings.reduce((acc, booking) => {
+        acc[booking.shop_id] = (acc[booking.shop_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Include all verified shops, even those with 0 bookings
+      const shopBookingsArray = verifiedShops.map(shop => {
+        const bookingCount = shopBookings[shop.id] || 0;
+        return { name: shop.name || 'Unknown Shop', bookings: bookingCount };
+      });
+
+      const sortedShops = shopBookingsArray.sort((a, b) => b.bookings - a.bookings);
+      const mostActiveShops = sortedShops.slice(0, 5);
+
+      // Least active: shops with less than 5 bookings
+      const leastActiveShops = shopBookingsArray
+        .filter(shop => shop.bookings < 5)
+        .sort((a, b) => a.bookings - b.bookings)
+        .slice(0, 5);
+
+      // Cancellation rate
+      const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
+      const cancellationRate = totalBookings > 0 ? (cancelledBookings / totalBookings) * 100 : 0;
+
+      // Inactive verified shops (no bookings in last 30 days)
+      const recentBookings = bookings.filter(b =>
+        new Date(b.created_at) > thirtyDaysAgo
+      );
+      const activeVerifiedShopIds = new Set(recentBookings.map(b => b.shop_id));
+      const inactiveVerifiedShops = verifiedShops.filter(shop => !activeVerifiedShopIds.has(shop.id)).length;
+
+      setShopPerformance({
+        bookingsPerShop: verifiedShopsCount > 0 ? Math.round(totalBookings / verifiedShopsCount) : 0,
+        mostActiveShops,
+        leastActiveShops,
+        cancellationRate: Math.round(cancellationRate * 100) / 100,
+        inactiveShops: inactiveVerifiedShops
+      });
+
+      // Customer Activity
+      const customerBookings = bookings.reduce((acc, booking) => {
+        acc[booking.customer_id || 'unknown'] = (acc[booking.customer_id || 'unknown'] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const customerBookingsArray = Object.values(customerBookings);
+      const repeatCustomers = customerBookingsArray.filter(count => count > 1).length;
+      const avgBookingsPerCustomer = activeCustomers.length > 0 ?
+        Math.round((totalBookings / activeCustomers.length) * 100) / 100 : 0;
+
+      // Peak booking hours
+      const hourBookings = bookings.reduce((acc, booking) => {
+        const hour = new Date(booking.created_at).getHours();
+        acc[hour] = (acc[hour] || 0) + 1;
+        return acc;
+      }, {} as Record<number, number>);
+
+      const peakBookingHours = Object.entries(hourBookings)
+        .map(([hour, count]) => ({ hour: parseInt(hour), bookings: count }))
+        .sort((a, b) => b.bookings - a.bookings)
+        .slice(0, 5);
+
+      // Peak booking days
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayBookings = bookings.reduce((acc, booking) => {
+        const day = dayNames[new Date(booking.created_at).getDay()];
+        acc[day] = (acc[day] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const peakBookingDays = Object.entries(dayBookings)
+        .map(([day, count]) => ({ day, bookings: count }))
+        .sort((a, b) => b.bookings - a.bookings);
+
+      setCustomerActivity({
+        activeCustomers: activeCustomers.length,
+        repeatCustomers,
+        avgBookingsPerCustomer,
+        customerRoles,
+        peakBookingHours,
+        peakBookingDays
+      });
+
+    } catch (err) {
+      console.error('Error loading analytics data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load analytics data');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleExport = async (format: 'csv' | 'pdf') => {
-    try {
-      setExporting(true);
-      // For now, just show a message. Actual export can be implemented later
-      alert(t("admin.exportComingSoon") || "Export functionality coming soon");
-    } catch (error: any) {
-      console.error("Error exporting:", error);
-      alert(error.message || (t("admin.exportFailed") || "Failed to export"));
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const formatCurrency = (value: number) => {
-    return `¥${value.toLocaleString()}`;
-  };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">{t("common.loading") || "Loading..."}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!userId) {
-    router.push("/admin/login");
-    return null;
-  }
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-2 text-gray-600">{t("common.loading") || "Loading..."}</p>
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg text-gray-600">Loading analytics data...</div>
         </div>
       </div>
     );
   }
 
-  // Prepare chart data
-  const revenueChartData = revenueData?.revenueByPeriod.map((item) => ({
-    x: item.period,
-    y: item.revenue,
-  })) || [];
-
-  const userGrowthChartData = userGrowthData?.growthByDate.map((item) => ({
-    x: new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    y: item.admins + item.owners + item.customers,
-  })) || [];
-
-  const bookingTrendsChartData = bookingTrends?.dailyTrends.map((item) => ({
-    x: new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-    y: item.total,
-  })) || [];
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="text-red-800">Error: {error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6 space-y-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+        <p className="text-gray-600 mt-2">Platform performance and activity metrics</p>
+      </div>
+
+      {/* Platform Overview */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {t("admin.analytics") || "Analytics & Reports"}
-          </h1>
-          <p className="text-gray-600">{t("admin.analyticsDesc") || "Platform analytics and performance metrics"}</p>
-        </div>
-        <div className="flex gap-2">
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg"
-          >
-            <option value="daily">{t("admin.daily") || "Daily"}</option>
-            <option value="weekly">{t("admin.weekly") || "Weekly"}</option>
-            <option value="monthly">{t("admin.monthly") || "Monthly"}</option>
-          </select>
-          <button
-            onClick={() => handleExport('csv')}
-            disabled={exporting}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-          >
-            {t("admin.exportCSV") || "Export CSV"}
-          </button>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Platform Overview</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+          <AdminStatsCard
+            title="Total Shops"
+            value={platformOverview.totalShops.toString()}
+            icon="🏪"
+          />
+          <AdminStatsCard
+            title="Verified Shops"
+            value={platformOverview.verifiedShops.toString()}
+            subtitle="Active & verified"
+            icon="✅"
+          />
+          <AdminStatsCard
+            title="Active Shops"
+            value={platformOverview.activeShops.toString()}
+            subtitle="Updated in last 30 days"
+            icon="🔄"
+          />
+          <AdminStatsCard
+            title="Total Customers"
+            value={platformOverview.totalCustomers.toString()}
+            icon="👥"
+          />
+          <AdminStatsCard
+            title="Total Bookings"
+            value={platformOverview.totalBookings.toString()}
+            icon="📅"
+          />
+          <AdminStatsCard
+            title="Visitors Today"
+            value={platformOverview.visitorsToday.toString()}
+            subtitle="Real-time tracking"
+            icon="👁️"
+          />
         </div>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
-          <p className="text-red-800">{error}</p>
-          <button
-            onClick={loadAllAnalytics}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-          >
-            {t("common.refresh") || "Refresh"}
-          </button>
+      {/* Shop Performance */}
+      <div>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Shop Performance</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <AdminStatsCard
+            title="Avg Bookings per Shop"
+            value={shopPerformance.bookingsPerShop.toString()}
+            icon="📊"
+          />
+          <AdminStatsCard
+            title="Cancellation Rate"
+            value={`${shopPerformance.cancellationRate}%`}
+            icon="❌"
+          />
+          <AdminStatsCard
+            title="Most Active Shops"
+            value={shopPerformance.mostActiveShops.length.toString()}
+            subtitle="Top 5 by bookings"
+            icon="🔥"
+          />
+          <AdminStatsCard
+            title="Inactive Shops"
+            value={shopPerformance.inactiveShops.toString()}
+            subtitle="No bookings in 30 days"
+            icon="😴"
+          />
         </div>
-      )}
 
-      {/* Revenue Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          {t("admin.revenue") || "Revenue"}
-        </h2>
-        <div className="mb-4">
-          <p className="text-3xl font-bold text-gray-900">
-            {revenueData ? formatCurrency(revenueData.totalRevenue) : "¥0"}
-          </p>
-          <p className="text-sm text-gray-600">{t("admin.totalRevenue") || "Total Revenue"}</p>
-        </div>
-        {revenueChartData.length > 0 && (
-          <LineChart data={revenueChartData} height={300} color="#10B981" />
-        )}
-      </div>
-
-      {/* User Growth Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          {t("admin.userGrowth") || "User Growth"}
-        </h2>
-        {userGrowthChartData.length > 0 && (
-          <LineChart data={userGrowthChartData} height={300} color="#3B82F6" />
-        )}
-      </div>
-
-      {/* Booking Trends Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          {t("admin.bookingTrends") || "Booking Trends"}
-        </h2>
-        {bookingTrends && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div>
-              <p className="text-sm text-gray-600">{t("admin.total") || "Total"}</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {Object.values(bookingTrends.statusCounts).reduce((a, b) => a + b, 0)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">{t("bookings.confirmed") || "Confirmed"}</p>
-              <p className="text-2xl font-bold text-green-600">
-                {bookingTrends.statusCounts.confirmed || 0}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">{t("bookings.completed") || "Completed"}</p>
-              <p className="text-2xl font-bold text-blue-600">
-                {bookingTrends.statusCounts.completed || 0}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">{t("bookings.cancelled") || "Cancelled"}</p>
-              <p className="text-2xl font-bold text-red-600">
-                {bookingTrends.statusCounts.cancelled || 0}
-              </p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Most Active Shops */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Most Active Shops</h3>
+            <div className="space-y-3">
+              {shopPerformance.mostActiveShops.map((shop, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">{index + 1}</span>
+                    <span className="font-medium">{shop.name}</span>
+                  </div>
+                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
+                    {shop.bookings} bookings
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
-        )}
-        {bookingTrendsChartData.length > 0 && (
-          <LineChart data={bookingTrendsChartData} height={300} color="#8B5CF6" />
-        )}
+
+          {/* Least Active Shops */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Least Active Shops</h3>
+            <div className="space-y-3">
+              {shopPerformance.leastActiveShops.map((shop, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">{index + 1}</span>
+                    <span className="font-medium">{shop.name}</span>
+                  </div>
+                  <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-sm">
+                    {shop.bookings} bookings
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Shop Performance Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          {t("admin.shopPerformance") || "Shop Performance"}
-        </h2>
-        {shopPerformance && shopPerformance.shops.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t("admin.shopName") || "Shop Name"}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t("admin.totalBookings") || "Total Bookings"}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t("admin.completedBookings") || "Completed"}
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t("admin.revenue") || "Revenue"}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {shopPerformance.shops.slice(0, 10).map((shop) => (
-                  <tr key={shop.shopId}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {shop.shopName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {shop.totalBookings}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {shop.completedBookings}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatCurrency(shop.revenue)}
-                    </td>
-                  </tr>
+      {/* Customer Activity */}
+      <div>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Customer Activity</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6">
+          <AdminStatsCard
+            title="Active Customers"
+            value={customerActivity.activeCustomers.toString()}
+            subtitle="Made at least 1 booking"
+            icon="👤"
+          />
+          <AdminStatsCard
+            title="Repeat Customers"
+            value={customerActivity.repeatCustomers.toString()}
+            subtitle="Multiple bookings"
+            icon="🔄"
+          />
+          <AdminStatsCard
+            title="Avg Bookings/Customer"
+            value={customerActivity.avgBookingsPerCustomer.toString()}
+            icon="📈"
+          />
+          <AdminStatsCard
+            title="Web Customers"
+            value={customerActivity.customerRoles.web.toString()}
+            subtitle="Registered users"
+            icon="🌐"
+          />
+          <AdminStatsCard
+            title="Guest Customers"
+            value={customerActivity.customerRoles.guest.toString()}
+            subtitle="Anonymous bookings"
+            icon="👤"
+          />
+          <AdminStatsCard
+            title="LINE Customers"
+            value={customerActivity.customerRoles.line.toString()}
+            subtitle="LINE app users"
+            icon="📱"
+          />
+      </div>
+
+        {/* Customer Role Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Web Customers */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Web Customers</h3>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {customers
+                .filter(customer => {
+                  const role = customer.role?.toLowerCase();
+                  return role === 'web' || role === 'customer' || (!role && customer.customer_profiles); // Include customers with profiles but no role
+                })
+                .map((customer, index) => (
+                  <div key={customer.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-sm font-medium text-gray-600">{index + 1}</span>
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {customer.name || customer.customer_profiles?.name || `Web Customer ${customer.id?.slice(-4) || index + 1}`}
+                        </div>
+                        <div className="text-sm text-gray-500">{customer.email || customer.customer_profiles?.email || `ID: ${customer.id?.slice(-4) || 'Unknown'}`}</div>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+            </div>
           </div>
-        ) : (
-          <p className="text-gray-500">{t("admin.noShopData") || "No shop performance data available"}</p>
-        )}
+
+          {/* Guest Customers */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Guest Customers</h3>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {customers
+                .filter(customer => customer.role?.toLowerCase() === 'guest')
+                .map((customer, index) => (
+                  <div key={customer.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-sm font-medium text-gray-600">{index + 1}</span>
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {customer.customer_profiles?.name || customer.name || `Guest Customer ${index + 1}`}
+                        </div>
+                        <div className="text-sm text-gray-500">{customer.customer_profiles?.email || customer.email || 'Anonymous booking'}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+
+          {/* LINE Customers */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">LINE Customers</h3>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {customers
+                .filter(customer => customer.role?.toLowerCase() === 'line')
+                .map((customer, index) => (
+                  <div key={customer.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-sm font-medium text-gray-600">{index + 1}</span>
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {customer.customer_profiles?.name || customer.name || `LINE Customer ${index + 1}`}
+                        </div>
+                        <div className="text-sm text-gray-500">{customer.customer_profiles?.email || customer.email || 'LINE app user'}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Peak Booking Hours */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Peak Booking Hours</h3>
+            <div className="space-y-3">
+              {customerActivity.peakBookingHours.map((hour, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <span className="font-medium">
+                    {hour.hour}:00 - {hour.hour + 1}:00
+                  </span>
+                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm">
+                    {hour.bookings} bookings
+                  </span>
+            </div>
+              ))}
+            </div>
+      </div>
+
+          {/* Peak Booking Days */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Peak Booking Days</h3>
+            <div className="space-y-3">
+              {customerActivity.peakBookingDays.map((day, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <span className="font-medium">{day.day}</span>
+                  <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-sm">
+                    {day.bookings} bookings
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-

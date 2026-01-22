@@ -69,8 +69,8 @@ export default function OwnerCalendarPage() {
   }
 
   if (!shop) {
-  return (
-    <div>
+    return (
+      <div className="p-8">
         <div className="bg-white rounded-lg shadow p-6 text-center">
           <p className="text-gray-600 mb-4">{t('myShop.noShop')}</p>
           <button

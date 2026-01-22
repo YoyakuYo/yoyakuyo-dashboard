@@ -313,7 +313,8 @@ export default function OwnerDashboardPage() {
   const hasPendingVerification = currentClaim && ['pending', 'submitted'].includes(currentClaim.status);
 
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold mb-6">{t('dashboard.title')}</h1>
 
         {/* Overview Stats */}
@@ -460,6 +461,10 @@ export default function OwnerDashboardPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Floating Help Button */}
+      <FloatingHelpButton shopId={shop?.id} />
     </div>
   );
 }
