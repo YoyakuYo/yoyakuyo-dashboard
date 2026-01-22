@@ -552,6 +552,47 @@ function OwnerMessagesPageContent() {
     }
   };
 
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!user?.id || !selectedThread) return;
+
+    if (!confirm(t('messages.confirmDelete') || 'Are you sure you want to delete this message?')) {
+      return;
+    }
+
+    try {
+      console.log('[Owner Messages] 🗑️ Deleting message', {
+        messageId,
+        conversationId: selectedThread,
+        userId: user.id,
+      });
+
+      const res = await fetch(`${apiUrl}/api/internal-messaging/messages/${messageId}`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-id': user.id,
+        },
+      });
+
+      if (res.ok) {
+        console.log('[Owner Messages] ✅ Message deleted successfully');
+        // Refresh messages
+        if (selectedThread) {
+          loadMessages(selectedThread);
+        }
+      } else {
+        const errorText = await res.text();
+        console.error('[Owner Messages] ❌ Failed to delete message', {
+          status: res.status,
+          error: errorText,
+        });
+        alert(`${t('messages.failedToDelete') || 'Failed to delete message'}: ${errorText}`);
+      }
+    } catch (error: any) {
+      console.error('[Owner Messages] ❌ Error deleting message', error);
+      alert(`${t('messages.errorDeleting') || 'Error deleting message'}: ${error.message}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-8">
@@ -653,9 +694,9 @@ function OwnerMessagesPageContent() {
                   messages.map((message) => (
                     <div
                       key={message.id}
-                      className={`flex ${
-                        (message.role === 'assistant' || message.sender_type === 'owner') 
-                          ? 'justify-end' 
+                      className={`flex group ${
+                        (message.role === 'assistant' || message.sender_type === 'owner')
+                          ? 'justify-end'
                           : 'justify-start'
                       }`}
                     >
@@ -666,10 +707,28 @@ function OwnerMessagesPageContent() {
                             : 'bg-white text-gray-900 border border-gray-200'
                         }`}
                       >
-                        <p className="whitespace-pre-wrap text-sm">{message.content}</p>
-                        <p className="text-xs mt-1 opacity-70">
-                          {new Date(message.created_at).toLocaleTimeString()}
-                        </p>
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1">
+                            <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                            <p className="text-xs mt-1 opacity-70">
+                              {new Date(message.created_at).toLocaleTimeString()}
+                            </p>
+                          </div>
+                          {/* Delete button */}
+                          <button
+                            onClick={() => handleDeleteMessage(message.id)}
+                            className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-500 hover:bg-opacity-20 ${
+                              (message.role === 'assistant' || message.sender_type === 'owner')
+                                ? 'text-white hover:text-red-200'
+                                : 'text-gray-400 hover:text-red-600'
+                            }`}
+                            title="Delete message"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))
