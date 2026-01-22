@@ -6,6 +6,7 @@
 import React, { Suspense } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import CategoryGrid from '../components/landing/CategoryGrid';
+import BackButton from '../components/BackButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,11 @@ function CategoriesPageContent() {
   return (
     <div className="min-h-screen bg-white py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Back Button */}
+        <div className="mb-6">
+          <BackButton href="/" />
+        </div>
+
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
             {tHome('categoryPreviewTitle') || 'Browse by Category'}

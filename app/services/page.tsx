@@ -8,6 +8,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import Link from 'next/link';
 import Image from 'next/image';
 import OwnerModals from '../components/OwnerModals';
+import BackButton from '../components/BackButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,11 @@ function ServicesPageContent() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Back Button */}
+      <div className="pt-4 px-4 md:px-8">
+        <BackButton href="/" />
+      </div>
+
       {/* HERO SECTION */}
       <section className="relative bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 py-20 md:py-32 overflow-hidden">
         <div className="absolute inset-0 opacity-10">

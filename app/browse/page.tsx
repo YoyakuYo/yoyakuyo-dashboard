@@ -17,6 +17,7 @@ import {
 import { CATEGORIES } from '@/lib/categories';
 import { CategoryNavigation } from './components/CategoryNavigation';
 import { ShopCard } from './components/ShopCard';
+import BackButton from '../components/BackButton';
 
 // Force dynamic rendering to avoid prerendering errors
 export const dynamic = 'force-dynamic';
@@ -355,6 +356,11 @@ function BrowsePageContent() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 py-4">
+          {/* Back Button */}
+          <div className="mb-4">
+            <BackButton href="/" />
+          </div>
+
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">
               {selectedCategoryId 
