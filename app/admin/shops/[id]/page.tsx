@@ -480,7 +480,17 @@ export default function AdminShopDetailPage() {
                     {booking.service_name} • {booking.staff_name}
                   </div>
                   <div className="text-xs text-gray-500">
-                    {new Date(booking.booking_date).toLocaleDateString()} at {booking.booking_time}
+                    {(() => {
+                      try {
+                        const date = new Date(booking.booking_date);
+                        if (isNaN(date.getTime())) {
+                          return `${booking.booking_date} at ${booking.booking_time}`;
+                        }
+                        return `${date.toLocaleDateString()} at ${booking.booking_time}`;
+                      } catch (error) {
+                        return `${booking.booking_date} at ${booking.booking_time}`;
+                      }
+                    })()}
                   </div>
                 </div>
                 <div className={`px-2 py-1 text-xs font-medium rounded-full ${

@@ -11,6 +11,8 @@ interface PlatformReview {
   comment?: string;
   customer_name?: string;
   created_at: string;
+  admin_response?: string;
+  admin_response_at?: string;
 }
 
 export default function ReviewsSection() {
@@ -299,6 +301,28 @@ export default function ReviewsSection() {
                       {review.comment}
                     </p>
                   )}
+
+                  {/* Admin Response */}
+                  {review.admin_response && (
+                    <div className="mt-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-semibold text-blue-800">Yoyaku Yo Team</span>
+                        {review.admin_response_at && (
+                          <span className="text-xs text-blue-600">
+                            {new Date(review.admin_response_at).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-blue-700 whitespace-pre-wrap">
+                        {review.admin_response}
+                      </p>
+                    </div>
+                  )}
+
                   {review.customer_name && (
                     <p className="text-sm text-gray-500 mt-3">
                       — {review.customer_name}
