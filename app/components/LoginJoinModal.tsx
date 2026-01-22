@@ -60,33 +60,29 @@ export default function LoginJoinModal() {
         </button>
 
         <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-          {t('auth.getStarted') || 'Get Started'}
+          Choose Your Path
         </h2>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Left: For Customers */}
+          {/* Left: For Customers - Join through LINE */}
           <div className="border-r border-gray-200 pr-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {t('auth.forCustomers') || 'For Customers'}
+              For Customers
             </h3>
             <div className="space-y-3">
-              {mode === 'login' ? (
+              <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="text-2xl mb-2">📱</div>
+                <p className="text-sm text-gray-700 mb-3">
+                  Join through LINE for personalized service
+                </p>
                 <Link
-                  href="/customer-login"
-                  className="block w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center"
+                  href="/line-app"
+                  className="inline-block bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700 transition-colors text-sm"
                   onClick={() => setIsOpen(false)}
                 >
-                  {tAuth('loginAsCustomer') || 'Login as Customer'}
+                  Join through LINE
                 </Link>
-              ) : (
-                <Link
-                  href="/customer-signup"
-                  className="block w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center"
-                  onClick={() => setIsOpen(false)}
-                >
-                  {tAuth('joinAsCustomer') || 'Sign Up as Customer'}
-                </Link>
-              )}
+              </div>
             </div>
           </div>
 
