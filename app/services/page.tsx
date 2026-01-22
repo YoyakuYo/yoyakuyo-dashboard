@@ -553,12 +553,6 @@ function ServicesPageContent() {
                 >
                   {isJapanese ? 'オーナー登録' : 'Join as Owner'}
                 </button>
-                <Link
-                  href="/owner"
-                  className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl border-2 border-white/30 hover:bg-white/20 transition-all text-lg"
-                >
-                  {isJapanese ? 'オーナーダッシュボードを見る' : 'View Owner Dashboard'}
-                </Link>
               </div>
             </div>
 
