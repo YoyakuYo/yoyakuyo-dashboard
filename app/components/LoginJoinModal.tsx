@@ -7,6 +7,71 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
+// Compact QR Code component for modal
+function ModalQRCode() {
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [lineUrl, setLineUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const lineOfficialAccountId = process.env.NEXT_PUBLIC_LINE_OFFICIAL_ACCOUNT_ID;
+    const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+
+    if (!lineOfficialAccountId && !liffId) {
+      return;
+    }
+
+    let qrUrl: string;
+
+    if (lineOfficialAccountId) {
+      qrUrl = `https://line.me/R/ti/p/@${lineOfficialAccountId.replace('@', '')}`;
+    } else if (liffId) {
+      qrUrl = `https://liff.line.me/${liffId}?entry=qr`;
+    } else {
+      return;
+    }
+
+    setLineUrl(qrUrl);
+    const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrUrl)}`;
+    setQrCodeUrl(qrCodeImageUrl);
+  }, []);
+
+  const handleCopyLink = () => {
+    if (lineUrl) {
+      navigator.clipboard.writeText(lineUrl);
+      alert('LINE link copied to clipboard!');
+    }
+  };
+
+  if (!qrCodeUrl) {
+    return (
+      <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center">
+        <span className="text-xs text-gray-500">Loading...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-center">
+      <div className="bg-white p-2 rounded-lg shadow-sm mb-2">
+        <img
+          src={qrCodeUrl}
+          alt="LINE QR Code"
+          className="w-24 h-24"
+        />
+      </div>
+      <p className="text-xs text-gray-600 mb-1">Scan to join LINE</p>
+      {lineUrl && (
+        <button
+          onClick={handleCopyLink}
+          className="text-xs text-blue-600 hover:text-blue-700 underline"
+        >
+          Copy link
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function LoginJoinModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<'login' | 'join'>('login');
@@ -75,13 +140,19 @@ export default function LoginJoinModal() {
                 <p className="text-sm text-gray-700 mb-3">
                   Join through LINE for personalized service
                 </p>
-                <Link
-                  href="/line-app"
-                  className="inline-block bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700 transition-colors text-sm"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Join through LINE
-                </Link>
+
+                {/* QR Code */}
+                <ModalQRCode />
+
+                <div className="mt-3">
+                  <Link
+                    href="/line-app"
+                    className="inline-block bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700 transition-colors text-sm"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Join through LINE
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
