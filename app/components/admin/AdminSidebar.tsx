@@ -100,10 +100,8 @@ const AdminSidebar = React.memo(() => {
             );
           })}
         </ul>
-        <div className="mt-auto pt-4 border-t border-slate-700">
-          <div className="px-4 py-2 text-sm text-gray-400 mb-2">
-            {userEmail}
-          </div>
+        {/* Logout button moved up for better accessibility */}
+        <div className="pt-4 border-t border-slate-700">
           <button
             onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-slate-800 hover:text-white transition-colors"
@@ -111,6 +109,9 @@ const AdminSidebar = React.memo(() => {
             <span>🚪</span>
             <span>{t("nav.logout")}</span>
           </button>
+          <div className="px-4 py-2 text-sm text-gray-400">
+            {userEmail}
+          </div>
         </div>
       </nav>
     </div>
@@ -168,10 +169,8 @@ const AdminSidebar = React.memo(() => {
             })}
           </ul>
         </nav>
+        {/* Logout button moved up for better accessibility */}
         <div className="p-4 border-t border-slate-700">
-          <div className="px-4 py-2 text-sm text-gray-400 mb-2 truncate">
-            {userEmail}
-          </div>
           <button
             onClick={handleSignOut}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-slate-800 hover:text-white transition-colors"
@@ -179,6 +178,9 @@ const AdminSidebar = React.memo(() => {
             <span>🚪</span>
             <span>{t("nav.logout")}</span>
           </button>
+          <div className="px-4 py-2 text-sm text-gray-400 truncate">
+            {userEmail}
+          </div>
         </div>
       </aside>
     </>
