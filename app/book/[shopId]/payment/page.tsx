@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useCustomAuth } from "@/lib/useCustomAuth";
+// Web customer auth removed - guests don't need auth for payment
 import { apiUrl } from "@/lib/apiClient";
 import StripePaymentForm from "@/app/components/payments/StripePaymentForm";
 import { useTranslations } from "next-intl";
@@ -10,7 +10,7 @@ import { useTranslations } from "next-intl";
 export default function PaymentPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useCustomAuth();
+  // No auth needed for guest payments
   const t = useTranslations();
   const shopId = params.shopId as string;
 
@@ -46,7 +46,7 @@ export default function PaymentPage() {
     try {
       const response = await fetch(`${apiUrl}/bookings/${bookingId}`, {
         headers: {
-          'x-user-id': user?.id || '',
+          // No user ID for guest payments
         },
       });
       

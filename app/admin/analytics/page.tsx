@@ -27,7 +27,7 @@ interface CustomerActivity {
   activeCustomers: number;
   repeatCustomers: number;
   avgBookingsPerCustomer: number;
-  customerRoles: { web: number; guest: number; line: number; other: number };
+  customerRoles: { guest: number; line: number; other: number };
   peakBookingHours: Array<{ hour: number; bookings: number }>;
   peakBookingDays: Array<{ day: string; bookings: number }>;
 }
@@ -55,7 +55,7 @@ export default function AdminAnalyticsPage() {
     activeCustomers: 0,
     repeatCustomers: 0,
     avgBookingsPerCustomer: 0,
-    customerRoles: { web: 0, guest: 0, line: 0, other: 0 },
+    customerRoles: { guest: 0, line: 0, other: 0 },
     peakBookingHours: [],
     peakBookingDays: []
   });
@@ -120,12 +120,11 @@ export default function AdminAnalyticsPage() {
       // Calculate customer role breakdown from active customers only
       const customerRoles = activeCustomers.reduce((acc, customer) => {
         const role = customer.role?.toLowerCase() || 'other';
-        if (role === 'web' || role === 'customer') acc.web++;
-        else if (role === 'guest') acc.guest++;
+        if (role === 'guest') acc.guest++;
         else if (role === 'line') acc.line++;
         else acc.other++;
         return acc;
-      }, { web: 0, guest: 0, line: 0, other: 0 });
+      }, { guest: 0, line: 0, other: 0 });
 
       // Calculate active verified shops (updated in last 30 days)
       const thirtyDaysAgo = new Date();
@@ -395,12 +394,6 @@ export default function AdminAnalyticsPage() {
             icon="📈"
           />
           <AdminStatsCard
-            title={t('webCustomers')}
-            value={customerActivity.customerRoles.web.toString()}
-            subtitle={t('registeredUsers')}
-            icon="🌐"
-          />
-          <AdminStatsCard
             title={t('guestCustomers')}
             value={customerActivity.customerRoles.guest.toString()}
             subtitle={t('anonymousBookings')}
@@ -415,32 +408,7 @@ export default function AdminAnalyticsPage() {
       </div>
 
         {/* Customer Role Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          {/* Web Customers */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('webCustomersTitle')}</h3>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {customers
-                .filter(customer => {
-                  const role = customer.role?.toLowerCase();
-                  return role === 'web' || role === 'customer' || (!role && customer.customer_profiles); // Include customers with profiles but no role
-                })
-                .map((customer, index) => (
-                  <div key={customer.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-sm font-medium text-gray-600">{index + 1}</span>
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {customer.name || customer.customer_profiles?.name || `Web Customer ${customer.id?.slice(-4) || index + 1}`}
-                        </div>
-                        <div className="text-sm text-gray-500">{customer.email || customer.customer_profiles?.email || `ID: ${customer.id?.slice(-4) || 'Unknown'}`}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Guest Customers */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('guestCustomersTitle')}</h3>

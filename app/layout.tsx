@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/useAuth";
-import { CustomAuthProvider } from "@/lib/useCustomAuth";
+// Web customer auth removed
 import { AuthRoleProvider } from "@/lib/AuthRoleContext";
 import { NextIntlProviderWrapper } from "./components/NextIntlProvider";
 import { BookingNotificationProvider } from "./components/BookingNotificationContext";
@@ -54,13 +54,11 @@ export default function RootLayout({
         <NextIntlProviderWrapper>
           <AuthRoleProvider>
             <AuthProvider>
-              <CustomAuthProvider>
-                <BookingNotificationProvider>
-                  <ConditionalLayout>
-                    {children}
-                  </ConditionalLayout>
-                </BookingNotificationProvider>
-              </CustomAuthProvider>
+              <BookingNotificationProvider>
+                <ConditionalLayout>
+                  {children}
+                </ConditionalLayout>
+              </BookingNotificationProvider>
             </AuthProvider>
           </AuthRoleProvider>
         </NextIntlProviderWrapper>

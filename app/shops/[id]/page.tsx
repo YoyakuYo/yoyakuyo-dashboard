@@ -9,7 +9,7 @@ import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
-import { useCustomAuth } from '@/lib/useCustomAuth';
+// Web customer auth removed
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import ReviewCard from '../../components/ReviewCard';
 import ReviewStats from '../../components/ReviewStats';
@@ -130,9 +130,7 @@ export default function PublicShopDetailPage() {
   const params = useParams();
   const router = useRouter();
   const shopId = params?.id as string;
-  const { user: supabaseUser } = useAuth(); // For owners (Supabase Auth)
-  const { user: customUser } = useCustomAuth(); // For web customers (JWT)
-  const user = supabaseUser || customUser; // Use whichever is available
+  const { user } = useAuth(); // For owners (Supabase Auth)
   
   // Safe translation function with fallback
   let t: ReturnType<typeof useTranslations>;
@@ -358,10 +356,7 @@ export default function PublicShopDetailPage() {
         headers['x-user-id'] = user.id;
       }
 
-      // For web customers using custom auth, also add x-customer-id
-      if (customUser?.id) {
-        headers['x-customer-id'] = customUser.id;
-      }
+      // Web customers removed - only owners can review
 
       const res = await fetch(`${apiUrl}/reviews`, {
         method: 'POST',
