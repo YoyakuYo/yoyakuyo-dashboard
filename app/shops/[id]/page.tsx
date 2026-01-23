@@ -91,14 +91,6 @@ interface Photo {
   updated_at: string;
 }
 
-interface AvailabilityWindow {
-  id: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  status: 'available' | 'booked' | 'blocked';
-  source: 'manual' | 'booking' | 'template';
-}
 
 function formatOpeningHours(openingHours: any): string {
   if (!openingHours || typeof openingHours !== 'object') {
@@ -183,28 +175,25 @@ export default function PublicShopDetailPage() {
   const [availableDates, setAvailableDates] = useState<Array<{ date: string; status: 'available' | 'closed' }>>([]);
   const [loadingDates, setLoadingDates] = useState(false);
 
-  // Calendar state (for backward compatibility)
-  const [selectedAvailabilityWindow, setSelectedAvailabilityWindow] = useState<AvailabilityWindow | null>(null);
-
   // Check for booking success from URL query parameter (for guest redirects)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const bookingSuccessParam = urlParams.get('booking');
-      
+
       if (bookingSuccessParam === 'success' && !user) {
         // Set booking success state
         setBookingSuccess(true);
-        
+
         // Remove query parameter from URL without reload
         const newUrl = window.location.pathname;
         window.history.replaceState({}, '', newUrl);
-        
+
         // Redirect to landing page after 3 seconds
         const redirectTimer = setTimeout(() => {
           router.push('/');
         }, 3000);
-        
+
         return () => clearTimeout(redirectTimer);
       }
     }
@@ -335,15 +324,8 @@ export default function PublicShopDetailPage() {
   const handleDateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setBookingDate(e.target.value);
     setBookingTime('');
-    setSelectedAvailabilityWindow(null);
   };
 
-  // Handle slot selection from calendar
-  const handleSlotSelect = (slot: AvailabilityWindow) => {
-    setSelectedAvailabilityWindow(slot);
-    setBookingDate(slot.date);
-    setBookingTime(slot.start_time);
-  };
 
   const handleReviewSubmit = async (reviewData: any) => {
     try {
@@ -412,9 +394,14 @@ export default function PublicShopDetailPage() {
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!shopId || !bookingServiceId) {
       setBookingError(t('booking.fillRequiredFields') || 'Please fill in all required fields');
+      return;
+    }
+
+    if (!bookingDate) {
+      setBookingError(t('booking.selectDateFirst') || 'Please select a date from the dropdown above first.');
       return;
     }
 
@@ -705,7 +692,7 @@ export default function PublicShopDetailPage() {
       <div className="space-y-6">
         {/* Date Selection */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('booking.selectDate') || 'Select Date'}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('booking.selectDate') || 'Select Date & Book'}</h3>
           <div className="space-y-4">
             <select
               value={bookingDate}
@@ -739,41 +726,7 @@ export default function PublicShopDetailPage() {
           </div>
         </div>
 
-        {/* Selected Slot Info */}
-        {selectedAvailabilityWindow && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <h4 className="font-medium text-green-800 mb-2">Selected Time</h4>
-            <div className="text-green-700">
-              <div className="font-medium">
-                {new Date(selectedAvailabilityWindow.date).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </div>
-              <div>
-                {selectedAvailabilityWindow.start_time.substring(0, 5)} - {selectedAvailabilityWindow.end_time.substring(0, 5)}
-              </div>
-            </div>
-            <Link
-              href={`/book/${shopId}?slot=${selectedAvailabilityWindow.id}`}
-              className="mt-3 inline-block w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg text-center transition-colors"
-            >
-              Book This Time →
-            </Link>
-          </div>
-        )}
 
-        {/* Book Appointment Button */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <Link
-            href={`/book/${shopId}`}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-center block"
-          >
-            {t('booking.bookAppointment')} →
-          </Link>
-        </div>
-        
         {/* Booking Widget (Inline Form - Alternative) */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -836,22 +789,38 @@ export default function PublicShopDetailPage() {
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('booking.date')} <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={bookingDate}
-                  onChange={(e) => setBookingDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  required
-                  disabled={true}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 cursor-not-allowed"
-                  title="Select a date from the dropdown above"
-                />
-                <p className="text-xs text-gray-500 mt-1">Select a date from the dropdown above</p>
-              </div>
+              {bookingDate ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-800">
+                        {t('booking.selectedDate') || 'Selected Date'}:
+                      </p>
+                      <p className="text-blue-700 font-semibold">
+                        {new Date(bookingDate).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setBookingDate('')}
+                      className="text-blue-600 hover:text-blue-800 text-sm underline"
+                    >
+                      {t('common.change') || 'Change'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-yellow-800">
+                    {t('booking.selectDateFirst') || 'Please select a date from the dropdown above first.'}
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -905,7 +874,7 @@ export default function PublicShopDetailPage() {
 
               <button
                 type="submit"
-                disabled={bookingLoading}
+                disabled={bookingLoading || !bookingDate}
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {bookingLoading ? t('common.submitting') : t('booking.submit')}

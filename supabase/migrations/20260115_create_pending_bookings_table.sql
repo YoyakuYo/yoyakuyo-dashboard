@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS pending_bookings (
   channel booking_channel_enum NOT NULL,
   date DATE NOT NULL,
   start_time TIME NOT NULL,
+  end_time TIME,
   customer_name TEXT,
   customer_email TEXT,
   customer_phone TEXT,

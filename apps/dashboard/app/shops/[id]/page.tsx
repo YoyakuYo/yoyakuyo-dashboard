@@ -137,6 +137,10 @@ export default function PublicShopDetailPage() {
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
+  // Date dropdown state
+  const [availableDates, setAvailableDates] = useState<Array<{ date: string; status: 'available' | 'closed' }>>([]);
+  const [loadingDates, setLoadingDates] = useState(false);
+
   // AI Chat state
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [chatInput, setChatInput] = useState<string>('');
@@ -254,6 +258,37 @@ export default function PublicShopDetailPage() {
     fetchReviews();
   }, [shopId, apiUrl]);
 
+  // Fetch available dates when shop is loaded
+  useEffect(() => {
+    if (shopId && services.length > 0) {
+      fetchAvailableDates();
+    }
+  }, [shopId, services.length]);
+
+  const fetchAvailableDates = async () => {
+    if (!shopId) return;
+
+    setLoadingDates(true);
+    try {
+      const startDate = new Date().toISOString().split('T')[0];
+      const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 30 days ahead
+
+      const response = await fetch(`${apiUrl}/shops/${shopId}/availability/dates?startDate=${startDate}&endDate=${endDate}`);
+      if (response.ok) {
+        const dates = await response.json();
+        setAvailableDates(dates);
+      } else {
+        console.error('Failed to fetch available dates');
+        setAvailableDates([]);
+      }
+    } catch (error) {
+      console.error('Error fetching available dates:', error);
+      setAvailableDates([]);
+    } finally {
+      setLoadingDates(false);
+    }
+  };
+
   const handleReviewSubmit = async (reviewData: any) => {
     try {
       const res = await fetch(`${apiUrl}/reviews`, {
@@ -288,8 +323,13 @@ export default function PublicShopDetailPage() {
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!shopId || !bookingServiceId || !customerName) {
-      setBookingError('Please fill in all required fields');
+    if (!shopId || !bookingServiceId) {
+      setBookingError(t('booking.fillRequiredFields') || 'Please fill in all required fields');
+      return;
+    }
+
+    if (!bookingDate) {
+      setBookingError(t('booking.selectDateFirst') || 'Please select a date from the dropdown above first.');
       return;
     }
 
@@ -608,16 +648,42 @@ export default function PublicShopDetailPage() {
 
       {/* Right Sidebar */}
       <div className="space-y-6">
-        {/* Book Appointment Button */}
+        {/* Date Selection */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <Link
-            href={`/book/${shopId}`}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-center block"
-          >
-            {t('booking.bookAppointment')} →
-          </Link>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('booking.selectDate') || 'Select Date & Book'}</h3>
+          <div className="space-y-4">
+            <select
+              value={bookingDate}
+              onChange={(e) => setBookingDate(e.target.value)}
+              disabled={loadingDates || availableDates.length === 0}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+            >
+              <option value="">
+                {loadingDates
+                  ? (t('booking.loadingDates') || 'Loading dates...')
+                  : availableDates.length === 0
+                    ? (t('booking.noDatesAvailable') || 'No dates available')
+                    : (t('booking.chooseDate') || 'Choose a date')}
+              </option>
+              {availableDates.map((dateOption) => (
+                <option
+                  key={dateOption.date}
+                  value={dateOption.date}
+                  disabled={dateOption.status === 'closed'}
+                >
+                  {new Date(dateOption.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                  {dateOption.status === 'closed' ? ' - CLOSED' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        
+
         {/* Booking Widget (Inline Form - Alternative) */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">{t('booking.title')}</h2>
@@ -667,19 +733,38 @@ export default function PublicShopDetailPage() {
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('booking.date')} <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={bookingDate}
-                  onChange={(e) => setBookingDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-              </div>
+              {bookingDate ? (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-800">
+                        {t('booking.selectedDate') || 'Selected Date'}:
+                      </p>
+                      <p className="text-blue-700 font-semibold">
+                        {new Date(bookingDate).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setBookingDate('')}
+                      className="text-blue-600 hover:text-blue-800 text-sm underline"
+                    >
+                      {t('common.change') || 'Change'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-yellow-800">
+                    {t('booking.selectDateFirst') || 'Please select a date from the dropdown above first.'}
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -716,7 +801,7 @@ export default function PublicShopDetailPage() {
 
               <button
                 type="submit"
-                disabled={bookingLoading}
+                disabled={bookingLoading || !bookingDate}
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {bookingLoading ? t('common.submitting') : t('booking.submit')}

@@ -1859,7 +1859,7 @@ const MyShopPage = () => {
                         <td className="py-4 px-4 text-gray-700">
                           {(booking as any).services?.name || 'N/A'}
                         </td>
-                      <td className="py-4 px-4">
+                        <td className="py-4 px-4">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                           booking.status === 'confirmed' ? 'bg-green-100 text-green-700' :
                           booking.status === 'rejected' ? 'bg-red-100 text-red-700' :
