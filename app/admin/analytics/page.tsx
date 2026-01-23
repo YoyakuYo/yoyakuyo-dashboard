@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import AdminStatsCard from '@/app/components/admin/AdminStatsCard';
 
@@ -32,6 +33,7 @@ interface CustomerActivity {
 }
 
 export default function AdminAnalyticsPage() {
+  const t = useTranslations('admin.analytics');
   const [platformOverview, setPlatformOverview] = useState<PlatformOverview>({
     totalShops: 0,
     verifiedShops: 0,
@@ -241,7 +243,7 @@ export default function AdminAnalyticsPage() {
     return (
       <div className="p-6">
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg text-gray-600">Loading analytics data...</div>
+          <div className="text-lg text-gray-600">{t('loadingAnalytics')}</div>
         </div>
       </div>
     );
@@ -251,7 +253,7 @@ export default function AdminAnalyticsPage() {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="text-red-800">Error: {error}</div>
+          <div className="text-red-800">{t('errorLoadingAnalytics')}: {error}</div>
         </div>
       </div>
     );
@@ -260,45 +262,45 @@ export default function AdminAnalyticsPage() {
   return (
     <div className="p-6 space-y-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-        <p className="text-gray-600 mt-2">Platform performance and activity metrics</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t('dashboard')}</h1>
+        <p className="text-gray-600 mt-2">{t('platformPerformance')}</p>
       </div>
 
       {/* Platform Overview */}
         <div>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Platform Overview</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">{t('platformOverview')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
           <AdminStatsCard
-            title="Total Shops"
+            title={t('totalShops')}
             value={platformOverview.totalShops.toString()}
             icon="🏪"
           />
           <AdminStatsCard
-            title="Verified Shops"
+            title={t('verifiedShops')}
             value={platformOverview.verifiedShops.toString()}
-            subtitle="Active & verified"
+            subtitle={t('activeAndVerified')}
             icon="✅"
           />
           <AdminStatsCard
-            title="Active Shops"
+            title={t('activeShops')}
             value={platformOverview.activeShops.toString()}
-            subtitle="Updated in last 30 days"
+            subtitle={t('updatedLast30Days')}
             icon="🔄"
           />
           <AdminStatsCard
-            title="Total Customers"
+            title={t('totalCustomers')}
             value={platformOverview.totalCustomers.toString()}
             icon="👥"
           />
           <AdminStatsCard
-            title="Total Bookings"
+            title={t('totalBookings')}
             value={platformOverview.totalBookings.toString()}
             icon="📅"
           />
           <AdminStatsCard
-            title="Visitors Today"
+            title={t('visitorsToday')}
             value={platformOverview.visitorsToday.toString()}
-            subtitle="Real-time tracking"
+            subtitle={t('realTimeTracking')}
             icon="👁️"
           />
         </div>
@@ -306,28 +308,28 @@ export default function AdminAnalyticsPage() {
 
       {/* Shop Performance */}
       <div>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Shop Performance</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">{t('shopPerformance')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <AdminStatsCard
-            title="Avg Bookings per Shop"
+            title={t('avgBookingsPerShop')}
             value={shopPerformance.bookingsPerShop.toString()}
             icon="📊"
           />
           <AdminStatsCard
-            title="Cancellation Rate"
+            title={t('cancellationRate')}
             value={`${shopPerformance.cancellationRate}%`}
             icon="❌"
           />
           <AdminStatsCard
-            title="Most Active Shops"
+            title={t('mostActiveShops')}
             value={shopPerformance.mostActiveShops.length.toString()}
-            subtitle="Top 5 by bookings"
+            subtitle={t('top5ByBookings')}
             icon="🔥"
           />
           <AdminStatsCard
-            title="Inactive Shops"
+            title={t('inactiveShops')}
             value={shopPerformance.inactiveShops.toString()}
-            subtitle="No bookings in 30 days"
+            subtitle={t('noBookings30Days')}
             icon="😴"
           />
         </div>
@@ -335,7 +337,7 @@ export default function AdminAnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Most Active Shops */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Most Active Shops</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('mostActiveShopsTitle')}</h3>
             <div className="space-y-3">
               {shopPerformance.mostActiveShops.map((shop, index) => (
                 <div key={index} className="flex items-center justify-between">
@@ -353,7 +355,7 @@ export default function AdminAnalyticsPage() {
 
           {/* Least Active Shops */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Least Active Shops</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('leastActiveShopsTitle')}</h3>
             <div className="space-y-3">
               {shopPerformance.leastActiveShops.map((shop, index) => (
                 <div key={index} className="flex items-center justify-between">
@@ -373,41 +375,41 @@ export default function AdminAnalyticsPage() {
 
       {/* Customer Activity */}
       <div>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Customer Activity</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">{t('customerActivity')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6">
           <AdminStatsCard
-            title="Active Customers"
+            title={t('activeCustomers')}
             value={customerActivity.activeCustomers.toString()}
-            subtitle="Made at least 1 booking"
+            subtitle={t('madeAtLeast1Booking')}
             icon="👤"
           />
           <AdminStatsCard
-            title="Repeat Customers"
+            title={t('repeatCustomers')}
             value={customerActivity.repeatCustomers.toString()}
-            subtitle="Multiple bookings"
+            subtitle={t('multipleBookings')}
             icon="🔄"
           />
           <AdminStatsCard
-            title="Avg Bookings/Customer"
+            title={t('avgBookingsPerCustomer')}
             value={customerActivity.avgBookingsPerCustomer.toString()}
             icon="📈"
           />
           <AdminStatsCard
-            title="Web Customers"
+            title={t('webCustomers')}
             value={customerActivity.customerRoles.web.toString()}
-            subtitle="Registered users"
+            subtitle={t('registeredUsers')}
             icon="🌐"
           />
           <AdminStatsCard
-            title="Guest Customers"
+            title={t('guestCustomers')}
             value={customerActivity.customerRoles.guest.toString()}
-            subtitle="Anonymous bookings"
+            subtitle={t('anonymousBookings')}
             icon="👤"
           />
           <AdminStatsCard
-            title="LINE Customers"
+            title={t('lineCustomers')}
             value={customerActivity.customerRoles.line.toString()}
-            subtitle="LINE app users"
+            subtitle={t('lineAppUsers')}
             icon="📱"
           />
       </div>
@@ -416,7 +418,7 @@ export default function AdminAnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Web Customers */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Web Customers</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('webCustomersTitle')}</h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {customers
                 .filter(customer => {
@@ -441,7 +443,7 @@ export default function AdminAnalyticsPage() {
 
           {/* Guest Customers */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Guest Customers</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('guestCustomersTitle')}</h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {customers
                 .filter(customer => customer.role?.toLowerCase() === 'guest')
@@ -463,7 +465,7 @@ export default function AdminAnalyticsPage() {
 
           {/* LINE Customers */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">LINE Customers</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('lineCustomersTitle')}</h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {customers
                 .filter(customer => customer.role?.toLowerCase() === 'line')
@@ -487,7 +489,7 @@ export default function AdminAnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Peak Booking Hours */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Peak Booking Hours</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('peakBookingHours')}</h3>
             <div className="space-y-3">
               {customerActivity.peakBookingHours.map((hour, index) => (
                 <div key={index} className="flex items-center justify-between">
@@ -504,7 +506,7 @@ export default function AdminAnalyticsPage() {
 
           {/* Peak Booking Days */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Peak Booking Days</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('peakBookingDays')}</h3>
             <div className="space-y-3">
               {customerActivity.peakBookingDays.map((day, index) => (
                 <div key={index} className="flex items-center justify-between">
