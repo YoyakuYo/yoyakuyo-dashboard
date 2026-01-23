@@ -145,7 +145,7 @@ const AdminSidebar = React.memo(() => {
             {t("admin.dashboard") || "Admin Dashboard"}
           </button>
         </div>
-        <nav className="flex-1 p-4">
+        <nav className="p-4">
           <ul className="space-y-1">
             {navItems.map((item) => {
               const isActive =
