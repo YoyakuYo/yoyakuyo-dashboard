@@ -1239,6 +1239,22 @@ function LineInboxPageContent() {
               // Don't show duplicate warning - it's normal behavior
               return prev;
             }
+
+            // CRITICAL FIX: Also check if this is the user's own message that was just sent
+            // The optimistic message has a different ID, so we need to check content + recent timestamp
+            const recentThreshold = Date.now() - 5000; // 5 seconds ago
+            const isRecentUserMessage = prev.some((msg) =>
+              msg.sender_type === 'customer' &&
+              msg.content === newMessage.content &&
+              new Date(msg.created_at).getTime() > recentThreshold &&
+              msg.status === 'sending' // Optimistic message still has 'sending' status
+            );
+
+            if (isRecentUserMessage) {
+              console.log("[RT] SKIPPING OWN RECENT MESSAGE (optimistic already exists)", newMessage.id);
+              setRtDebug(`🚫 Skipped own msg ${newMessage.id?.substring(0, 8)}`);
+              return prev;
+            }
             
             const formattedMessage: Message = {
               id: newMessage.id,
@@ -1452,17 +1468,6 @@ function LineInboxPageContent() {
           </div>
         )}
 
-        {/* DEBUG DISPLAY - VISIBLE ON PHONE */}
-        {(rtDebug || rtStatus) && (
-          <div className="px-4 py-2 flex-shrink-0">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-              <p className="text-yellow-800 text-xs font-mono">
-                🔍 DEBUG: {rtDebug}
-                {rtStatus && <span className="block mt-1">📊 Status: {rtStatus}</span>}
-              </p>
-            </div>
-          </div>
-        )}
 
         <div className="flex-1 flex flex-col min-h-0 px-2 md:px-4 py-2">
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1 flex flex-col min-h-0">
