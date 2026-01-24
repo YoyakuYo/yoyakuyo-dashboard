@@ -80,6 +80,7 @@ interface Booking {
   created_at: string;
   shops?: { id: string; name: string } | null;
   services?: { id: string; name: string; price?: number } | null;
+  conversations?: { id: string }[] | null;
 }
 
 export default function OwnerBookingsPage() {
