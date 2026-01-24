@@ -12,7 +12,12 @@ export default function PaymentPage() {
   const router = useRouter();
   // No auth needed for guest payments
   const t = useTranslations();
-  const shopId = params.shopId as string;
+  const shopId = params?.shopId as string;
+
+  // Handle missing params
+  if (!shopId) {
+    return <div>Error: Missing shop ID</div>;
+  }
 
   const [booking, setBooking] = useState<any>(null);
   const [service, setService] = useState<any>(null);
