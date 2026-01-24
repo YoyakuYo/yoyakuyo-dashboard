@@ -161,21 +161,14 @@ function OwnerMessagesPageContent() {
         console.log('[Owner Messages] ✅ [DIAGNOSTIC] Conversations loaded:', data.conversations?.length || 0);
         console.log('[Owner Messages] 📦 [DIAGNOSTIC] Conversations data:', data);
         
-        // Load shop names for each conversation
-        const conversationsWithShops = await Promise.all(
-          (data.conversations || []).map(async (conv: any) => {
-            try {
-              const shopRes = await fetch(`${apiUrl}/shops/${conv.shop_id}`);
-              if (shopRes.ok) {
-                const shopData = await shopRes.json();
-                return { ...conv, shop: { id: shopData.id, name: shopData.name } };
-              }
-            } catch (error) {
-              console.error('[Owner Messages] Error loading shop:', error);
-            }
-            return conv;
-          })
-        );
+        // Use shop data already included in the API response (no extra API calls needed)
+        const conversationsWithShops = (data.conversations || []).map((conv: any) => {
+          // Shop data is already included via the left join in the API
+          return {
+            ...conv,
+            shop: conv.shops ? { id: conv.shops.id, name: conv.shops.name } : null
+          };
+        });
         
         // Sort conversations by last message time (most recent first)
         conversationsWithShops.sort((a: any, b: any) => {
@@ -193,20 +186,33 @@ function OwnerMessagesPageContent() {
 
         // Format conversations for customer messages
         const formattedThreads: CustomerThread[] = conversationsWithShops.map((conv: any) => {
-          // Prioritize customer name, but if not available, extract name from email or use type
+          // Build a robust display name with a clear priority:
+          // 1) explicit display_name from API
+          // 2) fallback to name
+          // 3) derive from email (local-part)
+          // 4) generic label from customer_type
+          // 5) final fallback
           let displayName: string;
           
-          // First try: use customer name from API
-          if (conv.customer?.name) {
+          // First: backend-provided name (customer_display_name) if available
+          if ((conv as any).customer_display_name) {
+            displayName = (conv as any).customer_display_name;
+          }
+          // Second: use explicit display_name if available
+          else if (conv.customer?.display_name) {
+            displayName = conv.customer.display_name;
+          }
+          // Second: fallback to name if display_name is not provided
+          else if (conv.customer?.name) {
             displayName = conv.customer.name;
           }
-          // Second try: extract name from email
+          // Third: derive from email
           else if (conv.customer?.email) {
             const emailName = conv.customer.email.split('@')[0];
             // Capitalize first letter and use as display name
             displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
           }
-          // Third try: use customer_type to generate generic label
+          // Fourth: use customer_type for a generic label
           else if (conv.customer_type) {
             displayName = conv.customer_type === 'line' ? 'LINE Customer' : 
                           conv.customer_type === 'web' ? 'Web Customer' : 

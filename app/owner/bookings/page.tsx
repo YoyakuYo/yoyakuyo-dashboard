@@ -289,9 +289,9 @@ export default function OwnerBookingsPage() {
                       </button>
                     </>
                   ) : null}
-                  {booking.customer_email && (
+                  {booking.customer_email && booking.conversations && booking.conversations.length > 0 && (
                     <Link
-                      href={`/owner/messages?shopId=${booking.shop_id}`}
+                      href={`/owner/messages?conversation=${booking.conversations[0].id}`}
                       className="px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors text-center"
                     >
                       {t('messages.title')}
