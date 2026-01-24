@@ -42,11 +42,11 @@ function BrowsePageContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalShops, setTotalShops] = useState(0);
   const [categoryStats, setCategoryStats] = useState<Record<string, number>>({});
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  
+  const [searchQuery, setSearchQuery] = useState(searchParams?.get('search') || '');
+
   // Navigation state - Category only
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
-    searchParams.get('category') || null
+    searchParams?.get('category') || null
   );
 
   // Debounced search
