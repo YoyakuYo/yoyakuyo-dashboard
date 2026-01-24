@@ -27,13 +27,13 @@ export default function CategoryFilters({ categoryId, onFilterChange }: Category
 
   // Get initial values from URL params
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>(
-    searchParams.get('subcategory') || 'all'
+    searchParams?.get('subcategory') || 'all'
   );
   const [selectedRegion, setSelectedRegion] = useState<string>(
-    searchParams.get('region') || 'all'
+    searchParams?.get('region') || 'all'
   );
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>(
-    searchParams.get('prefecture') || 'all'
+    searchParams?.get('prefecture') || 'all'
   );
 
   // Get the current main category from categoryId
