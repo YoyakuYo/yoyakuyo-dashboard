@@ -36,7 +36,12 @@ function CategoryPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const locale = useLocale();
-  const categoryId = params.categoryId as string;
+  const categoryId = params?.categoryId as string;
+
+  // Handle missing params
+  if (!categoryId) {
+    return <div>Error: Missing category ID</div>;
+  }
 
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(false);
