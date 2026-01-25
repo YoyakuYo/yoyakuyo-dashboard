@@ -109,13 +109,29 @@ function OwnerMessagesPageContent() {
   }, [user?.id, loading]);
 
   useEffect(() => {
+    console.log('[Owner Messages] 🔄 SELECTED THREAD CHANGED:', {
+      newSelectedThread: selectedThread,
+      timestamp: new Date().toISOString()
+    });
+
     if (selectedThread) {
+      console.log('[Owner Messages] 📨 LOADING MESSAGES FOR:', selectedThread);
       loadMessages(selectedThread);
       // Save to localStorage for persistence across page refreshes
       localStorage.setItem('selectedConversation', selectedThread);
+      // Update URL to reflect current conversation selection
+      const url = new URL(window.location);
+      url.searchParams.set('conversation', selectedThread);
+      window.history.replaceState({}, '', url);
+      console.log('[Owner Messages] 🔗 UPDATED URL TO:', url.toString());
     } else {
+      console.log('[Owner Messages] 🗑️ CLEARING SELECTION');
       // Clear localStorage when no conversation is selected
       localStorage.removeItem('selectedConversation');
+      // Remove conversation from URL
+      const url = new URL(window.location);
+      url.searchParams.delete('conversation');
+      window.history.replaceState({}, '', url);
     }
   }, [selectedThread]);
 
@@ -275,11 +291,18 @@ function OwnerMessagesPageContent() {
 
 
   const loadMessages = async (conversationId: string) => {
+    console.log('[Owner Messages] 🚀 LOAD MESSAGES CALLED WITH:', {
+      conversationId,
+      currentSelectedThread: selectedThread,
+      userId: user?.id,
+      timestamp: new Date().toISOString()
+    });
+
     if (!user?.id) {
       console.error('[Owner Messages] ❌ [DIAGNOSTIC] Cannot load messages - missing user.id');
       return;
     }
-    
+
     try {
       console.log('[Owner Messages] 🔍 [DIAGNOSTIC] Loading messages', {
         conversationId,
@@ -336,6 +359,12 @@ function OwnerMessagesPageContent() {
         });
 
         console.log('[Owner Messages] ✅ [DIAGNOSTIC] Formatted messages:', formattedMessages.length);
+        console.log('[Owner Messages] 💬 SETTING MESSAGES STATE:', {
+          conversationId,
+          messageCount: formattedMessages.length,
+          firstMessagePreview: formattedMessages[0]?.content?.substring(0, 50) || 'none',
+          timestamp: new Date().toISOString()
+        });
         setMessages(formattedMessages);
 
         // Mark messages as read when conversation is opened (even from cache)
@@ -644,7 +673,15 @@ function OwnerMessagesPageContent() {
                 {customerThreads.map((thread) => (
                   <button
                     key={thread.id}
-                    onClick={() => setSelectedThread(thread.id)}
+                    onClick={() => {
+                      console.log('[Owner Messages] 🖱️ CLICKED THREAD:', {
+                        clickedId: thread.id,
+                        clickedName: thread.customer_name,
+                        currentSelected: selectedThread,
+                        willChangeTo: thread.id
+                      });
+                      setSelectedThread(thread.id);
+                    }}
                     className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
                       selectedThread === thread.id ? 'bg-blue-50 border-l-4 border-blue-600' : ''
                     }`}
