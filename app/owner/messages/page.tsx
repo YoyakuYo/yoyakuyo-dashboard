@@ -119,19 +119,35 @@ function OwnerMessagesPageContent() {
       loadMessages(selectedThread);
       // Save to localStorage for persistence across page refreshes
       localStorage.setItem('selectedConversation', selectedThread);
-      // Update URL to reflect current conversation selection
-      const url = new URL(window.location.href);
-      url.searchParams.set('conversation', selectedThread);
-      window.history.replaceState({}, '', url);
-      console.log('[Owner Messages] 🔗 UPDATED URL TO:', url.toString());
     } else {
       console.log('[Owner Messages] 🗑️ CLEARING SELECTION');
       // Clear localStorage when no conversation is selected
       localStorage.removeItem('selectedConversation');
+    }
+  }, [selectedThread]);
+
+  // Separate useEffect for URL updates to avoid infinite loops
+  useEffect(() => {
+    if (selectedThread) {
+      // Update URL to reflect current conversation selection (with delay to avoid loops)
+      setTimeout(() => {
+        const url = new URL(window.location.href);
+        const currentUrlParam = url.searchParams.get('conversation');
+        if (currentUrlParam !== selectedThread) {
+          url.searchParams.set('conversation', selectedThread);
+          window.history.replaceState({}, '', url);
+          console.log('[Owner Messages] 🔗 UPDATED URL TO:', url.toString());
+        }
+      }, 100);
+    } else {
       // Remove conversation from URL
-      const url = new URL(window.location.href);
-      url.searchParams.delete('conversation');
-      window.history.replaceState({}, '', url);
+      setTimeout(() => {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('conversation')) {
+          url.searchParams.delete('conversation');
+          window.history.replaceState({}, '', url);
+        }
+      }, 100);
     }
   }, [selectedThread]);
 
