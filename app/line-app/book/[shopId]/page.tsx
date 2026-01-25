@@ -56,8 +56,13 @@ function LineBookingPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { t } = useLineAppI18n();
-  const shopId = params.shopId as string;
-  const serviceId = searchParams.get("service_id");
+  const shopId = params?.shopId as string;
+  const serviceId = searchParams?.get("service_id");
+
+  // Handle missing params
+  if (!shopId) {
+    return <div>Error: Missing shop ID</div>;
+  }
   
   const [service, setService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState("");
