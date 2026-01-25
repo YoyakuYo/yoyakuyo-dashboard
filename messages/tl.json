@@ -832,6 +832,21 @@
     "enterYourName": "Enter your name",
     "whatOthersAreSaying": "What Others Are Saying"
   },
+  "landing": {
+    "shareExperience": "Ibahagi ang Iyong Karanasan",
+    "experienceQuestion": "Paano ang iyong karanasan sa paggamit ng Yoyaku Yo? Gusto naming marinig mula sa iyo!",
+    "yourName": "Iyong pangalan *",
+    "rateExperience": "Rate your experience (optional)",
+    "thankYouReview": "Salamat sa iyong review!",
+    "noReviewsYet": "Wala pang mga review",
+    "beFirstReview": "Maging unang magbahagi ng karanasan!",
+    "loadingReviews": "Naglo-load ng mga review...",
+    "excellent": "Napakagaling!",
+    "great": "Napakahusay!",
+    "good": "Maganda",
+    "fair": "Katamtaman",
+    "poor": "Hindi maganda"
+  },
   "analytics": {
     "title": "Analytics",
     "overview": "Overview",

@@ -1102,6 +1102,21 @@
     "enterYourName": "이름 입력",
     "whatOthersAreSaying": "다른 사람들의 의견"
   },
+  "landing": {
+    "shareExperience": "경험 공유하기",
+    "experienceQuestion": "Yoyaku Yo 사용 경험은 어떠셨나요? 여러분의 의견을 듣고 싶습니다!",
+    "yourName": "이름 *",
+    "rateExperience": "경험 평가 (선택사항)",
+    "thankYouReview": "리뷰 감사합니다!",
+    "noReviewsYet": "아직 리뷰가 없습니다",
+    "beFirstReview": "첫 번째 리뷰를 남겨보세요!",
+    "loadingReviews": "리뷰를 불러오는 중...",
+    "excellent": "최고!",
+    "great": "훌륭해요!",
+    "good": "좋아요",
+    "fair": "보통",
+    "poor": "별로"
+  },
   "notifications": {
     "notSupported": "이 브라우저에서는 푸시 알림을 지원하지 않습니다",
     "blockedInstructions": "알림이 차단되었습니다. 활성화하려면:\n\n1. URL 옆의 자물쇠/정보 아이콘(🔒 또는 ℹ️)을 클릭하세요\n2. \"알림\"을 찾아 \"허용\"으로 변경하세요\n3. 페이지를 새로고침하고 다시 시도하세요",

@@ -1622,6 +1622,21 @@
     "enterYourName": "Digite seu nome",
     "whatOthersAreSaying": "O Que Outros Estão Dizendo"
   },
+  "landing": {
+    "shareExperience": "Compartilhe Sua Experiência",
+    "experienceQuestion": "Como foi sua experiência usando o Yoyaku Yo? Adoraríamos ouvir de você!",
+    "yourName": "Seu nome *",
+    "rateExperience": "Avalie sua experiência (opcional)",
+    "thankYouReview": "Obrigado pela sua avaliação!",
+    "noReviewsYet": "Ainda não há avaliações",
+    "beFirstReview": "Seja o primeiro a compartilhar sua experiência!",
+    "loadingReviews": "Carregando avaliações...",
+    "excellent": "Excelente!",
+    "great": "Ótimo!",
+    "good": "Bom",
+    "fair": "Regular",
+    "poor": "Ruim"
+  },
   "messages": {
     "title": "Mensagens",
     "conversations": "Conversas",
