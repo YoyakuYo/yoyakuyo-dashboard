@@ -350,13 +350,7 @@ function OwnerMessagesPageContent() {
         }
 
         // Force refresh conversation list after marking messages as read
-        console.log('[Owner Messages] 🔄 [DIAGNOSTIC] Forcing conversation list refresh');
-        try {
-          await loadCustomerThreads();
-          console.log('[Owner Messages] ✅ [DIAGNOSTIC] Conversation list refreshed');
-        } catch (error) {
-          console.error('[Owner Messages] ❌ [DIAGNOSTIC] Failed to refresh conversation list:', error);
-        }
+        await loadCustomerThreads();
       } else {
         const errorText = await res.text();
         let errorData;
@@ -477,29 +471,13 @@ function OwnerMessagesPageContent() {
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || !selectedThread || sending || !user?.id) {
-      console.warn('[Owner Messages] ⚠️ [DIAGNOSTIC] Cannot send message', {
-        hasInput: !!input.trim(),
-        selectedThread,
-        sending,
-        hasUserId: !!user?.id,
-      });
-      return;
-    }
+    if (!input.trim() || !selectedThread || sending || !user?.id) return;
 
     const messageText = input.trim();
     setInput("");
     setSending(true);
 
     try {
-      console.log('[Owner Messages] 📤 [DIAGNOSTIC] Sending message', {
-        conversationId: selectedThread,
-        userId: user.id,
-        messageLength: messageText.length,
-        endpoint: `${apiUrl}/api/internal-messaging/messages`,
-      });
-      
-      // Use the new internal messaging endpoint
       const res = await fetch(`${apiUrl}/api/internal-messaging/messages`, {
         method: 'POST',
         headers: {
@@ -511,21 +489,14 @@ function OwnerMessagesPageContent() {
           content: messageText,
         }),
       });
-      
-      console.log('[Owner Messages] 📥 [DIAGNOSTIC] Send message response', {
-        status: res.status,
-        statusText: res.statusText,
-        ok: res.ok,
-      });
-      
+
       if (res.ok) {
         const data = await res.json();
-        console.log('[Owner Messages] ✅ [DIAGNOSTIC] Message sent successfully', data);
-        
-        // Reload messages to show the new message
-        await loadMessages(selectedThread);
-        // Refresh conversation list to update unread counts
+
+        // Refresh conversation list first to update unread counts
         await loadCustomerThreads();
+        // Then reload messages to show the new message (which should be marked as read)
+        await loadMessages(selectedThread);
       } else {
         const errorText = await res.text();
         let errorData;
