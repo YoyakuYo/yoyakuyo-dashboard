@@ -1613,21 +1613,6 @@
     "enterYourName": "输入您的姓名",
     "whatOthersAreSaying": "其他人的评价"
   },
-  "landing": {
-    "shareExperience": "分享您的体验",
-    "experienceQuestion": "您使用Yoyaku Yo的体验如何？我们很乐意听取您的意见！",
-    "yourName": "您的姓名 *",
-    "rateExperience": "评价您的体验（可选）",
-    "thankYouReview": "感谢您的评价！",
-    "noReviewsYet": "暂无评价",
-    "beFirstReview": "成为第一个分享体验的人！",
-    "loadingReviews": "正在加载评价...",
-    "excellent": "非常棒！",
-    "great": "很好！",
-    "good": "不错",
-    "fair": "一般",
-    "poor": "不满意"
-  },
   "messages": {
     "title": "消息",
     "conversations": "对话",
@@ -1642,7 +1627,20 @@
     "shop": "店铺",
     "browseShops": "浏览店铺开始发消息",
     "failedToSend": "发送消息失败",
-    "errorSending": "发送消息时出错"
+    "errorSending": "发送消息时出错",
+    "shareExperience": "分享您的体验",
+    "experienceQuestion": "您使用Yoyaku Yo的体验如何？我们很乐意听取您的意见！",
+    "yourName": "您的姓名 *",
+    "rateExperience": "评价您的体验（可选）",
+    "thankYouReview": "感谢您的评价！",
+    "noReviewsYet": "暂无评价",
+    "beFirstReview": "成为第一个分享体验的人！",
+    "loadingReviews": "正在加载评价...",
+    "excellent": "非常棒！",
+    "great": "很好！",
+    "good": "不错",
+    "fair": "一般",
+    "poor": "不满意"
   },
   "claim": {
     "title": "Claim a Shop",

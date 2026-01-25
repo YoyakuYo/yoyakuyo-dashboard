@@ -947,7 +947,20 @@
     "shop": "매장",
     "browseShops": "매장을 둘러보고 메시지 보내기 시작",
     "failedToSend": "메시지 전송 실패",
-    "errorSending": "메시지 전송 오류"
+    "errorSending": "메시지 전송 오류",
+    "shareExperience": "경험 공유하기",
+    "experienceQuestion": "Yoyaku Yo 사용 경험은 어떠셨나요? 여러분의 의견을 듣고 싶습니다!",
+    "yourName": "이름 *",
+    "rateExperience": "경험 평가 (선택사항)",
+    "thankYouReview": "리뷰 감사합니다!",
+    "noReviewsYet": "아직 리뷰가 없습니다",
+    "beFirstReview": "첫 번째 리뷰를 남겨보세요!",
+    "loadingReviews": "리뷰를 불러오는 중...",
+    "excellent": "최고!",
+    "great": "훌륭해요!",
+    "good": "좋아요",
+    "fair": "보통",
+    "poor": "별로"
   },
   "settings": {
     "title": "설정",
@@ -1101,21 +1114,6 @@
     "feedbackHelps": "귀하의 피드백은 Yoyaku Yo 개선에 도움이 됩니다.",
     "enterYourName": "이름 입력",
     "whatOthersAreSaying": "다른 사람들의 의견"
-  },
-  "landing": {
-    "shareExperience": "경험 공유하기",
-    "experienceQuestion": "Yoyaku Yo 사용 경험은 어떠셨나요? 여러분의 의견을 듣고 싶습니다!",
-    "yourName": "이름 *",
-    "rateExperience": "경험 평가 (선택사항)",
-    "thankYouReview": "리뷰 감사합니다!",
-    "noReviewsYet": "아직 리뷰가 없습니다",
-    "beFirstReview": "첫 번째 리뷰를 남겨보세요!",
-    "loadingReviews": "리뷰를 불러오는 중...",
-    "excellent": "최고!",
-    "great": "훌륭해요!",
-    "good": "좋아요",
-    "fair": "보통",
-    "poor": "별로"
   },
   "notifications": {
     "notSupported": "이 브라우저에서는 푸시 알림을 지원하지 않습니다",
