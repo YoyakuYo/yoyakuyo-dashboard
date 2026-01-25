@@ -385,8 +385,8 @@ function LineBookingsPageContent() {
   // BUG 1 FIX: Reload bookings when success parameter changes
   // Use ID token endpoint which will show the new booking immediately
   useEffect(() => {
-    const success = searchParams.get("success");
-    const refresh = searchParams.get("refresh");
+    const success = searchParams?.get("success");
+    const refresh = searchParams?.get("refresh");
     if (success === "true" || refresh) {
       // Reload bookings immediately (ID token endpoint should have latest data)
       // Small delay to ensure backend transaction is committed
