@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from 'next-intl';
 import { useNotifications } from '@/lib/useNotifications';
+import { MarkReadGate } from "@/lib/markReadGate";
 
 interface CustomerThread {
   id: string;
@@ -66,6 +67,7 @@ function OwnerMessagesPageContent() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const markReadGateRef = useRef(new MarkReadGate({ debounceMs: 400 }));
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -367,20 +369,12 @@ function OwnerMessagesPageContent() {
 
         setMessages(formattedMessages);
 
-        // Mark messages as read when conversation is opened
-        // Note: If we successfully loaded messages, the conversation exists in the database
-        // We'll mark as read, and if it fails with 404, markMessagesAsRead will handle it gracefully
-        try {
-          console.log('[Owner Messages] 🎯 [DIAGNOSTIC] Marking messages as read for conversation:', conversationId);
-          await markMessagesAsRead(conversationId);
-          console.log('[Owner Messages] ✅ [DIAGNOSTIC] markMessagesAsRead completed');
-        } catch (error: unknown) {
-          // markMessagesAsRead already handles 404 gracefully, so we just log here
-          console.log('[Owner Messages] ℹ️ markMessagesAsRead completed (may have been 404 for stale conversation)');
-        }
+        const markReadResult = await tryMarkMessagesAsRead(conversationId);
 
-        // Force refresh conversation list after marking messages as read
-        await loadCustomerThreads();
+        if (markReadResult.success) {
+          console.log('[Owner Messages] 🔄 [DIAGNOSTIC] Refreshing conversation list after successful mark-read');
+          await loadCustomerThreads();
+        }
       } else {
         const errorText = await res.text();
         let errorData;
@@ -421,104 +415,137 @@ function OwnerMessagesPageContent() {
     }
   };
 
-  const markMessagesAsRead = async (conversationId: string) => {
-    console.log('[Owner Messages] 🎯 [DIAGNOSTIC] markMessagesAsRead function called with:', conversationId);
-    console.log('[Owner Messages] 🎯 [DIAGNOSTIC] Current selectedThread:', selectedThread);
-    console.log('[Owner Messages] 🎯 [DIAGNOSTIC] Conversation ID match:', conversationId === selectedThread);
+  type MarkReadAttemptResult = {
+    attempted: boolean;
+    success: boolean;
+    status?: number;
+  };
+
+  const tryMarkMessagesAsRead = async (conversationId: string): Promise<MarkReadAttemptResult> => {
+    if (!conversationId) return { attempted: false, success: false };
+
+    const gate = markReadGateRef.current;
+    const thread = customerThreads.find((t) => t.id === conversationId);
+    const unreadCount = thread?.unreadCount || 0;
+
+    if (!thread) {
+      console.log('[Owner Messages] ⚠️ Message thread missing from list, skipping mark-read:', conversationId);
+      return { attempted: false, success: false };
+    }
+
+    if (!gate.canMark(conversationId, unreadCount)) {
+      console.log('[Owner Messages] ⚠️ Guard prevented redundant mark-read for:', conversationId);
+      return { attempted: false, success: false };
+    }
+
+    gate.recordAttempt(conversationId);
+    const result = await markMessagesAsRead(conversationId, thread.shop_id);
+
+    if (result.isNotFound) {
+      console.warn('[Owner Messages] ⚠️ mark-read 404, stopping retries for conversation:', conversationId);
+      gate.recordFailure(conversationId);
+      setCustomerThreads((prev) =>
+        prev.map((t) => (t.id === conversationId ? { ...t, unreadCount: 0 } : t))
+      );
+    }
+
+    if (result.ok) {
+      gate.recordSuccess(conversationId);
+    }
+
+    return { attempted: true, success: result.ok, status: result.status };
+  };
+
+  type MarkReadResponse = {
+    ok: boolean;
+    status: number;
+    isNotFound?: boolean;
+    errorText?: string;
+  };
+
+  const markMessagesAsRead = async (conversationId: string, shopId?: string): Promise<MarkReadResponse> => {
+    console.log('[Owner Messages] 🎯 markMessagesAsRead triggered for conversation:', conversationId);
 
     if (!user?.id) {
-      console.error('[Owner Messages] ❌ Cannot mark messages as read - missing user.id');
-      return;
+      console.error('[Owner Messages] ❌ Missing user.id, cannot mark messages as read');
+      return { ok: false, status: 0 };
     }
 
     try {
-      console.log('[Owner Messages] 📖 [DIAGNOSTIC] Marking messages as read', {
+      const headers: Record<string, string> = {
+        'x-user-id': user.id,
+        'Content-Type': 'application/json',
+      };
+
+      if (shopId) {
+        headers['x-shop-id'] = shopId;
+      }
+
+      console.log('[Owner Messages] 📖 Requesting mark-read', {
         conversationId,
-        userId: user.id,
-        endpoint: `${apiUrl}/api/internal-messaging/${conversationId}/mark-read`,
+        shopId,
       });
 
       const res = await fetch(`${apiUrl}/api/internal-messaging/${conversationId}/mark-read`, {
         method: 'PATCH',
-        headers: {
-          'x-user-id': user.id,
-          'Content-Type': 'application/json',
-        },
+        headers,
       });
 
-      console.log('[Owner Messages] 📥 [DIAGNOSTIC] Mark read response details', {
+      console.log('[Owner Messages] 📥 mark-read response', {
         status: res.status,
         statusText: res.statusText,
         ok: res.ok,
         url: res.url,
-        headers: Object.fromEntries(res.headers.entries()),
       });
 
-      // Log the response body if available
-      let responseBody;
       try {
-        responseBody = await res.clone().json();
-        console.log('[Owner Messages] 📄 [DIAGNOSTIC] Mark read response body:', responseBody);
-      } catch (e) {
-        console.log('[Owner Messages] 📄 [DIAGNOSTIC] Mark read response has no JSON body');
+        const responseBody = await res.clone().json();
+        console.log('[Owner Messages] 📄 mark-read response body:', responseBody);
+      } catch {
+        console.log('[Owner Messages] 📄 mark-read response has no JSON body');
       }
 
       if (res.ok) {
-        console.log('[Owner Messages] ✅ [DIAGNOSTIC] Messages marked as read successfully');
+        console.log('[Owner Messages] ✅ Messages marked as read:', conversationId);
 
-        // Mark corresponding notifications as read
         const relatedNotifications = ownerNotifications.filter(
           (n) => n.type === 'new_message' && n.data?.conversation_id === conversationId && !n.is_read
         );
 
-        console.log('[Owner Messages] 📧 [DIAGNOSTIC] Found related notifications to mark as read:', relatedNotifications.length);
-        console.log('[Owner Messages] 📧 [DIAGNOSTIC] All owner notifications:', ownerNotifications.map(n => ({
-          id: n.id,
-          type: n.type,
-          conversation_id: n.data?.conversation_id,
-          is_read: n.is_read,
-          recipient_id: n.recipient_id
-        })));
-
-        // Mark each notification as read
         for (const notification of relatedNotifications) {
           try {
-            console.log('[Owner Messages] 🔄 [DIAGNOSTIC] Attempting to mark notification as read:', notification.id);
+            console.log('[Owner Messages] 🔄 Marking notification as read:', notification.id);
             await markAsRead(notification.id);
-            console.log('[Owner Messages] ✅ [DIAGNOSTIC] Marked notification as read:', notification.id);
           } catch (error) {
-            console.error('[Owner Messages] ❌ [DIAGNOSTIC] Failed to mark notification as read:', notification.id, error);
+            console.error('[Owner Messages] ❌ Failed to mark notification as read:', notification.id, error);
           }
         }
 
-        // Refresh conversation list to update unread counts
-        console.log('[Owner Messages] 🔄 [DIAGNOSTIC] Refreshing conversation list after marking messages as read');
-        await loadCustomerThreads();
-      } else {
-        const errorText = await res.text();
-        
-        // Handle 404 gracefully - conversation may have been deleted or is stale
-        if (res.status === 404) {
-          console.log('[Owner Messages] ℹ️ Conversation not found (may be stale), skipping mark-read:', conversationId);
-          // Don't refresh here - the loadMessages 404 handler will take care of cleanup
-          // Just silently ignore the 404 for mark-read
-        } else {
-          // Log other errors as actual errors
-          console.error('[Owner Messages] ❌ Failed to mark messages as read', {
-          status: res.status,
-          error: errorText,
-          conversationId,
-          userId: user.id,
-        });
-        }
+        return { ok: true, status: res.status };
       }
-    } catch (error: any) {
-      console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error marking messages as read', {
-        error,
-        message: error.message,
+
+      const errorText = await res.text();
+
+      if (res.status === 404) {
+        console.log('[Owner Messages] ℹ️ mark-read 404 (stale conversation):', conversationId);
+        return { ok: false, status: res.status, isNotFound: true, errorText };
+      }
+
+      console.error('[Owner Messages] ❌ Failed to mark messages as read', {
+        status: res.status,
+        error: errorText,
         conversationId,
         userId: user.id,
       });
+
+      return { ok: false, status: res.status, errorText };
+    } catch (error: any) {
+      console.error('[Owner Messages] ❌ markMessagesAsRead encountered an error', {
+        error,
+        conversationId,
+        userId: user.id,
+      });
+      return { ok: false, status: 0, errorText: error?.message };
     }
   };
 
