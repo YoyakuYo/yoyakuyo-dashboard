@@ -593,7 +593,7 @@ ${t("bookingDetailsTitle")}:
     );
   }
 
-  const success = searchParams.get("success") === "true";
+  const success = searchParams?.get("success") === "true";
   const statusLabel = (status: string) => {
     const key = `status_${status}` as any;
     try {
