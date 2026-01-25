@@ -108,14 +108,28 @@ function OwnerMessagesPageContent() {
 
   useEffect(() => {
     if (selectedThread) {
-      loadMessages(selectedThread);
-      // Save to localStorage for persistence across page refreshes
-      localStorage.setItem('selectedConversation', selectedThread);
+      // Only load messages if the conversation exists in the loaded list
+      // This prevents trying to load messages for stale/deleted conversations
+      const conversationExists = customerThreads.some(t => t.id === selectedThread);
+      
+      if (conversationExists) {
+        loadMessages(selectedThread);
+        // Save to localStorage for persistence across page refreshes
+        localStorage.setItem('selectedConversation', selectedThread);
+      } else if (customerThreads.length > 0) {
+        // Conversation doesn't exist in list - clear stale selection
+        console.log('[Owner Messages] ⚠️ Selected conversation not in list, clearing stale selection:', selectedThread);
+        localStorage.removeItem('selectedConversation');
+        // Don't auto-select here - let loadCustomerThreads handle it
+      } else {
+        // Threads not loaded yet - save to localStorage and wait
+        localStorage.setItem('selectedConversation', selectedThread);
+      }
     } else {
       // Clear localStorage when no conversation is selected
       localStorage.removeItem('selectedConversation');
     }
-  }, [selectedThread]);
+  }, [selectedThread, customerThreads]);
 
   // Separate useEffect for URL updates to avoid infinite loops
   useEffect(() => {
@@ -272,11 +286,18 @@ function OwnerMessagesPageContent() {
           // Verify selected conversation still exists
           const selectedExists = formattedThreads.some(t => t.id === selectedThread);
           if (!selectedExists) {
-            console.log('[Owner Messages] ⚠️ Selected conversation no longer exists, auto-selecting most recent');
+            console.log('[Owner Messages] ⚠️ Selected conversation no longer exists, clearing localStorage and auto-selecting most recent');
+            // Clear stale localStorage value
+            localStorage.removeItem('selectedConversation');
             setSelectedThread(formattedThreads[0].id);
           } else {
             console.log('[Owner Messages] ✅ Selected conversation still exists:', selectedThread);
           }
+        } else if (selectedThread && formattedThreads.length === 0) {
+          // No conversations available but we have a stale selection
+          console.log('[Owner Messages] ⚠️ No conversations available, clearing stale selection');
+          localStorage.removeItem('selectedConversation');
+          setSelectedThread(null);
         }
 
         setCustomerThreads(formattedThreads);
@@ -358,14 +379,25 @@ function OwnerMessagesPageContent() {
           errorData = { error: errorText };
         }
         
-        console.error('[Owner Messages] ❌ [DIAGNOSTIC] Failed to load messages', {
-          status: res.status,
-          statusText: res.statusText,
-          error: errorData,
-          conversationId,
-          userId: user.id,
-        });
-        setMessages([]);
+        // Handle 404 gracefully - conversation may be stale
+        if (res.status === 404) {
+          console.log('[Owner Messages] ℹ️ Conversation not found (may be stale):', conversationId);
+          // Clear the stale selection and localStorage
+          localStorage.removeItem('selectedConversation');
+          setSelectedThread(null);
+          setMessages([]);
+          // Refresh conversations to get the current list
+          await loadCustomerThreads();
+        } else {
+          console.error('[Owner Messages] ❌ Failed to load messages', {
+            status: res.status,
+            statusText: res.statusText,
+            error: errorData,
+            conversationId,
+            userId: user.id,
+          });
+          setMessages([]);
+        }
       }
     } catch (error: any) {
       console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error loading messages', {
@@ -453,21 +485,26 @@ function OwnerMessagesPageContent() {
         await loadCustomerThreads();
       } else {
         const errorText = await res.text();
-        console.error('[Owner Messages] ❌ [DIAGNOSTIC] Failed to mark messages as read', {
-          status: res.status,
-          error: errorText,
-          conversationId,
-          userId: user.id,
-        });
-
-        // SAFETY FALLBACK: If mark-read fails with 404, reset unread count locally
+        
+        // Handle 404 gracefully - conversation may have been deleted or is stale
         if (res.status === 404) {
-          console.warn('[Owner Messages] ⚠️ [SAFETY FALLBACK] Mark-read returned 404, resetting unread count to 0 locally');
+          console.log('[Owner Messages] ℹ️ Conversation not found (may be stale), skipping mark-read:', conversationId);
+          // Reset unread count locally as a safety measure
           setCustomerThreads(prev => prev.map(thread =>
             thread.id === conversationId
               ? { ...thread, unreadCount: 0 }
               : thread
           ));
+          // Refresh conversations to get the current list
+          await loadCustomerThreads();
+        } else {
+          // Log other errors as actual errors
+          console.error('[Owner Messages] ❌ Failed to mark messages as read', {
+            status: res.status,
+            error: errorText,
+            conversationId,
+            userId: user.id,
+          });
         }
       }
     } catch (error: any) {
