@@ -859,8 +859,8 @@ const BookingsPage = () => {
                                             {/* Card Footer - Action Buttons */}
                                             <div className="px-5 py-4 bg-gray-50 border-t border-gray-200">
                                                 <div className="flex gap-2 flex-wrap">
-                                                    {/* Message Button - Always available for completed bookings */}
-                                                    {booking.status === 'completed' && (
+                                                    {/* Message Button - Available for all bookings */}
+                                                    {(
                                                         <button
                                                             onClick={() => {
                                                                 setOpenDropdown(null);
