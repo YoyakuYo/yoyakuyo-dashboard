@@ -98,8 +98,8 @@ function LiffEntryPageContent() {
         // Success - redirect to main LIFF app
         // The /line-app route handles LIFF initialization properly
         setStatus("ready");
-        const shopId = searchParams.get("shop_id");
-        const tab = searchParams.get("tab");
+        const shopId = searchParams?.get("shop_id");
+        const tab = searchParams?.get("tab");
         
         // Handle empty shop_id parameter
         const validShopId = shopId && shopId.trim() !== "" ? shopId : null;
