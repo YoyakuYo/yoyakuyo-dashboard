@@ -109,18 +109,11 @@ function OwnerMessagesPageContent() {
   }, [user?.id, loading]);
 
   useEffect(() => {
-    console.log('[Owner Messages] 🔄 SELECTED THREAD CHANGED:', {
-      newSelectedThread: selectedThread,
-      timestamp: new Date().toISOString()
-    });
-
     if (selectedThread) {
-      console.log('[Owner Messages] 📨 LOADING MESSAGES FOR:', selectedThread);
       loadMessages(selectedThread);
       // Save to localStorage for persistence across page refreshes
       localStorage.setItem('selectedConversation', selectedThread);
     } else {
-      console.log('[Owner Messages] 🗑️ CLEARING SELECTION');
       // Clear localStorage when no conversation is selected
       localStorage.removeItem('selectedConversation');
     }
@@ -136,7 +129,6 @@ function OwnerMessagesPageContent() {
         if (currentUrlParam !== selectedThread) {
           url.searchParams.set('conversation', selectedThread);
           window.history.replaceState({}, '', url);
-          console.log('[Owner Messages] 🔗 UPDATED URL TO:', url.toString());
         }
       }, 100);
     } else {
@@ -307,24 +299,9 @@ function OwnerMessagesPageContent() {
 
 
   const loadMessages = async (conversationId: string) => {
-    console.log('[Owner Messages] 🚀 LOAD MESSAGES CALLED WITH:', {
-      conversationId,
-      currentSelectedThread: selectedThread,
-      userId: user?.id,
-      timestamp: new Date().toISOString()
-    });
-
-    if (!user?.id) {
-      console.error('[Owner Messages] ❌ [DIAGNOSTIC] Cannot load messages - missing user.id');
-      return;
-    }
+    if (!user?.id) return;
 
     try {
-      console.log('[Owner Messages] 🔍 [DIAGNOSTIC] Loading messages', {
-        conversationId,
-        userId: user.id,
-        endpoint: `${apiUrl}/api/internal-messaging/${conversationId}/messages`,
-      });
       
       // Use the new internal messaging endpoint
       const res = await fetch(`${apiUrl}/api/internal-messaging/${conversationId}/messages`, {
@@ -343,27 +320,12 @@ function OwnerMessagesPageContent() {
       
       if (res.ok || res.status === 304) {
         const data = await res.json();
-        console.log('[Owner Messages] ✅ [DIAGNOSTIC] Messages loaded', {
-          conversationId,
-          messagesCount: data.messages?.length || 0,
-          fromCache: res.status === 304,
-          messages: data.messages,
-        });
 
         // Format messages for display
         const formattedMessages: Message[] = (data.messages || []).map((msg: any) => {
           // Map sender_role to role and sender_type
           const isOwner = msg.sender_role === 'shop' || msg.sender_role === 'owner' || msg.sender_role === 'ai';
 
-          console.log('[Owner Messages] 📝 Formatting message:', {
-            id: msg.id,
-            sender_role: msg.sender_role,
-            sender_type: msg.sender_type,
-            content_preview: (msg.content || msg.body || '').substring(0, 50),
-            isOwner,
-            final_role: isOwner ? 'assistant' : 'user',
-            final_sender_type: isOwner ? 'owner' : 'customer'
-          });
 
           return {
             id: msg.id,
@@ -374,19 +336,9 @@ function OwnerMessagesPageContent() {
           };
         });
 
-        console.log('[Owner Messages] ✅ [DIAGNOSTIC] Formatted messages:', formattedMessages.length);
-        console.log('[Owner Messages] 💬 SETTING MESSAGES STATE:', {
-          conversationId,
-          messageCount: formattedMessages.length,
-          firstMessagePreview: formattedMessages[0]?.content?.substring(0, 50) || 'none',
-          timestamp: new Date().toISOString()
-        });
         setMessages(formattedMessages);
 
         // Mark messages as read when conversation is opened (even from cache)
-        console.log('[Owner Messages] 🚀 [DIAGNOSTIC] About to call markMessagesAsRead for conversation:', conversationId);
-        console.log('[Owner Messages] 📊 [DIAGNOSTIC] Current user ID:', user?.id);
-        console.log('[Owner Messages] 🔍 [DIAGNOSTIC] Calling markMessagesAsRead now...');
 
         try {
           console.log('[Owner Messages] 🎯 [DIAGNOSTIC] Inside try block, about to call markMessagesAsRead');
@@ -689,15 +641,7 @@ function OwnerMessagesPageContent() {
                 {customerThreads.map((thread) => (
                   <button
                     key={thread.id}
-                    onClick={() => {
-                      console.log('[Owner Messages] 🖱️ CLICKED THREAD:', {
-                        clickedId: thread.id,
-                        clickedName: thread.customer_name,
-                        currentSelected: selectedThread,
-                        willChangeTo: thread.id
-                      });
-                      setSelectedThread(thread.id);
-                    }}
+                    onClick={() => setSelectedThread(thread.id)}
                     className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
                       selectedThread === thread.id ? 'bg-blue-50 border-l-4 border-blue-600' : ''
                     }`}
