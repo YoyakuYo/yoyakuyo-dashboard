@@ -120,7 +120,7 @@ function OwnerMessagesPageContent() {
       // Save to localStorage for persistence across page refreshes
       localStorage.setItem('selectedConversation', selectedThread);
       // Update URL to reflect current conversation selection
-      const url = new URL(window.location);
+      const url = new URL(window.location.href);
       url.searchParams.set('conversation', selectedThread);
       window.history.replaceState({}, '', url);
       console.log('[Owner Messages] 🔗 UPDATED URL TO:', url.toString());
@@ -129,7 +129,7 @@ function OwnerMessagesPageContent() {
       // Clear localStorage when no conversation is selected
       localStorage.removeItem('selectedConversation');
       // Remove conversation from URL
-      const url = new URL(window.location);
+      const url = new URL(window.location.href);
       url.searchParams.delete('conversation');
       window.history.replaceState({}, '', url);
     }
