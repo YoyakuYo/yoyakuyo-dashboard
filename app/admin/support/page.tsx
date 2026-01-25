@@ -87,6 +87,15 @@ export default function AdminSupportPage() {
   });
   const [convertingToDispute, setConvertingToDispute] = useState(false);
 
+  const selectedShopData = selectedConversation
+    ? Array.isArray(selectedConversation.shops)
+      ? selectedConversation.shops[0]
+      : selectedConversation.shops
+    : null;
+  const isSelectedConversationOwner =
+    !!selectedShopData?.owner_user_id && selectedConversation?.customer_ref === selectedShopData.owner_user_id;
+  const selectedShopName = selectedShopData?.name || "-";
+
   // Get user from Supabase Auth
   useEffect(() => {
     const getUserId = async () => {
@@ -475,7 +484,7 @@ export default function AdminSupportPage() {
 
         {/* Conversation Details & Reply */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          {selectedConversation ? (
+        {selectedConversation ? (
             <>
               <h2 className="text-xl font-bold text-gray-900 mb-4">
                 {t("admin.conversationDetails") || "Conversation Details"}
@@ -484,14 +493,18 @@ export default function AdminSupportPage() {
               <div className="space-y-4 mb-6">
                 <div>
                   <p className="text-sm text-gray-600">{t("admin.shop") || "Shop"}:</p>
-                  <p className="text-gray-900">{selectedConversation.shops?.name || "-"}</p>
+                  <p className="text-gray-900">{selectedShopName}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">{t("admin.userType") || "User Type"}:</p>
                   <p className="text-gray-900">
-                    {selectedConversation.customer_type === 'line' ? (t("admin.line") || "LINE") :
-                     selectedConversation.customer_type === 'web' ? (t("admin.web") || "Web") :
-                     (t("admin.guest") || "Guest")}
+                    {isSelectedConversationOwner
+                      ? (t("admin.owner") || "Owner")
+                      : selectedConversation.customer_type === 'line'
+                        ? (t("admin.line") || "LINE")
+                        : selectedConversation.customer_type === 'web'
+                          ? (t("admin.web") || "Web")
+                          : (t("admin.guest") || "Guest")}
                   </p>
                 </div>
                 <div>

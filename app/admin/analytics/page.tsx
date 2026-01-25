@@ -74,12 +74,13 @@ export default function AdminAnalyticsPage() {
       const supabase = getSupabaseClient();
 
       // Platform Overview - count all shops, but fetch verified shops for performance
-      const [allShopsCountResult, verifiedShopsResult, customersResult, customerProfilesResult, bookingsResult] = await Promise.all([
+      const [allShopsCountResult, verifiedShopsResult, customersResult, customerProfilesResult, bookingsResult, lineAccountsResult] = await Promise.all([
         supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
         supabase.from('customers').select('id, name, email, role, auth_user_id'), // Get customers
         supabase.from('customer_profiles').select('id, name, email'), // Get customer profiles
-        supabase.from('bookings').select('id, created_at, status, shop_id, customer_id')
+        supabase.from('bookings').select('id, created_at, status, shop_id, customer_id'),
+        supabase.from('line_accounts').select('customer_id, line_user_id')
       ]);
 
       if (allShopsCountResult.error) throw allShopsCountResult.error;
@@ -87,12 +88,17 @@ export default function AdminAnalyticsPage() {
       if (customersResult.error) throw customersResult.error;
       if (customerProfilesResult.error) throw customerProfilesResult.error;
       if (bookingsResult.error) throw bookingsResult.error;
+      if (lineAccountsResult.error) {
+        console.warn("[Admin Analytics] Failed to load LINE accounts:", lineAccountsResult.error);
+      }
 
       const totalShops = allShopsCountResult.count || 0;
       const verifiedShops = verifiedShopsResult.data || [];
       const customersData = customersResult.data || [];
       const customerProfilesData = customerProfilesResult.data || [];
       const allBookings = bookingsResult.data || [];
+      const lineAccountsData = lineAccountsResult.data || [];
+      const lineAccountsMap = new Map(lineAccountsData.map((account) => [account.customer_id, account.line_user_id]));
 
       // Create a map of customer profiles by ID for easy lookup
       const customerProfilesMap = new Map(customerProfilesData.map(profile => [profile.id, profile]));
@@ -101,7 +107,9 @@ export default function AdminAnalyticsPage() {
       // The web customer names/emails need to be populated in the customers table itself
       const enrichedCustomers = customersData.map(customer => ({
         ...customer,
-        customer_profiles: null // Disable profiles lookup since IDs don't match
+        customer_profiles: null, // Disable profiles lookup since IDs don't match
+        line_user_id: lineAccountsMap.get(customer.id) || customer.line_user_id || null,
+        is_line: lineAccountsMap.has(customer.id) || customer.role?.toLowerCase() === 'line',
       }));
 
       // Only include bookings from verified shops for performance metrics
@@ -119,10 +127,13 @@ export default function AdminAnalyticsPage() {
 
       // Calculate customer role breakdown from active customers only
       const customerRoles = activeCustomers.reduce((acc, customer) => {
-        const role = customer.role?.toLowerCase() || 'other';
-        if (role === 'guest') acc.guest++;
-        else if (role === 'line') acc.line++;
-        else acc.other++;
+        if (customer.is_line) {
+          acc.line++;
+        } else if (customer.role?.toLowerCase() === 'guest') {
+          acc.guest++;
+        } else {
+          acc.other++;
+        }
         return acc;
       }, { guest: 0, line: 0, other: 0 });
 
@@ -436,16 +447,18 @@ export default function AdminAnalyticsPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('lineCustomersTitle')}</h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {customers
-                .filter(customer => customer.role?.toLowerCase() === 'line')
+                .filter(customer => customer.is_line)
                 .map((customer, index) => (
                   <div key={customer.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
                     <div className="flex items-center space-x-3">
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.customer_profiles?.name || customer.name || `LINE Customer ${index + 1}`}
+                          {customer.customer_profiles?.name || customer.name || customer.line_user_id || `LINE Customer ${index + 1}`}
                         </div>
-                        <div className="text-sm text-gray-500">{customer.customer_profiles?.email || customer.email || 'LINE app user'}</div>
+                        <div className="text-sm text-gray-500">
+                          {customer.customer_profiles?.email || customer.email || customer.line_user_id || 'LINE app user'}
+                        </div>
                       </div>
                     </div>
                   </div>

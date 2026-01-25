@@ -151,31 +151,46 @@ export default function SupportConversationList({
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {conversations.map((conversation) => (
-            <tr
-              key={conversation.id}
-              className={`cursor-pointer hover:bg-gray-50 ${selectedId === conversation.id ? "bg-blue-50" : ""}`}
-              onClick={() => {
-                setSelectedId(conversation.id);
-                onSelectConversation(conversation);
-              }}
-            >
+          {conversations.map((conversation) => {
+            const shopData = Array.isArray(conversation.shops) ? conversation.shops[0] : conversation.shops;
+            const isOwner = !!shopData?.owner_user_id && shopData.owner_user_id === conversation.customer_ref;
+            const shopName = shopData?.name;
+
+            const userTypeLabel = isOwner
+              ? (t("admin.owner") || "Owner")
+              : conversation.customer_type === 'web'
+                ? (t("admin.web") || "Web")
+                : conversation.customer_type === 'line'
+                  ? (t("admin.line") || "LINE")
+                  : (t("admin.guest") || "Guest");
+
+            const userTypeClasses = isOwner
+              ? 'bg-purple-100 text-purple-800'
+              : conversation.customer_type === 'web'
+                ? 'bg-gray-100 text-gray-800'
+                : conversation.customer_type === 'line'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-yellow-100 text-yellow-800';
+
+            return (
+              <tr
+                key={conversation.id}
+                className={`cursor-pointer hover:bg-gray-50 ${selectedId === conversation.id ? "bg-blue-50" : ""}`}
+                onClick={() => {
+                  setSelectedId(conversation.id);
+                  onSelectConversation(conversation);
+                }}
+              >
               <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
                 {conversation.id.substring(0, 8)}...
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  conversation.customer_type === 'web' ? 'bg-gray-100 text-gray-800' :
-                  conversation.customer_type === 'line' ? 'bg-blue-100 text-blue-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {conversation.customer_type === 'web' ? (t("admin.web") || "Web") :
-                   conversation.customer_type === 'line' ? (t("admin.line") || "LINE") :
-                   (t("admin.guest") || "Guest")}
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${userTypeClasses}`}>
+                  {userTypeLabel}
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {conversation.shops?.name || "-"}
+                {shopName || "-"}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm">
                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(conversation.support_status)}`}>
@@ -203,8 +218,9 @@ export default function SupportConversationList({
                   <option value="closed">{t("admin.closed") || "Closed"}</option>
                 </select>
               </td>
-            </tr>
-          ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
