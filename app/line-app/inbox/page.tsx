@@ -53,9 +53,9 @@ function LineInboxPageContent() {
   
   const router = useRouter();
   const searchParams = useSearchParams();
-  const preselectedShopId = searchParams.get('shop_id');
-  const preselectedBookingId = searchParams.get('booking_id');
-  const preselectedLineUserId = searchParams.get('line_user_id');
+  const preselectedShopId = searchParams?.get('shop_id');
+  const preselectedBookingId = searchParams?.get('booking_id');
+  const preselectedLineUserId = searchParams?.get('line_user_id');
   
   const [lineUserId, setLineUserId] = useState<string>("");
   const [idToken, setIdToken] = useState<string | null>(null);

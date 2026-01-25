@@ -81,10 +81,10 @@ function OwnerMessagesPageContent() {
   // Handle conversation deep link (e.g., from notifications)
   useEffect(() => {
     const conversationId =
-      searchParams.get('conversation') ||
-      searchParams.get('conversationId') ||
+      searchParams?.get('conversation') ||
+      searchParams?.get('conversationId') ||
       // Back-compat: older notifications used "session"
-      searchParams.get('session');
+      searchParams?.get('session');
 
     if (conversationId && conversationId !== selectedThread) {
       console.log('[Owner Messages] 🔗 URL param conversation selected:', conversationId);
@@ -177,7 +177,7 @@ function OwnerMessagesPageContent() {
           return bTime - aTime; // Most recent first
         });
 
-        console.log('[Owner Messages] 📋 [DIAGNOSTIC] Conversations sorted by time, first 3:', conversationsWithShops.slice(0, 3).map(c => ({
+        console.log('[Owner Messages] 📋 [DIAGNOSTIC] Conversations sorted by time, first 3:', conversationsWithShops.slice(0, 3).map((c: any) => ({
           id: c.id,
           lastMessageAt: c.last_message_at,
           createdAt: c.created_at,

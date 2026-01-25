@@ -359,7 +359,7 @@ function LineAppPageContent() {
 
   // Get tab from URL
   useEffect(() => {
-    const tab = searchParams.get("tab") || "search";
+    const tab = searchParams?.get("tab") || "search";
     setActiveTab(tab);
   }, [searchParams]);
 

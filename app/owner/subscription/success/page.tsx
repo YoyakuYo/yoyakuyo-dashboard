@@ -23,7 +23,7 @@ function SubscriptionSuccessContent() {
       return;
     }
 
-    const sessionIdParam = searchParams.get('session_id');
+    const sessionIdParam = searchParams?.get('session_id');
     if (sessionIdParam) {
       setSessionId(sessionIdParam);
     }

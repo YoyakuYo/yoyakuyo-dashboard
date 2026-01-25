@@ -74,7 +74,12 @@ export default function LineShopDetailPage() {
   const { t } = useLineAppI18n();
   const params = useParams();
   const router = useRouter();
-  const shopId = params.id as string;
+  const shopId = params?.id as string;
+
+  // Handle missing params
+  if (!shopId) {
+    return <div>Error: Missing shop ID</div>;
+  }
   const [shop, setShop] = useState<Shop | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);

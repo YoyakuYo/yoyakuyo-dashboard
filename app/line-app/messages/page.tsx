@@ -34,8 +34,8 @@ interface Message {
 export default function MessagesPage() {
   const { t } = useLineAppI18n();
   const searchParams = useSearchParams();
-  const shopId = searchParams.get('shop_id');
-  const bookingId = searchParams.get('booking_id');
+  const shopId = searchParams?.get('shop_id');
+  const bookingId = searchParams?.get('booking_id');
   
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);

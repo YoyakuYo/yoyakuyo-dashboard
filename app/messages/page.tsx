@@ -40,7 +40,7 @@ function MessagesPageContent() {
   const { user } = useAuth();
   const t = useTranslations();
   const searchParams = useSearchParams();
-  const bookingIdParam = searchParams.get('bookingId');
+  const bookingIdParam = searchParams?.get('bookingId');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
