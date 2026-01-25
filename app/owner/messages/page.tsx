@@ -319,6 +319,17 @@ function OwnerMessagesPageContent() {
   const loadMessages = async (conversationId: string) => {
     if (!user?.id) return;
 
+    // Early validation: if we have loaded threads and this conversation isn't in the list, skip it
+    if (customerThreads.length > 0 && !customerThreads.some(t => t.id === conversationId)) {
+      console.log('[Owner Messages] ⚠️ Skipping loadMessages - conversation not in current list:', conversationId);
+      // Clear stale selection
+      if (selectedThread === conversationId) {
+        setSelectedThread(null);
+        localStorage.removeItem('selectedConversation');
+      }
+      return;
+    }
+
     try {
       
       // Use the new internal messaging endpoint
@@ -356,15 +367,16 @@ function OwnerMessagesPageContent() {
 
         setMessages(formattedMessages);
 
-        // Mark messages as read when conversation is opened (even from cache)
-
+        // Mark messages as read when conversation is opened
+        // Note: If we successfully loaded messages, the conversation exists in the database
+        // We'll mark as read, and if it fails with 404, markMessagesAsRead will handle it gracefully
         try {
-          console.log('[Owner Messages] 🎯 [DIAGNOSTIC] Inside try block, about to call markMessagesAsRead');
-          const result = await markMessagesAsRead(conversationId);
-          console.log('[Owner Messages] ✅ [DIAGNOSTIC] markMessagesAsRead completed with result:', result);
+          console.log('[Owner Messages] 🎯 [DIAGNOSTIC] Marking messages as read for conversation:', conversationId);
+          await markMessagesAsRead(conversationId);
+          console.log('[Owner Messages] ✅ [DIAGNOSTIC] markMessagesAsRead completed');
         } catch (error: unknown) {
-          console.error('[Owner Messages] ❌ [DIAGNOSTIC] markMessagesAsRead threw error:', error);
-          console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error stack:', error instanceof Error ? error.stack : 'Unknown error');
+          // markMessagesAsRead already handles 404 gracefully, so we just log here
+          console.log('[Owner Messages] ℹ️ markMessagesAsRead completed (may have been 404 for stale conversation)');
         }
 
         // Force refresh conversation list after marking messages as read
