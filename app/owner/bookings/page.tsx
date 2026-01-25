@@ -290,10 +290,11 @@ export default function OwnerBookingsPage() {
                       </button>
                     </>
                   ) : null}
-                  {booking.customer_email && booking.conversations && booking.conversations.length > 0 && (
+                  {booking.customer_email && (booking.conversations?.length > 0 || booking.conversation_id) && (
                     <Link
-                      href={`/owner/messages?conversation=${booking.conversations[0].id}`}
+                      href={`/owner/messages?conversation=${booking.conversations?.[0]?.id || booking.conversation_id}`}
                       className="px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors text-center"
+                      onClick={() => console.log('Message button clicked for booking:', booking.id, 'conversations:', booking.conversations, 'conversation_id:', booking.conversation_id)}
                     >
                       {t('messages.title')}
                     </Link>

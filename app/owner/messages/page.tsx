@@ -66,6 +66,7 @@ function OwnerMessagesPageContent() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [bookingLookup, setBookingLookup] = useState<{bookingId: string, customerEmail: string} | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const markReadGateRef = useRef(new MarkReadGate({ debounceMs: 400 }));
 
@@ -80,7 +81,7 @@ function OwnerMessagesPageContent() {
     }
   }, [user, authLoading, router]);
 
-  // Handle conversation deep link (e.g., from notifications)
+  // Handle conversation deep link (e.g., from notifications) and booking lookup
   useEffect(() => {
     const conversationId =
       searchParams?.get('conversation') ||
@@ -88,9 +89,20 @@ function OwnerMessagesPageContent() {
       // Back-compat: older notifications used "session"
       searchParams?.get('session');
 
+    const bookingId = searchParams?.get('booking');
+    const customerEmail = searchParams?.get('customer_email');
+
     if (conversationId && conversationId !== selectedThread) {
       console.log('[Owner Messages] 🔗 URL param conversation selected:', conversationId);
       setSelectedThread(conversationId);
+      setBookingLookup(null); // Clear booking lookup if we have a direct conversation
+    } else if (bookingId && customerEmail && !conversationId) {
+      console.log('[Owner Messages] 🔍 URL param booking lookup:', { bookingId, customerEmail });
+      setBookingLookup({ bookingId, customerEmail });
+      setSelectedThread(null); // Clear selected thread until we find/create the conversation
+    } else if (!conversationId && !bookingId) {
+      // Clear booking lookup if no relevant params
+      setBookingLookup(null);
     }
     // Removed the else clause that was causing issues
   }, [searchParams]); // Removed selectedThread dependency to prevent infinite loop
@@ -113,7 +125,7 @@ function OwnerMessagesPageContent() {
       // Only load messages if the conversation exists in the loaded list
       // This prevents trying to load messages for stale/deleted conversations
       const conversationExists = customerThreads.some(t => t.id === selectedThread);
-      
+
       if (conversationExists) {
       loadMessages(selectedThread);
       // Save to localStorage for persistence across page refreshes
@@ -131,6 +143,13 @@ function OwnerMessagesPageContent() {
       localStorage.removeItem('selectedConversation');
     }
   }, [selectedThread, customerThreads]);
+
+  // Handle booking lookup
+  useEffect(() => {
+    if (bookingLookup && customerThreads.length > 0) {
+      findOrCreateConversationForBooking(bookingLookup.bookingId, bookingLookup.customerEmail);
+    }
+  }, [bookingLookup, customerThreads]);
 
   // Separate useEffect for URL updates to avoid infinite loops
   useEffect(() => {
@@ -179,6 +198,43 @@ function OwnerMessagesPageContent() {
       localStorage.removeItem('selectedConversation');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const findOrCreateConversationForBooking = async (bookingId: string, customerEmail: string) => {
+    if (!user?.id) return;
+
+    try {
+      console.log('[Owner Messages] 🔍 Finding conversation for booking:', bookingId);
+
+      // First, try to find existing conversation by searching through loaded conversations
+      const existingThread = customerThreads.find(thread => {
+        // We can't directly match by booking ID since the thread data doesn't include it
+        // But we can try to match by customer email if available
+        return thread.customer_email === customerEmail;
+      });
+
+      if (existingThread) {
+        console.log('[Owner Messages] ✅ Found existing conversation:', existingThread.id);
+        setSelectedThread(existingThread.id);
+        setBookingLookup(null);
+        return;
+      }
+
+      // If no existing conversation found, try to create one or find one via API
+      console.log('[Owner Messages] 🆕 No existing conversation found, attempting to find/create via API');
+
+      // For now, we'll clear the booking lookup and let the user know
+      // In a future improvement, we could add an API endpoint to find/create conversations by booking
+      console.warn('[Owner Messages] ⚠️ Booking conversation lookup not fully implemented yet');
+      setBookingLookup(null);
+
+      // Show a message to the user
+      alert('Conversation not found for this booking. Please check if the booking has an associated conversation.');
+
+    } catch (error) {
+      console.error('[Owner Messages] ❌ Error finding conversation for booking:', error);
+      setBookingLookup(null);
     }
   };
 
