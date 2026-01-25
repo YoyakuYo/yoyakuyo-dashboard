@@ -89,11 +89,9 @@ function OwnerMessagesPageContent() {
     if (conversationId && conversationId !== selectedThread) {
       console.log('[Owner Messages] 🔗 URL param conversation selected:', conversationId);
       setSelectedThread(conversationId);
-    } else if (!conversationId && selectedThread) {
-      // If no URL param but we have a saved conversation, keep it
-      console.log('[Owner Messages] 💾 Restored conversation from state/localStorage:', selectedThread);
     }
-  }, [searchParams, selectedThread]);
+    // Removed the else clause that was causing issues
+  }, [searchParams]); // Removed selectedThread dependency to prevent infinite loop
 
   // Force refresh conversations on window focus (user returning to tab)
   useEffect(() => {
