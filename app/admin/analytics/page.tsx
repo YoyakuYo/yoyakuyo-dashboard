@@ -108,7 +108,7 @@ export default function AdminAnalyticsPage() {
       const enrichedCustomers = customersData.map(customer => ({
         ...customer,
         customer_profiles: null, // Disable profiles lookup since IDs don't match
-        line_user_id: lineAccountsMap.get(customer.id) || customer.line_user_id || null,
+        line_user_id: lineAccountsMap.get(customer.id) || null,
         is_line: lineAccountsMap.has(customer.id) || customer.role?.toLowerCase() === 'line',
       }));
 
