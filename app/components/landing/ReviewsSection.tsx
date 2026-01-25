@@ -134,10 +134,10 @@ export default function ReviewsSection() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Share Your Experience
+            {t('landing.shareExperience')}
           </h2>
           <p className="text-lg text-gray-600">
-            How was your experience using Yoyaku Yo? We'd love to hear from you!
+            {t('landing.experienceQuestion')}
           </p>
         </div>
 
@@ -145,7 +145,7 @@ export default function ReviewsSection() {
         {submitted && (
           <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-6 text-center">
             <div className="text-4xl mb-2">✓</div>
-            <h3 className="text-lg font-semibold text-green-800 mb-1">Thank you for your review!</h3>
+            <h3 className="text-lg font-semibold text-green-800 mb-1">{t('landing.thankYouReview')}</h3>
             <p className="text-green-700 text-sm">{t('reviews.feedbackHelps')}</p>
           </div>
         )}
@@ -156,7 +156,7 @@ export default function ReviewsSection() {
             {isGuest && (
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Your name *
+                  {t('landing.yourName')}
                 </label>
                 <input
                   type="text"
@@ -173,7 +173,7 @@ export default function ReviewsSection() {
             {/* Rating Selection */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Rate your experience (optional)
+                {t('landing.rateExperience')}
               </label>
               <div className="flex gap-2 justify-center">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -199,11 +199,11 @@ export default function ReviewsSection() {
               </div>
               {rating > 0 && (
                 <p className="text-center mt-2 text-sm text-gray-600">
-                  {rating === 5 && 'Excellent!'}
-                  {rating === 4 && 'Great!'}
-                  {rating === 3 && 'Good'}
-                  {rating === 2 && 'Fair'}
-                  {rating === 1 && 'Poor'}
+                  {rating === 5 && t('landing.excellent')}
+                  {rating === 4 && t('landing.great')}
+                  {rating === 3 && t('landing.good')}
+                  {rating === 2 && t('landing.fair')}
+                  {rating === 1 && t('landing.poor')}
                 </p>
               )}
             </div>
@@ -255,7 +255,7 @@ export default function ReviewsSection() {
           {loadingReviews ? (
             <div className="text-center py-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-600">Loading reviews...</p>
+              <p className="mt-4 text-gray-600">{t('landing.loadingReviews')}</p>
             </div>
           ) : reviews.length > 0 ? (
             <div className="space-y-4">
@@ -335,10 +335,10 @@ export default function ReviewsSection() {
             <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
               <div className="text-4xl mb-4">💬</div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                No reviews yet
+                {t('landing.noReviewsYet')}
               </h3>
               <p className="text-gray-600 text-lg">
-                Be the first to share your experience!
+                {t('landing.beFirstReview')}
               </p>
             </div>
           )}

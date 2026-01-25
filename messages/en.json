@@ -842,6 +842,21 @@
     "enterYourName": "Enter your name",
     "whatOthersAreSaying": "What Others Are Saying"
   },
+  "landing": {
+    "shareExperience": "Share Your Experience",
+    "experienceQuestion": "How was your experience using Yoyaku Yo? We'd love to hear from you!",
+    "yourName": "Your name *",
+    "rateExperience": "Rate your experience (optional)",
+    "thankYouReview": "Thank you for your review!",
+    "noReviewsYet": "No reviews yet",
+    "beFirstReview": "Be the first to share your experience!",
+    "loadingReviews": "Loading reviews...",
+    "excellent": "Excellent!",
+    "great": "Great!",
+    "good": "Good",
+    "fair": "Fair",
+    "poor": "Poor"
+  },
   "analytics": {
     "title": "Analytics",
     "overview": "Overview",
