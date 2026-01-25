@@ -380,6 +380,8 @@ function OwnerMessagesPageContent() {
 
   const markMessagesAsRead = async (conversationId: string) => {
     console.log('[Owner Messages] 🎯 [DIAGNOSTIC] markMessagesAsRead function called with:', conversationId);
+    console.log('[Owner Messages] 🎯 [DIAGNOSTIC] Current selectedThread:', selectedThread);
+    console.log('[Owner Messages] 🎯 [DIAGNOSTIC] Conversation ID match:', conversationId === selectedThread);
 
     if (!user?.id) {
       console.error('[Owner Messages] ❌ Cannot mark messages as read - missing user.id');
@@ -457,6 +459,16 @@ function OwnerMessagesPageContent() {
           conversationId,
           userId: user.id,
         });
+
+        // SAFETY FALLBACK: If mark-read fails with 404, reset unread count locally
+        if (res.status === 404) {
+          console.warn('[Owner Messages] ⚠️ [SAFETY FALLBACK] Mark-read returned 404, resetting unread count to 0 locally');
+          setCustomerThreads(prev => prev.map(thread =>
+            thread.id === conversationId
+              ? { ...thread, unreadCount: 0 }
+              : thread
+          ));
+        }
       }
     } catch (error: any) {
       console.error('[Owner Messages] ❌ [DIAGNOSTIC] Error marking messages as read', {
