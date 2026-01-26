@@ -79,7 +79,7 @@ export default function AdminAnalyticsPage() {
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
         supabase.from('customers').select('id, name, email, role, auth_user_id'), // Get customers
         supabase.from('customer_profiles').select('id, name, email'), // Get customer profiles
-        supabase.from('bookings').select('id, created_at, status, shop_id, customer_id'),
+        supabase.from('bookings').select('id, created_at, status, shop_id, customer_id, source'),
         supabase.from('line_accounts').select('customer_id, line_user_id')
       ]);
 
@@ -105,22 +105,41 @@ export default function AdminAnalyticsPage() {
 
       // For now, just use customers data directly since customer_profiles doesn't match
       // The web customer names/emails need to be populated in the customers table itself
-      const enrichedCustomers = customersData.map(customer => ({
-        ...customer,
-        customer_profiles: null, // Disable profiles lookup since IDs don't match
-        line_user_id: lineAccountsMap.get(customer.id) || null,
-        is_line: lineAccountsMap.has(customer.id) || customer.role?.toLowerCase() === 'line',
-      }));
+      const enrichedCustomers = customersData.map(customer => {
+        const lineUserId = lineAccountsMap.get(customer.id) || customer.line_user_id || null;
+        const hasLineAccount = lineAccountsMap.has(customer.id);
+        const hasLineRole = customer.role?.toLowerCase() === 'line';
+        const isLine = hasLineAccount || hasLineRole || !!customer.line_user_id;
+        
+        return {
+          ...customer,
+          customer_profiles: null, // Disable profiles lookup since IDs don't match
+          line_user_id: lineUserId,
+          is_line: isLine,
+        };
+      });
 
       // Only include bookings from verified shops for performance metrics
       const verifiedShopIds = new Set(verifiedShops.map(shop => shop.id));
       const bookings = allBookings.filter(booking => verifiedShopIds.has(booking.shop_id));
 
-      // Get unique customer IDs from bookings
+      // Get unique customer IDs from bookings and identify LINE customers from booking source
       const activeCustomerIds = new Set(bookings.map(booking => booking.customer_id).filter(Boolean));
+      const lineCustomerIdsFromBookings = new Set(
+        bookings
+          .filter(booking => booking.source === 'line' && booking.customer_id)
+          .map(booking => booking.customer_id)
+      );
 
       // Filter customers to only those who have made bookings
-      const activeCustomers = enrichedCustomers.filter(customer => activeCustomerIds.has(customer.id));
+      // Also enrich with LINE identification from bookings source
+      const activeCustomers = enrichedCustomers
+        .filter(customer => activeCustomerIds.has(customer.id))
+        .map(customer => ({
+          ...customer,
+          // If customer has LINE bookings, mark them as LINE customer
+          is_line: customer.is_line || lineCustomerIdsFromBookings.has(customer.id),
+        }));
 
       // Set active customers state for UI display (only customers who have made bookings)
       setCustomers(activeCustomers);
@@ -447,7 +466,12 @@ export default function AdminAnalyticsPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.lineCustomersTitle')}</h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {customers
-                .filter(customer => customer.is_line)
+                .filter(customer => {
+                  // Check multiple conditions to identify LINE customers
+                  const hasLineAccount = customer.is_line || customer.line_user_id;
+                  const hasLineRole = customer.role?.toLowerCase() === 'line';
+                  return hasLineAccount || hasLineRole;
+                })
                 .map((customer, index) => (
                   <div key={customer.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
                     <div className="flex items-center space-x-3">
