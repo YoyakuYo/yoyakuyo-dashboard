@@ -1636,7 +1636,9 @@
     "shop": "Loja",
     "browseShops": "Navegue pelas lojas para começar a enviar mensagens",
     "failedToSend": "Falha ao enviar mensagem",
-    "errorSending": "Erro ao enviar mensagem",
+    "errorSending": "Erro ao enviar mensagem"
+  },
+  "landing": {
     "shareExperience": "Compartilhe Sua Experiência",
     "experienceQuestion": "Como foi sua experiência usando o Yoyaku Yo? Adoraríamos ouvir de você!",
     "yourName": "Seu nome *",

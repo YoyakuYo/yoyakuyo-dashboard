@@ -1627,7 +1627,9 @@
     "shop": "店铺",
     "browseShops": "浏览店铺开始发消息",
     "failedToSend": "发送消息失败",
-    "errorSending": "发送消息时出错",
+    "errorSending": "发送消息时出错"
+  },
+  "landing": {
     "shareExperience": "分享您的体验",
     "experienceQuestion": "您使用Yoyaku Yo的体验如何？我们很乐意听取您的意见！",
     "yourName": "您的姓名 *",

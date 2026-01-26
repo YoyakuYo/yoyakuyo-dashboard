@@ -1713,7 +1713,9 @@
     "shop": "店舗",
     "browseShops": "店舗を閲覧してメッセージを開始",
     "failedToSend": "メッセージの送信に失敗しました",
-    "errorSending": "メッセージ送信エラー",
+    "errorSending": "メッセージ送信エラー"
+  },
+  "landing": {
     "shareExperience": "体験をシェアする",
     "experienceQuestion": "Yoyaku Yoのご利用体験はいかがでしたか？ぜひお聞かせください！",
     "yourName": "お名前 *",

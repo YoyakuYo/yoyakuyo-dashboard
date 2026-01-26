@@ -1208,7 +1208,9 @@
     "shop": "Shop",
     "browseShops": "Browse shops to start messaging",
     "failedToSend": "Failed to send message",
-    "errorSending": "Error sending message",
+    "errorSending": "Error sending message"
+  },
+  "landing": {
     "shareExperience": "Share Your Experience",
     "experienceQuestion": "How was your experience using Yoyaku Yo? We'd love to hear from you!",
     "yourName": "Your name *",

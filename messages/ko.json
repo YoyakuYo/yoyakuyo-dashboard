@@ -947,7 +947,9 @@
     "shop": "매장",
     "browseShops": "매장을 둘러보고 메시지 보내기 시작",
     "failedToSend": "메시지 전송 실패",
-    "errorSending": "메시지 전송 오류",
+    "errorSending": "메시지 전송 오류"
+  },
+  "landing": {
     "shareExperience": "경험 공유하기",
     "experienceQuestion": "Yoyaku Yo 사용 경험은 어떠셨나요? 여러분의 의견을 듣고 싶습니다!",
     "yourName": "이름 *",

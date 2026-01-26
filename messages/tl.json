@@ -1253,7 +1253,9 @@
     "shop": "Shop",
     "browseShops": "Browse shops to start messaging",
     "failedToSend": "Failed to send message",
-    "errorSending": "Error sending message",
+    "errorSending": "Error sending message"
+  },
+  "landing": {
     "shareExperience": "Ibahagi ang Iyong Karanasan",
     "experienceQuestion": "Paano ang iyong karanasan sa paggamit ng Yoyaku Yo? Gusto naming marinig mula sa iyo!",
     "yourName": "Iyong pangalan *",
