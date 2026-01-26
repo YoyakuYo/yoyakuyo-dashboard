@@ -710,7 +710,9 @@
     "guestCustomersTitle": "Clientes convidados",
     "lineCustomersTitle": "Clientes LINE",
     "peakBookingHours": "Horários de pico",
-    "peakBookingDays": "Dias de pico"
+    "peakBookingDays": "Dias de pico",
+    "bookingCount": "{{count}} reservas",
+    "bookingCountSingular": "{{count}} reserva"
   },
   "settings": {
     "title": "Configurações",

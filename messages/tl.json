@@ -891,7 +891,9 @@
     "guestCustomersTitle": "Guest Customers",
     "lineCustomersTitle": "LINE Customers",
     "peakBookingHours": "Pinakamataas na oras ng booking",
-    "peakBookingDays": "Pinakamataas na araw ng booking"
+    "peakBookingDays": "Pinakamataas na araw ng booking",
+    "bookingCount": "{{count}} bookings",
+    "bookingCountSingular": "{{count}} booking"
   },
   "settings": {
     "title": "Settings",

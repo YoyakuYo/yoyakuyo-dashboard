@@ -710,7 +710,9 @@
     "guestCustomersTitle": "访客客户",
     "lineCustomersTitle": "LINE客户",
     "peakBookingHours": "预约高峰时段",
-    "peakBookingDays": "预约高峰日"
+    "peakBookingDays": "预约高峰日",
+    "bookingCount": "{{count}}个预约",
+    "bookingCountSingular": "{{count}}个预约"
   },
   "settings": {
     "title": "设置",

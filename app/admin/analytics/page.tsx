@@ -356,7 +356,7 @@ export default function AdminAnalyticsPage() {
                     <span className="font-medium">{shop.name}</span>
                   </div>
                   <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
-                    {shop.bookings} bookings
+                    {t('analytics.bookingCount', { count: shop.bookings })}
                   </span>
                 </div>
               ))}
@@ -374,7 +374,7 @@ export default function AdminAnalyticsPage() {
                     <span className="font-medium">{shop.name}</span>
                   </div>
                   <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-sm">
-                    {shop.bookings} bookings
+                    {t('analytics.bookingCount', { count: shop.bookings })}
                   </span>
                 </div>
               ))}
@@ -478,7 +478,7 @@ export default function AdminAnalyticsPage() {
                     {hour.hour}:00 - {hour.hour + 1}:00
                   </span>
                   <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm">
-                    {hour.bookings} bookings
+                    {t('analytics.bookingCount', { count: hour.bookings })}
                   </span>
             </div>
               ))}
@@ -493,7 +493,7 @@ export default function AdminAnalyticsPage() {
                 <div key={index} className="flex items-center justify-between">
                   <span className="font-medium">{day.day}</span>
                   <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-sm">
-                    {day.bookings} bookings
+                    {t('analytics.bookingCount', { count: day.bookings })}
                   </span>
                 </div>
               ))}

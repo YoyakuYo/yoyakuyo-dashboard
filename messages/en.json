@@ -901,7 +901,9 @@
     "guestCustomersTitle": "Guest Customers",
     "lineCustomersTitle": "LINE Customers",
     "peakBookingHours": "Peak Booking Hours",
-    "peakBookingDays": "Peak Booking Days"
+    "peakBookingDays": "Peak Booking Days",
+    "bookingCount": "{{count}} bookings",
+    "bookingCountSingular": "{{count}} booking"
   },
   "settings": {
     "title": "Settings",

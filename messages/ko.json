@@ -1645,7 +1645,9 @@
     "guestCustomersTitle": "게스트 고객",
     "lineCustomersTitle": "LINE 고객",
     "peakBookingHours": "예약 피크 시간",
-    "peakBookingDays": "예약 피크 요일"
+    "peakBookingDays": "예약 피크 요일",
+    "bookingCount": "{{count}}건 예약",
+    "bookingCountSingular": "{{count}}건 예약"
   },
   "claim": {
     "title": "Claim a Shop",

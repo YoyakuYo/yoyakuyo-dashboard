@@ -910,7 +910,9 @@
     "guestCustomersTitle": "ゲスト顧客",
     "lineCustomersTitle": "LINE顧客",
     "peakBookingHours": "ピーク予約時間",
-    "peakBookingDays": "ピーク予約日"
+    "peakBookingDays": "ピーク予約日",
+    "bookingCount": "{{count}}件の予約",
+    "bookingCountSingular": "{{count}}件の予約"
   },
   "settings": {
     "title": "設定",
