@@ -165,7 +165,7 @@ export default function AdminAnalyticsPage() {
 
       // Filter customers to only those who have made bookings (for stats calculations)
       const activeCustomers = enrichedCustomers
-        .filter(customer => activeCustomerIds.has(customer.id));
+        .filter((customer: any) => activeCustomerIds.has(customer.id));
 
       // Set all customers state for UI display (show all customers, not just those with bookings)
       setCustomers(enrichedCustomers);
