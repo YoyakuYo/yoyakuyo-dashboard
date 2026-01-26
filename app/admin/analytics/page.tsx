@@ -97,6 +97,22 @@ export default function AdminAnalyticsPage() {
       const lineUserMappingsData = lineUserMappingsResult.error ? [] : (lineUserMappingsResult.data || []);
       const lineUserMappingsMap = new Map(lineUserMappingsData.map((mapping) => [mapping.line_user_id, mapping]));
 
+      // Debug logging for data fetching
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Admin Analytics] Raw data:', {
+          customersResult: {
+            count: customersResult.data?.length || 0,
+            error: customersResult.error,
+            hasLineCustomers: customersResult.data?.some(c => c.role === 'line') || false,
+            lineCustomersCount: customersResult.data?.filter(c => c.role === 'line').length || 0
+          },
+          lineUserMappingsResult: {
+            count: lineUserMappingsData.length,
+            error: lineUserMappingsResult.error
+          }
+        });
+      }
+
       // Create a map of customer profiles by ID for easy lookup
       const customerProfilesMap = new Map(customerProfilesData.map(profile => [profile.id, profile]));
 
@@ -151,13 +167,28 @@ export default function AdminAnalyticsPage() {
 
       // Debug logging for LINE customers
       if (process.env.NODE_ENV === 'development') {
+        const allLineCustomers = enrichedCustomers.filter(c => c.role?.toLowerCase() === 'line');
+        const lineCustomersWithBookings = activeCustomers.filter(c => c.role?.toLowerCase() === 'line');
         console.log('[Admin Analytics] Customer analysis:', {
           totalCustomers: customersData.length,
+          enrichedCustomers: enrichedCustomers.length,
           activeCustomers: activeCustomers.length,
-          lineCustomers: activeCustomers.filter(c => c.role?.toLowerCase() === 'line').length,
+          allLineCustomers: allLineCustomers.length,
+          lineCustomersWithBookings: lineCustomersWithBookings.length,
           guestCustomers: activeCustomers.filter(c => c.role?.toLowerCase() === 'guest').length,
           customerRoles,
-          sampleLineCustomers: activeCustomers.filter(c => c.role?.toLowerCase() === 'line').slice(0, 3)
+          sampleAllCustomers: enrichedCustomers.slice(0, 5).map(c => ({
+            id: c.id,
+            name: c.name,
+            role: c.role,
+            line_user_id: c.line_user_id
+          })),
+          sampleLineCustomers: allLineCustomers.slice(0, 3).map(c => ({
+            id: c.id,
+            name: c.name,
+            role: c.role,
+            line_user_id: c.line_user_id
+          }))
         });
       }
 
