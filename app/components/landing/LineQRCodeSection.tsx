@@ -95,10 +95,6 @@ export default function LineQRCodeSection() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-green-600 text-sm">✓</span>
-                  <span className="text-xs md:text-sm text-gray-700">{tl('lineFeature2', 'Book appointments directly from LINE')}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-green-600 text-sm">✓</span>
                   <span className="text-xs md:text-sm text-gray-700">{tl('lineFeature3', 'Get booking confirmations instantly')}</span>
                 </div>
                 <div className="flex items-center gap-2">
