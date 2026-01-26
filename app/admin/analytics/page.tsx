@@ -172,15 +172,15 @@ export default function AdminAnalyticsPage() {
 
       // Debug logging for LINE customers
       if (process.env.NODE_ENV === 'development') {
-        const allLineCustomers = enrichedCustomers.filter(c => c.role?.toLowerCase() === 'line');
-        const lineCustomersWithBookings = activeCustomers.filter(c => c.role?.toLowerCase() === 'line');
+        const allLineCustomers = enrichedCustomers.filter((c: any) => c.role?.toLowerCase() === 'line');
+        const lineCustomersWithBookings = activeCustomers.filter((c: any) => c.role?.toLowerCase() === 'line');
         console.log('[Admin Analytics] Customer analysis:', {
           totalCustomers: customersData.length,
           enrichedCustomers: enrichedCustomers.length,
           activeCustomers: activeCustomers.length,
           allLineCustomers: allLineCustomers.length,
           lineCustomersWithBookings: lineCustomersWithBookings.length,
-          guestCustomers: activeCustomers.filter(c => c.role?.toLowerCase() === 'guest').length,
+          guestCustomers: activeCustomers.filter((c: any) => c.role?.toLowerCase() === 'guest').length,
           customerRoles,
           sampleAllCustomers: enrichedCustomers.slice(0, 5).map(c => ({
             id: c.id,
