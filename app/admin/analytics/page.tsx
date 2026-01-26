@@ -106,10 +106,10 @@ export default function AdminAnalyticsPage() {
       // For now, just use customers data directly since customer_profiles doesn't match
       // The web customer names/emails need to be populated in the customers table itself
       const enrichedCustomers = customersData.map(customer => {
-        const lineUserId = lineAccountsMap.get(customer.id) || customer.line_user_id || null;
+        const lineUserId = lineAccountsMap.get(customer.id) || null;
         const hasLineAccount = lineAccountsMap.has(customer.id);
         const hasLineRole = customer.role?.toLowerCase() === 'line';
-        const isLine = hasLineAccount || hasLineRole || !!customer.line_user_id;
+        const isLine = hasLineAccount || hasLineRole;
         
         return {
           ...customer,
