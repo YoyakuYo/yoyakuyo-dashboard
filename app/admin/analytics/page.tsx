@@ -80,7 +80,7 @@ export default function AdminAnalyticsPage() {
         supabase.from('customers').select('id, name, email, role, auth_user_id, line_user_id'), // Get customers (including line_user_id)
         supabase.from('customer_profiles').select('id, name, email'), // Get customer profiles
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id, source'),
-        supabase.from('line_user_mappings').select('line_user_id, line_display_name, customer_id').catch(() => ({ data: [], error: null })) // Fallback if table doesn't exist
+        supabase.from('line_user_mappings').select('line_user_id, line_display_name, customer_id')
       ]);
 
       if (allShopsCountResult.error) throw allShopsCountResult.error;
@@ -94,7 +94,7 @@ export default function AdminAnalyticsPage() {
       const customersData = customersResult.data || [];
       const customerProfilesData = customerProfilesResult.data || [];
       const allBookings = bookingsResult.data || [];
-      const lineUserMappingsData = lineUserMappingsResult.data || [];
+      const lineUserMappingsData = lineUserMappingsResult.error ? [] : (lineUserMappingsResult.data || []);
       const lineUserMappingsMap = new Map(lineUserMappingsData.map((mapping) => [mapping.line_user_id, mapping]));
 
       // Create a map of customer profiles by ID for easy lookup
