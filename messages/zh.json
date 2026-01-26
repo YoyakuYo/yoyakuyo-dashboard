@@ -659,6 +659,8 @@
     "completed": "已完成",
     "cancelled": "已取消",
     "noAnalyticsData": "没有可用的分析数据。",
+    "guestCustomersTitle": "访客客户",
+    "lineCustomersTitle": "LINE客户",
     "overview": "Overview",
     "bookings": "Bookings",
     "revenue": "Revenue",

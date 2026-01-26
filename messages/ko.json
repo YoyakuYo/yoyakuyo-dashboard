@@ -1611,7 +1611,9 @@
     "confirmed": "Confirmed",
     "completed": "Completed",
     "cancelled": "Cancelled",
-    "noAnalyticsData": "No analytics data available."
+    "noAnalyticsData": "No analytics data available.",
+    "guestCustomersTitle": "게스트 고객",
+    "lineCustomersTitle": "LINE 고객"
   },
   "claim": {
     "title": "Claim a Shop",

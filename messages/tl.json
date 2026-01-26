@@ -857,7 +857,9 @@
     "confirmed": "Confirmed",
     "completed": "Completed",
     "cancelled": "Cancelled",
-    "noAnalyticsData": "No analytics data available."
+    "noAnalyticsData": "No analytics data available.",
+    "guestCustomersTitle": "Guest Customers",
+    "lineCustomersTitle": "LINE Customers"
   },
   "settings": {
     "title": "Settings",

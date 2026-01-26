@@ -876,7 +876,9 @@
     "confirmed": "確認済み",
     "completed": "完了",
     "cancelled": "キャンセル済み",
-    "noAnalyticsData": "分析データがありません。"
+    "noAnalyticsData": "分析データがありません。",
+    "guestCustomersTitle": "ゲスト顧客",
+    "lineCustomersTitle": "LINE顧客"
   },
   "settings": {
     "title": "設定",

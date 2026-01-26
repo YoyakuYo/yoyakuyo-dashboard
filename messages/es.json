@@ -659,6 +659,8 @@
     "completed": "Completado",
     "cancelled": "Cancelado",
     "noAnalyticsData": "No hay datos de análisis disponibles.",
+    "guestCustomersTitle": "Clientes Invitados",
+    "lineCustomersTitle": "Clientes LINE",
     "overview": "Overview",
     "bookings": "Bookings",
     "revenue": "Revenue",
