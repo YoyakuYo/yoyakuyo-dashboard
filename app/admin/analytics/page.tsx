@@ -182,13 +182,13 @@ export default function AdminAnalyticsPage() {
           lineCustomersWithBookings: lineCustomersWithBookings.length,
           guestCustomers: activeCustomers.filter((c: any) => c.role?.toLowerCase() === 'guest').length,
           customerRoles,
-          sampleAllCustomers: enrichedCustomers.slice(0, 5).map(c => ({
+          sampleAllCustomers: enrichedCustomers.slice(0, 5).map((c: any) => ({
             id: c.id,
             name: c.name,
             role: c.role,
             line_user_id: c.line_user_id
           })),
-          sampleLineCustomers: allLineCustomers.slice(0, 3).map(c => ({
+          sampleLineCustomers: allLineCustomers.slice(0, 3).map((c: any) => ({
             id: c.id,
             name: c.name,
             role: c.role,
