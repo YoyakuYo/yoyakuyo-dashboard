@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
+import { apiUrl } from '@/lib/apiClient';
 import AdminStatsCard from '@/app/components/admin/AdminStatsCard';
 
 interface PlatformOverview {
@@ -85,17 +86,45 @@ export default function AdminAnalyticsPage() {
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id, source'),
         // Use API endpoint for customer analytics (bypasses RLS)
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/admin/analytics/customers`, {
-          headers: {
-            'x-user-id': session.user.id,
-            'Content-Type': 'application/json',
-          },
-        }).then(res => res.ok ? res.json() : Promise.reject(new Error(`API request failed: ${res.status}`)))
+        (async () => {
+          const apiEndpoint = `${apiUrl}/admin/analytics/customers`;
+          console.log('[Admin Analytics] Fetching from:', apiEndpoint, 'with user ID:', session.user.id);
+
+          try {
+            const response = await fetch(apiEndpoint, {
+              headers: {
+                'x-user-id': session.user.id,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            console.log('[Admin Analytics] API Response status:', response.status);
+
+            if (!response.ok) {
+              const errorText = await response.text().catch(() => 'Unknown error');
+              console.error('[Admin Analytics] API Error:', response.status, errorText);
+              throw new Error(`API request failed: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('[Admin Analytics] API Response data:', data);
+            return data;
+          } catch (error) {
+            console.error('[Admin Analytics] Fetch error:', error);
+            throw error;
+          }
+        })()
       ]);
 
       if (allShopsCountResult.error) throw allShopsCountResult.error;
       if (verifiedShopsResult.error) throw verifiedShopsResult.error;
       if (bookingsResult.error) throw bookingsResult.error;
+
+      // Handle API response
+      if (customersAnalyticsResult.error) {
+        console.error('[Admin Analytics] API Error:', customersAnalyticsResult.error);
+        throw new Error(customersAnalyticsResult.error);
+      }
 
       const totalShops = allShopsCountResult.count || 0;
       const verifiedShops = verifiedShopsResult.data || [];
@@ -103,6 +132,22 @@ export default function AdminAnalyticsPage() {
       const customersData = customersAnalyticsResult.customers || [];
       const activeCustomerIds = new Set(customersAnalyticsResult.activeCustomerIds || []);
       const customerRoles = customersAnalyticsResult.customerRoles || { guest: 0, line: 0, other: 0 };
+
+      // Debug logging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Admin Analytics] API Response:', {
+          apiUrl,
+          userId: session.user.id,
+          customersCount: customersData.length,
+          customerRoles,
+          sampleCustomers: customersData.slice(0, 3).map(c => ({
+            id: c.id,
+            name: c.name,
+            role: c.role,
+            line_user_id: c.line_user_id
+          }))
+        });
+      }
 
       // Use the processed customers from the API
       const enrichedCustomers = customersData;
