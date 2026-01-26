@@ -422,7 +422,7 @@ export default function AdminAnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Guest Customers */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('guestCustomersTitle')}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.guestCustomersTitle')}</h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {customers
                 .filter(customer => customer.role?.toLowerCase() === 'guest')
@@ -444,7 +444,7 @@ export default function AdminAnalyticsPage() {
 
           {/* LINE Customers */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('lineCustomersTitle')}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.lineCustomersTitle')}</h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {customers
                 .filter(customer => customer.is_line)
