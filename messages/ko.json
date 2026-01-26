@@ -1613,7 +1613,8 @@
     "cancelled": "Cancelled",
     "noAnalyticsData": "No analytics data available.",
     "guestCustomersTitle": "게스트 고객",
-    "lineCustomersTitle": "LINE 고객"
+    "lineCustomersTitle": "LINE 고객",
+    "leastActiveShopsTitle": "가장 덜 활성인 매장"
   },
   "claim": {
     "title": "Claim a Shop",

@@ -859,7 +859,8 @@
     "cancelled": "Cancelled",
     "noAnalyticsData": "No analytics data available.",
     "guestCustomersTitle": "Guest Customers",
-    "lineCustomersTitle": "LINE Customers"
+    "lineCustomersTitle": "LINE Customers",
+    "leastActiveShopsTitle": "Least Active Shops"
   },
   "settings": {
     "title": "Settings",

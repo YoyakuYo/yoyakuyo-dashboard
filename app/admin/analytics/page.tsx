@@ -253,7 +253,7 @@ export default function AdminAnalyticsPage() {
     return (
       <div className="p-6">
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg text-gray-600">{t('loadingAnalytics')}</div>
+          <div className="text-lg text-gray-600">{t('analytics.loadingAnalytics')}</div>
         </div>
       </div>
     );
@@ -263,7 +263,7 @@ export default function AdminAnalyticsPage() {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="text-red-800">{t('errorLoadingAnalytics')}: {error}</div>
+          <div className="text-red-800">{t('analytics.errorLoadingAnalytics')}: {error}</div>
         </div>
       </div>
     );
@@ -365,7 +365,7 @@ export default function AdminAnalyticsPage() {
 
           {/* Least Active Shops */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('leastActiveShopsTitle')}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.leastActiveShopsTitle')}</h3>
             <div className="space-y-3">
               {shopPerformance.leastActiveShops.map((shop, index) => (
                 <div key={index} className="flex items-center justify-between">
