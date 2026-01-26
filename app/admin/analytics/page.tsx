@@ -74,13 +74,13 @@ export default function AdminAnalyticsPage() {
       const supabase = getSupabaseClient();
 
       // Platform Overview - count all shops, but fetch verified shops for performance
-      const [allShopsCountResult, verifiedShopsResult, customersResult, customerProfilesResult, bookingsResult, lineAccountsResult] = await Promise.all([
+      const [allShopsCountResult, verifiedShopsResult, customersResult, customerProfilesResult, bookingsResult, lineUserMappingsResult] = await Promise.all([
         supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
         supabase.from('customers').select('id, name, email, role, auth_user_id, line_user_id'), // Get customers (including line_user_id)
         supabase.from('customer_profiles').select('id, name, email'), // Get customer profiles
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id, source'),
-        supabase.from('line_accounts').select('customer_id, line_user_id')
+        supabase.from('line_user_mappings').select('line_user_id, line_display_name, customer_id').catch(() => ({ data: [], error: null })) // Fallback if table doesn't exist
       ]);
 
       if (allShopsCountResult.error) throw allShopsCountResult.error;
@@ -88,41 +88,31 @@ export default function AdminAnalyticsPage() {
       if (customersResult.error) throw customersResult.error;
       if (customerProfilesResult.error) throw customerProfilesResult.error;
       if (bookingsResult.error) throw bookingsResult.error;
-      if (lineAccountsResult.error) {
-        console.warn("[Admin Analytics] Failed to load LINE accounts:", lineAccountsResult.error);
-      }
 
       const totalShops = allShopsCountResult.count || 0;
       const verifiedShops = verifiedShopsResult.data || [];
       const customersData = customersResult.data || [];
       const customerProfilesData = customerProfilesResult.data || [];
       const allBookings = bookingsResult.data || [];
-      const lineAccountsData = lineAccountsResult.data || [];
-      const lineAccountsMap = new Map(lineAccountsData.map((account) => [account.customer_id, account.line_user_id]));
+      const lineUserMappingsData = lineUserMappingsResult.data || [];
+      const lineUserMappingsMap = new Map(lineUserMappingsData.map((mapping) => [mapping.line_user_id, mapping]));
 
       // Create a map of customer profiles by ID for easy lookup
       const customerProfilesMap = new Map(customerProfilesData.map(profile => [profile.id, profile]));
 
-      // For now, just use customers data directly since customer_profiles doesn't match
-      // The web customer names/emails need to be populated in the customers table itself
+      // Enrich customers with LINE information
       const enrichedCustomers = customersData.map(customer => {
-        // Check for LINE customer in multiple ways:
-        // 1. Has entry in line_accounts table
-        const lineUserIdFromAccounts = lineAccountsMap.get(customer.id) || null;
-        const hasLineAccount = lineAccountsMap.has(customer.id);
-        // 2. Has line_user_id directly in customers table
-        const hasLineUserIdInCustomer = !!customer.line_user_id;
-        // 3. Has role = 'line'
-        const hasLineRole = customer.role?.toLowerCase() === 'line';
-        // Combine all checks - customer is LINE if any condition is true
-        const isLine = hasLineAccount || hasLineUserIdInCustomer || hasLineRole;
-        // Use line_user_id from customers table first, then fallback to line_accounts
-        const lineUserId = customer.line_user_id || lineUserIdFromAccounts;
-        
+        // LINE customers are identified by role = 'line'
+        const isLine = customer.role?.toLowerCase() === 'line';
+
+        // Get display name from line_user_mappings if available
+        const lineMapping = customer.line_user_id ? lineUserMappingsMap.get(customer.line_user_id) : null;
+        const lineDisplayName = lineMapping?.line_display_name;
+
         return {
           ...customer,
           customer_profiles: null, // Disable profiles lookup since IDs don't match
-          line_user_id: lineUserId,
+          line_display_name: lineDisplayName,
           is_line: isLine,
         };
       });
@@ -140,29 +130,36 @@ export default function AdminAnalyticsPage() {
       );
 
       // Filter customers to only those who have made bookings
-      // Also enrich with LINE identification from bookings source
       const activeCustomers = enrichedCustomers
-        .filter(customer => activeCustomerIds.has(customer.id))
-        .map(customer => ({
-          ...customer,
-          // If customer has LINE bookings, mark them as LINE customer
-          is_line: customer.is_line || lineCustomerIdsFromBookings.has(customer.id),
-        }));
+        .filter(customer => activeCustomerIds.has(customer.id));
 
       // Set active customers state for UI display (only customers who have made bookings)
       setCustomers(activeCustomers);
 
       // Calculate customer role breakdown from active customers only
       const customerRoles = activeCustomers.reduce((acc, customer) => {
-        if (customer.is_line) {
+        const role = customer.role?.toLowerCase();
+        if (role === 'line') {
           acc.line++;
-        } else if (customer.role?.toLowerCase() === 'guest') {
+        } else if (role === 'guest') {
           acc.guest++;
         } else {
           acc.other++;
         }
         return acc;
       }, { guest: 0, line: 0, other: 0 });
+
+      // Debug logging for LINE customers
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Admin Analytics] Customer analysis:', {
+          totalCustomers: customersData.length,
+          activeCustomers: activeCustomers.length,
+          lineCustomers: activeCustomers.filter(c => c.role?.toLowerCase() === 'line').length,
+          guestCustomers: activeCustomers.filter(c => c.role?.toLowerCase() === 'guest').length,
+          customerRoles,
+          sampleLineCustomers: activeCustomers.filter(c => c.role?.toLowerCase() === 'line').slice(0, 3)
+        });
+      }
 
       // Calculate active verified shops (updated in last 30 days)
       const thirtyDaysAgo = new Date();
@@ -474,17 +471,14 @@ export default function AdminAnalyticsPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.lineCustomersTitle')}</h3>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {customers
-                .filter(customer => {
-                  // Use the is_line flag which already checks role='line', line_user_id, and line_accounts
-                  return customer.is_line === true;
-                })
+                .filter(customer => customer.role?.toLowerCase() === 'line')
                 .map((customer, index) => (
                   <div key={customer.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
                     <div className="flex items-center space-x-3">
                       <span className="text-sm font-medium text-gray-600">{index + 1}</span>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {customer.customer_profiles?.name || customer.name || customer.line_user_id || `LINE Customer ${index + 1}`}
+                          {customer.line_display_name || customer.customer_profiles?.name || customer.name || customer.line_user_id || `LINE Customer ${index + 1}`}
                         </div>
                         <div className="text-sm text-gray-500">
                           {customer.customer_profiles?.email || customer.email || customer.line_user_id || 'LINE app user'}
