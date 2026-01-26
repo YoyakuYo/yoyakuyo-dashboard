@@ -140,7 +140,7 @@ export default function AdminAnalyticsPage() {
           userId: session.user.id,
           customersCount: customersData.length,
           customerRoles,
-          sampleCustomers: customersData.slice(0, 3).map(c => ({
+          sampleCustomers: customersData.slice(0, 3).map((c: any) => ({
             id: c.id,
             name: c.name,
             role: c.role,
