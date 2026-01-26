@@ -1697,7 +1697,20 @@
     "review3Text": "\"As a shop owner, the AI messaging feature has saved me so much time. Highly recommended!\"",
     "navStaff": "Staff Dashboard",
     "enterEmail": "Please enter your email",
-    "invalidEmail": "Please enter a valid email address"
+    "invalidEmail": "Please enter a valid email address",
+    "shareExperience": "体験をシェアする",
+    "experienceQuestion": "Yoyaku Yoのご利用体験はいかがでしたか？ぜひお聞かせください！",
+    "yourName": "お名前 *",
+    "rateExperience": "体験の評価（任意）",
+    "thankYouReview": "レビューありがとうございます！",
+    "noReviewsYet": "まだレビューがありません",
+    "beFirstReview": "最初のレビューを投稿しましょう！",
+    "loadingReviews": "レビューを読み込み中...",
+    "excellent": "最高！",
+    "great": "素晴らしい！",
+    "good": "良い",
+    "fair": "まあまあ",
+    "poor": "良くない"
   },
   "messages": {
     "title": "メッセージ",
@@ -1714,21 +1727,6 @@
     "browseShops": "店舗を閲覧してメッセージを開始",
     "failedToSend": "メッセージの送信に失敗しました",
     "errorSending": "メッセージ送信エラー"
-  },
-  "landing": {
-    "shareExperience": "体験をシェアする",
-    "experienceQuestion": "Yoyaku Yoのご利用体験はいかがでしたか？ぜひお聞かせください！",
-    "yourName": "お名前 *",
-    "rateExperience": "体験の評価（任意）",
-    "thankYouReview": "レビューありがとうございます！",
-    "noReviewsYet": "まだレビューがありません",
-    "beFirstReview": "最初のレビューを投稿しましょう！",
-    "loadingReviews": "レビューを読み込み中...",
-    "excellent": "最高！",
-    "great": "素晴らしい！",
-    "good": "良い",
-    "fair": "まあまあ",
-    "poor": "良くない"
   },
   "claim": {
     "title": "Claim a Shop",

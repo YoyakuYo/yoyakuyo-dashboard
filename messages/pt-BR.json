@@ -1620,7 +1620,20 @@
     "failedToSubmit": "Falha ao enviar avaliação",
     "feedbackHelps": "Seu feedback nos ajuda a melhorar o Yoyaku Yo.",
     "enterYourName": "Digite seu nome",
-    "whatOthersAreSaying": "O Que Outros Estão Dizendo"
+    "whatOthersAreSaying": "O Que Outros Estão Dizendo",
+    "shareExperience": "Compartilhe Sua Experiência",
+    "experienceQuestion": "Como foi sua experiência usando o Yoyaku Yo? Adoraríamos ouvir de você!",
+    "yourName": "Seu nome *",
+    "rateExperience": "Avalie sua experiência (opcional)",
+    "thankYouReview": "Obrigado pela sua avaliação!",
+    "noReviewsYet": "Ainda não há avaliações",
+    "beFirstReview": "Seja o primeiro a compartilhar sua experiência!",
+    "loadingReviews": "Carregando avaliações...",
+    "excellent": "Excelente!",
+    "great": "Ótimo!",
+    "good": "Bom",
+    "fair": "Regular",
+    "poor": "Ruim"
   },
   "messages": {
     "title": "Mensagens",
@@ -1637,21 +1650,6 @@
     "browseShops": "Navegue pelas lojas para começar a enviar mensagens",
     "failedToSend": "Falha ao enviar mensagem",
     "errorSending": "Erro ao enviar mensagem"
-  },
-  "landing": {
-    "shareExperience": "Compartilhe Sua Experiência",
-    "experienceQuestion": "Como foi sua experiência usando o Yoyaku Yo? Adoraríamos ouvir de você!",
-    "yourName": "Seu nome *",
-    "rateExperience": "Avalie sua experiência (opcional)",
-    "thankYouReview": "Obrigado pela sua avaliação!",
-    "noReviewsYet": "Ainda não há avaliações",
-    "beFirstReview": "Seja o primeiro a compartilhar sua experiência!",
-    "loadingReviews": "Carregando avaliações...",
-    "excellent": "Excelente!",
-    "great": "Ótimo!",
-    "good": "Bom",
-    "fair": "Regular",
-    "poor": "Ruim"
   },
   "claim": {
     "title": "Claim a Shop",

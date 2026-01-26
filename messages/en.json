@@ -1210,21 +1210,6 @@
     "failedToSend": "Failed to send message",
     "errorSending": "Error sending message"
   },
-  "landing": {
-    "shareExperience": "Share Your Experience",
-    "experienceQuestion": "How was your experience using Yoyaku Yo? We'd love to hear from you!",
-    "yourName": "Your name *",
-    "rateExperience": "Rate your experience (optional)",
-    "thankYouReview": "Thank you for your review!",
-    "noReviewsYet": "No reviews yet",
-    "beFirstReview": "Be the first to share your experience!",
-    "loadingReviews": "Loading reviews...",
-    "excellent": "Excellent!",
-    "great": "Great!",
-    "good": "Good",
-    "fair": "Fair",
-    "poor": "Poor"
-  },
   "calendar": {
     "editWeeklyTemplate": "Edit Weekly Template",
     "deleteAvailabilityWindow": "Delete Availability Window",
@@ -1633,6 +1618,19 @@
     "scanToAddLine": "Scan to add LINE bot",
     "scanInstructions": "Open LINE app and scan this QR code",
     "scanSubtext": "If you are on desktop, open this page on your phone to scan.",
-    "loadingQR": "Loading QR code..."
+    "loadingQR": "Loading QR code...",
+    "shareExperience": "Share Your Experience",
+    "experienceQuestion": "How was your experience using Yoyaku Yo? We'd love to hear from you!",
+    "yourName": "Your name *",
+    "rateExperience": "Rate your experience (optional)",
+    "thankYouReview": "Thank you for your review!",
+    "noReviewsYet": "No reviews yet",
+    "beFirstReview": "Be the first to share your experience!",
+    "loadingReviews": "Loading reviews...",
+    "excellent": "Excellent!",
+    "great": "Great!",
+    "good": "Good",
+    "fair": "Fair",
+    "poor": "Poor"
   }
 }
