@@ -73,65 +73,39 @@ export default function AdminAnalyticsPage() {
       setLoading(true);
       const supabase = getSupabaseClient();
 
+      // Get user ID for API authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        throw new Error('User not authenticated');
+      }
+
       // Platform Overview - count all shops, but fetch verified shops for performance
-      const [allShopsCountResult, verifiedShopsResult, customersResult, customerProfilesResult, bookingsResult, lineUserMappingsResult] = await Promise.all([
+      const [allShopsCountResult, verifiedShopsResult, bookingsResult, customersAnalyticsResult] = await Promise.all([
         supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
-        supabase.from('customers').select('id, name, email, role, auth_user_id, line_user_id'), // Get customers (including line_user_id)
-        supabase.from('customer_profiles').select('id, name, email'), // Get customer profiles
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id, source'),
-        supabase.from('line_user_mappings').select('line_user_id, line_display_name, customer_id')
+        // Use API endpoint for customer analytics (bypasses RLS)
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/admin/analytics/customers`, {
+          headers: {
+            'x-user-id': session.user.id,
+            'Content-Type': 'application/json',
+          },
+        }).then(res => res.ok ? res.json() : Promise.reject(new Error(`API request failed: ${res.status}`)))
       ]);
 
       if (allShopsCountResult.error) throw allShopsCountResult.error;
       if (verifiedShopsResult.error) throw verifiedShopsResult.error;
-      if (customersResult.error) throw customersResult.error;
-      if (customerProfilesResult.error) throw customerProfilesResult.error;
       if (bookingsResult.error) throw bookingsResult.error;
 
       const totalShops = allShopsCountResult.count || 0;
       const verifiedShops = verifiedShopsResult.data || [];
-      const customersData = customersResult.data || [];
-      const customerProfilesData = customerProfilesResult.data || [];
       const allBookings = bookingsResult.data || [];
-      const lineUserMappingsData = lineUserMappingsResult.error ? [] : (lineUserMappingsResult.data || []);
-      const lineUserMappingsMap = new Map(lineUserMappingsData.map((mapping) => [mapping.line_user_id, mapping]));
+      const customersData = customersAnalyticsResult.customers || [];
+      const activeCustomerIds = new Set(customersAnalyticsResult.activeCustomerIds || []);
+      const customerRoles = customersAnalyticsResult.customerRoles || { guest: 0, line: 0, other: 0 };
 
-      // Debug logging for data fetching
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Admin Analytics] Raw data:', {
-          customersResult: {
-            count: customersResult.data?.length || 0,
-            error: customersResult.error,
-            hasLineCustomers: customersResult.data?.some(c => c.role === 'line') || false,
-            lineCustomersCount: customersResult.data?.filter(c => c.role === 'line').length || 0
-          },
-          lineUserMappingsResult: {
-            count: lineUserMappingsData.length,
-            error: lineUserMappingsResult.error
-          }
-        });
-      }
-
-      // Create a map of customer profiles by ID for easy lookup
-      const customerProfilesMap = new Map(customerProfilesData.map(profile => [profile.id, profile]));
-
-      // Enrich customers with LINE information
-      const enrichedCustomers = customersData.map(customer => {
-        // LINE customers are identified by role = 'line'
-        const isLine = customer.role?.toLowerCase() === 'line';
-
-        // Get display name from line_user_mappings if available
-        const lineMapping = customer.line_user_id ? lineUserMappingsMap.get(customer.line_user_id) : null;
-        const lineDisplayName = lineMapping?.line_display_name;
-
-        return {
-          ...customer,
-          customer_profiles: null, // Disable profiles lookup since IDs don't match
-          line_display_name: lineDisplayName,
-          is_line: isLine,
-        };
-      });
+      // Use the processed customers from the API
+      const enrichedCustomers = customersData;
 
       // Only include bookings from verified shops for performance metrics
       const verifiedShopIds = new Set(verifiedShops.map(shop => shop.id));
@@ -151,19 +125,6 @@ export default function AdminAnalyticsPage() {
 
       // Set all customers state for UI display (show all customers, not just those with bookings)
       setCustomers(enrichedCustomers);
-
-      // Calculate customer role breakdown from active customers only
-      const customerRoles = activeCustomers.reduce((acc, customer) => {
-        const role = customer.role?.toLowerCase();
-        if (role === 'line') {
-          acc.line++;
-        } else if (role === 'guest') {
-          acc.guest++;
-        } else {
-          acc.other++;
-        }
-        return acc;
-      }, { guest: 0, line: 0, other: 0 });
 
       // Debug logging for LINE customers
       if (process.env.NODE_ENV === 'development') {
