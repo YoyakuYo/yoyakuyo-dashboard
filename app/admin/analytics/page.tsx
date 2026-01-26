@@ -77,7 +77,7 @@ export default function AdminAnalyticsPage() {
       const [allShopsCountResult, verifiedShopsResult, customersResult, customerProfilesResult, bookingsResult, lineAccountsResult] = await Promise.all([
         supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
-        supabase.from('customers').select('id, name, email, role, auth_user_id'), // Get customers
+        supabase.from('customers').select('id, name, email, role, auth_user_id, line_user_id'), // Get customers (including line_user_id)
         supabase.from('customer_profiles').select('id, name, email'), // Get customer profiles
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id, source'),
         supabase.from('line_accounts').select('customer_id, line_user_id')
@@ -106,10 +106,18 @@ export default function AdminAnalyticsPage() {
       // For now, just use customers data directly since customer_profiles doesn't match
       // The web customer names/emails need to be populated in the customers table itself
       const enrichedCustomers = customersData.map(customer => {
-        const lineUserId = lineAccountsMap.get(customer.id) || null;
+        // Check for LINE customer in multiple ways:
+        // 1. Has entry in line_accounts table
+        const lineUserIdFromAccounts = lineAccountsMap.get(customer.id) || null;
         const hasLineAccount = lineAccountsMap.has(customer.id);
+        // 2. Has line_user_id directly in customers table
+        const hasLineUserIdInCustomer = !!customer.line_user_id;
+        // 3. Has role = 'line'
         const hasLineRole = customer.role?.toLowerCase() === 'line';
-        const isLine = hasLineAccount || hasLineRole;
+        // Combine all checks - customer is LINE if any condition is true
+        const isLine = hasLineAccount || hasLineUserIdInCustomer || hasLineRole;
+        // Use line_user_id from customers table first, then fallback to line_accounts
+        const lineUserId = customer.line_user_id || lineUserIdFromAccounts;
         
         return {
           ...customer,
@@ -467,10 +475,8 @@ export default function AdminAnalyticsPage() {
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {customers
                 .filter(customer => {
-                  // Check multiple conditions to identify LINE customers
-                  const hasLineAccount = customer.is_line || customer.line_user_id;
-                  const hasLineRole = customer.role?.toLowerCase() === 'line';
-                  return hasLineAccount || hasLineRole;
+                  // Use the is_line flag which already checks role='line', line_user_id, and line_accounts
+                  return customer.is_line === true;
                 })
                 .map((customer, index) => (
                   <div key={customer.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded">
