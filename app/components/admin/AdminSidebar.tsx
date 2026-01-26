@@ -39,7 +39,7 @@ const AdminSidebar = React.memo(() => {
     { href: "/admin/shop-claims", labelKey: "admin.claims", icon: "📋" },
     { href: "/admin/support", labelKey: "admin.support", icon: "💬" },
     { href: "/admin/bookings", labelKey: "admin.bookings", icon: "📅" },
-    { href: "/admin/analytics", labelKey: "admin.analytics", icon: "📈" },
+    { href: "/admin/analytics", labelKey: "analytics.title", icon: "📈" },
     { href: "/admin/reviews", labelKey: "admin.reviews", icon: "⭐" },
     { href: "/admin/disputes", labelKey: "admin.disputes", icon: "⚖️" },
   ];
