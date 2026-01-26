@@ -156,8 +156,7 @@ export default function AdminAnalyticsPage() {
       const verifiedShopIds = new Set(verifiedShops.map(shop => shop.id));
       const bookings = allBookings.filter(booking => verifiedShopIds.has(booking.shop_id));
 
-      // Get unique customer IDs from bookings and identify LINE customers from booking source
-      const activeCustomerIds = new Set(bookings.map(booking => booking.customer_id).filter(Boolean));
+      // activeCustomerIds is already provided by the API, no need to recalculate
       const lineCustomerIdsFromBookings = new Set(
         bookings
           .filter(booking => booking.source === 'line' && booking.customer_id)
