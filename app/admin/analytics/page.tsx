@@ -129,12 +129,12 @@ export default function AdminAnalyticsPage() {
           .map(booking => booking.customer_id)
       );
 
-      // Filter customers to only those who have made bookings
+      // Filter customers to only those who have made bookings (for stats calculations)
       const activeCustomers = enrichedCustomers
         .filter(customer => activeCustomerIds.has(customer.id));
 
-      // Set active customers state for UI display (only customers who have made bookings)
-      setCustomers(activeCustomers);
+      // Set all customers state for UI display (show all customers, not just those with bookings)
+      setCustomers(enrichedCustomers);
 
       // Calculate customer role breakdown from active customers only
       const customerRoles = activeCustomers.reduce((acc, customer) => {
