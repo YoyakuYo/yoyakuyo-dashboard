@@ -272,45 +272,45 @@ export default function AdminAnalyticsPage() {
   return (
     <div className="p-6 space-y-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">{t('dashboard')}</h1>
-        <p className="text-gray-600 mt-2">{t('platformPerformance')}</p>
+        <h1 className="text-3xl font-bold text-gray-900">{t('analytics.title')}</h1>
+        <p className="text-gray-600 mt-2">{t('analytics.platformPerformance')}</p>
       </div>
 
       {/* Platform Overview */}
         <div>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">{t('platformOverview')}</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">{t('analytics.platformOverview')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
           <AdminStatsCard
-            title={t('totalShops')}
+            title={t('analytics.totalShops')}
             value={platformOverview.totalShops.toString()}
             icon="🏪"
           />
           <AdminStatsCard
-            title={t('verifiedShops')}
+            title={t('analytics.verifiedShops')}
             value={platformOverview.verifiedShops.toString()}
-            subtitle={t('activeAndVerified')}
+            subtitle={t('analytics.activeAndVerified')}
             icon="✅"
           />
           <AdminStatsCard
-            title={t('activeShops')}
+            title={t('analytics.activeShops')}
             value={platformOverview.activeShops.toString()}
-            subtitle={t('updatedLast30Days')}
+            subtitle={t('analytics.updatedLast30Days')}
             icon="🔄"
           />
           <AdminStatsCard
-            title={t('totalCustomers')}
+            title={t('analytics.totalCustomers')}
             value={platformOverview.totalCustomers.toString()}
             icon="👥"
           />
           <AdminStatsCard
-            title={t('totalBookings')}
+            title={t('analytics.totalBookings')}
             value={platformOverview.totalBookings.toString()}
             icon="📅"
           />
           <AdminStatsCard
-            title={t('visitorsToday')}
+            title={t('analytics.visitorsToday')}
             value={platformOverview.visitorsToday.toString()}
-            subtitle={t('realTimeTracking')}
+            subtitle={t('analytics.realTimeTracking')}
             icon="👁️"
           />
         </div>
@@ -318,28 +318,28 @@ export default function AdminAnalyticsPage() {
 
       {/* Shop Performance */}
       <div>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">{t('shopPerformance')}</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">{t('analytics.shopPerformance')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <AdminStatsCard
-            title={t('avgBookingsPerShop')}
+            title={t('analytics.avgBookingsPerShop')}
             value={shopPerformance.bookingsPerShop.toString()}
             icon="📊"
           />
           <AdminStatsCard
-            title={t('cancellationRate')}
+            title={t('analytics.cancellationRate')}
             value={`${shopPerformance.cancellationRate}%`}
             icon="❌"
           />
           <AdminStatsCard
-            title={t('mostActiveShops')}
+            title={t('analytics.mostActiveShops')}
             value={shopPerformance.mostActiveShops.length.toString()}
-            subtitle={t('top5ByBookings')}
+            subtitle={t('analytics.top5ByBookings')}
             icon="🔥"
           />
           <AdminStatsCard
-            title={t('inactiveShops')}
+            title={t('analytics.inactiveShops')}
             value={shopPerformance.inactiveShops.toString()}
-            subtitle={t('noBookings30Days')}
+            subtitle={t('analytics.noBookings30Days')}
             icon="😴"
           />
         </div>
@@ -347,7 +347,7 @@ export default function AdminAnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Most Active Shops */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('mostActiveShopsTitle')}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.mostActiveShopsTitle')}</h3>
             <div className="space-y-3">
               {shopPerformance.mostActiveShops.map((shop, index) => (
                 <div key={index} className="flex items-center justify-between">
@@ -385,35 +385,35 @@ export default function AdminAnalyticsPage() {
 
       {/* Customer Activity */}
       <div>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">{t('customerActivity')}</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">{t('analytics.customerActivity')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6">
           <AdminStatsCard
-            title={t('activeCustomers')}
+            title={t('analytics.activeCustomers')}
             value={customerActivity.activeCustomers.toString()}
-            subtitle={t('madeAtLeast1Booking')}
+            subtitle={t('analytics.madeAtLeast1Booking')}
             icon="👤"
           />
           <AdminStatsCard
-            title={t('repeatCustomers')}
+            title={t('analytics.repeatCustomers')}
             value={customerActivity.repeatCustomers.toString()}
-            subtitle={t('multipleBookings')}
+            subtitle={t('analytics.multipleBookings')}
             icon="🔄"
           />
           <AdminStatsCard
-            title={t('avgBookingsPerCustomer')}
+            title={t('analytics.avgBookingsPerCustomer')}
             value={customerActivity.avgBookingsPerCustomer.toString()}
             icon="📈"
           />
           <AdminStatsCard
-            title={t('guestCustomers')}
+            title={t('analytics.guestCustomers')}
             value={customerActivity.customerRoles.guest.toString()}
-            subtitle={t('anonymousBookings')}
+            subtitle={t('analytics.anonymousBookings')}
             icon="👤"
           />
           <AdminStatsCard
-            title={t('lineCustomers')}
+            title={t('analytics.lineCustomers')}
             value={customerActivity.customerRoles.line.toString()}
-            subtitle={t('lineAppUsers')}
+            subtitle={t('analytics.lineAppUsers')}
             icon="📱"
           />
       </div>
@@ -470,7 +470,7 @@ export default function AdminAnalyticsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Peak Booking Hours */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('peakBookingHours')}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.peakBookingHours')}</h3>
             <div className="space-y-3">
               {customerActivity.peakBookingHours.map((hour, index) => (
                 <div key={index} className="flex items-center justify-between">
@@ -487,7 +487,7 @@ export default function AdminAnalyticsPage() {
 
           {/* Peak Booking Days */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('peakBookingDays')}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('analytics.peakBookingDays')}</h3>
             <div className="space-y-3">
               {customerActivity.peakBookingDays.map((day, index) => (
                 <div key={index} className="flex items-center justify-between">
