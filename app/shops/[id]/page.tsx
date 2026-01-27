@@ -199,6 +199,32 @@ export default function PublicShopDetailPage() {
     }
   }, [user, router]);
 
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    setCustomerName((prev) => {
+      if (prev.trim()) {
+        return prev;
+      }
+      const nameFromProfile = customerProfile?.name?.trim();
+      const nameFromMetadata = typeof user.user_metadata?.full_name === 'string'
+        ? user.user_metadata.full_name.trim()
+        : typeof user.user_metadata?.name === 'string'
+          ? user.user_metadata.name.trim()
+          : '';
+      return nameFromProfile || nameFromMetadata;
+    });
+
+    setCustomerEmail((prev) => {
+      if (prev.trim()) {
+        return prev;
+      }
+      return customerProfile?.email?.trim() || user.email || '';
+    });
+  }, [user, customerProfile]);
+
   // Reviews state
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewStats, setReviewStats] = useState<any>(null);
@@ -409,22 +435,19 @@ export default function PublicShopDetailPage() {
     setBookingError(null);
     setBookingSuccess(false);
 
-    // Validation for guest users
-    if (!user) {
-      if (!customerName.trim()) {
-        setBookingError(t('booking.enterName') || 'Please enter your name');
-        return;
-      }
-      if (!customerEmail.trim()) {
-        setBookingError(t('booking.enterEmail') || 'Please enter your email');
-        return;
-      }
-      // Basic email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(customerEmail)) {
-        setBookingError(t('booking.invalidEmail') || 'Please enter a valid email address');
-        return;
-      }
+    if (!customerName.trim()) {
+      setBookingError(t('booking.enterName') || 'Please enter your name');
+      return;
+    }
+    if (!customerEmail.trim()) {
+      setBookingError(t('booking.enterEmail') || 'Please enter your email');
+      return;
+    }
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(customerEmail)) {
+      setBookingError(t('booking.invalidEmail') || 'Please enter a valid email address');
+      return;
     }
 
     try {
@@ -731,10 +754,10 @@ export default function PublicShopDetailPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-900">{t('booking.title')}</h2>
-            {user && customerProfile && (
+            {user && (
               <div className="text-sm text-gray-600">
                 <span className="font-medium">Booking as: </span>
-                <span className="text-gray-900">{customerProfile.name}</span>
+                <span className="text-gray-900">{customerName || customerEmail || user.email}</span>
               </div>
             )}
           </div>
@@ -750,36 +773,32 @@ export default function PublicShopDetailPage() {
             </div>
           ) : (
             <form onSubmit={handleBookingSubmit} className="space-y-4">
-              {!user && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('booking.yourName') || 'Your Name'} <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      required
-                      placeholder={t('booking.yourName') || 'Enter your name'}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('common.email') || 'Email'} <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      required
-                      placeholder={t('booking.yourEmail') || 'Enter your email'}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    />
-                  </div>
-                </>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('booking.yourName') || 'Your Name'} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  required
+                  placeholder={t('booking.yourName') || 'Enter your name'}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('common.email') || 'Email'} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={customerEmail}
+                  onChange={(e) => setCustomerEmail(e.target.value)}
+                  required
+                  placeholder={t('booking.yourEmail') || 'Enter your email'}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

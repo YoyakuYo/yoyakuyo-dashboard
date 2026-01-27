@@ -30,7 +30,8 @@ export async function findOrCreateCustomer(
   email: string,
   name?: string,
   phone?: string,
-  firstMessage?: string // Optional: first message to detect language
+  firstMessage?: string, // Optional: first message to detect language
+  role: 'guest' | 'customer' | 'owner' = 'customer'
 ): Promise<{ customerId: string | null; isNew: boolean }> {
   try {
     if (!email) {
@@ -40,7 +41,7 @@ export async function findOrCreateCustomer(
     // Try to find existing customer by email
     const { data: existingCustomer, error: findError } = await dbClient
       .from('customers')
-      .select('id, preferred_language')
+      .select('id, preferred_language, role')
       .eq('email', email.toLowerCase().trim())
       .single();
 
@@ -78,6 +79,7 @@ export async function findOrCreateCustomer(
           last_name: lastName,
           phone: phone || null,
           preferred_language: preferredLanguage,
+          role,
         }])
         .select('id')
         .single();

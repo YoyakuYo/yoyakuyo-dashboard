@@ -1,6 +1,7 @@
 import express, { Request, Response, Router } from 'express';
 import { supabase, supabaseAdmin } from '../lib/supabase';
 import { createCustomerNotification, createOwnerNotification, getCustomerProfileId } from '../services/notificationService';
+import { findOrCreateCustomer } from '../services/customerService';
 
 const router = Router();
 const dbClient = supabaseAdmin || supabase;
@@ -153,7 +154,20 @@ router.post('/', async (req: Request, res: Response) => {
             finalGuestEmail = String(guest_email ?? customer_email ?? '').trim();
             if (!finalGuestName) return res.status(400).json({ error: 'name is required for guest bookings' });
             if (!finalGuestEmail) return res.status(400).json({ error: 'email is required for guest bookings' });
-            customerId = null; // MUST be NULL for guest bookings
+
+            const { customerId: guestCustomerId } = await findOrCreateCustomer(
+                finalGuestEmail,
+                finalGuestName,
+                customer_phone || undefined,
+                undefined,
+                'guest'
+            );
+
+            if (!guestCustomerId) {
+                return res.status(500).json({ error: 'Failed to create guest customer' });
+            }
+
+            customerId = guestCustomerId;
         } else if (source === 'web') {
             customerId = (customerIdBody as string | undefined) || headerCustomerId || null;
             if (!customerId) return res.status(401).json({ error: 'Authentication required' });
@@ -208,7 +222,7 @@ router.post('/', async (req: Request, res: Response) => {
         }
 
         // Create the booking - use customer_name directly
-        // customer_id is optional (can be null for public/guest bookings)
+        // customer_id is required for guest/web/line bookings
         // customer_email and customer_phone are required for guest bookings
         // --- Data Model Logic Strict Enforcement ---
         const bookingData: any = {
@@ -223,7 +237,7 @@ router.post('/', async (req: Request, res: Response) => {
             // REQUIRED: explicit branch values
             source,
             channel,
-            customer_id: source === 'guest' ? null : customerId,
+            customer_id: customerId,
             guest_name: source === 'guest' ? finalGuestName : null,
             guest_email: source === 'guest' ? finalGuestEmail : null,
 
@@ -254,7 +268,7 @@ router.post('/', async (req: Request, res: Response) => {
             console.log('[GUEST BOOKING] ✅ Created guest booking:', {
                 booking_id: newBooking.id,
                 booking_source: 'guest',
-                customer_id: null,
+                customer_id: newBooking.customer_id || customerId,
                 guest_email: newBooking.guest_email || newBooking.customer_email,
                 guest_name: newBooking.guest_name || newBooking.customer_name,
                 shop_id: newBooking.shop_id,
