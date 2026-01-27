@@ -521,6 +521,7 @@ export default function AdminAnalyticsPage() {
               {onlineOwners.map((owner: any) => {
                 const lastSeen = new Date(owner.last_seen_at);
                 const minutesAgo = Math.floor((Date.now() - lastSeen.getTime()) / 1000 / 60);
+                const shopInitial = owner.shop_name?.charAt(0).toUpperCase() || '?';
                 return (
                   <div
                     key={owner.owner_user_id}
@@ -531,33 +532,18 @@ export default function AdminAnalyticsPage() {
                         <div className="w-3 h-3 bg-green-500 rounded-full absolute -top-1 -right-1 border-2 border-white"></div>
                         <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                           <span className="text-blue-600 font-semibold">
-                            {owner.owner_email?.charAt(0).toUpperCase() || '?'}
+                            {shopInitial}
                           </span>
                         </div>
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">
-                          {owner.owner_email || 'Unknown Owner'}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {owner.shop_name}
+                        <div className="font-medium text-gray-900 text-lg">
+                          {owner.shop_name || 'Unknown Shop'}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
                           Last seen: {minutesAgo === 0 ? 'Just now' : `${minutesAgo} minute${minutesAgo !== 1 ? 's' : ''} ago`}
                         </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      {owner.ip_address && (
-                        <div className="text-xs text-gray-500">
-                          IP: {owner.ip_address}
-                        </div>
-                      )}
-                      {owner.user_agent && (
-                        <div className="text-xs text-gray-400 mt-1 max-w-xs truncate">
-                          {owner.user_agent.substring(0, 50)}...
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
