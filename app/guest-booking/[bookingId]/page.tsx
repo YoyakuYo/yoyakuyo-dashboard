@@ -51,9 +51,7 @@ export default function GuestBookingDetailPage() {
           .from('bookings')
           .select(`
             id,
-            customer_name,
-            customer_email,
-            customer_phone,
+            customer_id,
             start_time,
             end_time,
             status,
@@ -68,6 +66,11 @@ export default function GuestBookingDetailPage() {
               id,
               name,
               price
+            ),
+            customers (
+              name,
+              email,
+              phone
             )
           `)
           .eq('id', bookingId)
@@ -81,21 +84,22 @@ export default function GuestBookingDetailPage() {
           // Supabase returns shops and services as objects (not arrays) when using .single()
           const shopsData = data.shops as any;
           const servicesData = data.services as any;
-          
+          const customersData = data.customers as any;
+
           const bookingData: Booking = {
             id: data.id,
-            customer_name: data.customer_name,
-            customer_email: data.customer_email,
-            customer_phone: data.customer_phone,
+            customer_name: customersData?.name || null,
+            customer_email: customersData?.email || null,
+            customer_phone: customersData?.phone || null,
             start_time: data.start_time,
             end_time: data.end_time,
             status: data.status,
             notes: data.notes,
-            shops: Array.isArray(shopsData) && shopsData.length > 0 
-              ? shopsData[0] 
+            shops: Array.isArray(shopsData) && shopsData.length > 0
+              ? shopsData[0]
               : (shopsData || undefined),
-            services: Array.isArray(servicesData) && servicesData.length > 0 
-              ? servicesData[0] 
+            services: Array.isArray(servicesData) && servicesData.length > 0
+              ? servicesData[0]
               : (servicesData || undefined),
           };
           setBooking(bookingData);
