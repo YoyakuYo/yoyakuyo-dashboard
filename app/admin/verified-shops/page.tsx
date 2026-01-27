@@ -39,7 +39,7 @@ export default function AdminVerifiedShopsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
-    status: "pending", // Default to pending
+    status: "all", // Default to all
   });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -78,7 +78,9 @@ export default function AdminVerifiedShopsPage() {
         limit: "50",
       });
 
-      if (filters.status) params.append("status", filters.status);
+      if (filters.status && filters.status !== "all") {
+        params.append("status", filters.status);
+      }
 
       const response = await fetch(`${apiUrl}/admin/shops/verification?${params}`, {
         headers: {
@@ -148,9 +150,13 @@ export default function AdminVerifiedShopsPage() {
             </label>
             <select
               value={filters.status}
-              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+              onChange={(e) => {
+                setFilters({ ...filters, status: e.target.value });
+                setPage(1); // Reset to first page when filter changes
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             >
+              <option value="all">{t("admin.allVerification") || "All"}</option>
               <option value="pending">{t("admin.pending") || "Pending"}</option>
               <option value="approved">{t("admin.approved") || "Approved"}</option>
               <option value="rejected">{t("admin.rejected") || "Rejected"}</option>

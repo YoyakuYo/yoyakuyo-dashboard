@@ -1089,6 +1089,11 @@
     "users": "Users",
     "shops": "Shops",
     "verifiedShops": "Verified Shops",
+    "verifiedShopsDesc": "Manage shop verification status",
+    "filterByVerificationStatus": "Filter by Verification Status",
+    "allVerification": "All",
+    "approved": "Approved",
+    "rejected": "Rejected",
     "claims": "Claims",
     "bookings": "Bookings",
     "analytics": {
