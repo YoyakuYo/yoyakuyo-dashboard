@@ -152,7 +152,9 @@ export default function AdminShopDetailPage() {
         setRecentBookings(bookingsData.bookings || []);
       }
 
-      // TODO: Load recent reviews for this shop (reviews endpoint doesn't support shop_id filtering yet)
+      // NOTE: Recent reviews section is commented out below
+      // The reviews endpoint doesn't currently support shop_id filtering
+      // This is a planned feature for future implementation
       // const reviewsResponse = await fetch(`${apiUrl}/admin/reviews?shop_id=${shopId}&limit=10`, {
       //   headers: {
       //     "x-user-id": userId || "",
@@ -506,7 +508,7 @@ export default function AdminShopDetailPage() {
         )}
       </div>
 
-      {/* Recent Reviews - TODO: Enable when reviews endpoint supports shop_id filtering */}
+      {/* Recent Reviews - NOTE: Commented out until reviews endpoint supports shop_id filtering */}
       {/* <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">
