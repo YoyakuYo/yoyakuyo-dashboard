@@ -21,6 +21,7 @@ ALTER TABLE owner_presence ENABLE ROW LEVEL SECURITY;
 
 -- Allow owners to update their own presence (via service role in API)
 -- Note: API will use supabaseAdmin to bypass RLS, but we still define policies for direct access
+DROP POLICY IF EXISTS "owners_update_own_presence" ON owner_presence;
 CREATE POLICY "owners_update_own_presence"
 ON owner_presence
 FOR ALL
@@ -33,6 +34,7 @@ USING (
 );
 
 -- Allow admins to read all presence data
+DROP POLICY IF EXISTS "admin_read_owner_presence" ON owner_presence;
 CREATE POLICY "admin_read_owner_presence"
 ON owner_presence
 FOR SELECT
