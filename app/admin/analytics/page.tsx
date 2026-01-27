@@ -62,6 +62,7 @@ export default function AdminAnalyticsPage() {
   });
 
   const [customers, setCustomers] = useState<any[]>([]);
+  const [onlineOwners, setOnlineOwners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,7 +82,7 @@ export default function AdminAnalyticsPage() {
       }
 
       // Platform Overview - count all shops, but fetch verified shops for performance
-      const [allShopsCountResult, verifiedShopsResult, bookingsResult, customersAnalyticsResult, visitorsAnalyticsResult] = await Promise.all([
+      const [allShopsCountResult, verifiedShopsResult, bookingsResult, customersAnalyticsResult, visitorsAnalyticsResult, onlineOwnersResult] = await Promise.all([
         supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id, source'),
@@ -139,6 +140,32 @@ export default function AdminAnalyticsPage() {
             console.warn('[Admin Analytics] Visitor analytics fetch failed, using fallback:', error);
             return { visitorsToday: 0, dailyVisitors: [], totalSessionsToday: 0 };
           }
+        })(),
+        // Fetch online owners
+        (async () => {
+          const presenceEndpoint = `${apiUrl}/analytics/presence/online`;
+          console.log('[Admin Analytics] Fetching online owners from:', presenceEndpoint);
+
+          try {
+            const response = await fetch(presenceEndpoint, {
+              headers: {
+                'x-user-id': session.user.id,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (!response.ok) {
+              console.warn(`[Admin Analytics] Online owners API failed: ${response.status}, using fallback`);
+              return { online_count: 0, owners: [] };
+            }
+
+            const data = await response.json();
+            console.log('[Admin Analytics] Online owners data:', data);
+            return data;
+          } catch (error) {
+            console.warn('[Admin Analytics] Online owners fetch failed, using fallback:', error);
+            return { online_count: 0, owners: [] };
+          }
         })()
       ]);
 
@@ -158,6 +185,7 @@ export default function AdminAnalyticsPage() {
       const customersData = customersAnalyticsResult.customers || [];
       const activeCustomerIds = new Set(customersAnalyticsResult.activeCustomerIds || []);
       const customerRoles = customersAnalyticsResult.customerRoles || { guest: 0, line: 0, other: 0 };
+      const onlineOwnersData = onlineOwnersResult?.owners || [];
 
       // Debug logging
       if (process.env.NODE_ENV === 'development') {
@@ -195,6 +223,7 @@ export default function AdminAnalyticsPage() {
 
       // Set all customers state for UI display (show all customers, not just those with bookings)
       setCustomers(enrichedCustomers);
+      setOnlineOwners(onlineOwnersData);
 
       // Debug logging for LINE customers
       if (process.env.NODE_ENV === 'development') {
@@ -466,6 +495,75 @@ export default function AdminAnalyticsPage() {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Online Owners */}
+      <div>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Online Owners</h2>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm text-gray-600">
+                Owners currently active in the dashboard (active in last 5 minutes)
+              </p>
+            </div>
+            <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+              {onlineOwners.length} Online
+            </div>
+          </div>
+          {onlineOwners.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p>No owners are currently online</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {onlineOwners.map((owner: any) => {
+                const lastSeen = new Date(owner.last_seen_at);
+                const minutesAgo = Math.floor((Date.now() - lastSeen.getTime()) / 1000 / 60);
+                return (
+                  <div
+                    key={owner.owner_user_id}
+                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="relative">
+                        <div className="w-3 h-3 bg-green-500 rounded-full absolute -top-1 -right-1 border-2 border-white"></div>
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 font-semibold">
+                            {owner.owner_email?.charAt(0).toUpperCase() || '?'}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {owner.owner_email || 'Unknown Owner'}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {owner.shop_name}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Last seen: {minutesAgo === 0 ? 'Just now' : `${minutesAgo} minute${minutesAgo !== 1 ? 's' : ''} ago`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {owner.ip_address && (
+                        <div className="text-xs text-gray-500">
+                          IP: {owner.ip_address}
+                        </div>
+                      )}
+                      {owner.user_agent && (
+                        <div className="text-xs text-gray-400 mt-1 max-w-xs truncate">
+                          {owner.user_agent.substring(0, 50)}...
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
