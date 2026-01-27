@@ -9,6 +9,7 @@ import { BookingNotificationProvider } from "./components/BookingNotificationCon
 import ConditionalLayout from "./components/ConditionalLayout";
 import { ConditionalLanguageSwitcher } from "./components/ConditionalLanguageSwitcher";
 import { Toaster } from "react-hot-toast";
+import VisitorTracker from "./components/VisitorTracker";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -58,6 +59,7 @@ export default function RootLayout({
                 <ConditionalLayout>
                   {children}
                 </ConditionalLayout>
+                <VisitorTracker />
               </BookingNotificationProvider>
             </AuthProvider>
           </AuthRoleProvider>

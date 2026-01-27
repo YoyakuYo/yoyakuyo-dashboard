@@ -81,7 +81,7 @@ export default function AdminAnalyticsPage() {
       }
 
       // Platform Overview - count all shops, but fetch verified shops for performance
-      const [allShopsCountResult, verifiedShopsResult, bookingsResult, customersAnalyticsResult] = await Promise.all([
+      const [allShopsCountResult, verifiedShopsResult, bookingsResult, customersAnalyticsResult, visitorsAnalyticsResult] = await Promise.all([
         supabase.from('shops').select('id', { count: 'exact', head: true }), // Count all shops
         supabase.from('shops').select('id, name, created_at, updated_at').eq('is_verified', true), // Verified shops for performance
         supabase.from('bookings').select('id, created_at, status, shop_id, customer_id, source'),
@@ -112,6 +112,32 @@ export default function AdminAnalyticsPage() {
           } catch (error) {
             console.error('[Admin Analytics] Fetch error:', error);
             throw error;
+          }
+        })(),
+        // Use API endpoint for visitor analytics
+        (async () => {
+          const visitorEndpoint = `${apiUrl}/admin/analytics/visitors`;
+          console.log('[Admin Analytics] Fetching visitors from:', visitorEndpoint);
+
+          try {
+            const response = await fetch(visitorEndpoint, {
+              headers: {
+                'x-user-id': session.user.id,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (!response.ok) {
+              console.warn(`[Admin Analytics] Visitor analytics API failed: ${response.status}, using fallback`);
+              return { visitorsToday: 0, dailyVisitors: [], totalSessionsToday: 0 };
+            }
+
+            const data = await response.json();
+            console.log('[Admin Analytics] Visitor data:', data);
+            return data;
+          } catch (error) {
+            console.warn('[Admin Analytics] Visitor analytics fetch failed, using fallback:', error);
+            return { visitorsToday: 0, dailyVisitors: [], totalSessionsToday: 0 };
           }
         })()
       ]);
@@ -214,7 +240,7 @@ export default function AdminAnalyticsPage() {
         activeShops: activeVerifiedShops,
         totalCustomers: activeCustomers.length,
         totalBookings,
-        visitorsToday: 0 // This would need analytics tracking implementation
+        visitorsToday: visitorsAnalyticsResult.visitorsToday || 0
       });
 
       // Shop Performance
