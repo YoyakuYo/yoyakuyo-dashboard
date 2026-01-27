@@ -946,7 +946,15 @@
         "peakBookingDays": "预约高峰日",
         "loadingAnalytics": "加载分析中...",
         "errorLoadingAnalytics": "加载分析失败",
-        "bookingCount": "{{count}}个预约"
+        "bookingCount": "{{count}}个预约",
+        "onlineOwners": "在线店主",
+        "onlineOwnersDescription": "当前在仪表板中活跃的店主（过去5分钟内活跃）",
+        "online": "在线",
+        "noOwnersOnline": "目前没有店主在线",
+        "lastSeen": "最后访问",
+        "justNow": "刚刚",
+        "minutesAgo": "{{count}}分钟前",
+        "minutesAgo_plural": "{{count}}分钟前"
       }
     },
     "reviews": "评论",

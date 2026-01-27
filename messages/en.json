@@ -1130,7 +1130,15 @@
         "peakBookingDays": "Peak Booking Days",
         "loadingAnalytics": "Loading analytics...",
         "errorLoadingAnalytics": "Error loading analytics",
-        "bookingCount": "{{count}} bookings"
+        "bookingCount": "{{count}} bookings",
+        "onlineOwners": "Online Owners",
+        "onlineOwnersDescription": "Owners currently active in the dashboard (active in last 5 minutes)",
+        "online": "Online",
+        "noOwnersOnline": "No owners are currently online",
+        "lastSeen": "Last seen",
+        "justNow": "Just now",
+        "minutesAgo": "{{count}} minute ago",
+        "minutesAgo_plural": "{{count}} minutes ago"
       }
     },
     "reviews": "Reviews",

@@ -500,21 +500,21 @@ export default function AdminAnalyticsPage() {
 
       {/* Online Owners */}
       <div>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">Online Owners</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-4">{t('analytics.onlineOwners')}</h2>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-sm text-gray-600">
-                Owners currently active in the dashboard (active in last 5 minutes)
+                {t('analytics.onlineOwnersDescription')}
               </p>
             </div>
             <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
-              {onlineOwners.length} Online
+              {onlineOwners.length} {t('analytics.online')}
             </div>
           </div>
           {onlineOwners.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <p>No owners are currently online</p>
+              <p>{t('analytics.noOwnersOnline')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -541,7 +541,7 @@ export default function AdminAnalyticsPage() {
                           {owner.shop_name || 'Unknown Shop'}
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          Last seen: {minutesAgo === 0 ? 'Just now' : `${minutesAgo} minute${minutesAgo !== 1 ? 's' : ''} ago`}
+                          {t('analytics.lastSeen')}: {minutesAgo === 0 ? t('analytics.justNow') : t('analytics.minutesAgo', { count: minutesAgo })}
                         </div>
                       </div>
                     </div>

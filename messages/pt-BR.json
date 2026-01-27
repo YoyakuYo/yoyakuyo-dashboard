@@ -946,7 +946,15 @@
         "peakBookingDays": "Dias de pico",
         "loadingAnalytics": "Carregando análises...",
         "errorLoadingAnalytics": "Erro ao carregar análises",
-        "bookingCount": "{{count}} reservas"
+        "bookingCount": "{{count}} reservas",
+        "onlineOwners": "Proprietários Online",
+        "onlineOwnersDescription": "Proprietários atualmente ativos no painel (ativos nos últimos 5 minutos)",
+        "online": "Online",
+        "noOwnersOnline": "Nenhum proprietário está online no momento",
+        "lastSeen": "Visto pela última vez",
+        "justNow": "Agora mesmo",
+        "minutesAgo": "{{count}} minuto atrás",
+        "minutesAgo_plural": "{{count}} minutos atrás"
       }
     },
     "reviews": "Avaliações",
