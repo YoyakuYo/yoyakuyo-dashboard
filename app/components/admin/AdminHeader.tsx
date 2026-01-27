@@ -29,13 +29,6 @@ export default function AdminHeader() {
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
       <div className="px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link
-            href="/admin"
-            className="text-xl font-bold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
-          >
-            Yoyaku Yo
-          </Link>
-          <span className="text-gray-400">|</span>
           <h2 className="text-lg font-semibold text-gray-900">{t('admin.dashboard')}</h2>
         </div>
         <div className="flex items-center gap-4">

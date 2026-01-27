@@ -134,7 +134,7 @@ const AdminSidebar = React.memo(() => {
             href="/admin"
             className="text-xl font-bold hover:text-blue-400 transition-colors cursor-pointer block"
           >
-            {t("admin.dashboard") || "Admin Dashboard"}
+            Yoyaku Yo
           </Link>
         </div>
         <nav className="p-4">
