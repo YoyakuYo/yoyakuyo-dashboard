@@ -116,7 +116,7 @@ export default function AdminAnalyticsPage() {
         })(),
         // Use API endpoint for visitor analytics
         (async () => {
-          const visitorEndpoint = `${apiUrl}/admin/analytics/visitors`;
+          const visitorEndpoint = `${apiUrl}/analytics/visitors`;
           console.log('[Admin Analytics] Fetching visitors from:', visitorEndpoint);
 
           try {

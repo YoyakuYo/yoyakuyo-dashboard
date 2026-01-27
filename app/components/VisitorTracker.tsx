@@ -24,7 +24,7 @@ export default function VisitorTracker() {
       }
 
       // Track the page view
-      await fetch(`${apiUrl}/admin/analytics/visitor`, {
+      await fetch(`${apiUrl}/analytics/visitor`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
