@@ -9,7 +9,9 @@ export default function VisitorTracker() {
 
   useEffect(() => {
     // Track page view
-    trackPageView(pathname);
+    if (pathname) {
+      trackPageView(pathname);
+    }
   }, [pathname]);
 
   const trackPageView = async (pageUrl: string) => {
