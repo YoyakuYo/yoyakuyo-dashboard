@@ -271,6 +271,37 @@ function MessagesPageContent() {
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
 
+  // Calculate total unread count
+  const totalUnreadCount = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+
+  const markAllAsRead = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const res = await fetch(`${apiUrl}/api/internal-messaging/owner/mark-all-read`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user.id,
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Marked all messages as read:', data);
+        // Refresh conversations to update unread counts
+        await loadConversations();
+      } else {
+        const error = await res.json();
+        console.error('Failed to mark all as read:', error);
+        alert(error.error || 'Failed to mark all messages as read');
+      }
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+      alert('Failed to mark all messages as read');
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-8">
@@ -290,7 +321,23 @@ function MessagesPageContent() {
         {/* Threads List */}
         <div className="w-80 bg-white rounded-lg shadow border border-gray-200 flex flex-col">
           <div className="p-4 border-b border-gray-200">
-            <h2 className="font-semibold text-gray-900">{t('messages.conversations') || 'Conversations'}</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-gray-900">{t('messages.conversations') || 'Conversations'}</h2>
+              {totalUnreadCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  className="text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                  title={t('messages.markAllRead') || 'Mark all as read'}
+                >
+                  {t('messages.markAllRead') || 'Mark all read'}
+                </button>
+              )}
+            </div>
+            {totalUnreadCount > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                {totalUnreadCount} {t('messages.unreadMessages') || 'unread message(s)'}
+              </p>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto">
             {conversations.length === 0 ? (
