@@ -195,7 +195,11 @@
     "viewDetails": "View Details",
     "cannotBeChanged": "cannot be changed",
     "city": "City",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "na": "N/A",
+    "guest": "Guest",
+    "line": "LINE",
+    "type": "Uri"
   },
   "auth": {
     "signInToShop": "Sign in to your shop",
@@ -254,6 +258,7 @@
     "subscriptions": "Subscriptions & Billing",
     "logout": "Logout",
     "dashboard": "Yoyaku Yo Dashboard",
+    "ownerDashboard": "Dashboard ng May-ari",
     "browse": "Browse",
     "featured": "Featured",
     "trending": "Trending",

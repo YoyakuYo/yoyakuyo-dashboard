@@ -48,7 +48,11 @@
     "cannotBeChanged": "cannot be changed",
     "city": "City",
     "refresh": "Refresh",
-    "backToHome": "Back to Home"
+    "backToHome": "Back to Home",
+    "na": "N/A",
+    "guest": "Guest",
+    "line": "LINE",
+    "type": "Type"
   },
   "auth": {
     "signInToShop": "Sign in to your shop",
@@ -107,6 +111,7 @@
     "subscriptions": "Subscriptions & Billing",
     "logout": "Logout",
     "dashboard": "Yoyaku Yo Dashboard",
+    "ownerDashboard": "Owner Dashboard",
     "browse": "Browse",
     "featured": "Featured",
     "trending": "Trending",

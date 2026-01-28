@@ -162,7 +162,7 @@ const Sidebar = React.memo(() => {
         style={{ height: "100vh", width: "100%" }}
       >
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold">Owner Dashboard</h1>
+          <h1 className="text-xl font-bold">{t('nav.ownerDashboard')}</h1>
           <button
             aria-label="Close menu"
             className="text-2xl text-gray-400"
@@ -241,7 +241,7 @@ const Sidebar = React.memo(() => {
       {/* Desktop sidebar */}
       <aside className="hidden md:flex fixed top-16 left-0 z-50 w-64 bg-slate-900 text-white h-[calc(100vh-4rem)] flex flex-col">
         <div className="p-6 border-b border-slate-700 flex-shrink-0">
-          <h1 className="text-xl font-bold">Owner Dashboard</h1>
+          <h1 className="text-xl font-bold">{t('nav.ownerDashboard')}</h1>
         </div>
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <nav className="p-4 overflow-y-auto flex-1">

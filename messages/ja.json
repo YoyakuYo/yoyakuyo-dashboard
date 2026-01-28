@@ -49,7 +49,11 @@
     "cannotBeChanged": "変更できません",
     "city": "市区町村",
     "refresh": "更新",
-    "backToHome": "ホームに戻る"
+    "backToHome": "ホームに戻る",
+    "na": "該当なし",
+    "guest": "ゲスト",
+    "line": "LINE",
+    "type": "タイプ"
   },
   "auth": {
     "signInToShop": "店舗にサインイン",
@@ -108,6 +112,7 @@
     "subscriptions": "サブスクリプションと請求",
     "logout": "ログアウト",
     "dashboard": "Yoyaku Yoダッシュボード",
+    "ownerDashboard": "オーナーダッシュボード",
     "browse": "閲覧",
     "featured": "おすすめ",
     "trending": "トレンド",

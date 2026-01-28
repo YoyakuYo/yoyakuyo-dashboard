@@ -8,12 +8,12 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 
 // Format date helper
-const formatDate = (dateString: string | null | undefined) => {
-  if (!dateString) return 'N/A';
+const formatDate = (dateString: string | null | undefined, naLabel: string) => {
+  if (!dateString) return naLabel;
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime()) || date.getTime() === 0) {
-      return 'N/A';
+      return naLabel;
     }
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
@@ -21,12 +21,12 @@ const formatDate = (dateString: string | null | undefined) => {
       day: 'numeric' 
     });
   } catch {
-    return 'N/A';
+    return naLabel;
   }
 };
 
 // Format time helper
-const formatTime = (timeSlot: string | null | undefined, startTime: string | null | undefined) => {
+const formatTime = (timeSlot: string | null | undefined, startTime: string | null | undefined, naLabel: string) => {
   if (startTime) {
     try {
       const date = new Date(startTime);
@@ -58,7 +58,7 @@ const formatTime = (timeSlot: string | null | undefined, startTime: string | nul
     }
     return timeSlot;
   }
-  return 'N/A';
+  return naLabel;
 };
 
 interface Booking {
@@ -85,10 +85,10 @@ interface Booking {
   conversation_id?: string | null;
 }
 
-const getCustomerTypeLabel = (booking: Booking) => {
-  if (booking.source === 'line') return 'LINE';
-  if (booking.source === 'guest') return 'GUEST';
-  return booking.customer_email ? 'GUEST' : 'LINE';
+const getCustomerTypeLabel = (booking: Booking, labels: { line: string; guest: string }) => {
+  if (booking.source === 'line') return labels.line;
+  if (booking.source === 'guest') return labels.guest;
+  return booking.customer_email ? labels.guest : labels.line;
 };
 
 export default function OwnerBookingsPage() {
@@ -193,6 +193,12 @@ export default function OwnerBookingsPage() {
     return null;
   }
 
+  const naLabel = t('common.na');
+  const customerTypeLabels = {
+    line: t('common.line'),
+    guest: t('common.guest'),
+  };
+
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
@@ -245,11 +251,11 @@ export default function OwnerBookingsPage() {
                   <div className="text-sm text-gray-600 space-y-1">
                     <p>
                       <strong>{t('common.date')}:</strong>{" "}
-                      {formatDate(booking.booking_date || booking.date || booking.start_time)}
+                      {formatDate(booking.booking_date || booking.date || booking.start_time, naLabel)}
                     </p>
                     <p>
                       <strong>{t('common.time')}:</strong>{" "}
-                      {formatTime(booking.time_slot, booking.start_time)}
+                      {formatTime(booking.time_slot, booking.start_time, naLabel)}
                     </p>
                     {booking.services?.name && (
                       <p>
@@ -265,7 +271,7 @@ export default function OwnerBookingsPage() {
                       </p>
                     )}
                     <p>
-                      <strong>Type:</strong> {getCustomerTypeLabel(booking)}
+                      <strong>{t('common.type')}:</strong> {getCustomerTypeLabel(booking, customerTypeLabels)}
                     </p>
                     {booking.customer_email && (
                       <p>

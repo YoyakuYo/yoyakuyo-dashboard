@@ -491,7 +491,11 @@
     "cannotBeChanged": "无法更改",
     "city": "城市",
     "refresh": "刷新",
-    "backToHome": "返回首页"
+    "backToHome": "返回首页",
+    "na": "不适用",
+    "guest": "访客",
+    "line": "LINE",
+    "type": "类型"
   },
   "nav": {
     "shops": "店铺",
@@ -506,6 +510,7 @@
     "subscriptions": "订阅和账单",
     "logout": "登出",
     "dashboard": "Yoyaku Yo仪表板",
+    "ownerDashboard": "店主仪表板",
     "browse": "浏览",
     "featured": "精选",
     "trending": "热门",

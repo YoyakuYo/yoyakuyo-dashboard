@@ -491,7 +491,11 @@
     "cannotBeChanged": "não pode ser alterado",
     "city": "Cidade",
     "refresh": "Atualizar",
-    "backToHome": "Voltar para Início"
+    "backToHome": "Voltar para Início",
+    "na": "N/A",
+    "guest": "Convidado",
+    "line": "LINE",
+    "type": "Tipo"
   },
   "nav": {
     "shops": "Lojas",
@@ -506,6 +510,7 @@
     "subscriptions": "Assinaturas e Cobrança",
     "logout": "Sair",
     "dashboard": "Painel Yoyaku Yo",
+    "ownerDashboard": "Painel do Proprietário",
     "browse": "Navegar",
     "featured": "Destaques",
     "trending": "Tendências",

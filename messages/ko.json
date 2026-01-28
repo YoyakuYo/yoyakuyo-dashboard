@@ -48,7 +48,11 @@
     "cannotBeChanged": "cannot be changed",
     "city": "City",
     "refresh": "Refresh",
-    "backToHome": "홈으로 돌아가기"
+    "backToHome": "홈으로 돌아가기",
+    "na": "해당 없음",
+    "guest": "게스트",
+    "line": "LINE",
+    "type": "유형"
   },
   "calendar": {
     "editWeeklyTemplate": "주간 템플릿 편집",
@@ -462,6 +466,7 @@
   },
   "nav": {
     "dashboard": "대시보드",
+    "ownerDashboard": "소유자 대시보드",
     "myShop": "내 매장",
     "bookings": "예약",
     "calendar": "캘린더 관리",

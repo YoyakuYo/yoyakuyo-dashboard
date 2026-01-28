@@ -491,7 +491,11 @@
     "cannotBeChanged": "no se puede cambiar",
     "city": "Ciudad",
     "refresh": "Actualizar",
-    "backToHome": "Volver al Inicio"
+    "backToHome": "Volver al Inicio",
+    "na": "N/D",
+    "guest": "Invitado",
+    "line": "LINE",
+    "type": "Tipo"
   },
   "nav": {
     "shops": "Tiendas",
@@ -506,6 +510,7 @@
     "subscriptions": "Suscripciones y Facturación",
     "logout": "Cerrar Sesión",
     "dashboard": "Panel de Yoyaku Yo",
+    "ownerDashboard": "Panel del Propietario",
     "browse": "Explorar",
     "featured": "Destacados",
     "trending": "Tendencias",
