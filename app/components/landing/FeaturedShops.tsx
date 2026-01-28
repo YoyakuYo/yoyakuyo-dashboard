@@ -63,7 +63,9 @@ export default function FeaturedShops() {
       .toLowerCase()
       .replace(/\s+/g, '_')
       .replace(/&/g, 'and')
-      .replace(/[^a-z0-9_]/g, '_');
+      .replace(/[^a-z0-9_]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '');
     try {
       const translated = t(`categories.${key}`);
       if (translated && translated !== `categories.${key}`) {

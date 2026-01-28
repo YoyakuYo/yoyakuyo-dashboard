@@ -322,7 +322,13 @@ function BrowsePageContent() {
     }
     
     // Try to translate using the category name as-is
-    const key = categoryName.toLowerCase().replace(/\s+/g, '_').replace(/&/g, 'and').replace(/[^a-z0-9_]/g, '_');
+    const key = categoryName
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9_]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '');
     try {
       const translated = t(`categories.${key}`);
       // If translation exists and is different from the key, use it
