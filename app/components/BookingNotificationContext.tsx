@@ -4,7 +4,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { useBookingNotificationsHook } from '@/lib/useBookingNotifications';
+import { useBookingNotificationsHook, reloadBookingNotificationsCount } from '@/lib/useBookingNotifications';
 
 interface BookingNotification {
   id: string;
@@ -20,6 +20,7 @@ interface BookingNotificationContextType {
   setUnreadBookingsCount: (count: number) => void;
   newBookingNotification: BookingNotification | null;
   setNewBookingNotification: (notification: BookingNotification | null) => void;
+  reloadPendingCount: () => Promise<void>;
 }
 
 const BookingNotificationContext = createContext<BookingNotificationContextType | undefined>(undefined);
@@ -41,6 +42,7 @@ export function BookingNotificationProvider({ children }: { children: ReactNode 
         setUnreadBookingsCount,
         newBookingNotification,
         setNewBookingNotification,
+        reloadPendingCount: reloadBookingNotificationsCount,
       }}
     >
       <BookingNotificationsInitializer />

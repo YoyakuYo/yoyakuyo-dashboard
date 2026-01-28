@@ -9,6 +9,9 @@ import { getSupabaseClient } from './supabaseClient';
 import { useBookingNotifications } from '@/app/components/BookingNotificationContext';
 import { apiUrl } from './apiClient';
 
+// Global reference to reload function (used by context)
+let globalReloadPendingCount: (() => Promise<void>) | null = null;
+
 export function useBookingNotificationsHook() {
   const { user } = useAuth();
   const { setUnreadBookingsCount, setNewBookingNotification } = useBookingNotifications();
@@ -56,6 +59,9 @@ export function useBookingNotificationsHook() {
       setUnreadBookingsCount(0);
     }
   }, [user?.id, setUnreadBookingsCount]);
+
+  // Store reference to reload function globally
+  globalReloadPendingCount = reloadPendingCount;
 
   const subscribeToBookingUpdates = useCallback(() => {
     if (!user?.id) return;
