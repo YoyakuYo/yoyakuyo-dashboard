@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/useAuth";
 import { useRouter } from "next/navigation";
 import { apiUrl } from "@/lib/apiClient";
 import { useTranslations } from "next-intl";
+import { useBookingNotifications } from "@/app/components/BookingNotificationContext";
 import Link from "next/link";
 
 // Format date helper
@@ -95,6 +96,7 @@ export default function OwnerBookingsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const t = useTranslations();
+  const { reloadPendingCount } = useBookingNotifications();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
@@ -177,6 +179,8 @@ export default function OwnerBookingsPage() {
 
       if (res.ok) {
         await loadBookings();
+        // Also update the notification count in the sidebar
+        await reloadPendingCount();
       } else {
         const errorData = await res.json().catch(() => ({ error: 'Failed to update booking status' }));
         console.error('[Booking Status Update] Error response:', {
