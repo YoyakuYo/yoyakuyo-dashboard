@@ -312,6 +312,7 @@ export default function OwnerInboxPage() {
         headers: {
           'Content-Type': 'application/json',
           'x-user-id': userId,
+          'x-owner-user-id': userId, // Required for proper owner routing (email to guests)
         },
         body: JSON.stringify({
           conversation_id: activeConversationId,
