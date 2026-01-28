@@ -387,20 +387,31 @@ const updateBookingStatus = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Status must be "confirmed" or "rejected"' });
         }
 
+        // IMPORTANT: Owner dashboard uses header auth (x-user-id), not Supabase auth.uid().
+        // We MUST use supabaseAdmin to bypass RLS, otherwise RLS can turn real rows into "Booking not found".
+        if (userId && !supabaseAdmin) {
+            return res.status(500).json({
+                error: 'Server misconfigured: missing SUPABASE_SERVICE_ROLE_KEY (required for owner booking updates)',
+            });
+        }
+        // Use admin client for owner operations to bypass RLS
+        const client = userId ? supabaseAdmin : dbClient;
+
         // First, get the existing booking to check ownership
-        const { data: existingBooking, error: fetchError } = await dbClient
+        const { data: existingBooking, error: fetchError } = await client
             .from('bookings')
             .select('shop_id')
             .eq('id', bookingId)
             .single();
 
         if (fetchError || !existingBooking) {
+            console.warn('[Booking] Status update booking not found:', { bookingId, userId, fetchError });
             return res.status(404).json({ error: 'Booking not found' });
         }
 
         // Verify user owns the shop that this booking belongs to
         if (userId) {
-            const { data: shop, error: shopError } = await dbClient
+            const { data: shop, error: shopError } = await client
                 .from('shops')
                 .select('owner_user_id')
                 .eq('id', existingBooking.shop_id)
@@ -416,7 +427,7 @@ const updateBookingStatus = async (req: Request, res: Response) => {
         }
 
         // Get booking details before updating (for notification)
-        const { data: bookingBeforeUpdate } = await dbClient
+        const { data: bookingBeforeUpdate } = await client
             .from('bookings')
             .select(`
                 customer_profile_id,
@@ -432,7 +443,7 @@ const updateBookingStatus = async (req: Request, res: Response) => {
             .single();
 
         // Update the booking status
-        const { data: updatedBooking, error: updateError } = await dbClient
+        const { data: updatedBooking, error: updateError } = await client
             .from('bookings')
             .update({ status })
             .eq('id', bookingId)

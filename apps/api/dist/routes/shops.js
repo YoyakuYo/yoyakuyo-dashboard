@@ -74,7 +74,8 @@ function expandMainCategoryUuidToCategoryIds(client, categoryId) {
  * Fetches shops in batches of 1000 and combines them into a single array
  */
 function fetchAllShops(client, search, category_id, category, // New: filter by shops.category field
-owner_user_id // Filter by owner_user_id
+owner_user_id, // Filter by owner_user_id
+city_id // New: filter by shops.city_id field
 ) {
     return __awaiter(this, void 0, void 0, function* () {
         const allShops = [];
@@ -85,6 +86,7 @@ owner_user_id // Filter by owner_user_id
         console.log('  - Search filter:', search || 'none');
         console.log('  - Category filter:', category_id || 'none');
         console.log('  - Owner filter:', owner_user_id || 'none');
+        console.log('  - City filter:', city_id || 'none');
         while (hasMore) {
             // Build query for this batch - NO JOIN to avoid ambiguous relationship error
             // We'll fetch categories separately after getting shops
@@ -109,6 +111,10 @@ owner_user_id // Filter by owner_user_id
             // Apply owner filter if provided
             if (owner_user_id && owner_user_id.trim()) {
                 query = query.eq("owner_user_id", owner_user_id);
+            }
+            // Apply city filter if provided
+            if (city_id && city_id.trim() && city_id !== 'all' && isUuid(city_id)) {
+                query = query.eq("city_id", city_id);
             }
             const { data, error } = yield query;
             if (error) {
@@ -147,14 +153,45 @@ owner_user_id // Filter by owner_user_id
         return shopsWithCategories;
     });
 }
+router.get("/cities", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const prefectureName = req.query.prefecture_name;
+        const search = req.query.search;
+        console.log('GET /cities: Received prefecture_name:', prefectureName); // DIAGNOSTIC LOG
+        let query = dbClient
+            .from("cities")
+            .select("id, name, slug, prefecture_name")
+            .order("name", { ascending: true });
+        if (prefectureName && prefectureName !== 'all') {
+            query = query.eq("prefecture_name", prefectureName);
+        }
+        if (search && search.trim()) {
+            query = query.ilike("name", `%${search.trim()}%`);
+        }
+        const { data: cities, error } = yield query;
+        if (error) {
+            console.error('Error fetching cities:', error);
+            return res.status(500).json({ error: error.message });
+        }
+        console.log('GET /cities: Returning cities count:', cities ? cities.length : 0); // DIAGNOSTIC LOG
+        return res.json(Array.isArray(cities) ? cities : []);
+    }
+    catch (e) {
+        console.error('Exception in GET /cities:', e);
+        return res.status(500).json({ error: e.message });
+    }
+}));
 router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const search = req.query.search;
         let category_id = req.query.category_id;
         let category = req.query.category; // Filter by shops.category field OR (legacy) UUID passed from frontend
         const owner_user_id = req.query.owner_user_id; // Filter by owner
+        const city_id = req.query.city_id; // New: filter by city_id
         const unclaimedParam = req.query.unclaimed;
         const unclaimed = unclaimedParam === 'true'; // Filter unclaimed shops
+        const isVerifiedParam = req.query.is_verified; // New: filter by is_verified
+        const is_verified = isVerifiedParam === 'true';
         // Backward/forward compatibility:
         // Some frontend paths pass the *category UUID* via `category` (not `category_id`).
         // If `category` looks like a UUID, treat it as `category_id` to avoid returning 0 shops.
@@ -174,7 +211,7 @@ router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const page = pageParam ? parseInt(pageParam) : undefined;
         const offset = offsetParam ? parseInt(offsetParam) : (page ? (page - 1) * (limit || 50) : undefined);
         console.log('=== GET /shops START ===');
-        console.log('Query params:', { search, category_id, category, owner_user_id, unclaimed, limit, offset, page, usePagination });
+        console.log('Query params:', { search, category_id, category, owner_user_id, city_id, unclaimed, is_verified, limit, offset, page, usePagination });
         console.log('Using client:', supabase_1.supabaseAdmin ? 'service role (bypasses RLS)' : 'anon (subject to RLS)');
         // If unclaimed filter is set, fetch shops with owner_user_id IS NULL
         if (unclaimed) {
@@ -192,10 +229,17 @@ router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             else if (category_id && category_id.trim() && category_id !== 'all' && category_id !== 'null') {
                 query = query.eq("category_id", category_id);
             }
+            if (city_id && city_id.trim() && city_id !== 'all' && isUuid(city_id)) {
+                query = query.eq("city_id", city_id);
+            }
+            if (is_verified) {
+                query = query.eq("is_verified", true);
+            }
             // Apply pagination if enabled
             if (usePagination && limit !== undefined && offset !== undefined) {
                 query = query.range(offset, offset + limit - 1);
             }
+            console.log('UNCLAIMED SHOPS QUERY:', query.toString()); // DIAGNOSTIC LOG
             const { data, error, count } = yield query;
             if (error) {
                 console.error('Error fetching unclaimed shops:', error);
@@ -256,6 +300,13 @@ router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             if (owner_user_id && owner_user_id.trim()) {
                 query = query.eq("owner_user_id", owner_user_id);
             }
+            if (city_id && city_id.trim() && city_id !== 'all' && isUuid(city_id)) {
+                query = query.eq("city_id", city_id);
+            }
+            if (is_verified) {
+                query = query.eq("is_verified", true);
+            }
+            console.log('PAGINATED SHOPS QUERY:', query.toString()); // DIAGNOSTIC LOG
             const { data, error, count } = yield query;
             if (error) {
                 console.error('Error fetching shops:', error);
@@ -290,7 +341,7 @@ router.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             });
         }
         // Use batch fetching helper to get all shops (overcomes 1000 row limit) - for backward compatibility
-        const data = yield fetchAllShops(dbClient, search, category_id, category, owner_user_id);
+        const data = yield fetchAllShops(dbClient, search, category_id, category, owner_user_id, city_id);
         console.log(`=== GET /shops END === Total shops: ${data.length}`);
         // If filtering by owner_user_id and no shops found, return 404
         if (owner_user_id && data.length === 0) {
@@ -577,19 +628,19 @@ router.post("/:id/photos", (req, res) => __awaiter(void 0, void 0, void 0, funct
     }
 }));
 // POST /shops/:id/photo/logo - Upload logo (convenience route, redirects to /photos/upload)
+// This route is kept for backward compatibility
+// It should redirect to the new /photos/upload endpoint
+// For now, we'll return a helpful error message
 router.post("/:id/photo/logo", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    // This route is kept for backward compatibility
-    // It should redirect to the new /photos/upload endpoint
-    // For now, we'll return a helpful error message
     return res.status(410).json({
         error: 'This endpoint is deprecated. Please use POST /photos/upload with type=logo in the form data.'
     });
 }));
 // POST /shops/:id/photo/cover - Upload cover (convenience route, redirects to /photos/upload)
+// This route is kept for backward compatibility
+// It should redirect to the new /photos/upload endpoint
+// For now, we'll return a helpful error message
 router.post("/:id/photo/cover", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    // This route is kept for backward compatibility
-    // It should redirect to the new /photos/upload endpoint
-    // For now, we'll return a helpful error message
     return res.status(410).json({
         error: 'This endpoint is deprecated. Please use POST /photos/upload with type=cover in the form data.'
     });

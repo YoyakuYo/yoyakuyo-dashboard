@@ -1,10 +1,8 @@
 -- ============================================================================
 -- SHOW REAL CUSTOMER NAMES FOR CONVERSATIONS
 -- ============================================================================
--- This query displays actual customer names, types, and contact info
--- For LINE customers: Shows names from line_accounts or participants
--- For Guest customers: Shows names and emails from customers table
--- For Web customers: Shows names from auth.users
+-- LINE customers: customer_ref = line_user_id, names from line_user_mappings
+-- Guest/Web customers: customer_ref = customers.id, stored in customers table
 
 SELECT
     c.id as conversation_id,
@@ -13,40 +11,26 @@ SELECT
     c.customer_ref,
     c.last_message_at,
 
-    -- Customer Name (Real names where available)
+    -- Customer Name (different sources for different customer types)
     CASE
         WHEN c.customer_type = 'line' THEN
-            COALESCE(
-                p.display_name,
-                'LINE User'
-            )
-        WHEN c.customer_type = 'guest' THEN
-            COALESCE(
-                p.display_name,
-                'Guest Customer'
-            )
-        WHEN c.customer_type = 'web' THEN
-            COALESCE(
-                p.display_name,
-                cp.name,
-                u.raw_user_meta_data->>'name',
-                u.email,
-                'Web User'
-            )
+            COALESCE(cp_line.line_display_name, lum.line_display_name, p.display_name, 'LINE User')
+        WHEN c.customer_type IN ('guest', 'web') THEN
+            COALESCE(cust.name, 'No Name')
         ELSE 'Unknown'
     END as customer_name,
 
-    -- Customer Email (for web users)
+    -- Customer Role
     CASE
-        WHEN c.customer_type = 'web' THEN COALESCE(cp.email, u.email)
-        ELSE NULL
-    END as customer_email,
+        WHEN c.customer_type = 'line' THEN 'line'
+        ELSE cust.role
+    END as customer_role,
 
-    -- Customer Phone (for web users)
+    -- Customer Email
     CASE
-        WHEN c.customer_type = 'web' THEN COALESCE(cp.phone, u.raw_user_meta_data->>'phone')
-        ELSE NULL
-    END as customer_phone,
+        WHEN c.customer_type = 'line' THEN NULL
+        ELSE cust.email
+    END as customer_email,
 
     -- Shop Name
     CASE
@@ -62,32 +46,22 @@ SELECT
 
     -- Customer Registration Date
     CASE
-        WHEN c.customer_type = 'line' THEN la.created_at
-        WHEN c.customer_type = 'guest' THEN cust.created_at
-        WHEN c.customer_type = 'web' THEN COALESCE(cp.created_at, u.created_at)
-        ELSE p.created_at
+        WHEN c.customer_type = 'line' THEN COALESCE(cp_line.created_at, lum.created_at, la.created_at)
+        ELSE cust.created_at
     END as customer_since
 
 FROM conversations c
 
--- Join with participants table (unified identity system)
-LEFT JOIN participants p ON (
-    (c.customer_type = 'line' AND p.source = 'line' AND p.source_id = c.customer_ref) OR
-    (c.customer_type = 'guest' AND p.source = 'guest' AND p.source_id = c.customer_ref) OR
-    (c.customer_type = 'web' AND p.source = 'web' AND p.source_id = c.customer_ref)
-)
-
--- Join with line_accounts for LINE users
+-- For LINE customers: check multiple sources for names
 LEFT JOIN line_accounts la ON c.customer_type = 'line' AND la.line_user_id = c.customer_ref
+LEFT JOIN line_user_mappings lum ON c.customer_type = 'line' AND lum.line_user_id = c.customer_ref
+LEFT JOIN customer_profiles cp_line ON c.customer_type = 'line' AND cp_line.line_user_id = c.customer_ref
 
--- Join with customers table for guest users (basic info only)
-LEFT JOIN customers cust ON c.customer_type = 'guest' AND cust.id = c.customer_ref::uuid
+-- For Guest/Web customers: direct join to customers table
+LEFT JOIN customers cust ON c.customer_type IN ('guest', 'web') AND cust.id::text = c.customer_ref
 
--- Join with customer_profiles for web users (detailed info)
-LEFT JOIN customer_profiles cp ON c.customer_type = 'web' AND cp.id = c.customer_ref::uuid
-
--- Join with auth.users for web users
-LEFT JOIN auth.users u ON c.customer_type = 'web' AND u.id = c.customer_ref::uuid
+-- Try participants table as fallback for LINE user display names
+LEFT JOIN participants p ON c.customer_type = 'line' AND p.source IN ('line', 'owner') AND p.source_id = c.customer_ref
 
 -- Join with message counts
 LEFT JOIN (
@@ -121,12 +95,10 @@ WHERE c.id IN (
     '480e75fb-40c3-4936-908c-877085ffa9da'
 )
 
-ORDER BY
-    c.customer_type,
+ORDER BY c.customer_type,
     CASE
-        WHEN c.customer_type = 'line' THEN COALESCE(p.display_name, 'LINE User')
-        WHEN c.customer_type = 'guest' THEN COALESCE(p.display_name, 'Guest Customer')
-        WHEN c.customer_type = 'web' THEN COALESCE(p.display_name, cp.name, u.raw_user_meta_data->>'name', u.email, 'Web User')
+        WHEN c.customer_type = 'line' THEN COALESCE(cp_line.line_display_name, lum.line_display_name, p.display_name, 'LINE User')
+        WHEN c.customer_type IN ('guest', 'web') THEN COALESCE(cust.name, 'No Name')
         ELSE 'Unknown'
     END,
     c.last_message_at DESC;

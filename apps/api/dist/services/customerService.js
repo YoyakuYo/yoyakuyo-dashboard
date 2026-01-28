@@ -57,9 +57,9 @@ const dbClient = supabase_1.supabaseAdmin || supabase_1.supabase;
  * Finds or creates a customer record based on email
  * Auto-detects and saves customer language from first message
  */
-function findOrCreateCustomer(email, name, phone, firstMessage // Optional: first message to detect language
-) {
-    return __awaiter(this, void 0, void 0, function* () {
+function findOrCreateCustomer(email_1, name_1, phone_1, firstMessage_1) {
+    return __awaiter(this, arguments, void 0, function* (email, name, phone, firstMessage, // Optional: first message to detect language
+    role = 'customer') {
         try {
             if (!email) {
                 return { customerId: null, isNew: false };
@@ -67,7 +67,7 @@ function findOrCreateCustomer(email, name, phone, firstMessage // Optional: firs
             // Try to find existing customer by email
             const { data: existingCustomer, error: findError } = yield dbClient
                 .from('customers')
-                .select('id, preferred_language')
+                .select('id, preferred_language, role')
                 .eq('email', email.toLowerCase().trim())
                 .single();
             if (existingCustomer) {
@@ -101,6 +101,7 @@ function findOrCreateCustomer(email, name, phone, firstMessage // Optional: firs
                         last_name: lastName,
                         phone: phone || null,
                         preferred_language: preferredLanguage,
+                        role,
                     }])
                     .select('id')
                     .single();
