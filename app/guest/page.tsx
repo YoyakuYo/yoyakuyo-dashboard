@@ -1,10 +1,26 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { createClient, RealtimeChannel } from "@supabase/supabase-js";
 import { apiUrl } from "@/lib/apiClient";
 import { messagingFetch } from "@/app/lib/messagingApiClient";
 import { GUEST_ID_STORAGE_KEY, setGuestId as persistGuestId } from "@/lib/guestId";
+
+// Initialize Supabase client for realtime subscriptions
+let supabase: ReturnType<typeof createClient> | null = null;
+try {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  if (supabaseUrl && supabaseAnonKey) {
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+    console.log('[Guest Inbox] Supabase client initialized for realtime');
+  } else {
+    console.warn('[Guest Inbox] Supabase env vars not configured, realtime disabled');
+  }
+} catch (error) {
+  console.error('[Guest Inbox] Failed to initialize Supabase client:', error);
+}
 
 type Conversation = {
   id: string;
@@ -38,6 +54,7 @@ function GuestInboxContent() {
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const realtimeChannelRef = useRef<RealtimeChannel | null>(null);
 
   // Auto-load guest ID from URL query params or localStorage
   useEffect(() => {
@@ -119,9 +136,94 @@ function GuestInboxContent() {
     }
   };
 
+  // Subscribe to realtime message updates for a conversation
+  const subscribeToMessages = useCallback((convId: string) => {
+    if (!supabase) {
+      console.warn('[Guest Inbox] Supabase not available, skipping realtime subscription');
+      return;
+    }
+
+    // Cleanup existing subscription
+    if (realtimeChannelRef.current) {
+      console.log('[Guest Inbox] Removing previous realtime subscription');
+      supabase.removeChannel(realtimeChannelRef.current);
+      realtimeChannelRef.current = null;
+    }
+
+    console.log('[Guest Inbox] 🔔 Subscribing to realtime updates for conversation:', convId);
+
+    const channel = supabase
+      .channel(`guest-messages:${convId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${convId}`,
+        },
+        (payload) => {
+          console.log('[Guest Inbox] 📨 New message received via realtime:', payload.new);
+          const newMessage = payload.new as any;
+
+          // Add message to list if not already present
+          setMessages((prev) => {
+            // Check if message already exists (avoid duplicates from optimistic updates)
+            if (prev.some((msg) => msg.id === newMessage.id)) {
+              console.log('[Guest Inbox] Message already in list, skipping duplicate');
+              return prev;
+            }
+
+            // Determine sender info from participant lookup
+            // For realtime, we get raw DB fields, so we need to fetch participant info
+            // or use sensible defaults based on existing messages context
+            const formattedMessage: Message = {
+              id: newMessage.id,
+              conversation_id: newMessage.conversation_id,
+              content: newMessage.content || newMessage.body,
+              body: newMessage.content || newMessage.body,
+              created_at: newMessage.created_at,
+              // Realtime doesn't include participant join, so we can't determine sender
+              // Default to non-guest (shop/owner message) since guest's own messages
+              // are added via the sendMessage response
+              sender_type: 'shop',
+              sender_role: 'shop',
+              participant_source: undefined, // Will be filled on next full reload
+            };
+
+            console.log('[Guest Inbox] ✅ Adding new message to list');
+            return [...prev, formattedMessage];
+          });
+
+          // Scroll to bottom after adding message
+          setTimeout(() => {
+            endRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Guest Inbox] Realtime subscription status:', status);
+      });
+
+    realtimeChannelRef.current = channel;
+  }, []);
+
+  // Cleanup realtime subscription on unmount
+  useEffect(() => {
+    return () => {
+      if (realtimeChannelRef.current && supabase) {
+        console.log('[Guest Inbox] Cleaning up realtime subscription on unmount');
+        supabase.removeChannel(realtimeChannelRef.current);
+        realtimeChannelRef.current = null;
+      }
+    };
+  }, []);
+
+  // Load messages and subscribe to updates when conversation changes
   useEffect(() => {
     if (selectedConversationId && guestId) {
       loadMessages(selectedConversationId);
+      subscribeToMessages(selectedConversationId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedConversationId, guestId]);
