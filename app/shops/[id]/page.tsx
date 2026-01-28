@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import { apiUrl } from '@/lib/apiClient';
 import { useAuth } from '@/lib/useAuth';
@@ -123,6 +123,7 @@ export default function PublicShopDetailPage() {
   const router = useRouter();
   const shopId = params?.id as string;
   const { user } = useAuth(); // For owners (Supabase Auth)
+  let locale = 'en';
   
   // Safe translation function with fallback
   let t: ReturnType<typeof useTranslations>;
@@ -149,6 +150,11 @@ export default function PublicShopDetailPage() {
       };
       return fallbacks[key] || key;
     }) as ReturnType<typeof useTranslations>;
+  }
+  try {
+    locale = useLocale();
+  } catch (error) {
+    console.warn('Locale error, using fallback:', error);
   }
 
   const [shop, setShop] = useState<Shop | null>(null);
@@ -736,7 +742,7 @@ export default function PublicShopDetailPage() {
                   value={dateOption.date}
                   disabled={dateOption.status === 'closed'}
                 >
-                  {new Date(dateOption.date).toLocaleDateString('en-US', {
+                  {new Date(dateOption.date).toLocaleDateString(locale, {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
@@ -847,7 +853,7 @@ export default function PublicShopDetailPage() {
                         {t('booking.selectedDate') || 'Selected Date'}:
                       </p>
                       <p className="text-blue-700 font-semibold">
-                        {new Date(bookingDate).toLocaleDateString('en-US', {
+                        {new Date(bookingDate).toLocaleDateString(locale, {
                           weekday: 'long',
                           year: 'numeric',
                           month: 'long',
