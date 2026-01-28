@@ -84,7 +84,6 @@ DECLARE
   v_owner_id UUID;
   v_conversation_id UUID;
   v_customer_id UUID;
-  v_normalized_email TEXT;
 BEGIN
   -- Get owner_id from shop
   SELECT owner_user_id INTO v_owner_id
@@ -99,33 +98,8 @@ BEGIN
   -- All customers (guest, line, web) use the unified customers table
   v_customer_id := NEW.customer_id;
 
-  -- If no customer_id but we have customer_email, try to find customer by email
-  IF v_customer_id IS NULL AND NEW.customer_email IS NOT NULL THEN
-    v_normalized_email := LOWER(TRIM(NEW.customer_email));
-
-    -- Try to find in customer_profiles first (for web customers)
-    IF EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_schema = 'public'
-        AND table_name = 'customer_profiles'
-        AND column_name = 'email'
-    ) THEN
-      SELECT id INTO v_customer_id
-      FROM customer_profiles
-      WHERE LOWER(email) = v_normalized_email
-      LIMIT 1;
-    END IF;
-
-    -- If still not found, try customers table
-    IF v_customer_id IS NULL THEN
-      SELECT id INTO v_customer_id
-      FROM customers
-      WHERE LOWER(email) = v_normalized_email
-      LIMIT 1;
-    END IF;
-  END IF;
-
-  -- If we still don't have a customer_id, skip conversation creation
+  -- If we don't have a customer_id, skip conversation creation
+  -- (Customer information should be available through the customer_id foreign key)
   IF v_customer_id IS NULL THEN
     RETURN NEW;
   END IF;

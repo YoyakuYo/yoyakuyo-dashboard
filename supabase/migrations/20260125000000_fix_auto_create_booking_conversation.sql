@@ -23,7 +23,9 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  v_customer_id := COALESCE(NEW.customer_id, NEW.customer_profile_id);
+  -- Use customer_id directly (no customer_profile_id field exists)
+  -- All customers (guest, line, web) use the unified customers table
+  v_customer_id := NEW.customer_id;
 
   IF v_customer_id IS NULL AND NEW.customer_email IS NOT NULL THEN
     v_normalized_email := LOWER(TRIM(NEW.customer_email));

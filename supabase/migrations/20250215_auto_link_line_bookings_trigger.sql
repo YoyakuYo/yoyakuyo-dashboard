@@ -18,17 +18,22 @@ BEGIN
 END $$;
 
 -- Function to auto-create line_bookings record
+-- Updated to use customer_id from customers table (not customer_profile_id)
+-- Guests don't have profiles, so we use the unified customers table
 CREATE OR REPLACE FUNCTION auto_create_line_booking()
 RETURNS TRIGGER AS $$
 DECLARE
   line_user_id_value TEXT;
 BEGIN
-  -- Check if the booking's customer_profile has a line_user_id
-  IF NEW.customer_profile_id IS NOT NULL THEN
-    SELECT cp.line_user_id INTO line_user_id_value
-    FROM customer_profiles cp
-    WHERE cp.id = NEW.customer_profile_id
-      AND cp.line_user_id IS NOT NULL;
+  -- Check if the booking has a customer_id
+  IF NEW.customer_id IS NOT NULL THEN
+    -- Look up the customer in the customers table to get line_user_id
+    -- Only LINE customers have line_user_id (guests and web customers have NULL)
+    SELECT c.line_user_id INTO line_user_id_value
+    FROM customers c
+    WHERE c.id = NEW.customer_id
+      AND c.line_user_id IS NOT NULL
+      AND c.role = 'line';
     
     -- If LINE user ID found, create line_bookings record
     IF line_user_id_value IS NOT NULL THEN

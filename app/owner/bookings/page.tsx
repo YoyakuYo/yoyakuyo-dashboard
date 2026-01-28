@@ -69,6 +69,7 @@ interface Booking {
   customer_name?: string | null;
   customer_email?: string | null;
   customer_phone?: string | null;
+  source?: 'guest' | 'line';
   date?: string | null;
   booking_date?: string | null;
   time_slot?: string | null;
@@ -83,6 +84,12 @@ interface Booking {
   conversations?: { id: string }[] | null;
   conversation_id?: string | null;
 }
+
+const getCustomerTypeLabel = (booking: Booking) => {
+  if (booking.source === 'line') return 'LINE';
+  if (booking.source === 'guest') return 'GUEST';
+  return booking.customer_email ? 'GUEST' : 'LINE';
+};
 
 export default function OwnerBookingsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -257,6 +264,9 @@ export default function OwnerBookingsPage() {
                         <strong>{t('common.name')}:</strong> {booking.customer_name}
                       </p>
                     )}
+                    <p>
+                      <strong>Type:</strong> {getCustomerTypeLabel(booking)}
+                    </p>
                     {booking.customer_email && (
                       <p>
                         <strong>{t('common.email')}:</strong> {booking.customer_email}
@@ -291,7 +301,7 @@ export default function OwnerBookingsPage() {
                       </button>
                     </>
                   ) : null}
-                  {booking.customer_email && (booking.conversations && booking.conversations.length > 0 || booking.conversation_id) && (
+                  {(booking.conversations && booking.conversations.length > 0 || booking.conversation_id) && (
                     <Link
                       href={`/owner/messages?conversation=${booking.conversations && booking.conversations.length > 0 ? booking.conversations[0].id : booking.conversation_id}`}
                       className="px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors text-center"

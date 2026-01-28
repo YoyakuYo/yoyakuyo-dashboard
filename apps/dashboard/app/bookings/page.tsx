@@ -26,7 +26,7 @@ interface Booking {
     end_time: string;
     notes: string;
     status: 'pending' | 'confirmed' | 'rejected' | 'cancelled' | 'completed';
-    source?: 'guest' | 'web' | 'line';
+    source?: 'guest' | 'line';
     shops?: { name: string } | null;
     services?: { name: string } | null;
     staff?: { first_name: string; last_name: string } | null;
@@ -53,6 +53,12 @@ interface Timeslot {
     start_time: string;
     end_time: string;
 }
+
+const getCustomerTypeLabel = (booking: Booking) => {
+    if (booking.source === 'line') return 'LINE';
+    if (booking.source === 'guest') return 'GUEST';
+    return booking.customer_email ? 'GUEST' : 'LINE';
+};
 
 const BookingsPage = () => {
     const { user } = useAuth();
@@ -837,6 +843,10 @@ const BookingsPage = () => {
 
                                                 {/* Contact Info */}
                                                 <div className="pt-2 border-t border-gray-100 space-y-1">
+                                                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                                                        <span className="font-medium text-gray-700">Type:</span>
+                                                        <span>{getCustomerTypeLabel(booking)}</span>
+                                                    </div>
                                                     {booking.customer_email && (
                                                         <div className="flex items-center gap-2 text-xs text-gray-600">
                                                             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
