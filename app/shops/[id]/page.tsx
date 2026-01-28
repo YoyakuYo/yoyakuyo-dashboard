@@ -226,6 +226,16 @@ export default function PublicShopDetailPage() {
   }, [user, router]);
 
   useEffect(() => {
+    if (!bookingSuccess || user) {
+      return;
+    }
+    const redirectTimer = setTimeout(() => {
+      router.push('/');
+    }, 3000);
+    return () => clearTimeout(redirectTimer);
+  }, [bookingSuccess, user, router]);
+
+  useEffect(() => {
     if (!user) {
       return;
     }
