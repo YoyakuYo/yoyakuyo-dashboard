@@ -376,7 +376,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // PATCH /bookings/:id/status
-router.patch('/:id/status', async (req: Request, res: Response) => {
+const updateBookingStatus = async (req: Request, res: Response) => {
     try {
         const bookingId = req.params.id;
         const { status } = req.body;
@@ -388,7 +388,7 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
         }
 
         // First, get the existing booking to check ownership
-        const { data: existingBooking, error: fetchError } = await supabase
+        const { data: existingBooking, error: fetchError } = await dbClient
             .from('bookings')
             .select('shop_id')
             .eq('id', bookingId)
@@ -400,7 +400,7 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
 
         // Verify user owns the shop that this booking belongs to
         if (userId) {
-            const { data: shop, error: shopError } = await supabase
+            const { data: shop, error: shopError } = await dbClient
                 .from('shops')
                 .select('owner_user_id')
                 .eq('id', existingBooking.shop_id)
@@ -416,7 +416,7 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
         }
 
         // Get booking details before updating (for notification)
-        const { data: bookingBeforeUpdate } = await supabase
+        const { data: bookingBeforeUpdate } = await dbClient
             .from('bookings')
             .select(`
                 customer_profile_id,
@@ -432,7 +432,7 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
             .single();
 
         // Update the booking status
-        const { data: updatedBooking, error: updateError } = await supabase
+        const { data: updatedBooking, error: updateError } = await dbClient
             .from('bookings')
             .update({ status })
             .eq('id', bookingId)
@@ -493,7 +493,10 @@ router.patch('/:id/status', async (req: Request, res: Response) => {
         console.error('Server error updating booking status:', err);
         return res.status(500).json({ error: 'Server error updating booking status' });
     }
-});
+};
+
+router.post('/:id/status', updateBookingStatus);
+router.patch('/:id/status', updateBookingStatus);
 
 // POST /bookings/:id/cancel
 router.post('/:id/cancel', async (req: Request, res: Response) => {
