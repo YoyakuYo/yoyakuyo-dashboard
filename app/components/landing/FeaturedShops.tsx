@@ -58,11 +58,21 @@ export default function FeaturedShops() {
   }, []);
 
   const getCategoryName = (categoryName: string) => {
+    if (!categoryName) return '';
+    const key = categoryName
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9_]/g, '_');
     try {
-      return t(`categories.${categoryName}`) || categoryName;
+      const translated = t(`categories.${key}`);
+      if (translated && translated !== `categories.${key}`) {
+        return translated;
+      }
     } catch {
-      return categoryName;
+      // Fall back to original name
     }
+    return categoryName;
   };
 
   if (loading) {

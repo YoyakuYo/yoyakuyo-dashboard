@@ -157,6 +157,24 @@ export default function PublicShopDetailPage() {
     console.warn('Locale error, using fallback:', error);
   }
 
+  const getCategoryName = (categoryName: string | null | undefined) => {
+    if (!categoryName) return '';
+    const key = categoryName
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9_]/g, '_');
+    try {
+      const translated = t(`categories.${key}`);
+      if (translated && translated !== `categories.${key}`) {
+        return translated;
+      }
+    } catch {
+      // Fall back to original name
+    }
+    return categoryName;
+  };
+
   const [shop, setShop] = useState<Shop | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -534,7 +552,7 @@ export default function PublicShopDetailPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{shop.name}</h1>
             {shop.categories && (
               <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded mb-4">
-                {shop.categories.name}
+                {getCategoryName(shop.categories.name)}
               </span>
             )}
             <div className="space-y-2 text-gray-700">
