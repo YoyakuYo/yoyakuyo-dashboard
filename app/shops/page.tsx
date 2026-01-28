@@ -160,6 +160,7 @@ const MyShopPage = () => {
   const authLoading = Boolean(loading); // Ensure it's always a boolean for stable dependency array
   const router = useRouter();
   const t = useTranslations();
+  const locale = useLocale();
   const { unreadBookingsCount } = useBookingNotifications();
   const { notifications, markAsRead } = useNotifications('owner', user?.id || '');
   
