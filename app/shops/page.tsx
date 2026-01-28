@@ -5,7 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/useAuth';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import ReviewCard from '../components/ReviewCard';
 import ReviewStats from '../components/ReviewStats';
@@ -88,6 +88,7 @@ function OpeningHoursEditor({
   onChange: (hours: any) => void;
 }) {
   const t = useTranslations();
+  const locale = useLocale();
   const days = [
     { key: 'monday', label: t('myShop.monday') },
     { key: 'tuesday', label: t('myShop.tuesday') },
@@ -1802,9 +1803,9 @@ const MyShopPage = () => {
                     // Determine customer type from booking source/channel
                     const customerType = (booking as any).source || (booking as any).channel || 'guest';
                     const getCustomerTypeLabel = (type: string) => {
-                      if (type === 'line') return 'LINE';
-                      if (type === 'web') return 'Web';
-                      return 'Guest';
+                      if (type === 'line') return t('common.line');
+                      if (type === 'web') return t('common.web');
+                      return t('common.guest');
                     };
                     const getCustomerTypeColor = (type: string) => {
                       if (type === 'line') return 'bg-blue-50 text-blue-700 border-blue-200';
@@ -1815,12 +1816,13 @@ const MyShopPage = () => {
                     // Format date and time
                     // CRITICAL: Use booking.date (DATE) + booking.start_time (TIME), not start_at
                     const formatDateTime = (booking: any) => {
+                      const naLabel = t('common.na');
                       if (booking.date && booking.start_time) {
                         // Combine DATE and TIME to create proper datetime
                         const date = new Date(`${booking.date}T${booking.start_time}`);
                         if (!isNaN(date.getTime())) {
                           return {
-                            date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                            date: date.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' }),
                             time: booking.start_time.substring(0, 5) // Format HH:MM from TIME
                           };
                         }
@@ -1829,11 +1831,11 @@ const MyShopPage = () => {
                         // Fallback: just show date if time is missing
                         const date = new Date(booking.date + 'T00:00:00');
                         return {
-                          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                          time: 'N/A'
+                          date: date.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' }),
+                          time: naLabel
                         };
                       }
-                      return { date: 'N/A', time: '' };
+                      return { date: naLabel, time: '' };
                     };
 
                     const dateTime = formatDateTime(booking);
@@ -1857,7 +1859,7 @@ const MyShopPage = () => {
                           </div>
                         </td>
                         <td className="py-4 px-4 text-gray-700">
-                          {(booking as any).services?.name || 'N/A'}
+                          {(booking as any).services?.name || t('common.na')}
                         </td>
                         <td className="py-4 px-4">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
