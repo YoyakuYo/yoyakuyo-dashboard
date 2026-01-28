@@ -55,7 +55,7 @@ function LineBookingPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { t } = useLineAppI18n();
+  const { t, language } = useLineAppI18n();
   const shopId = params?.shopId as string;
   const serviceId = searchParams?.get("service_id");
 
@@ -419,6 +419,7 @@ function LineBookingPageContent() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
+          "Accept-Language": language,
           "x-line-user-id": lineUserId,
           "x-canonical-user-id": canonicalUserId || "", // CRITICAL: Pass canonical user_id
           ...(supabaseJwt ? { Authorization: `Bearer ${supabaseJwt}` } : {}),

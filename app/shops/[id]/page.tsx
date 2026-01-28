@@ -487,6 +487,7 @@ export default function PublicShopDetailPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept-Language': locale,
           ...(user?.id && { 'x-user-id': user.id }), // Send user ID if logged in
         },
         body: JSON.stringify({

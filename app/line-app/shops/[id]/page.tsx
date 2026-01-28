@@ -71,7 +71,7 @@ interface Review {
 }
 
 export default function LineShopDetailPage() {
-  const { t } = useLineAppI18n();
+  const { t, language } = useLineAppI18n();
   const params = useParams();
   const router = useRouter();
   const shopId = params?.id as string;
@@ -628,6 +628,7 @@ export default function LineShopDetailPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept-Language": language,
           ...(supabaseJwt ? { Authorization: `Bearer ${supabaseJwt}` } : {}),
         },
         body: JSON.stringify({
