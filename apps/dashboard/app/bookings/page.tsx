@@ -10,6 +10,7 @@ import BookingCalendar from '../components/BookingCalendar';
 import BookingNotificationBar from '../components/BookingNotificationBar';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { apiUrl } from '@/lib/apiClient';
+import { reloadBookingNotificationsCount } from '@/lib/useBookingNotifications';
 
 interface Booking {
     id: string;
@@ -457,6 +458,8 @@ const BookingsPage = () => {
 
             if (res.ok) {
                 await refreshBookings();
+                // Immediately update the notification badge count
+                await reloadBookingNotificationsCount();
             } else {
                 const errorData = await res.json().catch(() => ({}));
                 alert(errorData.error || 'Failed to confirm booking');
@@ -488,6 +491,8 @@ const BookingsPage = () => {
 
             if (res.ok) {
                 await refreshBookings();
+                // Immediately update the notification badge count
+                await reloadBookingNotificationsCount();
             } else {
                 const errorData = await res.json().catch(() => ({}));
                 alert(errorData.error || 'Failed to reject booking');

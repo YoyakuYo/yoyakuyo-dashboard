@@ -107,19 +107,21 @@ export default function OwnerInboxPage() {
     if (!userId) return;
     
     try {
-      await fetch(`${apiUrl}/api/internal-messaging/conversations/${conversationId}/mark-read`, {
+      // FIXED: Correct API endpoint (was incorrectly using /conversations/ prefix)
+      await fetch(`${apiUrl}/api/internal-messaging/${conversationId}/mark-read`, {
         method: 'PATCH',
         headers: {
           'x-user-id': userId,
         },
       });
       
-      // Update unread count in conversations list
+      // Immediately update unread count in conversations list
       setConversations((prev) =>
         prev.map((conv) =>
           conv.id === conversationId ? { ...conv, unread_count: 0 } : conv
         )
       );
+      console.log('[Owner Inbox] ✅ Marked messages as read for conversation:', conversationId);
     } catch (error) {
       console.error('[Owner Inbox] Error marking messages as read:', error);
     }
