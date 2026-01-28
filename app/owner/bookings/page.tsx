@@ -146,10 +146,22 @@ export default function OwnerBookingsPage() {
   });
 
   const updateBookingStatus = async (bookingId: string, newStatus: string) => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.error('[Booking Status Update] No user ID available');
+      alert('You must be logged in to update booking status.');
+      return;
+    }
+    
+    console.log('[Booking Status Update] Attempting to update:', {
+      bookingId,
+      newStatus,
+      userId: user.id,
+      apiUrl: `${apiUrl}/bookings/${bookingId}/status`
+    });
+    
     try {
       const res = await fetch(`${apiUrl}/bookings/${bookingId}/status`, {
-        method: 'POST',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'x-user-id': user.id,
@@ -157,11 +169,25 @@ export default function OwnerBookingsPage() {
         body: JSON.stringify({ status: newStatus }),
       });
 
+      console.log('[Booking Status Update] Response:', {
+        status: res.status,
+        ok: res.ok,
+        statusText: res.statusText
+      });
+
       if (res.ok) {
         await loadBookings();
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to update booking status' }));
+        console.error('[Booking Status Update] Error response:', {
+          status: res.status,
+          error: errorData
+        });
+        alert(errorData.error || `Failed to update booking status: ${res.status}`);
       }
     } catch (error) {
-      console.error("Error updating booking status:", error);
+      console.error("[Booking Status Update] Network error:", error);
+      alert('Network error: Failed to update booking status. Please try again.');
     }
   };
 
