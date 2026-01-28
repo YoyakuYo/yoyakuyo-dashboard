@@ -324,3 +324,9 @@ export function useBookingNotificationsHook() {
   }, [user, setUnreadBookingsCount, subscribeToBookingUpdates]);
 }
 
+// Export function to manually reload pending count from anywhere
+export async function reloadBookingNotificationsCount() {
+  if (globalReloadPendingCount) {
+    await globalReloadPendingCount();
+  }
+}
