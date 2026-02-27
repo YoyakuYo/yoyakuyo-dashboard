@@ -205,8 +205,8 @@ export default function CreateShopPage() {
     setError(null);
 
     try {
-      // Step 1: Create owner profile
-      const ownerProfileRes = await fetch(`${apiUrl}/owner/profiles`, {
+      // Step 1: Create owner profile (API is mounted at /api/owner/profiles)
+      const ownerProfileRes = await fetch(`${apiUrl}/api/owner/profiles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -221,7 +221,9 @@ export default function CreateShopPage() {
       });
 
       if (!ownerProfileRes.ok) {
-        throw new Error('Failed to create owner profile');
+        const errBody = await ownerProfileRes.json().catch(() => ({}));
+        const msg = errBody.error || errBody.details || 'Failed to create owner profile';
+        throw new Error(msg);
       }
 
       const ownerProfile = await ownerProfileRes.json();
