@@ -206,7 +206,9 @@ export default function CreateShopPage() {
 
     try {
       // Step 1: Create owner profile (API is mounted at /api/owner/profiles)
-      const ownerProfileRes = await fetch(`${apiUrl}/api/owner/profiles`, {
+      const profileUrl = `${apiUrl}/api/owner/profiles`;
+      console.log('[CreateShop] Creating owner profile', { url: profileUrl, userId: user.id });
+      const ownerProfileRes = await fetch(profileUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -220,13 +222,27 @@ export default function CreateShopPage() {
         }),
       });
 
+      const resText = await ownerProfileRes.text();
       if (!ownerProfileRes.ok) {
-        const errBody = await ownerProfileRes.json().catch(() => ({}));
-        const msg = errBody.error || errBody.details || 'Failed to create owner profile';
+        let errBody: { error?: string; details?: string } = {};
+        try {
+          errBody = JSON.parse(resText);
+        } catch {
+          // not JSON
+        }
+        console.error('[CreateShop] Owner profile request failed', {
+          status: ownerProfileRes.status,
+          statusText: ownerProfileRes.statusText,
+          url: profileUrl,
+          responseBody: resText?.slice(0, 500),
+          parsedError: errBody.error,
+          parsedDetails: errBody.details,
+        });
+        const msg = errBody.error || errBody.details || resText || 'Failed to create owner profile';
         throw new Error(msg);
       }
 
-      const ownerProfile = await ownerProfileRes.json();
+      const ownerProfile = JSON.parse(resText);
 
       // Step 2: Create shop
       const shopRes = await fetch(`${apiUrl}/shops`, {
@@ -285,7 +301,11 @@ export default function CreateShopPage() {
       // Success - redirect to dashboard
       router.push('/owner/shop-profile');
     } catch (error: any) {
-      console.error('Error creating shop:', error);
+      console.error('[CreateShop] Error creating shop', {
+        message: error?.message,
+        name: error?.name,
+        stack: error?.stack?.slice(0, 300),
+      });
       setError(error.message || 'Failed to create shop. Please try again.');
     } finally {
       setLoading(false);
