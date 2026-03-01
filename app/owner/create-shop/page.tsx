@@ -298,8 +298,8 @@ export default function CreateShopPage() {
         throw new Error('Failed to submit verification request');
       }
 
-      // Success - redirect to dashboard
-      router.push('/owner/shop-profile');
+      // Success - go to My Shop so they see their shop (pending approval)
+      router.push('/shops?created=1');
     } catch (error: any) {
       console.error('[CreateShop] Error creating shop', {
         message: error?.message,

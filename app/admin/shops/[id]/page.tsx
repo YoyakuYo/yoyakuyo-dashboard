@@ -9,6 +9,31 @@ import { apiUrl } from "@/lib/apiClient";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 import BackButton from "@/app/components/BackButton";
 
+interface OwnerProfile {
+  id: string;
+  full_name?: string | null;
+  name?: string | null;
+  company_phone?: string | null;
+  company_email?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  prefecture?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+  created_at?: string | null;
+}
+
+interface VerificationDoc {
+  id: string;
+  doc_type: string;
+  file_url: string;
+  file_name?: string | null;
+  uploaded_at?: string | null;
+}
+
 interface Shop {
   id: string;
   name: string;
@@ -37,6 +62,9 @@ interface Shop {
   created_at: string;
   updated_at: string;
   owner_user_id: string | null;
+  owner_profile?: OwnerProfile | null;
+  verification_request?: { id: string; status: string; submitted_at?: string } | null;
+  verification_documents?: VerificationDoc[];
 }
 
 interface Booking {
@@ -455,6 +483,82 @@ export default function AdminShopDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Owner / registration info */}
+      {(shop.owner_profile && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            {t("admin.ownerRegistration") || "Owner / registration"}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            {(shop.owner_profile.full_name || shop.owner_profile.name) && (
+              <div>
+                <span className="font-medium text-gray-500">{t("myShop.name") || "Name"}: </span>
+                <span className="text-gray-900">{shop.owner_profile.full_name || shop.owner_profile.name}</span>
+              </div>
+            )}
+            {(shop.owner_profile.company_email || shop.owner_profile.email) && (
+              <div>
+                <span className="font-medium text-gray-500">{t("myShop.email")}: </span>
+                <span className="text-gray-900">{shop.owner_profile.company_email || shop.owner_profile.email}</span>
+              </div>
+            )}
+            {(shop.owner_profile.company_phone || shop.owner_profile.phone) && (
+              <div>
+                <span className="font-medium text-gray-500">{t("myShop.phone")}: </span>
+                <span className="text-gray-900">{shop.owner_profile.company_phone || shop.owner_profile.phone}</span>
+              </div>
+            )}
+            {(shop.owner_profile.address_line1 || shop.owner_profile.city) && (
+              <div className="md:col-span-2">
+                <span className="font-medium text-gray-500">{t("myShop.address")}: </span>
+                <span className="text-gray-900">
+                  {[shop.owner_profile.address_line1, shop.owner_profile.address_line2, shop.owner_profile.city, shop.owner_profile.prefecture, shop.owner_profile.postal_code, shop.owner_profile.country].filter(Boolean).join(", ")}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* Verification request & documents */}
+      {(shop.verification_request || (shop.verification_documents && shop.verification_documents.length > 0)) && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            {t("admin.verificationDocuments") || "Verification documents"}
+          </h3>
+          {shop.verification_request && (
+            <p className="text-sm text-gray-600 mb-4">
+              Status: <span className="font-medium">{shop.verification_request.status}</span>
+              {shop.verification_request.submitted_at && (
+                <> · Submitted: {new Date(shop.verification_request.submitted_at).toLocaleString()}</>
+              )}
+            </p>
+          )}
+          {shop.verification_documents && shop.verification_documents.length > 0 ? (
+            <div className="space-y-3">
+              {shop.verification_documents.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <span className="font-medium text-gray-900">{doc.doc_type}</span>
+                    {doc.file_name && <span className="text-gray-500 text-sm ml-2">{doc.file_name}</span>}
+                  </div>
+                  <a
+                    href={doc.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline text-sm font-medium"
+                  >
+                    {t("admin.viewDocument") || "View"}
+                  </a>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm">{t("admin.noDocuments") || "No documents uploaded."}</p>
+          )}
+        </div>
+      )}
 
       {/* Recent Bookings */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

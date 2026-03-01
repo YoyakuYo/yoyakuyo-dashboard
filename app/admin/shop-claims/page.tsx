@@ -4,6 +4,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
@@ -50,7 +51,9 @@ export default function AdminShopClaimsPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [claims, setClaims] = useState<ClaimRequest[]>([]);
+  const [shopsPendingVerification, setShopsPendingVerification] = useState<Array<{ id: string; name: string; address?: string; created_at?: string }>>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingShops, setLoadingShops] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [adminNote, setAdminNote] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -76,8 +79,32 @@ export default function AdminShopClaimsPage() {
   useEffect(() => {
     if (userId) {
       fetchPendingClaims();
+      fetchShopsPendingVerification();
     }
   }, [userId]);
+
+  const fetchShopsPendingVerification = async () => {
+    try {
+      setLoadingShops(true);
+      const res = await fetch(`${apiUrl}/admin/shops/verification?status=pending&limit=50`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId || '',
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setShopsPendingVerification(data.shops || []);
+      } else {
+        setShopsPendingVerification([]);
+      }
+    } catch (err) {
+      console.error('Error fetching shops pending verification:', err);
+      setShopsPendingVerification([]);
+    } finally {
+      setLoadingShops(false);
+    }
+  };
 
   const fetchPendingClaims = async () => {
     try {
@@ -211,12 +238,47 @@ export default function AdminShopClaimsPage() {
               <p className="text-gray-600">{t('admin.reviewAndApprove')}</p>
             </div>
             <button
-              onClick={fetchPendingClaims}
+              onClick={() => { fetchPendingClaims(); fetchShopsPendingVerification(); }}
               className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
             >
               {t('common.refresh')}
             </button>
           </div>
+
+          {/* Shops pending verification (newly created shops) */}
+          {loadingShops ? (
+            <div className="text-center py-4 text-gray-500 text-sm">Loading shops pending verification...</div>
+          ) : shopsPendingVerification.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                {t('admin.shopsPendingVerification') ?? 'Shops waiting for approval (newly created)'}
+              </h2>
+              <div className="space-y-3">
+                {shopsPendingVerification.map((shop) => (
+                  <div
+                    key={shop.id}
+                    className="flex items-center justify-between border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900">{shop.name}</p>
+                      {shop.address && <p className="text-sm text-gray-600 mt-0.5">{shop.address}</p>}
+                      {shop.created_at && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Submitted: {new Date(shop.created_at).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                    <Link
+                      href={`/admin/shops/${shop.id}`}
+                      className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                    >
+                      {t('admin.viewAndApprove') ?? 'View & approve'}
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
             <p className="text-sm text-yellow-800 font-medium mb-2">⚠️ {t('admin.importantVerificationRule')}</p>

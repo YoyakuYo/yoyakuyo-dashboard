@@ -2,9 +2,9 @@
 // "My Shop" page for owners to manage their shop
 
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/useAuth';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { apiUrl } from '@/lib/apiClient';
 import ReviewCard from '../components/ReviewCard';
@@ -43,6 +43,8 @@ interface Shop {
   claimed_at?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+  is_verified?: boolean | null;
+  verification_status?: string | null;
 }
 
 interface Service {
@@ -159,6 +161,10 @@ const MyShopPage = () => {
   const { user, loading } = useAuth();
   const authLoading = Boolean(loading); // Ensure it's always a boolean for stable dependency array
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const justCreated = searchParams.get('created') === '1';
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+  const retryAfterCreateDone = useRef(false);
   const t = useTranslations();
   const locale = useLocale();
   const { unreadBookingsCount } = useBookingNotifications();
@@ -464,7 +470,15 @@ const MyShopPage = () => {
     };
 
     fetchMyShop();
-  }, [user, authLoading, apiUrl]);
+  }, [user, authLoading, apiUrl, refetchTrigger]);
+
+  // After creating a shop, retry fetching once so the new shop appears
+  useEffect(() => {
+    if (!justCreated || !user || shop !== null || pageLoading || retryAfterCreateDone.current) return;
+    retryAfterCreateDone.current = true;
+    const t = setTimeout(() => setRefetchTrigger((c) => c + 1), 2000);
+    return () => clearTimeout(t);
+  }, [justCreated, user, shop, pageLoading]);
 
   const fetchServices = async (shopId: string) => {
     if (!shopId || !user) return;
@@ -1261,11 +1275,29 @@ const MyShopPage = () => {
     );
   }
 
-  // User doesn't own a shop - show create/claim options
+  // User doesn't own a shop - show create/claim options (or "pending approval" if they just created)
   if (!shop) {
     return (
       <div className="p-8 max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">{t('myShop.title')}</h1>
+
+        {justCreated && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-6">
+            <h2 className="text-xl font-semibold text-amber-900 mb-2">
+              {t('myShop.shopSubmitted') ?? 'Shop submitted'}
+            </h2>
+            <p className="text-amber-800 mb-4">
+              {t('myShop.pendingApprovalMessage') ?? 'Your shop has been created and is waiting for approval. It should appear below once loaded. If you don\'t see it, click Refresh.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => setRefetchTrigger((c) => c + 1)}
+              className="px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors"
+            >
+              {t('common.refresh') ?? 'Refresh'}
+            </button>
+          </div>
+        )}
         
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-8 mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('myShop.getStarted')}</h2>
@@ -1427,6 +1459,15 @@ const MyShopPage = () => {
           <PushNotificationButton userType="owner" />
         </div>
       </div>
+
+      {/* Pending approval banner */}
+      {(shop.is_verified === false || shop.verification_status === 'pending' || shop.verification_status === 'not_submitted') && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <p className="text-amber-800 font-medium">
+            {t('myShop.pendingApproval') ?? 'Your shop is waiting for approval. You can already set up services and details.'}
+          </p>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="mb-6 border-b border-gray-200">
