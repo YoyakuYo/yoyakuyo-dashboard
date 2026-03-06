@@ -162,7 +162,7 @@ const MyShopPage = () => {
   const authLoading = Boolean(loading); // Ensure it's always a boolean for stable dependency array
   const router = useRouter();
   const searchParams = useSearchParams();
-  const justCreated = searchParams.get('created') === '1';
+  const justCreated = searchParams !== null && searchParams.get('created') === '1';
   const [refetchTrigger, setRefetchTrigger] = useState(0);
   const retryAfterCreateDone = useRef(false);
   const t = useTranslations();
