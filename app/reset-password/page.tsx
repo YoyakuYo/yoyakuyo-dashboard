@@ -17,12 +17,38 @@ function ResetPasswordForm() {
   const t = useTranslations();
 
   useEffect(() => {
-    // Check if we have a valid access token from Supabase redirect
+    // Check if we have a valid session from Supabase redirect (PKCE uses ?code=..., implicit uses #access_token=...)
     const checkToken = async () => {
       try {
         const supabase = getSupabaseClient();
+
+        // PKCE flow: Supabase redirects with ?code=... (same browser/device as forgot-password)
+        const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+        const code = params?.get("code");
+
+        if (code) {
+          const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (!error && session) {
+            // Remove code from URL so it can't be reused
+            if (typeof window !== "undefined") {
+              const url = new URL(window.location.href);
+              url.searchParams.delete("code");
+              const cleanPath = url.pathname + (url.search || "") + (url.hash || "");
+              window.history.replaceState({}, "", cleanPath || url.pathname);
+            }
+            setIsValidToken(true);
+            return;
+          }
+          // Code invalid or expired (e.g. already used, wrong device, or >5 min)
+          console.error("Code exchange failed:", error);
+          setIsValidToken(false);
+          setMessage(t('invalidExpiredResetLink'));
+          setMessageType("error");
+          return;
+        }
+
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           console.error("Error checking session:", error);
           setIsValidToken(false);
@@ -34,27 +60,26 @@ function ResetPasswordForm() {
         // If we have a session, the token is valid
         if (session) {
           setIsValidToken(true);
-        } else {
-          // Check if there's a hash in the URL (Supabase redirects with hash)
-          const hash = window.location.hash;
-          if (hash && hash.includes("access_token")) {
-            // Supabase will handle the hash and create a session
-            // Wait a moment for it to process
-            setTimeout(async () => {
-              const { data: { session: newSession } } = await supabase.auth.getSession();
-              if (newSession) {
-                setIsValidToken(true);
-              } else {
-                setIsValidToken(false);
-                setMessage("Invalid or expired reset link. Please request a new password reset.");
-                setMessageType("error");
-              }
-            }, 1000);
+          return;
+        }
+
+        // Implicit flow: check for hash (access_token in URL fragment)
+        const hash = typeof window !== "undefined" ? window.location.hash : "";
+        if (hash && hash.includes("access_token")) {
+          // Client may need a moment to process the hash
+          await new Promise((r) => setTimeout(r, 500));
+          const { data: { session: newSession } } = await supabase.auth.getSession();
+          if (newSession) {
+            setIsValidToken(true);
           } else {
             setIsValidToken(false);
-            setMessage("Invalid or expired reset link. Please request a new password reset.");
+            setMessage(t('invalidExpiredResetLink'));
             setMessageType("error");
           }
+        } else {
+          setIsValidToken(false);
+          setMessage(t('invalidExpiredResetLink'));
+          setMessageType("error");
         }
       } catch (error: any) {
         console.error("Error validating token:", error);
@@ -65,7 +90,7 @@ function ResetPasswordForm() {
     };
 
     checkToken();
-  }, []);
+  }, [t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

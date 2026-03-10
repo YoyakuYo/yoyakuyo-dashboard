@@ -46,6 +46,15 @@ If testing locally, also add:
 http://localhost:3001/reset-password
 ```
 
+### 📧 Reset email in your platform’s name (no "powered by Supabase")
+
+To send the reset email in your platform’s name instead of Supabase:
+
+1. **Production:** Supabase Dashboard → **Authentication** → **Email Templates** → **Reset Password**. Replace the body with the template from `supabase/templates/recovery.html` (or see `supabase/EMAIL_TEMPLATES.md` for copy-paste HTML and optional sender name).
+2. **Local:** The repo already uses `supabase/templates/recovery.html` via `supabase/config.toml`; restart with `supabase stop && supabase start` after changes.
+
+Full steps and HTML are in **`supabase/EMAIL_TEMPLATES.md`**.
+
 ---
 
 ## 🔄 PASSWORD RESET FLOW

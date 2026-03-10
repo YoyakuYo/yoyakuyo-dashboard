@@ -99,7 +99,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Login successful - sync user to users table
+      // Login successful - sync user to users table (non-blocking)
       try {
         await authApi.syncUser(
           authData.user.id,
@@ -108,84 +108,51 @@ export default function LoginPage() {
         );
         console.log('User synced to users table');
       } catch (syncError) {
-        // Log error but don't block login
         console.warn('Failed to sync user to users (non-blocking):', syncError);
       }
 
-      // Ensure session is properly set and auth state is updated
-      // Wait a moment for onAuthStateChange to fire and update the AuthProvider
       await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // Verify session is set
       const { data: { session: verifySession } } = await supabase.auth.getSession();
       if (!verifySession && authData.session) {
-        console.warn('Session not found after login, but we have authData.session');
-        // Session should be set by Supabase automatically, but if not, try to set it
         await supabase.auth.setSession({
           access_token: authData.session.access_token,
           refresh_token: authData.session.refresh_token,
         });
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-      
-      // CRITICAL: Use persisted role for redirect (don't infer from database)
+
+      // Enforce role from backend only: each email has one role (admin | owner | customer).
+      // Only approved emails can log in; redirect by actual role, never by selected role.
       setMessage("Login successful! Redirecting...");
-      
-      // Clear selected role after successful login
       setSelectedRole(null);
-      
-      // Redirect based on persisted role (not inferred from database)
-      if (selectedRole === 'owner') {
-        setTimeout(() => {
-          router.push("/owner/shop-profile");
-          router.refresh();
-        }, 300);
-      } else if (selectedRole === 'customer') {
-        setTimeout(() => {
-          router.push("/customer/home");
-          router.refresh();
-        }, 300);
-      } else {
-        // Fallback: check database role if persisted role is missing
-        try {
-          const { apiUrl } = await import('@/lib/apiClient');
-          const roleResponse = await fetch(`${apiUrl}/users/me`, {
-            headers: { 'x-user-id': authData.user.id },
-          });
 
-          if (roleResponse.ok) {
-            const roleData = await roleResponse.json();
-            const userRole = roleData.user?.role || roleData.role;
+      try {
+        const { apiUrl } = await import('@/lib/apiClient');
+        const roleResponse = await fetch(`${apiUrl}/users/me`, {
+          headers: { 'x-user-id': authData.user.id },
+        });
+        const roleData = roleResponse.ok ? await roleResponse.json() : null;
+        const userRole = roleData?.user?.role ?? null;
 
-            if (userRole === 'owner') {
-              setTimeout(() => {
-                router.push("/owner/shop-profile");
-                router.refresh();
-              }, 300);
-            } else if (userRole === 'admin') {
-              setTimeout(() => {
-                router.push("/admin");
-                router.refresh();
-              }, 300);
-            } else {
-              setTimeout(() => {
-                router.push("/customer/home");
-                router.refresh();
-              }, 300);
-            }
-          } else {
-            setTimeout(() => {
-              router.push("/customer/home");
-              router.refresh();
-            }, 300);
-          }
-        } catch (roleError) {
-          console.error('Error checking user role:', roleError);
-          setTimeout(() => {
-            router.push("/customer/home");
-            router.refresh();
-          }, 300);
+        if (roleResponse.status === 403 || userRole == null) {
+          await supabase.auth.signOut();
+          setMessage(roleData?.message || roleData?.error || "This email is not authorized to log in. Contact support if you believe this is an error.");
+          setLoading(false);
+          return;
         }
+
+        if (userRole === 'admin') {
+          setTimeout(() => { router.push("/admin"); router.refresh(); }, 300);
+        } else if (userRole === 'owner') {
+          setTimeout(() => { router.push("/owner/shop-profile"); router.refresh(); }, 300);
+        } else {
+          setTimeout(() => { router.push("/customer/home"); router.refresh(); }, 300);
+        }
+      } catch (roleError) {
+        console.error('Error resolving role:', roleError);
+        await supabase.auth.signOut();
+        setMessage("Could not verify your account. Please try again or contact support.");
+        setLoading(false);
       }
     } catch (error: any) {
       setMessage(`Unexpected error: ${error.message}`);
