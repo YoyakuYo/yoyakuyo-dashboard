@@ -5,7 +5,7 @@ const withNextIntl = createNextIntlPlugin('./i18n.ts');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Ensure proper port configuration
-  // Port is set via command line: next start -p 3001
+  // Port is set via command line: next start -p 5001
   
   // Allow external images from Unsplash and other sources
   images: {

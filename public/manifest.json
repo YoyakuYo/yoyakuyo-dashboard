@@ -1,0 +1,26 @@
+{
+  "name": "Yoyaku Yo - 予約管理",
+  "short_name": "Yoyaku Yo",
+  "description": "Reservation platform for salons and shops. Manage bookings and connect with LINE.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#e11d48",
+  "background_color": "#fafaf9",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

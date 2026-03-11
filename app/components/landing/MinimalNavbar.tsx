@@ -72,6 +72,20 @@ export default function MinimalNavbar() {
               <span>{t('navServices') || 'Services'}</span>
             </Link>
           </li>
+          <li>
+            <a
+              href="#install-app"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('install-app-banner')?.scrollIntoView({ behavior: 'smooth' });
+                setDrawerOpen(false);
+              }}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-blue-800 hover:text-white transition-colors"
+            >
+              <span>📱</span>
+              <span>Install app / アプリをインストール</span>
+            </a>
+          </li>
         </ul>
         <div className="pt-4 border-t border-blue-700">
           <button
@@ -99,16 +113,30 @@ export default function MinimalNavbar() {
     </div>
   );
 
+  const scrollToInstall = () => {
+    document.getElementById('install-app-banner')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <>
-      {/* Mobile hamburger button */}
-      <button
-        className="md:hidden fixed top-[52px] left-4 z-[251] bg-blue-600 text-white p-2 rounded-lg shadow-lg"
-        onClick={() => setDrawerOpen(true)}
-        aria-label="Open menu"
-      >
-        ☰
-      </button>
+      {/* Mobile: Install app button (always visible) + hamburger */}
+      <div className="md:hidden fixed top-[52px] left-4 right-4 z-[251] flex items-center justify-between gap-2">
+        <button
+          className="bg-blue-600 text-white p-2 rounded-lg shadow-lg"
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Open menu"
+        >
+          ☰
+        </button>
+        <a
+          href="#install-app"
+          onClick={(e) => { e.preventDefault(); scrollToInstall(); }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium shadow-lg"
+        >
+          <span>📱</span>
+          <span>Install app</span>
+        </a>
+      </div>
 
       {/* Mobile drawer */}
       {MobileDrawer}
@@ -122,7 +150,7 @@ export default function MinimalNavbar() {
               Yoyaku Yo
             </Link>
 
-            {/* Center: Categories | Services - Hidden on mobile */}
+            {/* Center: Categories | Services | Install - Hidden on mobile */}
             <div className="hidden md:flex items-center gap-2">
               <Link
                 href="/browse"
@@ -137,6 +165,17 @@ export default function MinimalNavbar() {
               >
                 {t('navServices') || 'Services'}
               </Link>
+              <span className="text-blue-300">|</span>
+              <a
+                href="#install-app"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('install-app-banner')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="text-sm font-medium text-white hover:text-blue-200 transition-colors"
+              >
+                📱 Install app
+              </a>
             </div>
 
             {/* Right: Login + Join - Hidden on mobile */}

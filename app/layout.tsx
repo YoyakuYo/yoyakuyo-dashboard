@@ -11,6 +11,8 @@ import { ConditionalLanguageSwitcher } from "./components/ConditionalLanguageSwi
 import { Toaster } from "react-hot-toast";
 import VisitorTracker from "./components/VisitorTracker";
 import OwnerPresenceTracker from "./components/OwnerPresenceTracker";
+import PwaRegistration from "./components/PwaRegistration";
+import InstallAppBanner from "./components/InstallAppBanner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,6 +21,14 @@ export const metadata: Metadata = {
   description: "Admin dashboard for managing shops, services, staff, and bookings",
   icons: {
     icon: '/favicon.ico',
+    apple: '/icon.svg',
+  },
+  manifest: '/manifest.json',
+  themeColor: '#e11d48',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Yoyaku Yo',
   },
 };
 
@@ -30,6 +40,13 @@ export default function RootLayout({
   // Removed console.log to reduce noise
   return (
     <html lang="en">
+      <head>
+        <meta name="theme-color" content="#e11d48" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Yoyaku Yo" />
+        <link rel="apple-touch-icon" href="/icon.svg" />
+      </head>
       <body className={inter.className}>
         {/* Toast Notifications */}
         <Toaster
@@ -62,6 +79,8 @@ export default function RootLayout({
                 </ConditionalLayout>
                 <VisitorTracker />
                 <OwnerPresenceTracker />
+                <PwaRegistration />
+                <InstallAppBanner />
               </BookingNotificationProvider>
             </AuthProvider>
           </AuthRoleProvider>

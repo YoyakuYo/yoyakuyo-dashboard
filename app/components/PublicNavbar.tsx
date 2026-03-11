@@ -18,6 +18,16 @@ export default function PublicNavbar() {
           >
             Yoyaku Yo
           </Link>
+          <a
+            href="#install-app"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById("install-app-banner")?.scrollIntoView({ behavior: "smooth" });
+            }}
+            className="text-sm font-medium text-gray-600 hover:text-gray-900"
+          >
+            📱 Install app
+          </a>
         </div>
       </div>
     </nav>
