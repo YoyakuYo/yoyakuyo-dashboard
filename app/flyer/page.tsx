@@ -84,7 +84,7 @@ export default function FlyerPage() {
           <div className="grid grid-cols-4 gap-1.5">
             <div className="rounded-lg overflow-hidden border border-stone-200 aspect-square">
               <img
-                src="https://images.unsplash.com/photo-1599351431209-41e2d92b3282?w=400&q=80"
+                src="https://images.unsplash.com/photo-1747832802200-7aaceb517e0c?w=400&q=80"
                 alt="Barbershop"
                 className="w-full h-full object-cover"
               />
