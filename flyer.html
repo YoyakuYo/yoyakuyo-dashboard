@@ -24,19 +24,11 @@
       box-shadow: 0 25px 80px -12px rgba(0,0,0,0.12);
       overflow: hidden;
     }
-    .header {
-      background: #1e40af;
-      color: #fff;
-      padding: 16px 24px;
-      text-align: center;
-    }
-    .header h1 { margin: 0; font-size: 1.35rem; font-weight: 700; }
-    .header p { margin: 4px 0 0; font-size: 0.75rem; color: #93c5fd; }
     .boards {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
-      padding: 16px;
+      padding: 16px 16px 12px;
     }
     .board {
       border: 1px solid #e7e5e4;
@@ -44,7 +36,6 @@
       background: #fafaf9;
       padding: 14px;
     }
-    .board-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.05em; color: #78716c; margin-bottom: 6px; }
     .board-title { font-size: 0.875rem; font-weight: 700; color: #292524; margin-bottom: 8px; }
     .board ul { margin: 0; padding-left: 1rem; font-size: 0.75rem; color: #57534e; line-height: 1.6; }
     .board .icon { font-size: 1.25rem; margin-bottom: 4px; }
@@ -74,7 +65,6 @@
         page-break-inside: avoid !important;
       }
       .card * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      .header { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 12px 24px !important; }
       .board { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 10px !important; }
       .boards { padding: 10px !important; gap: 8px !important; }
       .qr-box { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 12px !important; }
@@ -85,56 +75,48 @@
 </head>
 <body>
   <div class="card">
-    <div class="header">
-      <h1>Yoyaku Yo</h1>
-      <p>予約管理プラットフォーム / Reservation Platform</p>
-    </div>
     <div class="boards">
       <section class="board">
         <div class="icon">📅</div>
-        <div class="board-label">お客様 / For customers</div>
-        <div class="board-title">Book anytime</div>
+        <div class="board-title">いつでも予約</div>
         <ul>
-          <li>24時間いつでも予約 / Book 24/7</li>
-          <li>サロン・店舗を検索 / Find salons & shops</li>
-          <li>キャンセル・変更が簡単 / Easy cancel or change</li>
+          <li>24時間いつでも予約</li>
+          <li>サロン・店舗を検索</li>
+          <li>キャンセル・変更が簡単</li>
         </ul>
       </section>
       <section class="board">
         <div class="icon">📱</div>
-        <div class="board-label">お客様 / For customers</div>
-        <div class="board-title">LINE & mobile</div>
+        <div class="board-title">LINE・スマホ</div>
         <ul>
-          <li>LINEで予約・リマインド / Book & reminders via LINE</li>
-          <li>スマホでサクサク / Smooth on your phone</li>
-          <li>アプリで管理 / Manage in the app</li>
+          <li>LINEで予約・リマインド</li>
+          <li>スマホでサクサク</li>
+          <li>アプリで管理</li>
         </ul>
       </section>
       <section class="board">
         <div class="icon">🏪</div>
-        <div class="board-label">店舗・オーナー様 / For shop owners</div>
-        <div class="board-title">One place for all</div>
+        <div class="board-title">一括管理</div>
         <ul>
-          <li>予約を一括管理 / All bookings in one place</li>
-          <li>カレンダーで確認 / See at a glance</li>
-          <li>紙・電話から卒業 / No more paper or phone</li>
+          <li>予約を一括管理</li>
+          <li>カレンダーで確認</li>
+          <li>紙・電話から卒業</li>
         </ul>
       </section>
       <section class="board">
         <div class="icon">💬</div>
-        <div class="board-label">店舗・オーナー様 / For shop owners</div>
         <div class="board-title">LINE連携</div>
         <ul>
-          <li>LINEでお客様とつながる / Connect via LINE</li>
-          <li>予約確認・リマインド自動 / Auto confirm & remind</li>
-          <li>空席を有効活用 / Fill empty slots</li>
+          <li>LINEでお客様とつながる</li>
+          <li>予約確認・リマインド自動</li>
+          <li>空席を有効活用</li>
         </ul>
       </section>
     </div>
     <section class="qr-section">
       <div class="qr-box">
-        <h3>アクセスはこちら / Access the platform</h3>
-        <p class="hint">スマホでQRコードをスキャン → Download をタップ / Scan QR → tap Download</p>
+        <h3>アクセスはこちら</h3>
+        <p class="hint">スマホでQRコードをスキャン → Download をタップ</p>
         <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fwww.yoyakuyo.jp" alt="QR code" width="180" height="180">
         <a href="https://www.yoyakuyo.jp">Open → www.yoyakuyo.jp</a>
       </div>
