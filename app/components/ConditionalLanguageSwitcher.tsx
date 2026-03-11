@@ -12,8 +12,8 @@ export function ConditionalLanguageSwitcher() {
   // Only hide on LINE app routes if needed (they have their own UI)
   const pathname = usePathname();
   
-  // Hide language selector on LINE app routes (they have their own UI)
-  if (pathname?.startsWith("/line-app")) {
+  // Hide on LINE app routes (own UI) and on flyer (clean print view)
+  if (pathname?.startsWith("/line-app") || pathname === "/flyer") {
     return null;
   }
   

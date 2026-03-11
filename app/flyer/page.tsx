@@ -3,23 +3,43 @@ const QR_IMAGE_URL = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&d
 
 const cards = [
   {
-    titleEn: "いつでも予約",
-    points: ["24時間いつでも予約", "サロン・店舗を検索", "キャンセル・変更が簡単"],
+    title: "お客様 / For customers",
+    titleEn: "Book anytime",
+    points: [
+      { ja: "24時間いつでも予約", en: "Book 24/7" },
+      { ja: "サロン・店舗を検索", en: "Find salons & shops" },
+      { ja: "キャンセル・変更が簡単", en: "Easy cancel or change" },
+    ],
     icon: "📅",
   },
   {
-    titleEn: "LINE・スマホ",
-    points: ["LINEで予約・リマインド", "スマホでサクサク", "アプリで管理"],
+    title: "お客様 / For customers",
+    titleEn: "LINE & mobile",
+    points: [
+      { ja: "LINEで予約・リマインド", en: "Book & reminders via LINE" },
+      { ja: "スマホでサクサク", en: "Smooth on your phone" },
+      { ja: "アプリで管理", en: "Manage in the app" },
+    ],
     icon: "📱",
   },
   {
-    titleEn: "一括管理",
-    points: ["予約を一括管理", "カレンダーで確認", "紙・電話から卒業"],
+    title: "店舗・オーナー様 / For shop owners",
+    titleEn: "One place for all",
+    points: [
+      { ja: "予約を一括管理", en: "All bookings in one place" },
+      { ja: "カレンダーで確認", en: "See at a glance" },
+      { ja: "紙・電話から卒業", en: "No more paper or phone" },
+    ],
     icon: "🏪",
   },
   {
+    title: "店舗・オーナー様 / For shop owners",
     titleEn: "LINE連携",
-    points: ["LINEでお客様とつながる", "予約確認・リマインド自動", "空席を有効活用"],
+    points: [
+      { ja: "LINEでお客様とつながる", en: "Connect with customers via LINE" },
+      { ja: "予約確認・リマインド自動", en: "Auto confirm & remind" },
+      { ja: "空席を有効活用", en: "Fill empty slots" },
+    ],
     icon: "💬",
   },
 ];
@@ -41,6 +61,7 @@ export default function FlyerPage() {
             page-break-inside: avoid !important;
           }
           .flyer-print-card * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .flyer-print-header { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .flyer-print-boards section { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .flyer-print-qr { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .flyer-print-card { transform: scale(0.95); transform-origin: top center; }
@@ -51,6 +72,12 @@ export default function FlyerPage() {
         className="flyer-print-card w-full max-w-2xl bg-white rounded-3xl shadow-[0_25px_80px_-12px_rgba(0,0,0,0.12)] overflow-hidden"
         style={{ fontFamily: "'Noto Sans JP', 'Poppins', sans-serif" }}
       >
+        {/* Header */}
+        <div className="flyer-print-header bg-blue-600 text-white px-6 py-3 text-center">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Yoyaku Yo</h1>
+          <p className="text-blue-100 text-xs mt-0.5">予約管理プラットフォーム / Reservation Platform</p>
+        </div>
+
         {/* 4 boards: 2x2 grid */}
         <div className="flyer-print-boards p-3 grid grid-cols-2 gap-2">
           {cards.map((card, i) => (
@@ -60,11 +87,18 @@ export default function FlyerPage() {
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-2xl" aria-hidden>{card.icon}</span>
-                <h3 className="text-sm font-bold text-stone-800">{card.titleEn}</h3>
+                <h2 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
+                  {card.title}
+                </h2>
               </div>
+              <h3 className="text-sm font-bold text-stone-800 mb-2">{card.titleEn}</h3>
               <ul className="space-y-1 text-xs text-stone-600 flex-1">
                 {card.points.map((p, j) => (
-                  <li key={j}>{p}</li>
+                  <li key={j} className="flex flex-col sm:flex-row sm:gap-1">
+                    <span>{p.ja}</span>
+                    <span className="text-stone-400 hidden sm:inline">/</span>
+                    <span className="text-stone-500">{p.en}</span>
+                  </li>
                 ))}
               </ul>
             </section>
@@ -75,10 +109,10 @@ export default function FlyerPage() {
         <section className="px-4 pb-4 pt-1">
           <div className="flyer-print-qr rounded-2xl bg-stone-100 border border-stone-200 p-4 text-center">
             <h3 className="text-sm font-bold text-stone-800 mb-0.5">
-              アクセスはこちら
+              アクセスはこちら / Access the platform
             </h3>
             <p className="text-stone-500 text-xs mb-3">
-              スマホでQRコードをスキャン → Download をタップ
+              スマホでQRコードをスキャン → Download をタップ / Scan QR → tap Download
             </p>
             <div className="inline-flex flex-col items-center">
               <div className="bg-white p-2.5 rounded-xl shadow-inner">

@@ -38,6 +38,7 @@ export default function ConditionalLayout({
   // Routes that should NEVER use DashboardLayout (they have their own layouts)
   const excludedFromDashboard = [
     "/",      // Landing page - has MinimalNavbar
+    "/flyer", // Flyer - standalone, no site header
     "/admin", // Admin routes have their own AdminLayout
   ];
 
