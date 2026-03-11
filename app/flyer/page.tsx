@@ -1,4 +1,213 @@
 const PLATFORM_URL = "https://www.yoyakuyo.jp";
+const QR_IMAGE_URL = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+  PLATFORM_URL
+)}`;
+
+const boards = [
+  {
+    group: "customers-ja",
+    icon: "👤",
+    title: "お客様向け",
+    subtitle: "スマホでかんたん予約",
+    points: [
+      "24時間いつでもオンライン予約",
+      "近くのサロン・お店をまとめて検索",
+      "キャンセルや時間変更もスマホで完結",
+    ],
+  },
+  {
+    group: "customers-en",
+    icon: "👤",
+    title: "For customers",
+    subtitle: "Book in a few taps",
+    points: [
+      "Book online 24/7 from your phone",
+      "Discover salons and shops nearby",
+      "Reschedule or cancel without calling",
+    ],
+  },
+  {
+    group: "owners-ja",
+    icon: "🏪",
+    title: "店舗・オーナー様向け",
+    subtitle: "予約をひとつの画面で管理",
+    points: [
+      "紙・電話・LINEの予約を一元管理",
+      "カレンダー画面で空き枠をひと目で確認",
+      "ダブルブッキングや予約漏れを防止",
+    ],
+  },
+  {
+    group: "owners-en",
+    icon: "🏪",
+    title: "For shop owners",
+    subtitle: "One calendar for every booking",
+    points: [
+      "Centralize all reservations in one place",
+      "See your daily schedule at a glance",
+      "Reduce no-shows and double bookings",
+    ],
+  },
+];
+
+export default function FlyerPage() {
+  return (
+    <>
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        @page { size: A4; margin: 8mm; }
+        @media print {
+          body { background: #fff !important; padding: 0 !important; }
+          .flyer-print-root { min-height: 0 !important; padding: 0 !important; background: #fff !important; }
+          .flyer-print-card {
+            max-width: 100% !important;
+            box-shadow: 0 0 0 3px #1e40af !important;
+            border: none !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            page-break-inside: avoid !important;
+          }
+          .flyer-print-card * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .flyer-print-header { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .flyer-print-pics img { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .flyer-print-boards section { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .flyer-print-qr { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .flyer-print-card { transform: scale(0.95); transform-origin: top center; }
+        }
+      `,
+        }}
+      />
+      <div
+        className="flyer-print-root min-h-screen flex items-center justify-center p-4 md:p-6"
+        style={{
+          background:
+            "linear-gradient(145deg, #e8e4df 0%, #d4cfc9 100%)",
+        }}
+      >
+        <article
+          className="flyer-print-card flyer-poster w-full max-w-2xl overflow-hidden"
+          style={{
+            fontFamily: "'Noto Sans JP', 'Poppins', sans-serif",
+            background: "#fdfcfa",
+            borderRadius: 4,
+            boxShadow:
+              "0 0 0 4px #1e40af, 0 20px 40px rgba(0,0,0,0.2)",
+          }}
+        >
+          {/* Header */}
+          <div className="flyer-print-header bg-blue-600 text-white px-6 py-3 text-center">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight">
+              Yoyaku Yo
+            </h1>
+            <p className="text-blue-100 text-xs mt-0.5">
+              予約管理プラットフォーム / Reservation Platform
+            </p>
+          </div>
+
+          {/* Pictures: barber, nails, lashes, hair */}
+          <section className="flyer-print-pics px-3 pt-3">
+            <div className="grid grid-cols-4 gap-1.5">
+              <div className="rounded-lg overflow-hidden border border-stone-200 aspect-square">
+                <img
+                  src="https://images.unsplash.com/photo-1747832802200-7aaceb517e0c?w=400&q=80"
+                  alt="Barbershop"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="rounded-lg overflow-hidden border border-stone-200 aspect-square">
+                <img
+                  src="https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&q=80"
+                  alt="Nails"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="rounded-lg overflow-hidden border border-stone-200 aspect-square">
+                <img
+                  src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&q=80"
+                  alt="Eyelashes"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="rounded-lg overflow-hidden border border-stone-200 aspect-square">
+                <img
+                  src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=80"
+                  alt="Hair salon"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+            <p className="text-center text-stone-400 text-[10px] mt-1">
+              Barber / Nails / Lashes / Hair
+            </p>
+          </section>
+
+          {/* 4 boards: 2x2 grid */}
+          <div className="flyer-print-boards p-3 grid grid-cols-2 gap-2">
+            {boards.map((card, i) => (
+              <section
+                key={i}
+                className="rounded-xl border border-stone-200 bg-stone-50/50 p-3 flex flex-col"
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-2xl" aria-hidden>
+                    {card.icon}
+                  </span>
+                  <div className="text-left">
+                    <h2 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">
+                      {card.title}
+                    </h2>
+                    <p className="text-[11px] text-stone-500">
+                      {card.subtitle}
+                    </p>
+                  </div>
+                </div>
+                <ul className="mt-1 space-y-1 text-xs text-stone-600 flex-1">
+                  {card.points.map((p, j) => (
+                    <li key={j}>{p}</li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+
+          {/* QR section - bottom */}
+          <section className="px-4 pb-4 pt-1">
+            <div className="flyer-print-qr rounded-2xl bg-stone-900 border border-stone-700 p-4 text-center">
+              <h3 className="text-sm font-bold text-white mb-0.5">
+                アクセスはこちら
+              </h3>
+              <p className="text-stone-400 text-xs mb-3">
+                スマホでQRコードをスキャンして「Download」をタップ
+              </p>
+              <div className="inline-flex flex-col items-center">
+                <div className="bg-white p-2.5 rounded-xl shadow-md">
+                  <img
+                    src={QR_IMAGE_URL}
+                    alt="QRコード"
+                    width={160}
+                    height={160}
+                    className="rounded-lg"
+                  />
+                </div>
+                <a
+                  href={PLATFORM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 text-xs font-medium text-blue-300 hover:text-blue-200 underline"
+                >
+                  Open → {PLATFORM_URL.replace("https://", "")}
+                </a>
+              </div>
+            </div>
+          </section>
+        </article>
+      </div>
+    </>
+  );
+}
+
+const PLATFORM_URL = "https://www.yoyakuyo.jp";
 const QR_IMAGE_URL = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(PLATFORM_URL)}`;
 
 const cards = [
