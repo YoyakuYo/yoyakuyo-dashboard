@@ -12,7 +12,7 @@ import { Toaster } from "react-hot-toast";
 import VisitorTracker from "./components/VisitorTracker";
 import OwnerPresenceTracker from "./components/OwnerPresenceTracker";
 import PwaRegistration from "./components/PwaRegistration";
-import InstallAppBanner from "./components/InstallAppBanner";
+import DownloadAppButton from "./components/DownloadAppButton";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     apple: '/icon.svg',
   },
   manifest: '/manifest.json',
-  themeColor: '#e11d48',
+  themeColor: '#1e40af',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -41,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <meta name="theme-color" content="#e11d48" />
+        <meta name="theme-color" content="#1e40af" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Yoyaku Yo" />
@@ -80,7 +80,7 @@ export default function RootLayout({
                 <VisitorTracker />
                 <OwnerPresenceTracker />
                 <PwaRegistration />
-                <InstallAppBanner />
+                <DownloadAppButton />
               </BookingNotificationProvider>
             </AuthProvider>
           </AuthRoleProvider>

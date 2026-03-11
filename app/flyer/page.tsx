@@ -98,7 +98,7 @@ export default function FlyerPage() {
               スマホでQRコードをスキャン / Scan with your phone
             </p>
             <p className="text-stone-600 text-xs mb-3 max-w-xs mx-auto">
-              After opening: tap <strong>Install app</strong> at the top or the bar at the bottom. / 開いたら上部の「Install app」か下のバーをタップ
+              After opening: tap the <strong>Download</strong> button to install. / 開いたら「Download」をタップ
             </p>
             <div className="inline-flex flex-col items-center">
               <div className="bg-white p-3 rounded-2xl shadow-inner">

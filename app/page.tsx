@@ -14,8 +14,8 @@ function LandingPageContent() {
       {/* Minimal Navbar - Fixed at top, always visible */}
       <MinimalNavbar />
 
-      {/* Add padding-top to account for fixed navbar + mobile Install bar */}
-      <div className="pt-[116px] md:pt-[120px]">
+      {/* Add padding-top to account for fixed navbar */}
+      <div className="pt-[108px] md:pt-[120px]">
         {/* LINE QR Code Section - Moved to top for visibility */}
         <LineQRCodeSection />
 
