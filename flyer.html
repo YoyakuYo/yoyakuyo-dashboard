@@ -14,48 +14,54 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 16px;
     }
     .card {
       max-width: 560px;
       width: 100%;
       background: #fff;
       border-radius: 24px;
-      box-shadow: 0 25px 80px -12px rgba(0,0,0,0.15);
+      box-shadow: 0 25px 80px -12px rgba(0,0,0,0.12);
       overflow: hidden;
     }
     .header {
-      background: linear-gradient(to right, #ffe4e6, #fffbeb, #fafaf9);
-      padding: 24px 32px;
+      background: #1e40af;
+      color: #fff;
+      padding: 16px 24px;
       text-align: center;
-      border-bottom: 1px solid rgba(251,207,232,0.6);
     }
-    .header h1 { margin: 0; font-size: 1.75rem; font-weight: 700; color: #292524; }
-    .header p { margin: 6px 0 0; font-size: 0.875rem; color: #57534e; }
-    .body { padding: 24px 32px 32px; }
-    section { margin-bottom: 24px; }
-    section:last-of-type { margin-bottom: 0; }
-    .label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 8px; }
-    .label-ja { color: #fb7185; }
-    .label-en { color: #f59e0b; }
-    h3 { margin: 0 0 8px; font-size: 1.125rem; font-weight: 700; color: #292524; }
-    p { margin: 0; font-size: 0.875rem; color: #57534e; line-height: 1.6; }
-    ul { margin: 8px 0 0; padding-left: 1.25rem; font-size: 0.875rem; color: #57534e; line-height: 1.7; }
-    .pics { display: flex; gap: 8px; margin-top: 12px; }
-    .pics img { width: 100%; height: 140px; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    .pics div { flex: 1; }
-    .section-label { font-size: 0.75rem; font-weight: 600; color: #78716c; letter-spacing: 0.05em; margin-bottom: 12px; }
+    .header h1 { margin: 0; font-size: 1.35rem; font-weight: 700; }
+    .header p { margin: 4px 0 0; font-size: 0.75rem; color: #93c5fd; }
+    .boards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 16px;
+    }
+    .board {
+      border: 1px solid #e7e5e4;
+      border-radius: 12px;
+      background: #fafaf9;
+      padding: 14px;
+    }
+    .board-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.05em; color: #78716c; margin-bottom: 6px; }
+    .board-title { font-size: 0.875rem; font-weight: 700; color: #292524; margin-bottom: 8px; }
+    .board ul { margin: 0; padding-left: 1rem; font-size: 0.75rem; color: #57534e; line-height: 1.6; }
+    .board .icon { font-size: 1.25rem; margin-bottom: 4px; }
+    .qr-section {
+      padding: 8px 24px 24px;
+    }
     .qr-box {
-      background: linear-gradient(135deg, #fff1f2, #fffbeb);
+      background: #f5f5f4;
+      border: 1px solid #e7e5e4;
       border-radius: 16px;
-      padding: 24px;
+      padding: 20px;
       text-align: center;
-      border: 1px solid rgba(251,207,232,0.8);
     }
-    .qr-box h3 { margin-bottom: 4px; }
-    .qr-box .hint { font-size: 0.75rem; color: #78716c; margin-bottom: 16px; }
+    .qr-box h3 { margin: 0 0 4px; font-size: 0.875rem; font-weight: 700; color: #292524; }
+    .qr-box .hint { font-size: 0.7rem; color: #78716c; margin-bottom: 12px; }
     .qr-box img { display: block; margin: 0 auto; border-radius: 8px; background: #fff; padding: 8px; }
-    .qr-box a { font-size: 0.875rem; color: #e11d48; margin-top: 12px; display: inline-block; }
+    .qr-box a { font-size: 0.75rem; color: #2563eb; margin-top: 8px; display: inline-block; }
   </style>
 </head>
 <body>
@@ -64,42 +70,56 @@
       <h1>Yoyaku Yo</h1>
       <p>予約管理プラットフォーム / Reservation Platform</p>
     </div>
-    <div class="body">
-      <section>
-        <div class="label label-ja">日本語</div>
-        <h3>プラットフォームのご案内</h3>
-        <p>当サービスは、サロン・お店の予約・予約管理を簡単にするプラットフォームです。お客様の予約を一括で管理でき、LINE連携でスムーズにご案内できます。</p>
+    <div class="boards">
+      <section class="board">
+        <div class="icon">📅</div>
+        <div class="board-label">お客様 / For customers</div>
+        <div class="board-title">Book anytime</div>
         <ul>
-          <li>予約を紙や電話で管理しているお店</li>
-          <li>LINEで予約を受けたいサロン</li>
-          <li>予約状況をひと目で確認したいオーナー様</li>
+          <li>24時間いつでも予約 / Book 24/7</li>
+          <li>サロン・店舗を検索 / Find salons & shops</li>
+          <li>キャンセル・変更が簡単 / Easy cancel or change</li>
         </ul>
       </section>
-      <section>
-        <div class="label label-en">English</div>
-        <h3>About the platform</h3>
-        <p>Our platform helps salons and shops manage reservations easily. Manage all bookings in one place and connect with customers via LINE.</p>
+      <section class="board">
+        <div class="icon">📱</div>
+        <div class="board-label">お客様 / For customers</div>
+        <div class="board-title">LINE & mobile</div>
         <ul>
-          <li>Shops still using paper or phone for reservations</li>
-          <li>Salons who want to accept bookings via LINE</li>
-          <li>Owners who want to see reservations at a glance</li>
+          <li>LINEで予約・リマインド / Book & reminders via LINE</li>
+          <li>スマホでサクサク / Smooth on your phone</li>
+          <li>アプリで管理 / Manage in the app</li>
         </ul>
       </section>
-      <section>
-        <div class="section-label">画面例・イメージ / Screenshots & style</div>
-        <div class="pics">
-          <div><img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=80" alt="Salon"></div>
-          <div><img src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&q=80" alt="Beauty"></div>
-          <div><img src="https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=400&q=80" alt="Spa"></div>
-        </div>
+      <section class="board">
+        <div class="icon">🏪</div>
+        <div class="board-label">店舗・オーナー様 / For shop owners</div>
+        <div class="board-title">One place for all</div>
+        <ul>
+          <li>予約を一括管理 / All bookings in one place</li>
+          <li>カレンダーで確認 / See at a glance</li>
+          <li>紙・電話から卒業 / No more paper or phone</li>
+        </ul>
       </section>
-      <section class="qr-box">
-        <h3>アクセスはこちら / Access the platform</h3>
-        <p class="hint">スマホでQRコードをスキャン / Scan with your phone</p>
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fwww.yoyakuyo.jp" alt="QR code" width="200" height="200">
-        <a href="https://www.yoyakuyo.jp">Open the platform →</a>
+      <section class="board">
+        <div class="icon">💬</div>
+        <div class="board-label">店舗・オーナー様 / For shop owners</div>
+        <div class="board-title">LINE連携</div>
+        <ul>
+          <li>LINEでお客様とつながる / Connect via LINE</li>
+          <li>予約確認・リマインド自動 / Auto confirm & remind</li>
+          <li>空席を有効活用 / Fill empty slots</li>
+        </ul>
       </section>
     </div>
+    <section class="qr-section">
+      <div class="qr-box">
+        <h3>アクセスはこちら / Access the platform</h3>
+        <p class="hint">スマホでQRコードをスキャン → Download をタップ / Scan QR → tap Download</p>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fwww.yoyakuyo.jp" alt="QR code" width="180" height="180">
+        <a href="https://www.yoyakuyo.jp">Open → www.yoyakuyo.jp</a>
+      </div>
+    </section>
   </div>
 </body>
 </html>
