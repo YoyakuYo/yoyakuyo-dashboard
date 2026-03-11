@@ -107,7 +107,7 @@ export default function FlyerPage() {
 
         {/* QR section - bottom */}
         <section className="px-4 pb-4 pt-1">
-          <div className="flyer-print-qr rounded-2xl bg-stone-100 border border-stone-200 p-4 text-center">
+          <div className="flyer-print-qr rounded-2xl bg-blue-50 border border-blue-100 p-4 text-center">
             <h3 className="text-sm font-bold text-stone-800 mb-0.5">
               アクセスはこちら / Access the platform
             </h3>
@@ -115,7 +115,7 @@ export default function FlyerPage() {
               スマホでQRコードをスキャン → Download をタップ / Scan QR → tap Download
             </p>
             <div className="inline-flex flex-col items-center">
-              <div className="bg-white p-2.5 rounded-xl shadow-inner">
+              <div className="bg-white/90 p-2.5 rounded-xl shadow-sm ring-1 ring-blue-100/80">
                 <img
                   src={QR_IMAGE_URL}
                   alt="QR code"

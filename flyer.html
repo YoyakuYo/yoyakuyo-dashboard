@@ -52,15 +52,16 @@
       padding: 8px 24px 24px;
     }
     .qr-box {
-      background: #f5f5f4;
-      border: 1px solid #e7e5e4;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
       border-radius: 16px;
       padding: 20px;
       text-align: center;
     }
     .qr-box h3 { margin: 0 0 4px; font-size: 0.875rem; font-weight: 700; color: #292524; }
-    .qr-box .hint { font-size: 0.7rem; color: #78716c; margin-bottom: 12px; }
-    .qr-box img { display: block; margin: 0 auto; border-radius: 8px; background: #fff; padding: 8px; }
+    .qr-box .hint { font-size: 0.7rem; color: #64748b; margin-bottom: 12px; }
+    .qr-box .qr-inner { display: inline-block; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid rgba(191,219,254,0.8); }
+    .qr-box img { display: block; border-radius: 8px; }
     .qr-box a { font-size: 0.75rem; color: #2563eb; margin-top: 8px; display: inline-block; }
     @page { size: A4; margin: 8mm; }
     @media print {
@@ -135,7 +136,7 @@
       <div class="qr-box">
         <h3>アクセスはこちら / Access the platform</h3>
         <p class="hint">スマホでQRコードをスキャン → Download をタップ / Scan QR → tap Download</p>
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fwww.yoyakuyo.jp" alt="QR code" width="180" height="180">
+        <div class="qr-inner"><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fwww.yoyakuyo.jp" alt="QR code" width="180" height="180"></div>
         <a href="https://www.yoyakuyo.jp">Open → www.yoyakuyo.jp</a>
       </div>
     </section>
