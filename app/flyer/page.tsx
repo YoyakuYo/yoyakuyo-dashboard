@@ -46,23 +46,44 @@ const cards = [
 
 export default function FlyerPage() {
   return (
-    <div className="min-h-screen bg-[#f5f0eb] flex items-center justify-center p-4 md:p-6">
+    <>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @page { size: A4; margin: 8mm; }
+        @media print {
+          body { background: #fff !important; padding: 0 !important; }
+          .flyer-print-root { min-height: 0 !important; padding: 0 !important; background: #fff !important; }
+          .flyer-print-card {
+            max-width: 100% !important;
+            box-shadow: none !important;
+            border: 1px solid #e5e7eb;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            page-break-inside: avoid !important;
+          }
+          .flyer-print-card * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .flyer-print-header { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .flyer-print-boards section { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .flyer-print-qr { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .flyer-print-card { transform: scale(0.95); transform-origin: top center; }
+        }
+      `}} />
+      <div className="flyer-print-root min-h-screen bg-[#f5f0eb] flex items-center justify-center p-4 md:p-6">
       <article
-        className="w-full max-w-2xl bg-white rounded-3xl shadow-[0_25px_80px_-12px_rgba(0,0,0,0.12)] overflow-hidden"
+        className="flyer-print-card w-full max-w-2xl bg-white rounded-3xl shadow-[0_25px_80px_-12px_rgba(0,0,0,0.12)] overflow-hidden"
         style={{ fontFamily: "'Noto Sans JP', 'Poppins', sans-serif" }}
       >
         {/* Header */}
-        <div className="bg-blue-600 text-white px-6 py-4 text-center">
+        <div className="flyer-print-header bg-blue-600 text-white px-6 py-3 text-center">
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">Yoyaku Yo</h1>
           <p className="text-blue-100 text-xs mt-0.5">予約管理プラットフォーム / Reservation Platform</p>
         </div>
 
         {/* 4 boards: 2x2 grid */}
-        <div className="p-4 grid grid-cols-2 gap-3">
+        <div className="flyer-print-boards p-3 grid grid-cols-2 gap-2">
           {cards.map((card, i) => (
             <section
               key={i}
-              className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 flex flex-col"
+              className="rounded-xl border border-stone-200 bg-stone-50/50 p-3 flex flex-col"
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-2xl" aria-hidden>{card.icon}</span>
@@ -85,8 +106,8 @@ export default function FlyerPage() {
         </div>
 
         {/* QR section - bottom */}
-        <section className="px-6 pb-6 pt-2">
-          <div className="rounded-2xl bg-stone-100 border border-stone-200 p-5 text-center">
+        <section className="px-4 pb-4 pt-1">
+          <div className="flyer-print-qr rounded-2xl bg-stone-100 border border-stone-200 p-4 text-center">
             <h3 className="text-sm font-bold text-stone-800 mb-0.5">
               アクセスはこちら / Access the platform
             </h3>
@@ -98,8 +119,8 @@ export default function FlyerPage() {
                 <img
                   src={QR_IMAGE_URL}
                   alt="QR code"
-                  width={180}
-                  height={180}
+                  width={160}
+                  height={160}
                   className="rounded-lg"
                 />
               </div>
@@ -116,5 +137,6 @@ export default function FlyerPage() {
         </section>
       </article>
     </div>
+    </>
   );
 }
