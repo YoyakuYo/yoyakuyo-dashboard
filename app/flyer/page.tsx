@@ -54,8 +54,8 @@ export default function FlyerPage() {
           .flyer-print-root { min-height: 0 !important; padding: 0 !important; background: #fff !important; }
           .flyer-print-card {
             max-width: 100% !important;
-            box-shadow: none !important;
-            border: 1px solid #e5e7eb;
+            box-shadow: 0 0 0 3px #1e40af !important;
+            border: none !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             page-break-inside: avoid !important;
@@ -68,10 +68,15 @@ export default function FlyerPage() {
           .flyer-print-card { transform: scale(0.95); transform-origin: top center; }
         }
       `}} />
-      <div className="flyer-print-root min-h-screen bg-[#f5f0eb] flex items-center justify-center p-4 md:p-6">
+      <div className="flyer-print-root min-h-screen flex items-center justify-center p-4 md:p-6" style={{ background: 'linear-gradient(145deg, #e8e4df 0%, #d4cfc9 100%)' }}>
       <article
-        className="flyer-print-card w-full max-w-2xl bg-white rounded-3xl shadow-[0_25px_80px_-12px_rgba(0,0,0,0.12)] overflow-hidden"
-        style={{ fontFamily: "'Noto Sans JP', 'Poppins', sans-serif" }}
+        className="flyer-print-card flyer-poster w-full max-w-2xl overflow-hidden"
+        style={{
+          fontFamily: "'Noto Sans JP', 'Poppins', sans-serif",
+          background: '#fdfcfa',
+          borderRadius: 4,
+          boxShadow: '0 0 0 4px #1e40af, 0 20px 40px rgba(0,0,0,0.2)',
+        }}
       >
         {/* Header */}
         <div className="flyer-print-header bg-blue-600 text-white px-6 py-3 text-center">
