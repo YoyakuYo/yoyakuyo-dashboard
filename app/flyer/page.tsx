@@ -62,6 +62,7 @@ export default function FlyerPage() {
           }
           .flyer-print-card * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .flyer-print-header { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .flyer-print-pics img { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .flyer-print-boards section { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .flyer-print-qr { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .flyer-print-card { transform: scale(0.95); transform-origin: top center; }
@@ -77,6 +78,41 @@ export default function FlyerPage() {
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">Yoyaku Yo</h1>
           <p className="text-blue-100 text-xs mt-0.5">予約管理プラットフォーム / Reservation Platform</p>
         </div>
+
+        {/* Pictures: barber, nails, lashes, hair */}
+        <section className="flyer-print-pics px-3 pt-3">
+          <div className="grid grid-cols-4 gap-1.5">
+            <div className="rounded-lg overflow-hidden border border-stone-200 aspect-square">
+              <img
+                src="https://images.unsplash.com/photo-1599351431209-41e2d92b3282?w=400&q=80"
+                alt="Barbershop"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="rounded-lg overflow-hidden border border-stone-200 aspect-square">
+              <img
+                src="https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&q=80"
+                alt="Nails"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="rounded-lg overflow-hidden border border-stone-200 aspect-square">
+              <img
+                src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&q=80"
+                alt="Eyelashes"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="rounded-lg overflow-hidden border border-stone-200 aspect-square">
+              <img
+                src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=80"
+                alt="Hair salon"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+          <p className="text-center text-stone-400 text-[10px] mt-1">Barber / Nails / Lashes / Hair</p>
+        </section>
 
         {/* 4 boards: 2x2 grid */}
         <div className="flyer-print-boards p-3 grid grid-cols-2 gap-2">

@@ -32,6 +32,14 @@
     }
     .header h1 { margin: 0; font-size: 1.35rem; font-weight: 700; }
     .header p { margin: 4px 0 0; font-size: 0.75rem; color: #93c5fd; }
+    .pics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 12px 12px 0;
+    }
+    .pics img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; border: 1px solid #e7e5e4; }
+    .pics-caption { text-align: center; font-size: 10px; color: #a8a29e; margin-top: 4px; }
     .boards {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -77,6 +85,7 @@
       }
       .card * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       .header { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 12px 24px !important; }
+      .pics img { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       .board { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 10px !important; }
       .boards { padding: 10px !important; gap: 8px !important; }
       .qr-box { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 12px !important; }
@@ -91,6 +100,13 @@
       <h1>Yoyaku Yo</h1>
       <p>予約管理プラットフォーム / Reservation Platform</p>
     </div>
+    <section class="pics">
+      <img src="https://images.unsplash.com/photo-1599351431209-41e2d92b3282?w=400&q=80" alt="Barbershop">
+      <img src="https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&q=80" alt="Nails">
+      <img src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&q=80" alt="Eyelashes">
+      <img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=80" alt="Hair salon">
+    </section>
+    <p class="pics-caption">Barber / Nails / Lashes / Hair</p>
     <div class="boards">
       <section class="board">
         <div class="icon">📅</div>
