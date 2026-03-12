@@ -529,9 +529,15 @@ export function getCategoryById(id: string): Category | undefined {
   return CATEGORIES.find(cat => cat.id === id);
 }
 
-// Helper function to get category by database name
+// Helper function to get category by database name or display name (so API names resolve in any locale)
 export function getCategoryByDbName(dbName: string): Category | undefined {
-  return CATEGORIES.find(cat => cat.dbName === dbName);
+  if (!dbName || typeof dbName !== 'string') return undefined;
+  const trimmed = dbName.trim();
+  return (
+    CATEGORIES.find(cat => cat.dbName === trimmed) ??
+    CATEGORIES.find(cat => cat.name === trimmed) ??
+    CATEGORIES.find(cat => cat.nameJa === trimmed)
+  );
 }
 
 // Helper function to get category name in current language
