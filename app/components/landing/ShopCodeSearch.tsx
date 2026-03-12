@@ -23,7 +23,7 @@ export default function ShopCodeSearch() {
   };
 
   return (
-    <section className="max-w-6xl mx-auto px-4 mt-10">
+    <section id="shop-number-search" className="max-w-6xl mx-auto px-4 mt-10">
       <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div>
           <h2 className="text-lg md:text-xl font-semibold text-gray-900">

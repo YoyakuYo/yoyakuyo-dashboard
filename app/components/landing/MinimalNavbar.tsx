@@ -72,6 +72,26 @@ export default function MinimalNavbar() {
               <span>{t('navServices') || 'Services'}</span>
             </Link>
           </li>
+          <li>
+            <button
+              onClick={() => {
+                // Scroll to shop number search section on landing page
+                if (typeof window !== 'undefined') {
+                  const el = document.getElementById('shop-number-search');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  } else {
+                    window.location.href = '/#shop-number-search';
+                  }
+                }
+                setDrawerOpen(false);
+              }}
+              className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-blue-800 hover:text-white transition-colors"
+            >
+              <span>🔎</span>
+              <span>{t('navShopNumber') || 'Shop number'}</span>
+            </button>
+          </li>
           </ul>
         <div className="pt-4 border-t border-blue-700">
           <button
@@ -121,7 +141,7 @@ export default function MinimalNavbar() {
               Yoyaku Yo
             </Link>
 
-            {/* Center: Categories | Services - Hidden on mobile */}
+            {/* Center: Categories | Services | Shop number - Hidden on mobile */}
             <div className="hidden md:flex items-center gap-2">
               <Link
                 href="/browse"
@@ -136,6 +156,23 @@ export default function MinimalNavbar() {
               >
                 {t('navServices') || 'Services'}
               </Link>
+              <span className="text-blue-300">|</span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    const el = document.getElementById('shop-number-search');
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } else {
+                      window.location.href = '/#shop-number-search';
+                    }
+                  }
+                }}
+                className="text-sm font-medium text-white hover:text-blue-200 transition-colors"
+              >
+                {t('navShopNumber') || 'Shop number 🔎'}
+              </button>
             </div>
 
             {/* Right: Login + Join - Hidden on mobile */}
