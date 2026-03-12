@@ -71,11 +71,15 @@ export default function OwnerModals() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
   
-  // Signup form state
+  // Signup form state (one-step: account + shop)
   const [signupName, setSignupName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
+  const [signupPasswordConfirm, setSignupPasswordConfirm] = useState('');
   const [signupShopName, setSignupShopName] = useState('');
+  const [signupAddress, setSignupAddress] = useState('');
+  const [signupPhone, setSignupPhone] = useState('');
+  const [signupCorporateNumber, setSignupCorporateNumber] = useState('');
   const [signupError, setSignupError] = useState<string | null>(null);
   const [signupLoading, setSignupLoading] = useState(false);
 
@@ -365,8 +369,18 @@ export default function OwnerModals() {
     setSignupLoading(true);
 
     try {
-      if (!signupName || !signupEmail || !signupPassword) {
-        setSignupError(tAuth('fillRequiredFields') || 'Please fill in all required fields');
+      if (!signupName?.trim() || !signupEmail?.trim() || !signupPassword || !signupShopName?.trim() || !signupAddress?.trim() || !signupPhone?.trim()) {
+        setSignupError(tAuth('fillRequiredFields') || 'Please fill in all required fields.');
+        setSignupLoading(false);
+        return;
+      }
+      if (signupPassword !== signupPasswordConfirm) {
+        setSignupError(tAuth('passwordsDoNotMatch') || 'Passwords do not match.');
+        setSignupLoading(false);
+        return;
+      }
+      if (signupPassword.length < 6) {
+        setSignupError(tAuth('passwordMinLength') || 'Password must be at least 6 characters.');
         setSignupLoading(false);
         return;
       }
@@ -374,11 +388,11 @@ export default function OwnerModals() {
       const supabase = getSupabaseClient();
 
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: signupEmail,
+        email: signupEmail.trim(),
         password: signupPassword,
         options: {
           data: {
-            name: signupName,
+            name: signupName.trim(),
           },
         },
       });
@@ -404,9 +418,9 @@ export default function OwnerModals() {
         },
         body: JSON.stringify({
           user_id: userId,
-          name: signupName,
-          email: signupEmail,
-          shop_name: signupShopName || null,
+          name: signupName.trim(),
+          email: signupEmail.trim(),
+          shop_name: signupShopName.trim(),
         }),
       });
 
@@ -417,7 +431,30 @@ export default function OwnerModals() {
         return;
       }
 
-      const setupData = await setupRes.json();
+      // Create shop in one step
+      const shopRes = await fetch(`${apiUrl}/shops`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId,
+        },
+        body: JSON.stringify({
+          name: signupShopName.trim(),
+          address: signupAddress.trim(),
+          phone: signupPhone.trim(),
+          email: signupEmail.trim() || null,
+          business_registration_number: signupCorporateNumber.trim() || null,
+          owner_user_id: userId,
+        }),
+      });
+
+      if (!shopRes.ok) {
+        const errData = await shopRes.json().catch(() => ({}));
+        setSignupError(errData.error || 'Failed to create shop. Please try again.');
+        setSignupLoading(false);
+        return;
+      }
+
       let session = authData.session;
       
       if (!session) {
@@ -447,8 +484,7 @@ export default function OwnerModals() {
 
       await new Promise(resolve => setTimeout(resolve, 500));
       setShowSignupModal(false);
-      // After signup, go directly to shop creation flow
-      router.push('/owner/create-shop');
+      router.push('/shops');
       router.refresh();
     } catch (err) {
       console.error('Unexpected error during signup:', err);
@@ -554,12 +590,12 @@ export default function OwnerModals() {
 
         <form 
           onSubmit={handleSignupSubmit} 
-          className="space-y-4"
+          className="space-y-4 max-h-[70vh] overflow-y-auto pr-1"
           noValidate
         >
           <div>
             <label htmlFor="signup-name" className="block text-sm font-medium text-gray-700 mb-1">
-              {tAuth('ownerName') || 'Owner Name'} <span className="text-red-500">*</span>
+              {tAuth('ownerName') || 'Your name'} <span className="text-red-500">*</span>
             </label>
             <input
               id="signup-name"
@@ -569,7 +605,7 @@ export default function OwnerModals() {
               required
               autoComplete="name"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder={tAuth('ownerName') || 'Owner Name'}
+              placeholder={tAuth('ownerName') || 'Your name'}
             />
           </div>
 
@@ -607,17 +643,82 @@ export default function OwnerModals() {
           </div>
 
           <div>
+            <label htmlFor="signup-password-confirm" className="block text-sm font-medium text-gray-700 mb-1">
+              {tAuth('confirmPassword') || 'Confirm password'} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="signup-password-confirm"
+              type="password"
+              value={signupPasswordConfirm}
+              onChange={(e) => setSignupPasswordConfirm(e.target.value)}
+              required
+              minLength={6}
+              autoComplete="new-password"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div>
             <label htmlFor="signup-shop-name" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('myShop.shopName') || 'Shop Name'} <span className="text-gray-400 text-xs">({t('common.optional') || 'Optional'})</span>
+              {t('myShop.shopName') || 'Shop name'} <span className="text-red-500">*</span>
             </label>
             <input
               id="signup-shop-name"
               type="text"
               value={signupShopName}
               onChange={(e) => setSignupShopName(e.target.value)}
+              required
               autoComplete="organization"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder={t('myShop.shopName') || 'Shop Name'}
+              placeholder={t('myShop.shopName') || 'Shop name'}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="signup-address" className="block text-sm font-medium text-gray-700 mb-1">
+              {t('common.address') || 'Address'} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="signup-address"
+              type="text"
+              value={signupAddress}
+              onChange={(e) => setSignupAddress(e.target.value)}
+              required
+              autoComplete="street-address"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              placeholder={t('common.address') || 'Full address'}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="signup-phone" className="block text-sm font-medium text-gray-700 mb-1">
+              {t('common.phone') || 'Phone number'} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="signup-phone"
+              type="tel"
+              value={signupPhone}
+              onChange={(e) => setSignupPhone(e.target.value)}
+              required
+              autoComplete="tel"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              placeholder={t('common.phone') || 'Phone number'}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="signup-corporate-number" className="block text-sm font-medium text-gray-700 mb-1">
+              {tAuth('corporateNumber') || 'Corporate number'} <span className="text-gray-400 text-xs">({t('common.optional') || 'optional'})</span>
+            </label>
+            <input
+              id="signup-corporate-number"
+              type="text"
+              value={signupCorporateNumber}
+              onChange={(e) => setSignupCorporateNumber(e.target.value)}
+              autoComplete="off"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              placeholder={tAuth('corporateNumber') || 'If available'}
             />
           </div>
 
