@@ -77,11 +77,13 @@ export default function OwnerModals() {
   const [signupPassword, setSignupPassword] = useState('');
   const [signupPasswordConfirm, setSignupPasswordConfirm] = useState('');
   const [signupShopName, setSignupShopName] = useState('');
+  const [signupCategoryId, setSignupCategoryId] = useState('');
   const [signupAddress, setSignupAddress] = useState('');
   const [signupPhone, setSignupPhone] = useState('');
   const [signupCorporateNumber, setSignupCorporateNumber] = useState('');
   const [signupError, setSignupError] = useState<string | null>(null);
   const [signupLoading, setSignupLoading] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     // Only listen for owner-specific events (from role selection modal)
@@ -132,6 +134,25 @@ export default function OwnerModals() {
         window.removeEventListener('openOwnerSignupModal', handleOpenOwnerSignupModal);
       }
     };
+  }, []);
+
+  // Load categories for the one-step signup shop category dropdown
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/categories`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setCategories(data);
+        } else if (Array.isArray(data.categories)) {
+          setCategories(data.categories);
+        }
+      } catch (err) {
+        console.error('Error loading categories for signup:', err);
+      }
+    };
+    fetchCategories();
   }, []);
 
   const handleLoginSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -369,7 +390,15 @@ export default function OwnerModals() {
     setSignupLoading(true);
 
     try {
-      if (!signupName?.trim() || !signupEmail?.trim() || !signupPassword || !signupShopName?.trim() || !signupAddress?.trim() || !signupPhone?.trim()) {
+      if (
+        !signupName?.trim() ||
+        !signupEmail?.trim() ||
+        !signupPassword ||
+        !signupShopName?.trim() ||
+        !signupCategoryId ||
+        !signupAddress?.trim() ||
+        !signupPhone?.trim()
+      ) {
         setSignupError(tAuth('fillRequiredFields') || 'Please fill in all required fields.');
         setSignupLoading(false);
         return;
@@ -443,6 +472,7 @@ export default function OwnerModals() {
           address: signupAddress.trim(),
           phone: signupPhone.trim(),
           email: signupEmail.trim() || null,
+          category_id: signupCategoryId || null,
           business_registration_number: signupCorporateNumber.trim() || null,
           owner_user_id: userId,
         }),
@@ -595,7 +625,7 @@ export default function OwnerModals() {
         >
           <div>
             <label htmlFor="signup-name" className="block text-sm font-medium text-gray-700 mb-1">
-              Your name <span className="text-red-500">*</span>
+              {tAuth('ownerName') || t('yourName') || 'Your name'} <span className="text-red-500">*</span>
             </label>
             <input
               id="signup-name"
@@ -605,7 +635,7 @@ export default function OwnerModals() {
               required
               autoComplete="name"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="Your name"
+              placeholder={tAuth('ownerName') || t('yourName') || 'Your name'}
             />
           </div>
 
@@ -644,7 +674,7 @@ export default function OwnerModals() {
 
           <div>
             <label htmlFor="signup-password-confirm" className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm password <span className="text-red-500">*</span>
+              {tAuth('confirmPassword') || 'Confirm password'} <span className="text-red-500">*</span>
             </label>
             <input
               id="signup-password-confirm"
@@ -661,7 +691,7 @@ export default function OwnerModals() {
 
           <div>
             <label htmlFor="signup-shop-name" className="block text-sm font-medium text-gray-700 mb-1">
-              Shop name <span className="text-red-500">*</span>
+              {t('myShop.shopName') || 'Shop name'} <span className="text-red-500">*</span>
             </label>
             <input
               id="signup-shop-name"
@@ -671,13 +701,33 @@ export default function OwnerModals() {
               required
               autoComplete="organization"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="Shop name"
+              placeholder={t('myShop.shopName') || 'Shop name'}
             />
           </div>
 
           <div>
+            <label htmlFor="signup-category" className="block text-sm font-medium text-gray-700 mb-1">
+              Category <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="signup-category"
+              value={signupCategoryId}
+              onChange={(e) => setSignupCategoryId(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            >
+              <option value="">Select a category</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label htmlFor="signup-address" className="block text-sm font-medium text-gray-700 mb-1">
-              Address <span className="text-red-500">*</span>
+              {t('address') || 'Address'} <span className="text-red-500">*</span>
             </label>
             <input
               id="signup-address"
@@ -687,13 +737,13 @@ export default function OwnerModals() {
               required
               autoComplete="street-address"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="Full address"
+              placeholder={t('fullAddressPlaceholder') || 'Full address'}
             />
           </div>
 
           <div>
             <label htmlFor="signup-phone" className="block text-sm font-medium text-gray-700 mb-1">
-              Phone number <span className="text-red-500">*</span>
+              {t('phone') || 'Phone number'} <span className="text-red-500">*</span>
             </label>
             <input
               id="signup-phone"
@@ -703,13 +753,13 @@ export default function OwnerModals() {
               required
               autoComplete="tel"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="Phone number"
+              placeholder={t('phonePlaceholder') || 'Phone number'}
             />
           </div>
 
           <div>
             <label htmlFor="signup-corporate-number" className="block text-sm font-medium text-gray-700 mb-1">
-              Corporate number <span className="text-gray-400 text-xs">(optional)</span>
+              {tAuth('corporateNumber') || 'Corporate number'} <span className="text-gray-400 text-xs">({t('common.optional') || 'optional'})</span>
             </label>
             <input
               id="signup-corporate-number"
@@ -718,7 +768,7 @@ export default function OwnerModals() {
               onChange={(e) => setSignupCorporateNumber(e.target.value)}
               autoComplete="off"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="If available"
+              placeholder={tAuth('corporateNumber') || 'If available'}
             />
           </div>
 

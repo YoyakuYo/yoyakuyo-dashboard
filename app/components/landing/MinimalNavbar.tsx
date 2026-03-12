@@ -95,14 +95,14 @@ export default function MinimalNavbar() {
                 type="text"
                 value={shopCodeInput}
                 onChange={(e) => setShopCodeInput(e.target.value)}
-                placeholder="Shop number"
+                placeholder={t('shopNumberPlaceholder') || 'Shop number'}
                 className="flex-1 bg-transparent border-none text-sm placeholder:text-blue-200 focus:outline-none"
               />
               <button
                 type="submit"
                 className="text-sm font-medium text-white"
               >
-                Go
+                {t('shopNumberGo') || 'Go'}
               </button>
             </form>
           </li>
@@ -180,13 +180,13 @@ export default function MinimalNavbar() {
                   type="text"
                   value={shopCodeInput}
                   onChange={(e) => setShopCodeInput(e.target.value)}
-                  placeholder="Shop number"
+                  placeholder={t('shopNumberPlaceholder') || 'Shop number'}
                   className="w-24 bg-transparent border-none text-xs text-blue-50 placeholder:text-blue-200 focus:outline-none"
                 />
                 <button
                   type="submit"
                   className="text-xs text-blue-100 hover:text-white"
-                  aria-label="Search by shop number"
+                  aria-label={t('shopNumberAria') || 'Search by shop number'}
                 >
                   🔎
                 </button>
