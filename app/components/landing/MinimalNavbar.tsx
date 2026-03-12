@@ -3,10 +3,13 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function MinimalNavbar() {
   const t = useTranslations('landing');
+  const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [shopCodeInput, setShopCodeInput] = useState('');
 
   const handleLoginClick = () => {
     if (typeof window !== 'undefined') {
@@ -20,6 +23,16 @@ export default function MinimalNavbar() {
       // Open role selection modal for join
       window.dispatchEvent(new CustomEvent('openSignupModal'));
     }
+  };
+
+  const handleShopCodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shopCodeInput) return;
+    const digits = shopCodeInput.replace(/[^0-9]/g, '');
+    if (!digits) return;
+    const normalized = 'S' + digits.padStart(4, '0');
+    setDrawerOpen(false);
+    router.push(`/shops/code/${normalized}`);
   };
 
   const MobileDrawer = (
@@ -73,24 +86,25 @@ export default function MinimalNavbar() {
             </Link>
           </li>
           <li>
-            <button
-              onClick={() => {
-                // Scroll to shop number search section on landing page
-                if (typeof window !== 'undefined') {
-                  const el = document.getElementById('shop-number-search');
-                  if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  } else {
-                    window.location.href = '/#shop-number-search';
-                  }
-                }
-                setDrawerOpen(false);
-              }}
-              className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-blue-800 hover:text-white transition-colors"
+            <form
+              onSubmit={handleShopCodeSubmit}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-800 text-gray-100"
             >
               <span>🔎</span>
-              <span>{t('navShopNumber') || 'Shop number'}</span>
-            </button>
+              <input
+                type="text"
+                value={shopCodeInput}
+                onChange={(e) => setShopCodeInput(e.target.value)}
+                placeholder="Shop number"
+                className="flex-1 bg-transparent border-none text-sm placeholder:text-blue-200 focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="text-sm font-medium text-white"
+              >
+                Go
+              </button>
+            </form>
           </li>
           </ul>
         <div className="pt-4 border-t border-blue-700">
@@ -157,22 +171,26 @@ export default function MinimalNavbar() {
                 {t('navServices') || 'Services'}
               </Link>
               <span className="text-blue-300">|</span>
-              <button
-                type="button"
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    const el = document.getElementById('shop-number-search');
-                    if (el) {
-                      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    } else {
-                      window.location.href = '/#shop-number-search';
-                    }
-                  }
-                }}
-                className="text-sm font-medium text-white hover:text-blue-200 transition-colors"
+              <form
+                onSubmit={handleShopCodeSubmit}
+                className="flex items-center gap-1 bg-blue-800/60 rounded-full px-2 py-1"
               >
-                {t('navShopNumber') || 'Shop number 🔎'}
-              </button>
+                <span className="text-xs text-blue-100">#</span>
+                <input
+                  type="text"
+                  value={shopCodeInput}
+                  onChange={(e) => setShopCodeInput(e.target.value)}
+                  placeholder="Shop number"
+                  className="w-24 bg-transparent border-none text-xs text-blue-50 placeholder:text-blue-200 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  className="text-xs text-blue-100 hover:text-white"
+                  aria-label="Search by shop number"
+                >
+                  🔎
+                </button>
+              </form>
             </div>
 
             {/* Right: Login + Join - Hidden on mobile */}

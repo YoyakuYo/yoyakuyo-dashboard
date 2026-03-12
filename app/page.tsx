@@ -4,7 +4,6 @@ import MinimalNavbar from './components/landing/MinimalNavbar';
 import HeroCarousel from './components/landing/HeroCarousel';
 import CategorySection from './components/landing/CategorySection';
 import ReviewsSection from './components/landing/ReviewsSection';
-import ShopCodeSearch from './components/landing/ShopCodeSearch';
 import RoleSelectionModal from './components/landing/RoleSelectionModal';
 import LineQRCodeSection from './components/landing/LineQRCodeSection';
 import OwnerModals from './components/OwnerModals';
@@ -23,9 +22,8 @@ function LandingPageContent() {
         {/* Hero Section with Image Carousel */}
         <HeroCarousel />
 
-        {/* Category Section + Shop code search */}
+        {/* Category Section */}
         <CategorySection />
-        <ShopCodeSearch />
 
         {/* Reviews Section */}
         <ReviewsSection />
