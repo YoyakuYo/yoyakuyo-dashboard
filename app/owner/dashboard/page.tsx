@@ -31,6 +31,7 @@ interface Shop {
   phone?: string;
   email?: string;
   description?: string;
+  verification_code?: string;
 }
 
 interface Booking {
@@ -338,6 +339,12 @@ export default function OwnerDashboardPage() {
                shopVerificationStatus === 'pending' ? `⏳ ${t('dashboard.pending')}` : 
                `❌ ${t('dashboard.unverified')}`}
             </p>
+            {shopVerificationStatus === 'verified' && shop?.verification_code && (
+              <p className="mt-2 text-sm text-gray-700">
+                {t('dashboard.shopCode') || 'Shop code'}:{' '}
+                <span className="font-mono font-semibold">{shop.verification_code}</span>
+              </p>
+            )}
           </div>
         </div>
 
