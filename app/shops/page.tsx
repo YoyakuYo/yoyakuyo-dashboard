@@ -22,6 +22,7 @@ interface Shop {
   address: string;
   phone: string;
   email: string;
+  verification_code?: string | null;
   website?: string | null;
   google_place_id?: string | null;
   city?: string | null;
@@ -1654,6 +1655,12 @@ const MyShopPage = () => {
                   <dt className="text-sm font-medium text-gray-500 mb-1">{t('common.name')}</dt>
                   <dd className="text-lg text-gray-900">{shop.name}</dd>
                 </div>
+                {shop.is_verified && shop.verification_code && (
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500 mb-1">Shop code</dt>
+                    <dd className="text-lg text-gray-900 font-mono">{shop.verification_code}</dd>
+                  </div>
+                )}
                 <div>
                   <dt className="text-sm font-medium text-gray-500 mb-1">{t('myShop.address')}</dt>
                   <dd className="text-lg text-gray-900">{shop.address}</dd>
