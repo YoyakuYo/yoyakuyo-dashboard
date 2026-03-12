@@ -943,7 +943,6 @@ const MyShopPage = () => {
         const newShop = await res.json();
         setShop(newShop);
         setShopForm(newShop);
-        setShowCreateShop(false);
         router.refresh();
       } else {
         const error = await res.json();
