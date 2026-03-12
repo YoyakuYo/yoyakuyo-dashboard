@@ -8,7 +8,7 @@ export default function ShopCodeSearch() {
   const [codeInput, setCodeInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const t = useTranslations();
+  const t = useTranslations("landing");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
