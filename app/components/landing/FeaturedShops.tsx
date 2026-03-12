@@ -59,13 +59,27 @@ export default function FeaturedShops() {
 
   const getCategoryName = (categoryName: string) => {
     if (!categoryName) return '';
-    const key = categoryName
+
+    const normalizedKey = categoryName
       .toLowerCase()
       .replace(/\s+/g, '_')
       .replace(/&/g, 'and')
       .replace(/[^a-z0-9_]/g, '_')
       .replace(/_+/g, '_')
       .replace(/^_+|_+$/g, '');
+
+    const overrides: Record<string, string> = {
+      beaty_salon: 'beauty_salon',
+      clinic_welness: 'wellness_clinic',
+      welness_clinic: 'wellness_clinic',
+      clinic_wellness: 'wellness_clinic',
+      guesthouse: 'guest_house',
+      golf_course: 'golf_courses_ranges',
+      golf_courses: 'golf_courses_ranges',
+    };
+
+    const key = overrides[normalizedKey] ?? normalizedKey;
+
     try {
       const translated = t(`categories.${key}`);
       if (translated && translated !== `categories.${key}`) {

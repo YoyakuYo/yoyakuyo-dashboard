@@ -315,31 +315,44 @@ function BrowsePageContent() {
   }, [filteredShops, categories, categoryStats]);
 
 
-  // Get translated category name
+  // Get translated category name from database category string
   const getCategoryName = (categoryName: string): string => {
     if (!categoryName || categoryName.trim() === '') {
       return 'Unknown Category';
     }
-    
-    // Try to translate using the category name as-is
-    const key = categoryName
+
+    const normalizedKey = categoryName
       .toLowerCase()
       .replace(/\s+/g, '_')
       .replace(/&/g, 'and')
       .replace(/[^a-z0-9_]/g, '_')
       .replace(/_+/g, '_')
       .replace(/^_+|_+$/g, '');
+
+    // Map messy database names to our canonical translation keys
+    const overrides: Record<string, string> = {
+      // Common misspellings / variants
+      beaty_salon: 'beauty_salon',
+      clinic_welness: 'wellness_clinic',
+      welness_clinic: 'wellness_clinic',
+      clinic_wellness: 'wellness_clinic',
+      guesthouse: 'guest_house',
+      // Golf variations
+      golf_course: 'golf_courses_ranges',
+      golf_courses: 'golf_courses_ranges',
+    };
+
+    const key = overrides[normalizedKey] ?? normalizedKey;
+
     try {
       const translated = t(`categories.${key}`);
-      // If translation exists and is different from the key, use it
       if (translated && translated !== `categories.${key}`) {
         return translated;
       }
     } catch {
-      // Translation failed, continue to return original name
+      // Fall back to original name
     }
-    
-    // Return the original category name if translation doesn't exist
+
     return categoryName;
   };
 
