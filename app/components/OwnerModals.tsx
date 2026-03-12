@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { AuthError } from '@supabase/supabase-js';
 import { apiUrl } from '@/lib/apiClient';
 import { authApi } from '@/lib/api';
 import { useAuthRole } from '@/lib/AuthRoleContext';
+import { getCategoryByDbName, getCategoryName } from '@/lib/categories';
 
 const Modal = React.memo(({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) => {
   if (!isOpen) return null;
@@ -50,6 +51,7 @@ Modal.displayName = 'Modal';
 export default function OwnerModals() {
   const router = useRouter();
   const { selectedRole, setSelectedRole, clearSelectedRole } = useAuthRole();
+  const locale = useLocale();
   
   let t: ReturnType<typeof useTranslations>;
   let tAuth: ReturnType<typeof useTranslations>;
@@ -717,11 +719,15 @@ export default function OwnerModals() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             >
               <option value="">{t('selectCategory') || 'Select a category'}</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
+              {categories.map((cat) => {
+                const def = getCategoryByDbName(cat.name);
+                const label = def ? getCategoryName(def, locale) : cat.name;
+                return (
+                  <option key={cat.id} value={cat.id}>
+                    {label}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
