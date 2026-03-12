@@ -595,7 +595,7 @@ export default function OwnerModals() {
         >
           <div>
             <label htmlFor="signup-name" className="block text-sm font-medium text-gray-700 mb-1">
-              {tAuth('ownerName') || 'Your name'} <span className="text-red-500">*</span>
+              Your name <span className="text-red-500">*</span>
             </label>
             <input
               id="signup-name"
@@ -605,7 +605,7 @@ export default function OwnerModals() {
               required
               autoComplete="name"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder={tAuth('ownerName') || 'Your name'}
+              placeholder="Your name"
             />
           </div>
 
@@ -644,7 +644,7 @@ export default function OwnerModals() {
 
           <div>
             <label htmlFor="signup-password-confirm" className="block text-sm font-medium text-gray-700 mb-1">
-              {tAuth('confirmPassword') || 'Confirm password'} <span className="text-red-500">*</span>
+              Confirm password <span className="text-red-500">*</span>
             </label>
             <input
               id="signup-password-confirm"
@@ -661,7 +661,7 @@ export default function OwnerModals() {
 
           <div>
             <label htmlFor="signup-shop-name" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('myShop.shopName') || 'Shop name'} <span className="text-red-500">*</span>
+              Shop name <span className="text-red-500">*</span>
             </label>
             <input
               id="signup-shop-name"
@@ -671,13 +671,13 @@ export default function OwnerModals() {
               required
               autoComplete="organization"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder={t('myShop.shopName') || 'Shop name'}
+              placeholder="Shop name"
             />
           </div>
 
           <div>
             <label htmlFor="signup-address" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('common.address') || 'Address'} <span className="text-red-500">*</span>
+              Address <span className="text-red-500">*</span>
             </label>
             <input
               id="signup-address"
@@ -687,13 +687,13 @@ export default function OwnerModals() {
               required
               autoComplete="street-address"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder={t('common.address') || 'Full address'}
+              placeholder="Full address"
             />
           </div>
 
           <div>
             <label htmlFor="signup-phone" className="block text-sm font-medium text-gray-700 mb-1">
-              {t('common.phone') || 'Phone number'} <span className="text-red-500">*</span>
+              Phone number <span className="text-red-500">*</span>
             </label>
             <input
               id="signup-phone"
@@ -703,13 +703,13 @@ export default function OwnerModals() {
               required
               autoComplete="tel"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder={t('common.phone') || 'Phone number'}
+              placeholder="Phone number"
             />
           </div>
 
           <div>
             <label htmlFor="signup-corporate-number" className="block text-sm font-medium text-gray-700 mb-1">
-              {tAuth('corporateNumber') || 'Corporate number'} <span className="text-gray-400 text-xs">({t('common.optional') || 'optional'})</span>
+              Corporate number <span className="text-gray-400 text-xs">(optional)</span>
             </label>
             <input
               id="signup-corporate-number"
@@ -718,7 +718,7 @@ export default function OwnerModals() {
               onChange={(e) => setSignupCorporateNumber(e.target.value)}
               autoComplete="off"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder={tAuth('corporateNumber') || 'If available'}
+              placeholder="If available"
             />
           </div>
 
