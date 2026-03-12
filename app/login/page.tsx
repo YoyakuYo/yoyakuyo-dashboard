@@ -144,6 +144,40 @@ export default function LoginPage() {
         if (userRole === 'admin') {
           setTimeout(() => { router.push("/admin"); router.refresh(); }, 300);
         } else if (userRole === 'owner') {
+          // Owners may only log in after their shop is verified
+          try {
+            const shopsRes = await fetch(`${apiUrl}/shops/owner`, {
+              headers: { 'x-user-id': authData.user.id },
+            });
+
+            let hasVerifiedShop = false;
+            if (shopsRes.ok) {
+              const shopsData = await shopsRes.json();
+              const shops = Array.isArray(shopsData)
+                ? shopsData
+                : (shopsData.shops && Array.isArray(shopsData.shops) ? shopsData.shops : []);
+
+              hasVerifiedShop = shops.some(
+                (shop: any) =>
+                  shop.is_verified === true ||
+                  shop.verification_status === 'approved'
+              );
+            }
+
+            if (!hasVerifiedShop) {
+              await supabase.auth.signOut();
+              setMessage("Your shop is not verified yet. You will be able to log in after verification.");
+              setLoading(false);
+              return;
+            }
+          } catch (verifyError) {
+            console.error('Error checking shop verification:', verifyError);
+            await supabase.auth.signOut();
+            setMessage("Could not verify your shop status. Please try again later.");
+            setLoading(false);
+            return;
+          }
+
           setTimeout(() => { router.push("/owner/shop-profile"); router.refresh(); }, 300);
         } else {
           setTimeout(() => { router.push("/customer/home"); router.refresh(); }, 300);

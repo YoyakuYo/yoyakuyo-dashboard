@@ -258,6 +258,43 @@ export default function OwnerModals() {
       setSelectedRole("owner");
       console.log('[Owner Login] ✅ Role persisted: owner');
 
+      // Before allowing owner login, require at least one verified shop
+      try {
+        const shopsRes = await fetch(`${apiUrl}/shops/owner`, {
+          headers: { 'x-user-id': authData.user.id },
+        });
+
+        let hasVerifiedShop = false;
+        if (shopsRes.ok) {
+          const shopsData = await shopsRes.json();
+          const shops = Array.isArray(shopsData)
+            ? shopsData
+            : (shopsData.shops && Array.isArray(shopsData.shops) ? shopsData.shops : []);
+
+          hasVerifiedShop = shops.some(
+            (shop: any) =>
+              shop.is_verified === true ||
+              shop.verification_status === 'approved'
+          );
+        }
+
+        if (!hasVerifiedShop) {
+          console.warn('[Owner Login] Blocked login: no verified shop found');
+          await supabase.auth.signOut();
+          clearSelectedRole();
+          setLoginError('Your shop is not verified yet. You will be able to log in after verification.');
+          setLoginLoading(false);
+          return;
+        }
+      } catch (verifyError) {
+        console.error('[Owner Login] Error checking shop verification:', verifyError);
+        await supabase.auth.signOut();
+        clearSelectedRole();
+        setLoginError('Could not verify your shop status. Please try again later.');
+        setLoginLoading(false);
+        return;
+      }
+
       // CRITICAL: Ensure owner has role='owner' in users table
       try {
         // If user doesn't exist in users table or role is not 'owner', sync/update it
@@ -410,7 +447,8 @@ export default function OwnerModals() {
 
       await new Promise(resolve => setTimeout(resolve, 500));
       setShowSignupModal(false);
-      router.push('/shops');
+      // After signup, go directly to shop creation flow
+      router.push('/owner/create-shop');
       router.refresh();
     } catch (err) {
       console.error('Unexpected error during signup:', err);
