@@ -196,11 +196,6 @@ const MyShopPage = () => {
     language_code: '',
     opening_hours: null,
   });
-  const [showCreateShop, setShowCreateShop] = useState(false);
-  const [showClaimShop, setShowClaimShop] = useState(false);
-  const [unclaimedShops, setUnclaimedShops] = useState<Shop[]>([]);
-  const [claimLoading, setClaimLoading] = useState(false);
-
   // Data states
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -279,54 +274,6 @@ const MyShopPage = () => {
   
   // Photo upload toast notification
   const [photoToast, setPhotoToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  // Fetch unclaimed shops when claim modal opens
-  useEffect(() => {
-    if (showClaimShop && user && !authLoading) {
-      const fetchUnclaimedShops = async () => {
-        try {
-          setClaimLoading(true);
-          // Use pagination to limit response (limit to 50 for performance)
-          const res = await fetch(`${apiUrl}/shops?unclaimed=true&page=1&limit=50`, {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-          
-          if (res.ok) {
-            const contentType = res.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-              const data = await res.json();
-              // Handle paginated response: { shops: [...], page, limit, total, totalPages }
-              const shopsArray = Array.isArray(data)
-                ? data
-                : (data.shops && Array.isArray(data.shops)
-                  ? data.shops
-                  : (data.data && Array.isArray(data.data)
-                    ? data.data
-                    : []));
-              setUnclaimedShops(shopsArray);
-            } else {
-              console.error('Expected JSON but received:', contentType);
-              setUnclaimedShops([]);
-            }
-          } else {
-            console.error('Failed to fetch unclaimed shops:', res.status, res.statusText);
-            setUnclaimedShops([]);
-          }
-        } catch (error: any) {
-          // Silently handle connection errors (API server not running)
-          if (!error?.message?.includes('Failed to fetch') && !error?.message?.includes('ERR_CONNECTION_REFUSED')) {
-            console.error('Error fetching unclaimed shops:', error);
-          }
-          setUnclaimedShops([]);
-        } finally {
-          setClaimLoading(false);
-        }
-      };
-      fetchUnclaimedShops();
-    }
-  }, [showClaimShop, user, authLoading, apiUrl]);
 
   // Fetch user's shop
   useEffect(() => {
@@ -1303,146 +1250,15 @@ const MyShopPage = () => {
         <div className="bg-white rounded-xl shadow-md border border-gray-100 p-8 mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('myShop.getStarted')}</h2>
           <p className="text-gray-600 mb-6">
-            {t('myShop.noShop')} {t('myShop.createShop')} {t('common.or')} {t('myShop.claimShop')}.
+            {t('myShop.noShop')} {t('myShop.createShop')}.
           </p>
-          
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Create Shop */}
-            <div className="border border-gray-200 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('myShop.createNewShop')}</h3>
-              <p className="text-gray-600 mb-4">{t('myShop.startFresh')}</p>
-              <button
-                onClick={() => setShowCreateShop(true)}
-                className="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                {t('myShop.createShop')}
-              </button>
-            </div>
-
-            {/* Claim Shop */}
-            <div className="border border-gray-200 rounded-lg p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('myShop.claimExistingShop')}</h3>
-              <p className="text-gray-600 mb-4">{t('myShop.claimOwnership')}</p>
-              <button
-                onClick={() => router.push('/owner/claim')}
-                className="w-full px-4 py-2 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                {t('myShop.claimShop')}
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={() => router.push('/owner/create-shop')}
+            className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            {t('myShop.createShop')}
+          </button>
         </div>
-
-        {/* Create Shop Form - Redirect to Multi-Step Wizard */}
-        {showCreateShop && (
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">{t('myShop.createNewShop')}</h2>
-            <div className="space-y-4">
-              <p className="text-gray-600 mb-6">
-                Create your shop using our comprehensive setup wizard. You'll be guided through owner identity, business information, shop details, and verification documents.
-              </p>
-              <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    router.push('/owner/create-shop');
-                  }}
-                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Start Shop Setup Wizard
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCreateShop(false)}
-                  className="px-6 py-2 bg-gray-200 text-gray-800 font-medium rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  {t('common.cancel')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Claim Shop Form */}
-        {showClaimShop && (
-          <div className="bg-white rounded-xl shadow-md border border-gray-100 p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">{t('myShop.claimShop')}</h2>
-              <button
-                onClick={() => setShowClaimShop(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-900"
-              >
-                ×
-              </button>
-            </div>
-            <p className="text-gray-600 mb-6">
-              {t('myShop.selectUnclaimedShop')}
-            </p>
-            
-            {claimLoading ? (
-              <div className="text-center py-8">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p className="mt-2 text-gray-600">{t('shops.loading')}</p>
-              </div>
-            ) : unclaimedShops.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <p>{t('myShop.noUnclaimedShops')}</p>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {unclaimedShops.map((unclaimedShop) => (
-                  <div
-                    key={unclaimedShop.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{unclaimedShop.name}</h3>
-                        {unclaimedShop.address && (
-                          <p className="text-sm text-gray-600 mt-1">{unclaimedShop.address}</p>
-                        )}
-                      </div>
-                      <button
-                        onClick={async () => {
-                          if (!user) return;
-                          try {
-                            setClaimLoading(true);
-                            const res = await fetch(`${apiUrl}/shops/${unclaimedShop.id}/claim`, {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                'x-user-id': user.id,
-                              },
-                            });
-                            
-                            if (res.ok) {
-                              const claimedShop = await res.json();
-                              setShop(claimedShop);
-                              setShopForm(claimedShop);
-                              setShowClaimShop(false);
-                              router.refresh();
-                            } else {
-                              const error = await res.json();
-                              alert(`Error: ${error.error || 'Failed to claim shop'}`);
-                            }
-                          } catch (error) {
-                            console.error('Error claiming shop:', error);
-                            alert('Failed to claim shop');
-                          } finally {
-                            setClaimLoading(false);
-                          }
-                        }}
-                        className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        {t('myShop.claimShop')}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     );
   }

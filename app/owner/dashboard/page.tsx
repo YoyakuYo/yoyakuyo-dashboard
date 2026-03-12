@@ -11,19 +11,6 @@ import Link from 'next/link';
 import FloatingHelpButton from '../../components/FloatingHelpButton';
 import { useTranslations } from 'next-intl';
 
-interface Claim {
-  id: string;
-  shop_id: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  shop?: {
-    id: string;
-    name: string;
-    address?: string;
-  };
-}
-
 interface Shop {
   id: string;
   name: string;
@@ -50,7 +37,6 @@ export default function OwnerDashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const t = useTranslations();
-  const [claims, setClaims] = useState<Claim[]>([]);
   const [shop, setShop] = useState<Shop | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [todayBookingsCount, setTodayBookingsCount] = useState(0);
@@ -112,7 +98,6 @@ export default function OwnerDashboardPage() {
     setLoading(true);
     try {
       await Promise.all([
-        loadClaims(),
         loadShop(),
         loadBookings(),
         loadUnreadMessages(),
@@ -130,21 +115,6 @@ export default function OwnerDashboardPage() {
       loadShopVerificationStatus();
     }
   }, [shop?.id, user?.id]);
-
-  const loadClaims = async () => {
-    if (!user?.id) return;
-    try {
-      const res = await fetch(`${apiUrl}/api/owner/claims/my`, {
-        headers: { 'x-user-id': user.id },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setClaims(data.claims || []);
-      }
-    } catch (error) {
-      console.error('Error loading claims:', error);
-    }
-  };
 
   const loadShop = async () => {
     if (!user?.id) return;
@@ -304,14 +274,7 @@ export default function OwnerDashboardPage() {
     );
   }
 
-  // Find active claim (pending verification)
-  const currentClaim = claims.find(c => 
-    ['draft', 'submitted', 'pending', 'resubmission_required'].includes(c.status)
-  ) || claims[0];
-  
-  // Determine dashboard state
   const hasShop = shop !== null;
-  const hasPendingVerification = currentClaim && ['pending', 'submitted'].includes(currentClaim.status);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -368,28 +331,18 @@ export default function OwnerDashboardPage() {
                   {t('dashboard.manageYourShop')} →
                 </Link>
               </div>
-            ) : (shopVerificationStatus === 'pending' || hasPendingVerification) ? (
+            ) : shopVerificationStatus === 'pending' && hasShop ? (
               <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
                 <h3 className="font-semibold text-yellow-900 mb-2">{t('dashboard.claimUnderReview')}</h3>
                 <p className="text-yellow-700">
                   {t('dashboard.claimUnderReviewDesc')}
                 </p>
-                {currentClaim && (
-                  <>
-                    <p className="text-yellow-700 mt-1">
-                      {t('dashboard.status')}: <span className="font-bold">{currentClaim.status}</span>
-                    </p>
-                    {currentClaim.shop && (
-                      <p className="text-yellow-700 mt-1">
-                        {t('dashboard.shop')}: {currentClaim.shop.name}
-                      </p>
-                    )}
-                  </>
+                {shop && (
+                  <p className="text-yellow-700 mt-1">
+                    {t('dashboard.shop')}: {shop.name}
+                  </p>
                 )}
-                <Link
-                  href="/owner/claim"
-                  className="mt-3 inline-block text-sm font-medium text-yellow-800 hover:text-yellow-900"
-                >
+                <Link href="/owner/verification" className="mt-3 inline-block text-sm font-medium text-yellow-800 hover:text-yellow-900">
                   {t('dashboard.viewClaimDetails')} →
                 </Link>
               </div>
@@ -400,10 +353,10 @@ export default function OwnerDashboardPage() {
                   {t('dashboard.getStartedDesc')}
                 </p>
                 <Link
-                  href="/owner/claim"
+                  href="/owner/create-shop"
                   className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
-                  {t('dashboard.claimAShop')}
+                  {t('myShop.createShop')}
                 </Link>
               </div>
             )}

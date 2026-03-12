@@ -1,102 +1,40 @@
 // app/owner/create-shop/page.tsx
-// Multi-step shop creation/claim wizard
+// Simple one-page shop creation: name, address, phone, category, services. No documents.
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/useAuth';
-import OwnerGuard from '@/app/components/OwnerGuard';
-import { useTranslations } from 'next-intl';
-import { apiUrl } from '@/lib/apiClient';
-import { getSupabaseClient } from '@/lib/supabaseClient';
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/useAuth";
+import OwnerGuard from "@/app/components/OwnerGuard";
+import { apiUrl } from "@/lib/apiClient";
 
-type Step = 'owner-identity' | 'business-info' | 'shop-info' | 'verification-docs' | 'review';
-
-interface OwnerIdentityData {
-  full_name: string;
-  personal_phone: string;
-  personal_email: string;
-  role: 'owner' | 'manager' | 'representative';
-}
-
-interface BusinessInfoData {
-  registered_business_name: string;
-  business_registration_number: string;
-  business_type: 'individual' | 'corporation' | 'franchise' | '';
-  tax_status: 'registered' | 'not_registered' | 'unknown' | '';
-}
-
-interface ShopInfoData {
-  shop_display_name: string;
-  prefecture: string;
-  city: string;
-  street: string;
-  postal_code: string;
-  shop_phone: string;
-  shop_email: string;
-  main_category: string;
-  subcategories: string[];
-  languages_supported: string[];
-  target_customers: string[];
-  shop_front_image?: string;
-  interior_image?: string;
-}
-
-interface VerificationDoc {
+interface ServiceRow {
   id: string;
-  doc_type: 'owner_id' | 'business_registration' | 'tax_doc' | 'lease' | 'other';
-  file_url: string;
-  file_name: string;
+  name: string;
+  price: string;
 }
 
 export default function CreateShopPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const t = useTranslations();
-  const [currentStep, setCurrentStep] = useState<Step>('owner-identity');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
 
-  // Form data
-  const [ownerIdentity, setOwnerIdentity] = useState<OwnerIdentityData>({
-    full_name: '',
-    personal_phone: '',
-    personal_email: user?.email || '',
-    role: 'owner',
-  });
-
-  const [businessInfo, setBusinessInfo] = useState<BusinessInfoData>({
-    registered_business_name: '',
-    business_registration_number: '',
-    business_type: '',
-    tax_status: '',
-  });
-
-  const [shopInfo, setShopInfo] = useState<ShopInfoData>({
-    shop_display_name: '',
-    prefecture: '',
-    city: '',
-    street: '',
-    postal_code: '',
-    shop_phone: '',
-    shop_email: '',
-    main_category: '',
-    subcategories: [],
-    languages_supported: [],
-    target_customers: [],
-  });
-
-  const [verificationDocs, setVerificationDocs] = useState<VerificationDoc[]>([]);
-  const [uploadingDocs, setUploadingDocs] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [authorized, setAuthorized] = useState(false);
-
-  const [categories, setCategories] = useState<any[]>([]);
+  const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [email, setEmail] = useState("");
+  const [corporationNumber, setCorporationNumber] = useState("");
+  const [services, setServices] = useState<ServiceRow[]>([
+    { id: "1", name: "", price: "" },
+  ]);
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/login');
+      router.push("/login");
       return;
     }
     fetchCategories();
@@ -109,623 +47,291 @@ export default function CreateShopPage() {
         const data = await res.json();
         setCategories(Array.isArray(data) ? data : []);
       }
-    } catch (error) {
-      console.error('Error fetching categories:', error);
+    } catch (e) {
+      console.error("Error fetching categories:", e);
     }
   };
 
-  const handleNext = () => {
-    if (currentStep === 'owner-identity') {
-      if (!ownerIdentity.full_name || !ownerIdentity.personal_phone || !ownerIdentity.personal_email) {
-        setError('Please fill in all required fields');
-        return;
-      }
-      setCurrentStep('business-info');
-    } else if (currentStep === 'business-info') {
-      setCurrentStep('shop-info');
-    } else if (currentStep === 'shop-info') {
-      if (!shopInfo.shop_display_name || !shopInfo.prefecture || !shopInfo.city) {
-        setError('Please fill in all required shop information');
-        return;
-      }
-      setCurrentStep('verification-docs');
-    } else if (currentStep === 'verification-docs') {
-      if (verificationDocs.length === 0) {
-        setError('Please upload at least one verification document');
-        return;
-      }
-      setCurrentStep('review');
-    }
+  const addService = () => {
+    setServices((prev) => [
+      ...prev,
+      { id: String(Date.now()), name: "", price: "" },
+    ]);
+  };
+
+  const removeService = (id: string) => {
+    if (services.length <= 1) return;
+    setServices((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const updateService = (id: string, field: "name" | "price", value: string) => {
+    setServices((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
+    );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
-  };
 
-  const handleBack = () => {
-    if (currentStep === 'review') {
-      setCurrentStep('verification-docs');
-    } else if (currentStep === 'verification-docs') {
-      setCurrentStep('shop-info');
-    } else if (currentStep === 'shop-info') {
-      setCurrentStep('business-info');
-    } else if (currentStep === 'business-info') {
-      setCurrentStep('owner-identity');
+    if (!name.trim() || !address.trim() || !phone.trim() || !categoryId) {
+      setError("Please fill in shop name, address, phone, and category.");
+      return;
     }
-    setError(null);
-  };
 
-  const handleFileUpload = async (file: File, docType: VerificationDoc['doc_type']) => {
-    if (!user?.id) return;
-
-    setUploadingDocs(true);
-    try {
-      const supabase = getSupabaseClient();
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('verification-documents') // Fixed: bucket name must match exactly
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('verification-documents') // Fixed: bucket name must match exactly
-        .getPublicUrl(fileName);
-
-      const newDoc: VerificationDoc = {
-        id: Math.random().toString(36).substring(7),
-        doc_type: docType,
-        file_url: publicUrl,
-        file_name: file.name,
-      };
-
-      setVerificationDocs([...verificationDocs, newDoc]);
-    } catch (error: any) {
-      console.error('Error uploading file:', error);
-      setError('Failed to upload file. Please try again.');
-    } finally {
-      setUploadingDocs(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!agreedToTerms || !authorized) {
-      setError('Please confirm all required checkboxes');
+    const validServices = services.filter(
+      (s) => s.name.trim() !== "" && s.price.trim() !== "" && !isNaN(Number(s.price))
+    );
+    if (validServices.length === 0) {
+      setError("Add at least one service with name and price.");
       return;
     }
 
     if (!user?.id) {
-      setError('You must be logged in to create a shop');
+      setError("You must be logged in.");
       return;
     }
 
     setLoading(true);
-    setError(null);
-
     try {
-      // Step 1: Create owner profile (API is mounted at /api/owner/profiles)
-      const profileUrl = `${apiUrl}/api/owner/profiles`;
-      console.log('[CreateShop] Creating owner profile', { url: profileUrl, userId: user.id });
-      const ownerProfileRes = await fetch(profileUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user.id,
-        },
-        body: JSON.stringify({
-          full_name: ownerIdentity.full_name,
-          personal_phone: ownerIdentity.personal_phone,
-          personal_email: ownerIdentity.personal_email,
-          role: ownerIdentity.role,
-        }),
-      });
-
-      const resText = await ownerProfileRes.text();
-      if (!ownerProfileRes.ok) {
-        let errBody: { error?: string; details?: string } = {};
-        try {
-          errBody = JSON.parse(resText);
-        } catch {
-          // not JSON
-        }
-        console.error('[CreateShop] Owner profile request failed', {
-          status: ownerProfileRes.status,
-          statusText: ownerProfileRes.statusText,
-          url: profileUrl,
-          responseBody: resText?.slice(0, 500),
-          parsedError: errBody.error,
-          parsedDetails: errBody.details,
-        });
-        const msg = errBody.error || errBody.details || resText || 'Failed to create owner profile';
-        throw new Error(msg);
-      }
-
-      const ownerProfile = JSON.parse(resText);
-
-      // Step 2: Create shop
       const shopRes = await fetch(`${apiUrl}/shops`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user.id,
+          "Content-Type": "application/json",
+          "x-user-id": user.id,
         },
         body: JSON.stringify({
-          name: shopInfo.shop_display_name,
-          address: `${shopInfo.postal_code} ${shopInfo.prefecture} ${shopInfo.city} ${shopInfo.street}`,
-          prefecture: shopInfo.prefecture,
-          phone: shopInfo.shop_phone,
-          email: shopInfo.shop_email,
-          category_id: shopInfo.main_category,
-          subcategory: shopInfo.subcategories[0] || '',
+          name: name.trim(),
+          address: address.trim(),
+          phone: phone.trim(),
+          email: email.trim() || null,
+          category_id: categoryId || null,
           owner_user_id: user.id,
-          registered_business_name: businessInfo.registered_business_name || null,
-          business_registration_number: businessInfo.business_registration_number || null,
-          business_type: businessInfo.business_type || null,
-          tax_status: businessInfo.tax_status || null,
-          languages_supported: shopInfo.languages_supported,
-          target_customers: shopInfo.target_customers,
-          verification_status: 'pending',
-          is_verified: false,
-          booking_enabled: false,
-          ai_enabled: false,
-          subscription_plan: 'free',
+          business_registration_number: corporationNumber.trim() || null,
         }),
       });
 
       if (!shopRes.ok) {
-        const errorData = await shopRes.json();
-        throw new Error(errorData.error || 'Failed to create shop');
+        const errData = await shopRes.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to create shop");
       }
 
       const shop = await shopRes.json();
 
-      // Step 3: Create verification request and upload documents
-      const verificationRes = await fetch(`${apiUrl}/shops/${shop.id}/verification`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': user.id,
-        },
-        body: JSON.stringify({
-          owner_profile_id: ownerProfile.id,
-          documents: verificationDocs,
-        }),
-      });
-
-      if (!verificationRes.ok) {
-        throw new Error('Failed to submit verification request');
+      for (const svc of validServices) {
+        const svcRes = await fetch(`${apiUrl}/services`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": user.id,
+          },
+          body: JSON.stringify({
+            shop_id: shop.id,
+            name: svc.name.trim(),
+            price: Number(svc.price),
+            duration_minutes: 60,
+          }),
+        });
+        if (!svcRes.ok) {
+          console.warn("Failed to create service:", svc.name);
+        }
       }
 
-      // Success - go to My Shop so they see their shop (pending approval)
-      router.push('/shops?created=1');
-    } catch (error: any) {
-      console.error('[CreateShop] Error creating shop', {
-        message: error?.message,
-        name: error?.name,
-        stack: error?.stack?.slice(0, 300),
-      });
-      setError(error.message || 'Failed to create shop. Please try again.');
+      router.push("/shops?created=1");
+    } catch (err: any) {
+      setError(err.message || "Failed to create shop. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const steps: { key: Step; label: string }[] = [
-    { key: 'owner-identity', label: 'Owner Identity' },
-    { key: 'business-info', label: 'Business Info' },
-    { key: 'shop-info', label: 'Shop Info' },
-    { key: 'verification-docs', label: 'Verification Documents' },
-    { key: 'review', label: 'Review & Submit' },
-  ];
-
-  const currentStepIndex = steps.findIndex(s => s.key === currentStep);
-
   if (authLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
       </div>
     );
   }
 
   return (
     <OwnerGuard>
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Create Your Shop</h1>
+      <div className="max-w-2xl mx-auto p-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">
+          Create your shop
+        </h1>
+        <p className="text-gray-600 mb-6">
+          Enter your shop details and at least one service. No documents
+          required.
+        </p>
 
-      {/* Progress Steps */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          {steps.map((step, idx) => (
-            <div key={step.key} className="flex items-center flex-1">
-              <div className="flex flex-col items-center flex-1">
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Shop name *
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="e.g. My Salon"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Address *
+            </label>
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Full address"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Phone *
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="e.g. 03-1234-5678"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category *
+            </label>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Select category</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="shop@example.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Corporation / Business registration number
+            </label>
+            <input
+              type="text"
+              value={corporationNumber}
+              onChange={(e) => setCorporationNumber(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Optional"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Services * (name and price)
+              </label>
+              <button
+                type="button"
+                onClick={addService}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                + Add service
+              </button>
+            </div>
+            <div className="space-y-3">
+              {services.map((svc) => (
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                    idx <= currentStepIndex
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-600'
-                  }`}
+                  key={svc.id}
+                  className="flex gap-2 items-center border border-gray-200 rounded-lg p-3"
                 >
-                  {idx + 1}
-                </div>
-                <span className="mt-2 text-xs text-center">{step.label}</span>
-              </div>
-              {idx < steps.length - 1 && (
-                <div
-                  className={`h-1 flex-1 mx-2 ${
-                    idx < currentStepIndex ? 'bg-blue-600' : 'bg-gray-200'
-                  }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-
-      {/* Step Content */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        {currentStep === 'owner-identity' && (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold mb-4">Owner Identity</h2>
-            <div>
-              <label className="block text-sm font-medium mb-2">Full Name *</label>
-              <input
-                type="text"
-                value={ownerIdentity.full_name}
-                onChange={(e) => setOwnerIdentity({ ...ownerIdentity, full_name: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Personal Phone *</label>
-              <input
-                type="tel"
-                value={ownerIdentity.personal_phone}
-                onChange={(e) => setOwnerIdentity({ ...ownerIdentity, personal_phone: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Personal Email *</label>
-              <input
-                type="email"
-                value={ownerIdentity.personal_email}
-                onChange={(e) => setOwnerIdentity({ ...ownerIdentity, personal_email: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Role *</label>
-              <select
-                value={ownerIdentity.role}
-                onChange={(e) => setOwnerIdentity({ ...ownerIdentity, role: e.target.value as any })}
-                className="w-full px-4 py-2 border rounded-lg"
-              >
-                <option value="owner">Owner</option>
-                <option value="manager">Manager</option>
-                <option value="representative">Representative</option>
-              </select>
-            </div>
-          </div>
-        )}
-
-        {currentStep === 'business-info' && (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold mb-4">Business Information</h2>
-            <div>
-              <label className="block text-sm font-medium mb-2">Registered Business Name</label>
-              <input
-                type="text"
-                value={businessInfo.registered_business_name}
-                onChange={(e) => setBusinessInfo({ ...businessInfo, registered_business_name: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Business Registration Number</label>
-              <input
-                type="text"
-                value={businessInfo.business_registration_number}
-                onChange={(e) => setBusinessInfo({ ...businessInfo, business_registration_number: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Business Type</label>
-              <select
-                value={businessInfo.business_type}
-                onChange={(e) => setBusinessInfo({ ...businessInfo, business_type: e.target.value as any })}
-                className="w-full px-4 py-2 border rounded-lg"
-              >
-                <option value="">Select...</option>
-                <option value="individual">Individual</option>
-                <option value="corporation">Corporation</option>
-                <option value="franchise">Franchise</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Tax Status</label>
-              <select
-                value={businessInfo.tax_status}
-                onChange={(e) => setBusinessInfo({ ...businessInfo, tax_status: e.target.value as any })}
-                className="w-full px-4 py-2 border rounded-lg"
-              >
-                <option value="">Select...</option>
-                <option value="registered">Registered</option>
-                <option value="not_registered">Not Registered</option>
-                <option value="unknown">Unknown</option>
-              </select>
-            </div>
-          </div>
-        )}
-
-        {currentStep === 'shop-info' && (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold mb-4">Shop Information</h2>
-            <div>
-              <label className="block text-sm font-medium mb-2">Shop Display Name *</label>
-              <input
-                type="text"
-                value={shopInfo.shop_display_name}
-                onChange={(e) => setShopInfo({ ...shopInfo, shop_display_name: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Prefecture *</label>
-                <input
-                  type="text"
-                  value={shopInfo.prefecture}
-                  onChange={(e) => setShopInfo({ ...shopInfo, prefecture: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">City *</label>
-                <input
-                  type="text"
-                  value={shopInfo.city}
-                  onChange={(e) => setShopInfo({ ...shopInfo, city: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Street Address</label>
-              <input
-                type="text"
-                value={shopInfo.street}
-                onChange={(e) => setShopInfo({ ...shopInfo, street: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Postal Code</label>
-              <input
-                type="text"
-                value={shopInfo.postal_code}
-                onChange={(e) => setShopInfo({ ...shopInfo, postal_code: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Shop Phone</label>
-                <input
-                  type="tel"
-                  value={shopInfo.shop_phone}
-                  onChange={(e) => setShopInfo({ ...shopInfo, shop_phone: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Shop Email</label>
-                <input
-                  type="email"
-                  value={shopInfo.shop_email}
-                  onChange={(e) => setShopInfo({ ...shopInfo, shop_email: e.target.value })}
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Main Category</label>
-              <select
-                value={shopInfo.main_category}
-                onChange={(e) => setShopInfo({ ...shopInfo, main_category: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-              >
-                <option value="">Select...</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Target Customers</label>
-              <div className="flex flex-wrap gap-2">
-                {['men', 'women', 'couples', 'families'].map((target) => (
-                  <label key={target} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={shopInfo.target_customers.includes(target)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setShopInfo({
-                            ...shopInfo,
-                            target_customers: [...shopInfo.target_customers, target],
-                          });
-                        } else {
-                          setShopInfo({
-                            ...shopInfo,
-                            target_customers: shopInfo.target_customers.filter((t) => t !== target),
-                          });
-                        }
-                      }}
-                      className="mr-2"
-                    />
-                    {target.charAt(0).toUpperCase() + target.slice(1)}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {currentStep === 'verification-docs' && (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold mb-4">Verification Documents</h2>
-            <p className="text-gray-600 mb-4">
-              Please upload the required documents for verification. At least one document is required.
-            </p>
-            
-            {(['owner_id', 'business_registration', 'tax_doc', 'lease', 'other'] as const).map((docType) => (
-              <div key={docType} className="border rounded-lg p-4">
-                <label className="block text-sm font-medium mb-2">
-                  {docType === 'owner_id' && 'Owner ID Document'}
-                  {docType === 'business_registration' && 'Business Registration / License'}
-                  {docType === 'tax_doc' && 'Tax Document'}
-                  {docType === 'lease' && 'Lease Agreement'}
-                  {docType === 'other' && 'Other Document'}
-                </label>
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      handleFileUpload(file, docType);
+                  <input
+                    type="text"
+                    value={svc.name}
+                    onChange={(e) =>
+                      updateService(svc.id, "name", e.target.value)
                     }
-                  }}
-                  className="w-full px-4 py-2 border rounded-lg"
-                  disabled={uploadingDocs}
-                />
-                {verificationDocs.filter((d) => d.doc_type === docType).map((doc) => (
-                  <div key={doc.id} className="mt-2 text-sm text-green-600">
-                    ✓ {doc.file_name}
-                  </div>
-                ))}
-              </div>
-            ))}
+                    placeholder="Service name"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={svc.price}
+                    onChange={(e) =>
+                      updateService(svc.id, "price", e.target.value)
+                    }
+                    placeholder="Price"
+                    className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeService(svc.id)}
+                    disabled={services.length <= 1}
+                    className="p-2 text-gray-500 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label="Remove service"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              At least one service with name and price is required.
+            </p>
           </div>
-        )}
 
-        {currentStep === 'review' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-semibold mb-4">Review & Submit</h2>
-            
-            <div>
-              <h3 className="font-semibold mb-2">Owner Identity</h3>
-              <p>Name: {ownerIdentity.full_name}</p>
-              <p>Phone: {ownerIdentity.personal_phone}</p>
-              <p>Email: {ownerIdentity.personal_email}</p>
-              <p>Role: {ownerIdentity.role}</p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-2">Business Info</h3>
-              <p>Business Name: {businessInfo.registered_business_name || 'N/A'}</p>
-              <p>Registration Number: {businessInfo.business_registration_number || 'N/A'}</p>
-              <p>Type: {businessInfo.business_type || 'N/A'}</p>
-              <p>Tax Status: {businessInfo.tax_status || 'N/A'}</p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-2">Shop Info</h3>
-              <p>Name: {shopInfo.shop_display_name}</p>
-              <p>Address: {shopInfo.prefecture} {shopInfo.city} {shopInfo.street}</p>
-              <p>Phone: {shopInfo.shop_phone || 'N/A'}</p>
-              <p>Email: {shopInfo.shop_email || 'N/A'}</p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-2">Uploaded Documents</h3>
-              <ul className="list-disc list-inside">
-                {verificationDocs.map((doc) => (
-                  <li key={doc.id}>{doc.file_name} ({doc.doc_type})</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="space-y-2">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={authorized}
-                  onChange={(e) => setAuthorized(e.target.checked)}
-                  className="mr-2"
-                />
-                <span>I am authorized to manage this business.</span>
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mr-2"
-                />
-                <span>I agree to the platform terms.</span>
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={true}
-                  readOnly
-                  className="mr-2"
-                />
-                <span>I understand my shop will not be live until approved.</span>
-              </label>
-            </div>
+          <div className="flex gap-4 pt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Creating..." : "Create shop"}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/shops")}
+              className="px-6 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
           </div>
-        )}
+        </form>
       </div>
-
-      {/* Navigation Buttons */}
-      <div className="flex justify-between">
-        <button
-          onClick={handleBack}
-          disabled={currentStep === 'owner-identity'}
-          className="px-6 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Back
-        </button>
-        {currentStep !== 'review' ? (
-          <button
-            onClick={handleNext}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Next
-          </button>
-        ) : (
-          <button
-            onClick={handleSubmit}
-            disabled={loading || !agreedToTerms || !authorized}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Submitting...' : 'Submit'}
-          </button>
-        )}
-      </div>
-    </div>
     </OwnerGuard>
   );
 }
-
