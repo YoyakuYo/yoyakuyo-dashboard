@@ -19,6 +19,7 @@ interface Shop {
   email?: string;
   description?: string;
   verification_code?: string;
+  shop_number?: number | null;
 }
 
 interface Booking {
@@ -302,9 +303,15 @@ export default function OwnerDashboardPage() {
                shopVerificationStatus === 'pending' ? `⏳ ${t('dashboard.pending')}` : 
                `❌ ${t('dashboard.unverified')}`}
             </p>
+            {shop?.shop_number != null && (
+              <p className="mt-2 text-sm text-gray-700">
+                {t('dashboard.shopNumber')}:{' '}
+                <span className="font-mono font-semibold">{shop.shop_number}</span>
+              </p>
+            )}
             {shopVerificationStatus === 'verified' && shop?.verification_code && (
               <p className="mt-2 text-sm text-gray-700">
-                {t('dashboard.shopCode') || 'Shop code'}:{' '}
+                {t('dashboard.shopVerificationCode')}:{' '}
                 <span className="font-mono font-semibold">{shop.verification_code}</span>
               </p>
             )}

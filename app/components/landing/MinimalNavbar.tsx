@@ -30,9 +30,8 @@ export default function MinimalNavbar() {
     if (!shopCodeInput) return;
     const digits = shopCodeInput.replace(/[^0-9]/g, '');
     if (!digits) return;
-    const normalized = 'S' + digits.padStart(4, '0');
     setDrawerOpen(false);
-    router.push(`/shops/code/${normalized}`);
+    router.push(`/shops/code/${digits}`);
   };
 
   const MobileDrawer = (

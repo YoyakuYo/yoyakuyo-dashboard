@@ -300,7 +300,7 @@
     "ctaEasy": "Easy",
     "ctaSecure": "Secure",
     "shopNumberSearchTitle": "Search by shop number",
-    "shopNumberSearchDescription": "Enter the shop number from the poster or dashboard (e.g. 12 → S0012).",
+    "shopNumberSearchDescription": "Enter the shop number (1–5000) from the owner dashboard, or e.g. 1 for verified code S0001.",
     "shopNumberPlaceholder": "Shop number",
     "shopNumberExamplePlaceholder": "e.g. 12 or S0012",
     "shopNumberSearchButton": "Search",
@@ -1044,7 +1044,9 @@
     "notifications": {
       "pending": "You have pending bookings",
       "none": "No pending bookings"
-    }
+    },
+    "shopNumber": "Shop number",
+    "shopVerificationCode": "Verified code"
   },
   "notifications": {
     "notSupported": "Push notifications not supported in this browser",
@@ -1454,7 +1456,7 @@
     "shopNumberGo": "Go",
     "shopNumberAria": "Search by shop number",
     "shopNumberSearchTitle": "Search by shop number",
-    "shopNumberSearchDescription": "Enter the shop number from the poster or dashboard (e.g. 12 → S0012).",
+    "shopNumberSearchDescription": "Enter the shop number (1–5000) from the owner dashboard, or e.g. 1 for verified code S0001.",
     "shopNumberExamplePlaceholder": "e.g. 12 or S0012",
     "shopNumberSearchButton": "Search",
     "shopNumberError": "Enter the shop code number.",

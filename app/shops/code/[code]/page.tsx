@@ -8,10 +8,25 @@ interface ShopLookupResponse {
   shop?: { id: string; name: string };
 }
 
+async function fetchShopByNumber(num: number): Promise<ShopLookupResponse | null> {
+  const res = await fetch(`${apiUrl}/shops?shop_number=${num}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("lookup failed");
+  return res.json();
+}
+
+async function fetchShopByVerificationCode(code: string): Promise<ShopLookupResponse | null> {
+  const res = await fetch(`${apiUrl}/shops?verification_code=${encodeURIComponent(code)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("lookup failed");
+  return res.json();
+}
+
 export default function ShopCodeRedirectPage() {
   const params = useParams();
   const router = useRouter();
-  const code = (params?.code as string) || "";
+  const raw = (params?.code as string) || "";
+  const code = raw.trim();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,30 +39,41 @@ export default function ShopCodeRedirectPage() {
       }
 
       try {
-        const url = `${apiUrl}/shops?verification_code=${encodeURIComponent(
-          code
-        )}`;
-        const res = await fetch(url);
-
-        if (res.status === 404) {
+        // S0001 style → verified code only
+        if (/^S\d+$/i.test(code)) {
+          const data = await fetchShopByVerificationCode(code.toUpperCase());
+          if (data?.shop?.id) {
+            router.replace(`/shops/${data.shop.id}`);
+            return;
+          }
           setError("Shop not found for this code.");
           setLoading(false);
           return;
         }
 
-        if (!res.ok) {
-          setError("Failed to look up shop.");
-          setLoading(false);
-          return;
+        const digits = code.replace(/\D/g, "");
+        const num = parseInt(digits, 10);
+
+        // Digits only: try shop number 1–5000 first, then S + 4-digit verified code
+        if (digits && !Number.isNaN(num) && num >= 1 && num <= 5000) {
+          const byNum = await fetchShopByNumber(num);
+          if (byNum?.shop?.id) {
+            router.replace(`/shops/${byNum.shop.id}`);
+            return;
+          }
         }
 
-        const data: ShopLookupResponse = await res.json();
-        if (data.shop && data.shop.id) {
-          router.replace(`/shops/${data.shop.id}`);
-        } else {
-          setError("Shop not found for this code.");
-          setLoading(false);
+        if (digits.length >= 1 && digits.length <= 4) {
+          const sCode = "S" + digits.padStart(4, "0");
+          const data = await fetchShopByVerificationCode(sCode);
+          if (data?.shop?.id) {
+            router.replace(`/shops/${data.shop.id}`);
+            return;
+          }
         }
+
+        setError("Shop not found for this code.");
+        setLoading(false);
       } catch (e) {
         console.error("Error looking up shop by code:", e);
         setError("Failed to look up shop.");
@@ -65,7 +91,8 @@ export default function ShopCodeRedirectPage() {
           <>
             <div className="inline-block h-10 w-10 rounded-full border-2 border-blue-600 border-t-transparent animate-spin mb-4" />
             <p className="text-gray-700 text-sm">
-              Looking up shop for code <span className="font-mono font-semibold">{code}</span>...
+              Looking up shop for code{" "}
+              <span className="font-mono font-semibold">{code}</span>...
             </p>
           </>
         ) : error ? (
@@ -84,4 +111,3 @@ export default function ShopCodeRedirectPage() {
     </div>
   );
 }
-

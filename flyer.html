@@ -56,6 +56,62 @@
     .board-title { font-size: 0.8rem; font-weight: 700; color: #292524; margin-bottom: 4px; }
     .board ul { margin: 0; padding-left: 1rem; font-size: 0.75rem; color: #57534e; line-height: 1.6; }
     .board .icon { font-size: 1.25rem; margin-bottom: 4px; }
+    .owner-write-section {
+      margin: 0 16px 12px;
+      padding: 14px 16px;
+      background: #fffbeb;
+      border: 2px dashed #d97706;
+      border-radius: 12px;
+    }
+    .owner-write-section .for-owner {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #92400e;
+      margin: 0 0 10px;
+      line-height: 1.45;
+    }
+    .write-box-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #1e40af;
+      margin: 0 0 6px;
+      text-align: center;
+    }
+    .write-box {
+      min-height: 76px;
+      background: #fff;
+      border: 3px dashed #1e40af;
+      border-radius: 10px;
+      margin: 0 auto;
+      max-width: 320px;
+    }
+    .write-box-hint {
+      text-align: center;
+      font-size: 0.65rem;
+      color: #78716c;
+      margin: 8px 0 0;
+    }
+    .customer-steps {
+      margin: 12px 16px 0;
+      padding: 12px 14px;
+      background: #eff6ff;
+      border-radius: 12px;
+      border: 1px solid #bfdbfe;
+    }
+    .customer-steps h4 {
+      margin: 0 0 8px;
+      font-size: 0.75rem;
+      color: #1e40af;
+      text-align: center;
+    }
+    .customer-steps p {
+      margin: 0 0 6px;
+      font-size: 0.72rem;
+      line-height: 1.5;
+      color: #334155;
+    }
+    .customer-steps p:last-child { margin-bottom: 0; }
+    .customer-steps .en { color: #64748b; font-size: 0.68rem; }
     .qr-section {
       padding: 8px 24px 24px;
     }
@@ -90,6 +146,8 @@
       .boards { padding: 10px !important; gap: 8px !important; }
       .qr-box { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 12px !important; }
       .qr-section { padding: 6px 24px 16px !important; }
+      .owner-write-section { margin: 0 12px 10px !important; padding: 10px 12px !important; }
+      .customer-steps { margin: 8px 12px 0 !important; }
       .card { transform: scale(0.95); transform-origin: top center; }
     }
   </style>
@@ -149,12 +207,24 @@
         </ul>
       </section>
     </div>
+    <section class="owner-write-section" aria-label="Shop number for owner to fill in">
+      <p class="for-owner">店舗オーナー様へ：ダッシュボードに表示されている<strong>店舗番号</strong>を、下の枠内に<strong>ペンで大きく</strong>ご記入のうえ、店内に掲示してください。</p>
+      <p class="write-box-label">店舗番号　Shop number</p>
+      <div class="write-box" title="Write your shop number here with a pen"></div>
+      <p class="write-box-hint">※ 数字ははっきり読めるように記入してください</p>
+    </section>
+    <div class="customer-steps">
+      <h4>お客様へ　For customers</h4>
+      <p><strong>①</strong>　下のQRコードをスマホでスキャンしてサイトを開いてください。</p>
+      <p><strong>②</strong>　画面上の「店舗番号検索」に、<strong>上の枠に書かれた番号</strong>を入力して検索し、このお店のページを表示してください。</p>
+      <p class="en"><strong>①</strong> Scan the QR code below to open our site. <strong>②</strong> Enter the <strong>shop number written above</strong> in the shop number search to find this store.</p>
+    </div>
     <section class="qr-section">
       <div class="qr-box">
-        <h3>アクセスはこちら</h3>
-        <p class="hint">スマホでQRコードをスキャンして「Download」をタップ</p>
+        <h3>QRコードはこちら</h3>
+        <p class="hint">スマホのカメラでスキャン</p>
         <div class="qr-inner"><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fwww.yoyakuyo.jp" alt="QR code" width="180" height="180"></div>
-        <a href="https://www.yoyakuyo.jp">Open → www.yoyakuyo.jp</a>
+        <a href="https://www.yoyakuyo.jp">www.yoyakuyo.jp</a>
       </div>
     </section>
   </div>

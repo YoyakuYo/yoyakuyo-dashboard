@@ -20,8 +20,8 @@ export default function ShopCodeSearch() {
       return;
     }
 
-    const normalized = "S" + digits.padStart(4, "0");
-    router.push(`/shops/code/${normalized}`);
+    // 1–5000 = shop number; 1–4 digits also try S0001 on the code page if no shop with that #
+    router.push(`/shops/code/${digits}`);
   };
 
   return (
@@ -41,7 +41,7 @@ export default function ShopCodeSearch() {
             type="text"
             value={codeInput}
             onChange={(e) => setCodeInput(e.target.value)}
-            placeholder={t("shopNumberExamplePlaceholder") || "e.g. 12 or S0012"}
+            placeholder={t("shopNumberExamplePlaceholder") || "e.g. 1 or S0001"}
             className="flex-1 min-w-[180px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
           />
           <button
