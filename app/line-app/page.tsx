@@ -43,6 +43,38 @@ const lineTexts = {
     ko: "언어:",
     zh: "语言：",
   },
+  shopNumberLabel: {
+    ja: "店舗番号で検索",
+    en: "Search by shop number",
+    es: "Buscar por número",
+    pt: "Buscar por número",
+    ko: "매장 번호로 검색",
+    zh: "按店铺编号搜索",
+  },
+  shopNumberPlaceholder: {
+    ja: "番号を入力（例: 1）",
+    en: "Enter number (e.g. 1)",
+    es: "Ingrese el número",
+    pt: "Digite o número",
+    ko: "번호 입력 (예: 1)",
+    zh: "输入编号（如 1）",
+  },
+  shopNumberGo: {
+    ja: "検索",
+    en: "Go",
+    es: "Ir",
+    pt: "Ir",
+    ko: "검색",
+    zh: "搜索",
+  },
+  shopNumberNotFound: {
+    ja: "店舗が見つかりませんでした。",
+    en: "Shop not found.",
+    es: "Tienda no encontrada.",
+    pt: "Loja não encontrada.",
+    ko: "매장을 찾을 수 없습니다.",
+    zh: "未找到店铺。",
+  },
   searchPlaceholder: {
     ja: "店舗名、場所で検索...",
     en: "Search shops by name, location...",
@@ -348,6 +380,9 @@ function LineAppPageContent() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<string>("search");
+  const [shopNumberInput, setShopNumberInput] = useState("");
+  const [shopNumberError, setShopNumberError] = useState<string | null>(null);
+  const [shopNumberLoading, setShopNumberLoading] = useState(false);
 
   const langKey = normalizeLineLang(language);
   const tx = (key: keyof typeof lineTexts) => {
@@ -583,6 +618,39 @@ function LineAppPageContent() {
     }
   };
 
+  // Search by shop number (1–5000) — same as guest flow
+  const searchByShopNumber = async () => {
+    const digits = (shopNumberInput || "").replace(/\D/g, "");
+    const num = parseInt(digits, 10);
+    if (!digits || Number.isNaN(num) || num < 1 || num > 5000) {
+      setShopNumberError(tx("shopNumberNotFound"));
+      return;
+    }
+    setShopNumberError(null);
+    setShopNumberLoading(true);
+    try {
+      const res = await fetch(`${apiUrl}/shops?shop_number=${num}`);
+      if (res.status === 404) {
+        setShopNumberError(tx("shopNumberNotFound"));
+        return;
+      }
+      if (!res.ok) {
+        setShopNumberError(tx("shopNumberNotFound"));
+        return;
+      }
+      const data = await res.json();
+      if (data.shop?.id) {
+        router.push(`/line-app/shops/${data.shop.id}`);
+        return;
+      }
+      setShopNumberError(tx("shopNumberNotFound"));
+    } catch {
+      setShopNumberError(tx("shopNumberNotFound"));
+    } finally {
+      setShopNumberLoading(false);
+    }
+  };
+
   // Search shops
   const searchShops = async () => {
     setLoading(true);
@@ -673,7 +741,38 @@ function LineAppPageContent() {
         {/* Tab Content */}
         {activeTab === "search" && (
           <>
-            {/* Search Section */}
+            {/* Search by shop number */}
+            <div className="bg-white border-b border-gray-200">
+              <div className="max-w-7xl mx-auto px-4 py-4">
+                <p className="text-sm font-medium text-gray-700 mb-2">{tx("shopNumberLabel")}</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={shopNumberInput}
+                    onChange={(e) => {
+                      setShopNumberInput(e.target.value.replace(/\D/g, "").slice(0, 4));
+                      setShopNumberError(null);
+                    }}
+                    onKeyPress={(e) => e.key === "Enter" && searchByShopNumber()}
+                    placeholder={tx("shopNumberPlaceholder")}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={searchByShopNumber}
+                    disabled={shopNumberLoading}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-60 shrink-0"
+                  >
+                    {shopNumberLoading ? "…" : tx("shopNumberGo")}
+                  </button>
+                </div>
+                {shopNumberError && (
+                  <p className="mt-2 text-sm text-red-600">{shopNumberError}</p>
+                )}
+              </div>
+            </div>
+            {/* Search by name / filters */}
             <div className="bg-white border-b border-gray-200">
               <div className="max-w-7xl mx-auto px-4 py-4">
                 <div className="space-y-3">

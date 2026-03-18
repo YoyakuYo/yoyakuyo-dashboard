@@ -1,4 +1,5 @@
 -- Shop numbers 1–5000 for owner shops (customer search). verification_code (S0001) stays separate.
+-- Does not touch customers.* (see add_customer_id_system.sql for customer_id_display / magic_code).
 
 CREATE SEQUENCE IF NOT EXISTS shop_number_seq;
 
@@ -36,7 +37,7 @@ CREATE TRIGGER trigger_assign_shop_number_on_insert
   FOR EACH ROW
   EXECUTE FUNCTION assign_shop_number_on_insert();
 
--- Backfill owner shops: S0001 before S0002, then created_at (barberSOW → 1, KEGNECO → 2)
+-- Backfill owner shops: S0001 before S0002, then created_at
 DO $$
 DECLARE
   r RECORD;
@@ -63,12 +64,38 @@ BEGIN
   );
 END $$;
 
--- CHECK only when no legacy 100001+ values (otherwise run 20260317000000 first)
+-- Legacy: if any shop_number > 5000 (e.g. old 100001 scale), renumber 1..N and fix sequence
 DO $$
+DECLARE
+  r RECORD;
+  n INT := 0;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM shops WHERE shop_number > 5000 LIMIT 1) THEN
-    ALTER TABLE shops DROP CONSTRAINT IF EXISTS shops_shop_number_max_5000;
-    ALTER TABLE shops ADD CONSTRAINT shops_shop_number_max_5000
-      CHECK (shop_number IS NULL OR (shop_number BETWEEN 1 AND 5000));
+    RETURN;
   END IF;
+
+  UPDATE shops SET shop_number = NULL WHERE owner_user_id IS NOT NULL;
+
+  FOR r IN
+    SELECT id
+    FROM shops
+    WHERE owner_user_id IS NOT NULL
+      AND (is_deleted IS NULL OR is_deleted = false)
+    ORDER BY verification_code NULLS LAST, created_at NULLS LAST, id
+  LOOP
+    n := n + 1;
+    IF n > 5000 THEN
+      RAISE EXCEPTION 'More than 5000 owner shops.';
+    END IF;
+    UPDATE shops SET shop_number = n WHERE id = r.id;
+  END LOOP;
+
+  PERFORM setval(
+    'shop_number_seq',
+    GREATEST(0, COALESCE((SELECT MAX(shop_number) FROM shops WHERE shop_number IS NOT NULL), 0))
+  );
 END $$;
+
+ALTER TABLE shops DROP CONSTRAINT IF EXISTS shops_shop_number_max_5000;
+ALTER TABLE shops ADD CONSTRAINT shops_shop_number_max_5000
+  CHECK (shop_number IS NULL OR (shop_number BETWEEN 1 AND 5000));

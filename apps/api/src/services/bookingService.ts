@@ -119,6 +119,14 @@ export async function createBookingFromAi(input: CreateBookingInput): Promise<Bo
           // Continue even if ID generation fails
         }
       }
+    } else if (customerId && input.customerName) {
+      // LINE / web: customerId was provided; still ensure they have display ID + magic_code (e.g. for chat URL)
+      try {
+        await ensureCustomerId(customerId, input.customerName);
+      } catch (idError) {
+        console.error('Error ensuring customer ID (LINE/web):', idError);
+        // Non-fatal: booking continues
+      }
     }
 
     // Prepare booking data (same structure as manual booking flow)

@@ -14,10 +14,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      padding: 12px;
     }
     .card {
-      max-width: 560px;
+      max-width: 640px;
       width: 100%;
       background: #fdfcfa;
       border-radius: 4px;
@@ -27,142 +27,155 @@
     .header {
       background: #1e40af;
       color: #fff;
-      padding: 16px 24px;
-      text-align: center;
+      padding: 10px 12px;
     }
-    .header h1 { margin: 0; font-size: 1.35rem; font-weight: 700; }
-    .header p { margin: 4px 0 0; font-size: 0.75rem; color: #93c5fd; }
+    .header-row {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .header-brand {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: left;
+    }
+    .header-brand h1 { margin: 0; font-size: 1.2rem; font-weight: 700; line-height: 1.15; }
+    .header-brand p { margin: 3px 0 0; font-size: 0.62rem; color: #93c5fd; line-height: 1.25; }
+    .header-shop-slot {
+      flex: 0 0 155px;
+      background: #fffbeb;
+      border: 2px dashed #d97706;
+      border-radius: 8px;
+      padding: 6px 8px;
+      color: #292524;
+      display: flex;
+      flex-direction: column;
+    }
+    .header-shop-slot .owner-hint {
+      font-size: 0.48rem;
+      font-weight: 700;
+      color: #92400e;
+      line-height: 1.2;
+      margin: 0 0 2px;
+    }
+    .header-shop-slot .owner-hint .en { font-weight: 500; color: #78716c; font-size: 0.45rem; }
+    .header-shop-slot .write-label {
+      font-size: 0.52rem;
+      font-weight: 700;
+      color: #1e40af;
+      text-align: center;
+      margin: 0 0 2px;
+    }
+    .header-shop-slot .write-box {
+      flex: 1;
+      min-height: 36px;
+      background: #fff;
+      border: 2px dashed #1e40af;
+      border-radius: 4px;
+    }
+    .header-shop-slot .customer-hint {
+      font-size: 0.45rem;
+      line-height: 1.25;
+      color: #44403c;
+      margin: 4px 0 0;
+    }
+    .header-shop-slot .customer-hint .en { color: #78716c; margin-top: 2px; }
+    .header-shop-slot .customer-hint strong { color: #1e40af; }
     .pics {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-      padding: 12px 12px 0;
+      gap: 4px;
+      padding: 8px 8px 0;
     }
-    .pics img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; border: 1px solid #e7e5e4; }
-    .pics-caption { text-align: center; font-size: 10px; color: #a8a29e; margin-top: 4px; }
+    .pics img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; border: 1px solid #e7e5e4; }
+    .pics-caption { text-align: center; font-size: 9px; color: #a8a29e; margin: 2px 0 0; }
     .boards {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      padding: 16px;
+      gap: 8px;
+      padding: 10px;
     }
     .board {
       border: 1px solid #e7e5e4;
-      border-radius: 12px;
+      border-radius: 8px;
       background: #fafaf9;
-      padding: 14px;
+      padding: 8px 10px;
     }
-    .board-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.05em; color: #78716c; margin-bottom: 2px; }
-    .board-title { font-size: 0.8rem; font-weight: 700; color: #292524; margin-bottom: 4px; }
-    .board ul { margin: 0; padding-left: 1rem; font-size: 0.75rem; color: #57534e; line-height: 1.6; }
-    .board .icon { font-size: 1.25rem; margin-bottom: 4px; }
-    .owner-write-section {
-      margin: 0 16px 12px;
-      padding: 14px 16px;
-      background: #fffbeb;
-      border: 2px dashed #d97706;
-      border-radius: 12px;
-    }
-    .owner-write-section .for-owner {
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: #92400e;
-      margin: 0 0 10px;
-      line-height: 1.45;
-    }
-    .write-box-label {
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: #1e40af;
-      margin: 0 0 6px;
-      text-align: center;
-    }
-    .write-box {
-      min-height: 76px;
-      background: #fff;
-      border: 3px dashed #1e40af;
-      border-radius: 10px;
-      margin: 0 auto;
-      max-width: 320px;
-    }
-    .write-box-hint {
-      text-align: center;
-      font-size: 0.65rem;
-      color: #78716c;
-      margin: 8px 0 0;
-    }
-    .customer-steps {
-      margin: 12px 16px 0;
-      padding: 12px 14px;
-      background: #eff6ff;
-      border-radius: 12px;
-      border: 1px solid #bfdbfe;
-    }
-    .customer-steps h4 {
-      margin: 0 0 8px;
-      font-size: 0.75rem;
-      color: #1e40af;
-      text-align: center;
-    }
-    .customer-steps p {
-      margin: 0 0 6px;
-      font-size: 0.72rem;
-      line-height: 1.5;
-      color: #334155;
-    }
-    .customer-steps p:last-child { margin-bottom: 0; }
-    .customer-steps .en { color: #64748b; font-size: 0.68rem; }
-    .qr-section {
-      padding: 8px 24px 24px;
+    .board-label { font-size: 0.55rem; font-weight: 600; letter-spacing: 0.04em; color: #78716c; margin-bottom: 1px; }
+    .board-title { font-size: 0.68rem; font-weight: 700; color: #292524; margin-bottom: 2px; }
+    .board ul { margin: 0; padding-left: 0.85rem; font-size: 0.58rem; color: #57534e; line-height: 1.35; }
+    .board .icon { font-size: 0.95rem; margin-bottom: 2px; }
+    .bottom-row {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+      padding: 0 10px 10px;
     }
     .qr-box {
+      flex: 1;
       background: #1c1917;
       border: 1px solid #44403c;
-      border-radius: 16px;
-      padding: 20px;
+      border-radius: 12px;
+      padding: 10px 12px;
       text-align: center;
     }
-    .qr-box h3 { margin: 0 0 4px; font-size: 0.875rem; font-weight: 700; color: #fff; }
-    .qr-box .hint { font-size: 0.7rem; color: #a8a29e; margin-bottom: 12px; }
-    .qr-box .qr-inner { display: inline-block; background: #fff; padding: 10px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
-    .qr-box img { display: block; border-radius: 8px; }
-    .qr-box a { color: #93c5fd; }
-    .qr-box a { font-size: 0.75rem; color: #2563eb; margin-top: 8px; display: inline-block; }
-    @page { size: A4; margin: 8mm; }
+    .qr-box h3 { margin: 0 0 2px; font-size: 0.72rem; font-weight: 700; color: #fff; }
+    .qr-box .hint { font-size: 0.55rem; color: #a8a29e; margin-bottom: 6px; }
+    .qr-box .qr-inner { display: inline-block; background: #fff; padding: 6px; border-radius: 8px; }
+    .qr-box img { display: block; border-radius: 4px; }
+    .qr-box a { font-size: 0.62rem; color: #93c5fd; margin-top: 4px; display: inline-block; }
+    .side-note {
+      flex: 0 0 140px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.5rem;
+      line-height: 1.4;
+      color: #334155;
+    }
+    .side-note strong { color: #1e40af; }
+    .side-note .ja { margin-bottom: 6px; }
+    .side-note .en { color: #64748b; }
+    @page { size: A4; margin: 6mm; }
     @media print {
       body { background: #fff !important; padding: 0 !important; margin: 0 !important; }
       .card {
         max-width: 100% !important;
-        box-shadow: 0 0 0 3px #1e40af !important;
-        border: none !important;
+        box-shadow: 0 0 0 2px #1e40af !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        page-break-after: avoid !important;
         page-break-inside: avoid !important;
       }
       .card * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      .header { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 12px 24px !important; }
-      .pics img { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      .board { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 10px !important; }
-      .boards { padding: 10px !important; gap: 8px !important; }
-      .qr-box { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; padding: 12px !important; }
-      .qr-section { padding: 6px 24px 16px !important; }
-      .owner-write-section { margin: 0 12px 10px !important; padding: 10px 12px !important; }
-      .customer-steps { margin: 8px 12px 0 !important; }
-      .card { transform: scale(0.95); transform-origin: top center; }
     }
   </style>
 </head>
 <body>
   <div class="card">
     <div class="header">
-      <h1>Yoyaku Yo</h1>
-      <p>予約管理プラットフォーム / Reservation Platform</p>
+      <div class="header-row">
+        <div class="header-brand">
+          <h1>Yoyaku Yo</h1>
+          <p>予約管理プラットフォーム / Reservation Platform</p>
+        </div>
+        <aside class="header-shop-slot" aria-label="Shop number">
+          <p class="owner-hint">オーナー：ダッシュボードの店舗番号を<strong>ペンで</strong>記入<br><span class="en">Owner: Write your shop number (from dashboard) with a pen</span></p>
+          <p class="write-label">店舗番号 / Shop number</p>
+          <div class="write-box" title="Write shop number with pen"></div>
+          <p class="customer-hint"><strong>①</strong> QRでサイトへ <strong>②</strong> 検索欄にこの番号を入力<br><span class="en"><strong>①</strong> Scan QR <strong>②</strong> Enter this number in search</span></p>
+        </aside>
+      </div>
     </div>
     <section class="pics">
-      <img src="https://images.unsplash.com/photo-1747832802200-7aaceb517e0c?w=400&q=80" alt="Barbershop">
-      <img src="https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&q=80" alt="Nails">
-      <img src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&q=80" alt="Eyelashes">
-      <img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=80" alt="Hair salon">
+      <img src="https://images.unsplash.com/photo-1747832802200-7aaceb517e0c?w=400&q=80" alt="">
+      <img src="https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&q=80" alt="">
+      <img src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&q=80" alt="">
+      <img src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=80" alt="">
     </section>
     <p class="pics-caption">Barber / Nails / Lashes / Hair</p>
     <div class="boards">
@@ -171,9 +184,8 @@
         <div class="board-label">お客様向け</div>
         <div class="board-title">スマホでかんたん予約</div>
         <ul>
-          <li>24時間いつでもオンライン予約</li>
-          <li>近くのサロン・お店をまとめて検索</li>
-          <li>キャンセルや時間変更もスマホで完結</li>
+          <li>24時間オンライン予約</li>
+          <li>近くのお店を検索</li>
         </ul>
       </section>
       <section class="board">
@@ -181,52 +193,44 @@
         <div class="board-label">For customers</div>
         <div class="board-title">Book in a few taps</div>
         <ul>
-          <li>Book online 24/7 from your phone</li>
-          <li>Discover salons and shops nearby</li>
-          <li>Reschedule or cancel without calling</li>
+          <li>Book online 24/7</li>
+          <li>Find shops nearby</li>
         </ul>
       </section>
       <section class="board">
         <div class="icon">🏪</div>
-        <div class="board-label">店舗・オーナー様向け</div>
-        <div class="board-title">予約をひとつの画面で管理</div>
+        <div class="board-label">店舗・オーナー様</div>
+        <div class="board-title">予約を一元管理</div>
         <ul>
-          <li>紙・電話・LINEの予約を一元管理</li>
-          <li>カレンダー画面で空き枠をひと目で確認</li>
-          <li>ダブルブッキングや予約漏れを防止</li>
+          <li>紙・電話・LINEをまとめて</li>
+          <li>ダブルブッキング防止</li>
         </ul>
       </section>
       <section class="board">
         <div class="icon">🏪</div>
         <div class="board-label">For shop owners</div>
-        <div class="board-title">One calendar for every booking</div>
+        <div class="board-title">One calendar</div>
         <ul>
-          <li>Centralize all reservations in one place</li>
-          <li>See your daily schedule at a glance</li>
-          <li>Reduce no-shows and double bookings</li>
+          <li>All bookings in one place</li>
+          <li>Schedule at a glance</li>
         </ul>
       </section>
     </div>
-    <section class="owner-write-section" aria-label="Shop number for owner to fill in">
-      <p class="for-owner">店舗オーナー様へ：ダッシュボードに表示されている<strong>店舗番号</strong>を、下の枠内に<strong>ペンで大きく</strong>ご記入のうえ、店内に掲示してください。</p>
-      <p class="write-box-label">店舗番号　Shop number</p>
-      <div class="write-box" title="Write your shop number here with a pen"></div>
-      <p class="write-box-hint">※ 数字ははっきり読めるように記入してください</p>
-    </section>
-    <div class="customer-steps">
-      <h4>お客様へ　For customers</h4>
-      <p><strong>①</strong>　下のQRコードをスマホでスキャンしてサイトを開いてください。</p>
-      <p><strong>②</strong>　画面上の「店舗番号検索」に、<strong>上の枠に書かれた番号</strong>を入力して検索し、このお店のページを表示してください。</p>
-      <p class="en"><strong>①</strong> Scan the QR code below to open our site. <strong>②</strong> Enter the <strong>shop number written above</strong> in the shop number search to find this store.</p>
-    </div>
-    <section class="qr-section">
+    <div class="bottom-row">
       <div class="qr-box">
-        <h3>QRコードはこちら</h3>
-        <p class="hint">スマホのカメラでスキャン</p>
-        <div class="qr-inner"><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fwww.yoyakuyo.jp" alt="QR code" width="180" height="180"></div>
+        <h3>QRコード / QR code</h3>
+        <p class="hint">スマホでスキャン / Scan with your phone</p>
+        <div class="qr-inner">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https%3A%2F%2Fwww.yoyakuyo.jp" alt="QR" width="140" height="140">
+        </div>
         <a href="https://www.yoyakuyo.jp">www.yoyakuyo.jp</a>
       </div>
-    </section>
+      <div class="side-note">
+        <strong>お客様へ / For customers</strong><br>
+        <span class="ja">① QRをスキャンしてサイトを開く ② 画面上の店舗番号検索に、左の枠に書かれた番号を入力</span><br>
+        <span class="en">① Scan QR to open the site. ② Enter the <strong>shop number</strong> (written in the box next to the logo) in the homepage search.</span>
+      </div>
+    </div>
   </div>
 </body>
 </html>
