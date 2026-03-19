@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YoyakuYo — platform overview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            ink: { 950: '#0c1222', 900: '#151b2e', 700: '#3d4a63', 500: '#64748b', 400: '#94a3b8' },
+            sea: { 600: '#0d9488', 500: '#14b8a6', 400: '#2dd4bf' },
+            line: { 500: '#06C755' },
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    .mesh-bg {
+      background-color: #f8fafc;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(20, 184, 166, 0.12), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 0%, rgba(13, 148, 136, 0.08), transparent),
+        radial-gradient(ellipse 50% 30% at 0% 100%, rgba(21, 27, 46, 0.06), transparent);
+    }
+    .card { box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.05); }
+    /* Preserve screen colors & backgrounds when printing (Ctrl+P) */
+    @media print {
+      html {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      body,
+      body * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  </style>
+</head>
+<body class="mesh-bg min-h-screen font-sans text-ink-900 antialiased">
+  <header class="border-b border-ink-900/5 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+    <div class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-sea-500 text-white font-bold text-sm">Y</span>
+        <div>
+          <p class="font-semibold text-ink-950 leading-tight">YoyakuYo</p>
+          <p class="text-[11px] text-ink-500 uppercase tracking-wider">Platform overview</p>
+        </div>
+      </div>
+      <a href="https://www.yoyakuyo.jp/" target="_blank" rel="noopener noreferrer" class="text-xs sm:text-sm font-semibold text-sea-600 hover:text-sea-500 underline-offset-2 hover:underline text-right break-all sm:break-normal max-w-[min(100%,14rem)] sm:max-w-none">https://www.yoyakuyo.jp/</a>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-5 py-12 md:py-16">
+    <!-- Hero -->
+    <section class="text-center max-w-3xl mx-auto mb-16 md:mb-20">
+      <p class="text-sea-600 font-semibold text-sm tracking-wide uppercase mb-3">Full-stack booking marketplace</p>
+      <h1 class="text-3xl md:text-[2.35rem] font-bold text-ink-950 tracking-tight leading-tight mb-5">
+        The web app that connects people to salons &amp; local services—and runs the business behind the counter
+      </h1>
+      <p class="text-lg text-ink-700 leading-relaxed">
+        <strong>YoyakuYo (Bookyo)</strong> is not a single feature. It’s a <strong>public discovery site</strong>, <strong>guest booking</strong> to reserve a slot, a <strong>LINE mini-app</strong> for on-the-go customers, a full <strong>owner back-office</strong> (calendar, services, messaging), and an <strong>admin console</strong> to keep listings fair and safe. Built with Next.js, Supabase, a Node API, and LINE.
+      </p>
+      <p class="mt-6">
+        <a href="https://www.yoyakuyo.jp/" target="_blank" rel="noopener noreferrer" class="inline-flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 rounded-xl bg-sea-600 px-4 sm:px-5 py-3 text-sm sm:text-base font-semibold text-white shadow-lg shadow-sea-600/25 hover:bg-sea-500 transition-colors text-center"><span>Visit live site</span><span class="font-mono text-xs sm:text-base font-semibold break-all">https://www.yoyakuyo.jp/</span></a>
+      </p>
+    </section>
+
+    <!-- Three audiences -->
+    <section class="mb-16 md:mb-20">
+      <h2 class="text-xl font-bold text-ink-950 mb-2 text-center">Three sides of the same product</h2>
+      <p class="text-ink-600 text-center text-sm max-w-xl mx-auto mb-10">Same data and bookings—different screens for each role.</p>
+      <div class="grid md:grid-cols-3 gap-5">
+        <article class="rounded-2xl bg-white border border-ink-900/6 p-6 card">
+          <div class="h-10 w-10 rounded-xl bg-sea-500/10 text-sea-600 flex items-center justify-center font-bold text-sm mb-4">A</div>
+          <h3 class="font-bold text-ink-950 mb-2">Customers (web)</h3>
+          <p class="text-sm text-ink-600 leading-relaxed">Browse by category and area, open shop pages, pick a time, and book as a <strong>guest</strong> (no forced account). Leave <strong>reviews</strong> after a visit and reach shops via <strong>shop number</strong> on flyers or deep links.</p>
+        </article>
+        <article class="rounded-2xl bg-white border border-ink-900/6 p-6 card">
+          <div class="h-10 w-10 rounded-xl bg-line-500/15 text-line-500 flex items-center justify-center font-bold text-sm mb-4">L</div>
+          <h3 class="font-bold text-ink-950 mb-2">Customers (LINE)</h3>
+          <p class="text-sm text-ink-600 leading-relaxed">A <strong>LINE mini-app (LIFF)</strong> mirrors key flows: home, search, <strong>favorites</strong>, <strong>bookings</strong>, <strong>inbox / messages</strong>, <strong>chat</strong>, booking inside LINE, and <strong>support</strong>—so repeat visits happen where people already chat.</p>
+        </article>
+        <article class="rounded-2xl bg-white border border-ink-900/6 p-6 card">
+          <div class="h-10 w-10 rounded-xl bg-ink-900/10 text-ink-700 flex items-center justify-center font-bold text-sm mb-4">B</div>
+          <h3 class="font-bold text-ink-950 mb-2">Business owners</h3>
+          <p class="text-sm text-ink-600 leading-relaxed"><strong>Dashboard</strong>, <strong>calendar</strong> &amp; <strong>availability</strong>, <strong>services</strong> &amp; <strong>shop profile</strong>, <strong>photos</strong>, <strong>bookings</strong> &amp; <strong>customers</strong>, <strong>messages</strong>, <strong>reviews</strong>, <strong>verification / claims</strong>, <strong>AI settings</strong>, and <strong>owner support</strong>.</p>
+        </article>
+      </div>
+      <article class="mt-5 rounded-2xl bg-ink-950 text-slate-300 p-6 md:p-8 card">
+        <div class="flex items-start gap-4">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 font-bold text-white text-sm">Ops</span>
+          <div>
+            <h3 class="font-bold text-white mb-2">Platform administrators</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">Separate admin area: <strong>shops</strong> &amp; <strong>verified shops</strong>, <strong>shop claims</strong>, <strong>users</strong>, <strong>bookings</strong>, <strong>disputes</strong>, <strong>reviews</strong>, <strong>analytics</strong>, <strong>notifications</strong>, and <strong>support</strong>—so the marketplace stays trustworthy at scale.</p>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Customer web journey -->
+    <section class="mb-16 md:mb-20">
+      <h2 class="text-xl font-bold text-ink-950 mb-2">Customer journey on the website</h2>
+      <p class="text-ink-600 text-sm mb-8 max-w-2xl">From first visit to a confirmed reservation—typical paths built into the app.</p>
+      <div class="space-y-4">
+        <div class="flex gap-4 items-start rounded-2xl bg-white border border-ink-900/6 p-5 card">
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sea-500 text-white text-xs font-bold">1</span>
+          <div>
+            <h3 class="font-semibold text-ink-950">Discover</h3>
+            <p class="text-sm text-ink-600 mt-1">Marketing <strong>landing</strong> (hero, categories, reviews, LINE QR). <strong>Browse</strong> by area (region / prefecture / city), <strong>categories</strong>, <strong>featured</strong> &amp; <strong>trending</strong> shops, shop lists and detail pages—including maps where relevant.</p>
+          </div>
+        </div>
+        <div class="flex gap-4 items-start rounded-2xl bg-white border border-ink-900/6 p-5 card">
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sea-500 text-white text-xs font-bold">2</span>
+          <div>
+            <h3 class="font-semibold text-ink-950">Choose &amp; book</h3>
+            <p class="text-sm text-ink-600 mt-1">Pick services and time; <strong>guest booking</strong> flows for people who don’t want to sign up. Optional paths: <strong>reschedule</strong> flows where the product supports them.</p>
+          </div>
+        </div>
+        <div class="flex gap-4 items-start rounded-2xl bg-white border border-ink-900/6 p-5 card">
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sea-500 text-white text-xs font-bold">3</span>
+          <div>
+            <h3 class="font-semibold text-ink-950">Confirm &amp; show up</h3>
+            <p class="text-sm text-ink-600 mt-1">The booking is confirmed in the app. Customers track <strong>guest bookings</strong>, manage <strong>reschedules</strong> where supported, and can leave <strong>reviews</strong> after the visit.</p>
+          </div>
+        </div>
+        <div class="flex gap-4 items-start rounded-2xl bg-white border border-amber-200/80 bg-amber-50/30 p-5 card">
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white text-xs font-bold">+</span>
+          <div>
+            <h3 class="font-semibold text-ink-950">Alternate entry: shop number</h3>
+            <p class="text-sm text-ink-600 mt-1">Owners get a short <strong>shop number</strong> (and verification code) for posters. Customers type the number on web or in LINE to jump straight to that shop—one of several ways to arrive, alongside browse and search.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Owner + stack -->
+    <section class="grid lg:grid-cols-2 gap-8 mb-16">
+      <div class="rounded-2xl bg-white border border-ink-900/6 p-6 md:p-8 card">
+        <h2 class="text-xl font-bold text-ink-950 mb-4">What owners run day to day</h2>
+        <ul class="text-sm text-ink-600 space-y-3">
+          <li class="flex gap-2"><span class="text-sea-600 font-bold">·</span> <span><strong>Operations:</strong> live calendar, availability rules, incoming bookings, customer list.</span></li>
+          <li class="flex gap-2"><span class="text-sea-600 font-bold">·</span> <span><strong>Catalog:</strong> services, durations, gallery photos, public shop profile.</span></li>
+          <li class="flex gap-2"><span class="text-sea-600 font-bold">·</span> <span><strong>Growth &amp; trust:</strong> reviews, verification, claiming a listing.</span></li>
+          <li class="flex gap-2"><span class="text-sea-600 font-bold">·</span> <span><strong>Communication:</strong> messaging with customers; AI-related settings where enabled.</span></li>
+        </ul>
+      </div>
+      <div class="rounded-2xl bg-ink-950 text-slate-300 p-6 md:p-8 card">
+        <h2 class="text-lg font-bold text-white mb-4">How it’s built</h2>
+        <ul class="text-sm space-y-3 text-slate-400">
+          <li><span class="text-sea-400 font-mono text-xs mr-2">WEB</span> <strong class="text-slate-200">Next.js</strong> (App Router), <strong class="text-slate-200">TypeScript</strong>, <strong class="text-slate-200">Tailwind</strong>, <strong class="text-slate-200">next-intl</strong> for multiple languages on the customer-facing site.</li>
+          <li><span class="text-sea-400 font-mono text-xs mr-2">DATA</span> <strong class="text-slate-200">Supabase</strong> (Postgres, auth patterns, RLS-oriented design) plus SQL <strong class="text-slate-200">migrations</strong> for schema evolution.</li>
+          <li><span class="text-sea-400 font-mono text-xs mr-2">API</span> <strong class="text-slate-200">Node</strong> backend for shops, bookings, LINE-related behavior, and other domain logic.</li>
+          <li><span class="text-sea-400 font-mono text-xs mr-2">LINE</span> <strong class="text-slate-200">LIFF / LINE</strong> surfaces so the product lives inside Japan’s dominant chat app.</li>
+        </ul>
+      </div>
+    </section>
+
+    <p class="text-center text-sm text-ink-500 pb-4 max-w-xl mx-auto">This page is a static overview companion to the live product at <a href="https://www.yoyakuyo.jp/" class="text-sea-600 font-semibold hover:underline" target="_blank" rel="noopener noreferrer">https://www.yoyakuyo.jp/</a>.</p>
+  </main>
+
+  <footer class="border-t border-ink-900/5 bg-white py-8 text-center px-5">
+    <p class="text-sm text-ink-600"><a href="https://www.yoyakuyo.jp/" class="text-sea-600 font-semibold hover:underline" target="_blank" rel="noopener noreferrer">https://www.yoyakuyo.jp/</a></p>
+    <p class="text-xs text-ink-400 mt-2">YoyakuYo / Bookyo — portfolio overview</p>
+  </footer>
+</body>
+</html>

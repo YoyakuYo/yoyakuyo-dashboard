@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -8,11 +9,18 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 export default function DownloadAppButton() {
+  const pathname = usePathname();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
+    // LINE mini-app runs inside WebView — hide PWA “Download” on those routes only
+    if (pathname?.startsWith("/line-app")) {
+      setVisible(false);
+      return;
+    }
+
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
@@ -28,7 +36,7 @@ export default function DownloadAppButton() {
     };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+  }, [pathname]);
 
   const handleClick = async () => {
     if (deferredPrompt) {
@@ -42,7 +50,7 @@ export default function DownloadAppButton() {
     }
   };
 
-  if (!visible) return null;
+  if (pathname?.startsWith("/line-app") || !visible) return null;
 
   return (
     <button

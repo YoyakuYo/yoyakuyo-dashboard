@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Freelance application — AI-assisted development</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"DM Sans"', 'system-ui', 'sans-serif'] },
+          colors: {
+            ink: { 950: '#0c1222', 700: '#3d4a63', 500: '#64748b' },
+            sea: { 600: '#0d9488', 500: '#14b8a6' },
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); }
+    .q { border-left: 4px solid #14b8a6; }
+    @media print {
+      html {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      body,
+      body * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  </style>
+</head>
+<body class="font-sans text-ink-950 antialiased pb-16">
+  <header class="bg-white/90 border-b border-slate-200/80 backdrop-blur sticky top-0 z-10">
+    <div class="max-w-3xl mx-auto px-5 py-5">
+      <p class="text-sea-600 text-xs font-semibold uppercase tracking-wider">Freelance platform — application text</p>
+      <h1 class="text-2xl font-bold text-ink-950 mt-1">Additional details &amp; cover letter</h1>
+      <p class="text-sm text-ink-500 mt-2">Draft answers · copy sections into the form as needed</p>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-5 py-10 space-y-12">
+
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 md:p-8">
+      <h2 class="text-lg font-bold text-ink-950 mb-4 q pl-4 -ml-1">Cover letter</h2>
+      <div class="text-ink-700 text-sm md:text-base leading-relaxed space-y-4 pl-4 border-l border-slate-100">
+        <p>I’m a full-stack developer who ships end-to-end products with heavy use of AI-assisted coding. My main recent work is <strong>YoyakuYo (Bookyo)</strong>—a booking marketplace for salons and local services: a Next.js + Tailwind customer site (browse, categories, guest booking, reviews), a LINE mini-app for the same flows on mobile, an owner back-office (calendar, services, bookings, messaging, verification), and an admin area for shops, claims, and operations. The stack is TypeScript, Supabase/Postgres, and a Node API.</p>
+        <p>I’m comfortable owning features from database migrations through API and UI. I use AI to move faster on boilerplate and exploration, but I rely on types, linting, migrations, and targeted tests so the result stays maintainable. I’m looking for freelance engagements where I can deliver similar full-stack slices with clear communication and predictable quality.</p>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 md:p-8">
+      <h2 class="text-lg font-bold text-ink-950 mb-4 q pl-4 -ml-1">Project built primarily with AI (Node + Tailwind at meaningful scale)</h2>
+      <div class="text-ink-700 text-sm md:text-base leading-relaxed space-y-4 pl-4">
+        <p><strong>YoyakuYo / Bookyo</strong> is the largest project I’ve built with AI assistance. The web layer is <strong>Next.js 14</strong> with <strong>Tailwind CSS</strong> and <strong>next-intl</strong> across dozens of routes: marketing landing, browse by region/category, shop pages, guest booking, owner dashboard, and admin tools. The backend is a <strong>Node</strong> service exposing REST-style APIs for shops, bookings, and LINE-related behavior, backed by <strong>Supabase (Postgres)</strong> with versioned SQL migrations.</p>
+        <p>One example of a full vertical slice: <strong>shop numbers</strong>—assigning each owner shop a short numeric ID (1–5000) via Postgres triggers and sequences, backfill migrations, API lookup by <code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded">shop_number</code>, search on the public site and in LINE, and display on the owner dashboard alongside verification codes. That pattern (schema → API → multiple clients) repeats across the platform.</p>
+        <p>I work in the same ecosystem as Astro (React, SSR, component-driven UIs); this product is Next.js rather than Astro, but the scale of Tailwind + TypeScript + Node is comparable.</p>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 md:p-8">
+      <h2 class="text-lg font-bold text-ink-950 mb-4 q pl-4 -ml-1">Unit testing in AI-first workflows</h2>
+      <div class="text-ink-700 text-sm md:text-base leading-relaxed space-y-4 pl-4">
+        <p>I don’t aim for AI to generate a test for every line. I focus tests on <strong>high-risk logic</strong>: pure functions, API handlers, and filters where bugs hurt users or data (e.g. multilingual shop matching, intent parsing, notification payloads in our Node API).</p>
+        <p><strong>Coverage:</strong> TypeScript strict checking and ESLint run on every meaningful change; that catches a large class of regressions AI introduces. <strong>Regressions:</strong> when fixing a bug, I add a test that would have failed before, or extend an existing suite. For schema changes, migrations are reviewed like code—rollback path and idempotency matter more than line coverage on UI.</p>
+        <p><strong>Workflow:</strong> after AI-generated changes, I run build/typecheck and manually smoke critical paths (booking flow, shop lookup). Tests plus types are the safety net when refactoring AI-written code.</p>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 md:p-8">
+      <h2 class="text-lg font-bold text-ink-950 mb-4 q pl-4 -ml-1">Subagents, MCP, orchestration</h2>
+      <div class="text-ink-700 text-sm md:text-base leading-relaxed space-y-4 pl-4">
+        <p>I use <strong>multi-step orchestration</strong> in the editor: read-only exploration of large repos in separate passes, then implementation in a focused thread with explicit goals. <strong>Subagents</strong> are useful for “find every usage of X” or mapping a folder structure without polluting the main context.</p>
+        <p>Where <strong>MCP</strong> or similar integrations exist (docs, database, browser), I use them to ground answers in real schema and APIs instead of hallucinated field names. The pattern is: narrow task → verify with search or tool output → commit-sized change → verify build.</p>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 md:p-8">
+      <h2 class="text-lg font-bold text-ink-950 mb-4 q pl-4 -ml-1">AI models &amp; editors</h2>
+      <div class="text-ink-700 text-sm md:text-base leading-relaxed pl-4">
+        <p><strong>Editor:</strong> Cursor as the primary IDE. <strong>Models:</strong> I switch by task—stronger models for architecture, migrations, and debugging; faster models for repetitive edits and renames. I’m model-agnostic and choose based on context length, cost, and whether the task needs deep reasoning.</p>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 md:p-8">
+      <h2 class="text-lg font-bold text-ink-950 mb-4 q pl-4 -ml-1">Quality control &amp; architecture when AI writes most code</h2>
+      <div class="text-ink-700 text-sm md:text-base leading-relaxed space-y-4 pl-4">
+        <p><strong>Single sources of truth:</strong> Postgres migrations for schema; shared types or API contracts so frontend and backend agree. <strong>Conventions:</strong> App Router layout patterns, consistent naming, i18n keys instead of scattered literals for user-facing copy.</p>
+        <p><strong>Gates:</strong> <code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded">tsc</code>, lint, and build before considering a task done. <strong>Human review</strong> on auth, migrations, and anything that touches many files. <strong>Scope:</strong> I prefer vertical slices (one feature end-to-end) over huge AI-generated dumps that are hard to review.</p>
+      </div>
+    </section>
+
+    <section class="rounded-2xl bg-ink-950 text-slate-300 p-6 md:p-8">
+      <h2 class="text-lg font-bold text-white mb-4">Sample of what we built (static)</h2>
+      <p class="text-sm text-slate-400 mb-6">Same stack vibe as the product: Tailwind, clear hierarchy. Open <code class="text-sea-400">sample-bookyo-shop-number.html</code> in this repo for the full platform overview page.</p>
+      <div class="rounded-xl bg-white/5 border border-white/10 p-5">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p class="text-white font-semibold">YoyakuYo</p>
+            <p class="text-xs text-slate-500 mt-1">Guest booking · LINE · Owner tools</p>
+          </div>
+          <div class="flex gap-2">
+            <span class="text-xs px-2 py-1 rounded-md bg-sea-500/20 text-sea-400">Next.js</span>
+            <span class="text-xs px-2 py-1 rounded-md bg-white/10 text-slate-300">Tailwind</span>
+            <span class="text-xs px-2 py-1 rounded-md bg-white/10 text-slate-300">Node</span>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-white/10 grid sm:grid-cols-3 gap-3 text-xs">
+          <div><span class="text-sea-400">Customers</span><br/><span class="text-slate-500">Browse · Book · Reviews</span></div>
+          <div><span class="text-sea-400">Owners</span><br/><span class="text-slate-500">Calendar · Services · Messages</span></div>
+          <div><span class="text-sea-400">Admin</span><br/><span class="text-slate-500">Shops · Claims · Bookings</span></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="text-center text-xs text-ink-500 px-5">
+    Private draft — tailor names and claims to your experience before submitting.
+  </footer>
+</body>
+</html>
