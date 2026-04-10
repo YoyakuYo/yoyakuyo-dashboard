@@ -66,7 +66,7 @@ BEGIN
         type,
         title,
         body,
-        metadata
+        data
       )
       VALUES (
         'owner',

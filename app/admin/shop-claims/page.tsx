@@ -152,8 +152,8 @@ export default function AdminShopClaimsPage() {
       });
 
       if (res.ok) {
-        // Refresh the list
         await fetchPendingClaims();
+        await fetchShopsPendingVerification();
         alert('Claim approved successfully. Shop has been assigned to the owner.');
       } else {
         const errorData = await res.json();
@@ -188,8 +188,8 @@ export default function AdminShopClaimsPage() {
       });
 
       if (res.ok) {
-        // Refresh the list
         await fetchPendingClaims();
+        await fetchShopsPendingVerification();
         alert('Claim rejected.');
       } else {
         const errorData = await res.json();

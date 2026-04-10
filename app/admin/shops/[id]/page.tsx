@@ -217,7 +217,8 @@ export default function AdminShopDetailPage() {
       });
 
       if (response.ok) {
-        setShop({ ...shop, is_verified: true });
+        const updated = await response.json();
+        setShop({ ...shop, ...updated });
         alert(t("admin.shopVerified"));
       } else {
         const error = await response.json();
